@@ -95,7 +95,7 @@ def convert_spins(
     thetaJ_sf = jnp.arccos(J0z_sf / J0)
 
     no_inplane_J0 = jnp.abs(J0x_sf) < MAX_TOL_ATAN and jnp.abs(J0y_sf) < MAX_TOL_ATAN
-    phiJ_sf = jax.where(
+    phiJ_sf = jnp.where(
         no_inplane_J0,
         jnp.pi / 2.0 - phiRef,  # This is the aligned-spin case
         jnp.arctan2(J0y_sf, J0x_sf),
