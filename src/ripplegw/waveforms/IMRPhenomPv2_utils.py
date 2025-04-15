@@ -94,7 +94,7 @@ def convert_spins(
 
     thetaJ_sf = jnp.arccos(J0z_sf / J0)
 
-    no_inplane_J0 = jnp.abs(J0x_sf) < MAX_TOL_ATAN and jnp.abs(J0y_sf) < MAX_TOL_ATAN
+    no_inplane_J0 = (jnp.abs(J0x_sf) < MAX_TOL_ATAN) & (jnp.abs(J0y_sf) < MAX_TOL_ATAN)
     phiJ_sf = jnp.where(
         no_inplane_J0,
         jnp.pi / 2.0 - phiRef,  # This is the aligned-spin case
@@ -124,7 +124,7 @@ def convert_spins(
     tmp_x, tmp_y, tmp_z = ROTATEY(-thetaJ_sf, tmp_x, tmp_y, tmp_z)
     tmp_x, tmp_y, tmp_z = ROTATEZ(kappa, tmp_x, tmp_y, tmp_z)
 
-    no_inplane_LN = jnp.abs(tmp_x) < MAX_TOL_ATAN and jnp.abs(tmp_y) < MAX_TOL_ATAN
+    no_inplane_LN = (jnp.abs(tmp_x) < MAX_TOL_ATAN) & (jnp.abs(tmp_y) < MAX_TOL_ATAN)
     alpha0 = jnp.where(
         no_inplane_LN,
         jnp.pi,  # This is the aligned-spin case
