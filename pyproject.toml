@@ -35,3 +35,11 @@ build-backend = "hatchling.build"
 
 [tool.uv.sources]
 ripplegw = { workspace = true }
+
+[tool.pyright]
+include = ["src"]
+exclude = ["test", "docs"]
+
+[tool.ruff]
+include = ["src"]
+exclude = ["test", "docs"]
