@@ -68,9 +68,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, phase_coeffs: Array) -> Array:
             )
         )
         / 16.0
-    ) * PI ** (
-        4.0 / 3.0
-    )
+    ) * PI ** (4.0 / 3.0)
     phi5 = 0.0
     phi5L = ((5.0 * (46374.0 - 6552.0 * eta) * PI) / 4536.0) * PI ** (5.0 / 3.0) + (
         (
@@ -542,7 +540,7 @@ def get_intermediate_raw_phase(
         - b2 * (fM_s**-1.0)
         - b3 * (fM_s**-2.0) / 2.0
         - (b4 * (fM_s**-3.0) / 3.0)
-        + (2.0 * cL * jnp.arctan(((fM_s - fMs_RD)) / (2.0 * fMs_damp))) / fMs_damp
+        + (2.0 * cL * jnp.arctan((fM_s - fMs_RD) / (2.0 * fMs_damp))) / fMs_damp
     )
 
 
