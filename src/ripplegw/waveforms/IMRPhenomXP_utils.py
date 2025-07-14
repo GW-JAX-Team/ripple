@@ -377,7 +377,7 @@ def phP_get_fRD_fdamp(m1, m2, chi1_l, chi2_l, chip):
 
 
 def phP_get_transition_frequencies(
-    theta: Array,
+    theta: jnp.array,
     gamma2: float,
     gamma3: float,
     chip: float,
@@ -618,8 +618,8 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
     sqrt_nc = jnp.sqrt(jnp.abs(nc))
     sqrt_nd = jnp.sqrt(jnp.abs(nd))
 
-    psi = IMRPhenomX_Return_Psi_MSA(v, v2, pPrec) + pPrec["psi0"]  ## (TODO)
-    psi_dot = IMRPhenomX_Return_Psi_dot_MSA(v, pPrec)  ## (TODO)
+    psi = IMRPhenomX_Return_Psi_MSA(v, v2, pPrec) + pPrec["psi0"]  
+    psi_dot = IMRPhenomX_Return_Psi_dot_MSA(v, pPrec) 
 
     tan_psi = jnp.tan(psi)
     atan_psi = jnp.arctan(tan_psi)
@@ -681,7 +681,7 @@ def IMRPhenomX_L_norm_3PN_of_v(v: float, v2: float, L_norm: float, pPrec) -> flo
     )
     
 def IMRPhenomX_Return_Roots_MSA(LNorm, JNorm, pPrec):
-    vBCD = IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(LNorm, JNorm, pPrec)  ## TODO
+    vBCD = IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(LNorm, JNorm, pPrec)  
     B, C, D = vBCD[0], vBCD[1], vBCD[2]
 
     B2 = B * B
@@ -798,3 +798,41 @@ def IMRPhenomX_Return_Psi_dot_MSA(v, pPrec):
     psi_dot = 0.5 * A_coeff * jnp.sqrt(pPrec['Spl2'] - pPrec['S32'])
 
     return psi_dot
+
+def IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(LNorm, JNorm, pPrec):
+    JNorm2 = JNorm * JNorm
+    LNorm2 = LNorm * LNorm
+
+    S1Norm2 = pPrec['S1_norm_2']
+    S2Norm2 = pPrec['S2_norm_2']
+    q       = pPrec['qq']
+    eta     = pPrec['eta']
+    delta   = pPrec['delta_qq']
+    deltaSq = delta * delta
+    Seff    = pPrec['Seff']
+
+    J2mL2   = JNorm2 - LNorm2
+    J2mL2Sq = J2mL2 * J2mL2
+
+    # B coefficient (Eq. B2)
+    B_coeff = ((LNorm2 + S1Norm2) * q +
+               2.0 * LNorm * Seff -
+               2.0 * JNorm2 -
+               S1Norm2 - S2Norm2 +
+               (LNorm2 + S2Norm2) / q)
+
+    # C coefficient (Eq. B3)
+    C_coeff = (J2mL2Sq -
+               2.0 * LNorm * Seff * J2mL2 -
+               2.0 * ((1.0 - q) / q) * LNorm2 * (S1Norm2 - q * S2Norm2) +
+               4.0 * eta * LNorm2 * Seff * Seff -
+               2.0 * delta * (S1Norm2 - S2Norm2) * Seff * LNorm +
+               2.0 * ((1.0 - q) / q) * (q * S1Norm2 - S2Norm2) * JNorm2)
+
+    # D coefficient (Eq. B4)
+    D_coeff = (((1.0 - q) / q) * (S2Norm2 - q * S1Norm2) * J2mL2Sq +
+               deltaSq * (S1Norm2 - S2Norm2)**2 * LNorm2 / eta +
+               2.0 * delta * LNorm * Seff * (S1Norm2 - S2Norm2) * J2mL2)
+
+    return jnp.array([B_coeff, C_coeff, D_coeff])
+
