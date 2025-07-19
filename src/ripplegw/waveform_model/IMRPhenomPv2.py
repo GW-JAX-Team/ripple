@@ -8,26 +8,25 @@ from .IMRPhenomD import Phase as PhDPhase
 from .IMRPhenomD import Amp as PhDAmp
 from .IMRPhenomD_utils import get_coeffs
 
-from ..typing import Array
+from jaxtyping import Array, Float
+from typing import Callable
 from .IMRPhenomPv2_utils import *
 from .IMRPhenomD_utils import *
 
 
 def PhenomPCoreTwistUp(
-    fHz,
-    hPhenom,
-    # phase,
-    # Amp,
-    eta,
-    chi1_l,
-    chi2_l,
-    chip,
-    M,
-    angcoeffs,
-    Y2m,
-    alphaoffset,
-    epsilonoffset,
-):
+    fHz: Float[Array, "..."],
+    hPhenom: Float[Array, "..."],
+    eta: Float,
+    chi1_l: Float,
+    chi2_l: Float,
+    chip: Float,
+    M: Float,
+    angcoeffs: dict,
+    Y2m: list,
+    alphaoffset: Float,
+    epsilonoffset: Float,
+) -> tuple[Float[Array, "..."], Float[Array, "..."]]:
     assert angcoeffs is not None
     assert Y2m is not None
 
@@ -116,8 +115,18 @@ def PhenomPCoreTwistUp(
 
 
 def PhenomPOneFrequency(
-    fs, m1, m2, chi1, chi2, chip, phic, M, dist_mpc, coeffs, transition_freqs
-):
+    fs: Float[Array, "..."],
+    m1: Float,
+    m2: Float,
+    chi1: Float,
+    chi2: Float,
+    chip: Float,
+    phic: Float,
+    M: Float,
+    dist_mpc: Float,
+    coeffs: Float[Array, "19"],
+    transition_freqs: Float[Array, "6"],
+) -> tuple[Float[Array, "..."], Callable]:
     """
     m1, m2: in solar masses
     phic: Orbital phase at the peak of the underlying non precessing model (rad)
@@ -141,10 +150,10 @@ def PhenomPOneFrequency(
 
 
 def gen_IMRPhenomPv2(
-    fs: Array,
-    theta: Array,
-    f_ref: float,
-):
+    fs: Float[Array, "..."],
+    theta: Float[Array, "12"],
+    f_ref: Float,
+) -> tuple[Float[Array, "..."], Float[Array, "..."]]:
     """
     Thetas are waveform parameters.
     m1 must be larger than m2.
@@ -256,7 +265,11 @@ def gen_IMRPhenomPv2(
     return final_hp, final_hc
 
 
-def gen_IMRPhenomPv2_hphc(f: Array, params: Array, f_ref: float):
+def gen_IMRPhenomPv2_hphc(
+    f: Float[Array, "..."],
+    params: Float[Array, "12"],
+    f_ref: Float,
+) -> tuple[Float[Array, "..."], Float[Array, "..."]]:
     """
     wrapper around gen_Pph but the first two parameters are Mc and eta
     instead of m1 and m2
