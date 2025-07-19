@@ -6,7 +6,7 @@ import jax
 import jax.numpy as jnp
 from ..constants import gt, m_per_Mpc, PI, TWO_PI, MRSUN
 from jaxtyping import Array, Float, PyTree
-from ripplegw import Mc_eta_to_ms, lambda_tildes_to_lambdas
+from ripplegw.util import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from .IMRPhenom_tidal_utils import get_quadparam_octparam, get_kappa
 from ripplegw.waveforms.IMRPhenomD import Phase, Amp, get_IIb_raw_phase
 from ripplegw.waveforms.WaveformModel import WaveformModel, Polarization

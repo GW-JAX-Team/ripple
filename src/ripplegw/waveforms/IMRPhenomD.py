@@ -15,7 +15,7 @@ from .IMRPhenomD_utils import (
 from .IMRPhenomD_QNMdata import fM_CUT
 from ..constants import EulerGamma, gt, m_per_Mpc, C, PI
 from jaxtyping import Array, Float, PyTree
-from ripplegw import Mc_eta_to_ms
+from ripplegw.util import Mc_eta_to_ms
 from ripplegw.waveforms.WaveformModel import WaveformModel, Polarization
 
 class IMRPhenomD(WaveformModel):
