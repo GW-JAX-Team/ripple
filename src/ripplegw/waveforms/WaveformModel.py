@@ -1,7 +1,14 @@
 from abc import ABC, abstractmethod
 
 from jaxtyping import Array, Float, PyTree
-
+from enum import Enum
+class Polarization(Enum):
+    P = "p"
+    C = "c"
+    X = "x"
+    Y = "y"
+    B = "b"
+    L = "l"
 
 class WaveformModel(ABC):
 
@@ -10,7 +17,7 @@ class WaveformModel(ABC):
     def __init__(self) -> None:
         pass
 
-    def __call__(self, sample_points: Float[Array, " n_sample"], source_parameters: Float[Array, " n_params"], config_parameters: PyTree) -> Float[Array, "2 n_sample"]:
+    def __call__(self, sample_points: Float[Array, " n_sample"], source_parameters: Float[Array, " n_params"], config_parameters: PyTree)  -> dict[Polarization, Float[Array, " n_sample"]]:
         """ Wrapper function on top of self.full_model using default model_parameters.
         
         Args:
@@ -19,12 +26,12 @@ class WaveformModel(ABC):
             config_parameters (PyTree): Configuration parameters for the model. This includes parameters such as the reference frequency.
         
         Returns:
-            Float[Array, "2 n_sample"]: The model output, typically a complex array representing the waveform in frequency or time domain. It assumes the first part of the array being the plus polarization and the second part being the cross polarization.    
+            dict[Polarization, Float[Array, " n_sample"]]: A dictionary containing the model outputs evaluated at the sample points. The keys of the dictionary are the names of the polarizations, and the values are the corresponding waveforms evaluated at the sample points.
         """
         return self.full_model(sample_points, source_parameters, config_parameters, self.model_parameters) 
         
     @abstractmethod
-    def full_model(self, sample_points: Float[Array, " n_sample"],      source_parameters: Float[Array, " n_params"], config_parameters: PyTree, model_parameters: PyTree) -> Float[Array, "2 n_sample"]:
+    def full_model(self, sample_points: Float[Array, " n_sample"],      source_parameters: Float[Array, " n_params"], config_parameters: PyTree, model_parameters: PyTree) -> dict[Polarization, Float[Array, " n_sample"]]:
         """ The full model definition. This includes the model parameters such that one can leverage jax transfomation over that axis as well.
                 
         Args:
@@ -34,6 +41,6 @@ class WaveformModel(ABC):
             model_parameters (PyTree): Model parameters that can be optimized or transformed. This should be parameters unique to this model.
 
         Returns:
-            Float[Array, "2 n_sample"]: The model output, typically a complex array representing the waveform in frequency or time domain. It assumes the first part of the array being the plus polarization and the second part being the cross polarization.
+            dict[Polarization, Float[Array, " n_sample"]]: A dictionary containing the model outputs evaluated at the sample points. The keys of the dictionary are the names of the polarizations, and the values are the corresponding waveforms evaluated at the sample points.
         """
         raise NotImplementedError
