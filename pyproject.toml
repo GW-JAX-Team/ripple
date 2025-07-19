@@ -21,6 +21,7 @@ license = {text = "MIT"}
 dev = [
     "ipykernel>=6.29.5",
     "ipython>=9.3.0",
+    "pytest>=8.4.1",
     "ruff>=0.11.13",
 ]
 
