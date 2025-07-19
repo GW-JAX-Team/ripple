@@ -4,7 +4,7 @@ import jax.numpy as jnp
 from ..constants import EulerGamma, gt, m_per_Mpc, C, PI
 from ripplegw.waveforms import IMRPhenomX_utils
 from jaxtyping import Array, Float, PyTree
-from ripplegw.util import Mc_eta_to_ms
+from ripplegw.utils import Mc_eta_to_ms
 from ripplegw.waveforms.WaveformModel import WaveformModel, Polarization
 
 
