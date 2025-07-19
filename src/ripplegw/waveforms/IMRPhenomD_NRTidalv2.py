@@ -27,7 +27,7 @@ class IMRPhenomD_NRTidalv2(WaveformModel):
     
     def __init__(self):
         # TODO: Include default model parameters here
-        pass
+        self.model_parameters = {}
 
 
     def full_model(self, sample_points: Float[Array, " n_sample"], source_parameters: Float[Array, " n_params"], config_parameters: PyTree, model_parameters: PyTree) -> dict[Polarization, Float[Array, " n_sample"]]:
