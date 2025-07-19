@@ -3,15 +3,38 @@ import jax
 import jax.numpy as jnp
 from ..constants import EulerGamma, gt, m_per_Mpc, C, PI
 from ripplegw.waveforms import IMRPhenomX_utils
-from jaxtyping import Array, Float
-
+from jaxtyping import Array, Float, PyTree
 from ripplegw import Mc_eta_to_ms
+from ripplegw.waveforms.WaveformModel import WaveformModel, Polarization
+
 
 eqspin_indx = 10
 uneqspin_indx = 39
 
 amp_eqspin_indx = 8
 amp_uneqspin_indx = 36
+
+class IMRPhenomXAS(WaveformModel):
+    """Wrapper class for IMRPhenomXAS waveform model.
+    """
+    
+    def __init__(self):
+        # TODO: Include default model parameters here
+        pass
+
+
+    def full_model(self, sample_points: Float[Array, " n_sample"], source_parameters: Float[Array, " n_params"], config_parameters: PyTree, model_parameters: PyTree) -> dict[Polarization, Float[Array, " n_sample"]]:
+        # TODO: Expose model parameters
+        f_ref = config_parameters['f_ref']
+        hp, hc = gen_IMRPhenomXAS_hphc(
+            sample_points,
+            source_parameters,
+            f_ref,
+        )
+        return {
+            Polarization.P: hp,
+            Polarization.C: hc,
+        }
 
 
 def get_inspiral_phase(
