@@ -3,7 +3,7 @@ import jax
 import jax.numpy as jnp
 from ..constants import EulerGamma, gt, m_per_Mpc, C, PI
 from ripplegw.waveforms import IMRPhenomX_utils
-from ..typing import Array
+from jaxtyping import Array, Float
 
 from ripplegw import Mc_eta_to_ms
 
@@ -14,7 +14,9 @@ amp_eqspin_indx = 8
 amp_uneqspin_indx = 36
 
 
-def get_inspiral_phase(fM_s: Array, theta: Array, phase_coeffs: Array) -> Array:
+def get_inspiral_phase(
+    fM_s: Float[Array, "..."], theta: Float[Array, "4"], phase_coeffs: Float[Array, "..."]
+) -> Float[Array, "..."]:
     """
     Calculate the inspiral phase for the IMRPhenomD waveform.
     """
@@ -333,8 +335,9 @@ def get_inspiral_phase(fM_s: Array, theta: Array, phase_coeffs: Array) -> Array:
 
 
 def get_intermediate_raw_phase(
-    fM_s: Array, theta: Array, phase_coeffs: Array, dPhaseIN, dPhaseRD, cL
-) -> Array:
+    fM_s: Float[Array, "..."], theta: Float[Array, "4"], phase_coeffs: Float[Array, "..."],
+    dPhaseIN: Float, dPhaseRD: Float, cL: Float
+) -> Float[Array, "..."]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -545,8 +548,8 @@ def get_intermediate_raw_phase(
 
 
 def get_mergerringdown_raw_phase(
-    fM_s: Array, theta: Array, phase_coeffs: Array
-) -> Array:
+    fM_s: Float[Array, "..."], theta: Float[Array, "4"], phase_coeffs: Float[Array, "..."]
+) -> tuple[Float[Array, "..."], tuple[Float, Float]]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -718,7 +721,9 @@ def get_mergerringdown_raw_phase(
 
 
 # @jax.jit
-def Phase(f: Array, theta: Array, phase_coeffs: Array) -> Array:
+def Phase(
+    f: Float[Array, "..."], theta: Float[Array, "4"], phase_coeffs: Float[Array, "..."]
+) -> Float[Array, "..."]:
     """
     Computes the phase of the PhenomD waveform following 1508.07253.
     Sets time and phase of coealence to be zero.
@@ -795,14 +800,16 @@ def Phase(f: Array, theta: Array, phase_coeffs: Array) -> Array:
     return phase
 
 
-def get_Amp0(fM_s: Array, eta: float) -> Array:
+def get_Amp0(fM_s: Float[Array, "..."], eta: float) -> Float[Array, "..."]:
     Amp0 = (
         (2.0 / 3.0 * eta) ** (1.0 / 2.0) * (fM_s) ** (-7.0 / 6.0) * PI ** (-1.0 / 6.0)
     )
     return Amp0
 
 
-def get_inspiral_Amp(fM_s: Array, theta: Array, amp_coeffs: Array) -> Array:
+def get_inspiral_Amp(
+    fM_s: Float[Array, "..."], theta: Float[Array, "4"], amp_coeffs: Float[Array, "..."]
+) -> Float[Array, "..."]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -1008,8 +1015,8 @@ def get_inspiral_Amp(fM_s: Array, theta: Array, amp_coeffs: Array) -> Array:
 
 
 def get_intermediate_Amp(
-    fM_s: Array, theta: Array, amp_coeffs: Array, fMs_AmpRDMin
-) -> Array:
+    fM_s: Float[Array, "..."], theta: Float[Array, "4"], amp_coeffs: Float[Array, "..."], fMs_AmpRDMin: Float
+) -> Float[Array, "..."]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -1201,10 +1208,10 @@ def get_intermediate_Amp(
 
 
 def get_mergerringdown_Amp(
-    fM_s: Array,
-    theta: Array,
-    amp_coeffs: Array,
-) -> Array:
+    fM_s: Float[Array, "..."],
+    theta: Float[Array, "4"],
+    amp_coeffs: Float[Array, "..."],
+) -> tuple[Float[Array, "..."], Float]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -1279,7 +1286,9 @@ def get_mergerringdown_Amp(
     return Amp_RD, fMs_AmpRDMin
 
 
-def Amp(f: Array, theta: Array, amp_coeffs: Array, D=1.0) -> Array:
+def Amp(
+    f: Float[Array, "..."], theta: Float[Array, "4"], amp_coeffs: Float[Array, "..."], D: float = 1.0
+) -> Float[Array, "..."]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -1316,13 +1325,13 @@ def Amp(f: Array, theta: Array, amp_coeffs: Array, D=1.0) -> Array:
 
 # @jax.jit
 def _gen_IMRPhenomXAS(
-    f: Array,
-    theta_intrinsic: Array,
-    theta_extrinsic: Array,
-    phase_coeffs: Array,
-    amp_coeffs: Array,
+    f: Float[Array, "..."],
+    theta_intrinsic: Float[Array, "4"],
+    theta_extrinsic: Float[Array, "3"],
+    phase_coeffs: Float[Array, "..."],
+    amp_coeffs: Float[Array, "..."],
     f_ref: float,
-):
+) -> Float[Array, "..."]:
     m1, m2, chi1, chi2 = theta_intrinsic
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -1362,7 +1371,9 @@ def _gen_IMRPhenomXAS(
     return h0
 
 
-def gen_IMRPhenomXAS(f: Array, params: Array, f_ref: float):
+def gen_IMRPhenomXAS(
+    f: Float[Array, "..."], params: Float[Array, "7"], f_ref: float
+) -> Float[Array, "..."]:
     """
     Generate PhenomXAS frequency domain waveform following 2001.11412.
     Note that this waveform also assumes that object one is the more massive.
@@ -1393,11 +1404,13 @@ def gen_IMRPhenomXAS(f: Array, params: Array, f_ref: float):
     return h0
 
 
-def gen_IMRPhenomXAS_hphc(f: Array, params: Array, f_ref: float):
+def gen_IMRPhenomXAS_hphc(
+    f: Float[Array, "..."], params: Float[Array, "8"], f_ref: float
+) -> tuple[Float[Array, "..."], Float[Array, "..."]]:
     """
     Generate PhenomXAS frequency domain waveform following 2001.11412.
     vars array contains both intrinsic and extrinsic variables
-    theta = [Mchirp, eta, chi1, chi2, D, tc, phic]
+    theta = [Mchirp, eta, chi1, chi2, D, tc, phic, iota]
     Mchirp: Chirp mass of the system [solar masses]
     eta: Symmetric mass ratio [between 0.0 and 0.25]
     chi1: Dimensionless aligned spin of the primary object [between -1 and 1]
