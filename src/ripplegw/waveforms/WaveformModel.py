@@ -11,6 +11,10 @@ class Polarization(Enum):
     L = "l"
 
 class WaveformModel(ABC):
+    
+    """A base class for waveform models.
+    The purpose of this class is define a common interface for all waveform models.    
+    """
 
     model_parameters: PyTree
     
