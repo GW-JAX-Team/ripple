@@ -8,10 +8,35 @@ from .IMRPhenomD import Phase as PhDPhase
 from .IMRPhenomD import Amp as PhDAmp
 from .IMRPhenomD_utils import get_coeffs
 
-from jaxtyping import Array, Float
+from jaxtyping import Array, Float, PyTree
 from typing import Callable
 from .IMRPhenomPv2_utils import *
 from .IMRPhenomD_utils import *
+from ripplegw.waveforms.WaveformModel import WaveformModel, Polarization
+
+class IMRPhenomPv2(WaveformModel):
+    """
+    Wrapper class for IMRPhenomPv2 waveform model.
+    """
+
+    def __init__(self):
+        # TODO: Include default model parameters here
+        pass
+
+
+    def full_model(self, sample_points: Float[Array, " n_sample"], source_parameters: Float[Array, " n_params"], config_parameters: PyTree, model_parameters: PyTree) -> dict[Polarization, Float[Array, " n_sample"]]:
+        # TODO: Expose model parameters
+        f_ref = config_parameters['f_ref']
+        hp, hc = gen_IMRPhenomPv2_hphc(
+            sample_points,
+            source_parameters,
+            f_ref,
+        )
+        return {
+            Polarization.P: hp,
+            Polarization.C: hc,
+        }
+        
 
 
 def PhenomPCoreTwistUp(
