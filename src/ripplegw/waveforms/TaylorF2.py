@@ -150,8 +150,6 @@ class TaylorF2(WaveformModel):
         # TODO: Include default model parameters here
         self.model_parameters = {}
 
-
-
     def full_model(self, sample_points: Float[Array, " n_sample"], source_parameters: Float[Array, " n_params"], config_parameters: PyTree, model_parameters: PyTree) -> dict[Polarization, Float[Array, " n_sample"]]:
         # TODO: Expose model parameters
         f_ref = config_parameters['f_ref']
