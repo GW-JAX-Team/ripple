@@ -9,9 +9,6 @@ class NRSurHyb3dq8_FD(WaveformModel):
     """
     Wrapper class for NRSurHyb3dq8 waveform model in frequency domain.
     """
-    segment_length: float # Segment length in seconds
-    sampling_rate: int  # Sampling rate in Hz
-    alpha_window = 0.1  # Default alpha window for the surrogate model
 
     def __init__(self, target_frequency: Float[Array, " n_sample"], segment_length: float, sampling_rate: int, alpha_window: float = 0.1):
         self.model_parameters = {}        
