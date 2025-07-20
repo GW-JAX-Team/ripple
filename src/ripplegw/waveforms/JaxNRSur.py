@@ -2,6 +2,8 @@ from jaxnrsur import JaxNRSur
 from jaxnrsur.NRHybSur3dq8 import NRHybSur3dq8Model
 from jaxnrsur.NRSur7dq4 import NRSur7dq4Model
 from ripplegw.waveforms.WaveformModel import WaveformModel, Polarization
+from jaxtyping import Float, Array
+import jax.numpy as jnp
 
 class NRSurHyb3dq8_FD(WaveformModel):
     """
@@ -11,9 +13,10 @@ class NRSurHyb3dq8_FD(WaveformModel):
     sampling_rate: int  # Sampling rate in Hz
     alpha_window = 0.1  # Default alpha window for the surrogate model
 
-    def __init__(self, segment_length: float, sampling_rate: int, alpha_window: float = 0.1):
+    def __init__(self, target_frequency: Float[Array, " n_sample"], segment_length: float, sampling_rate: int, alpha_window: float = 0.1):
         self.model_parameters = {}        
         self.surrogate = JaxNRSur(model=NRHybSur3dq8Model(), segment_length = segment_length, sampling_rate = sampling_rate, alpha_window = alpha_window)
+        self.frequency_index = jnp.isin(self.surrogate.frequency, target_frequency)
 
     def full_model(self, sample_points, source_parameters, config_parameters, model_parameters):
         """
@@ -25,10 +28,10 @@ class NRSurHyb3dq8_FD(WaveformModel):
             - chi_2z: Dimensionless spin of the secondary black hole
         """
         
-        hp, hc = self.surrogate.get_waveform_fd(sample_points, source_parameters)
+        hp, hc = self.surrogate.get_waveform_fd(source_parameters)
         return {
-            Polarization.P: hp,
-            Polarization.C: hc,
+            Polarization.P: hp[self.frequency_index],
+            Polarization.C: hc[self.frequency_index],
         }
 
 
@@ -36,13 +39,11 @@ class NRSur7dq4_FD(WaveformModel):
     """
     Wrapper class for NRSurHyb3dq8 waveform model in frequency domain.
     """
-    segment_length: float # Segment length in seconds
-    sampling_rate: int  # Sampling rate in Hz
-    alpha_window = 0.1  # Default alpha window for the surrogate model
 
-    def __init__(self, segment_length: float, sampling_rate: int, alpha_window: float = 0.1):
+    def __init__(self, target_frequency: Float[Array, " n_sample"], segment_length: float, sampling_rate: int, alpha_window: float = 0.1):
         self.model_parameters = {}        
         self.surrogate = JaxNRSur(model=NRSur7dq4Model(), segment_length = segment_length, sampling_rate = sampling_rate, alpha_window = alpha_window)
+        self.frequency_index = jnp.isin(self.surrogate.frequency, target_frequency)
 
     def full_model(self, sample_points, source_parameters, config_parameters, model_parameters):
         """
@@ -58,8 +59,8 @@ class NRSur7dq4_FD(WaveformModel):
             - chi_2z: Dimensionless spin of the secondary black hole
         """
         
-        hp, hc = self.surrogate.get_waveform_fd(sample_points, source_parameters)
+        hp, hc = self.surrogate.get_waveform_fd(source_parameters)
         return {
-            Polarization.P: hp,
-            Polarization.C: hc,
+            Polarization.P: hp[self.frequency_index],
+            Polarization.C: hc[self.frequency_index],
         }
