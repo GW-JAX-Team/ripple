@@ -32,8 +32,7 @@ def test_imrphenom_pv2():
 def test_imrphenomd_nrtidalv2():
     frequency = jnp.linspace(20, 2048, 1000)
     f_ref = 20.0
-    # [m1, m2, s1z, s2z, dist_mpc, phase_c, iota, Lambda1, Lambda2, tc]
-    params = jnp.array([1.4, 1.3, 0.01, -0.02, 500.0, 0.0, 0.5, 300.0, 400.0, 0.0])
+    params = jnp.array([30.0, 0.249, 0.3, -0.2, 500.0, 0.0, 0.5, 0.0])
     hp, hc = gen_IMRPhenomD_NRTidalv2_hphc(frequency, params, f_ref=f_ref)
     result = IMRPhenomD_NRTidalv2()(frequency, params, {'f_ref': f_ref})
     assert (hp == result[Polarization.P]).all()
@@ -52,47 +51,48 @@ def test_imrphenomxas():
 def test_taylorf2():
     frequency = jnp.linspace(20, 2048, 1000)
     f_ref = 20.0
-    # [m1, m2, s1z, s2z, d_L, phase_c, iota, tc]
-    params = jnp.array([1.4, 1.3, 0.01, -0.02, 500.0, 0.0, 0.5, 0.0])
-    hp, hc = gen_TaylorF2_hphc(frequency, params, f_ref=f_ref)
-    result = TaylorF2()(frequency, params, {'f_ref': f_ref})
+    params = jnp.array([30.0, 0.249, 0.3, -0.2, 500.0, 0.0, 0.5, 0.0])
+    hp, hc = gen_TaylorF2_hphc(frequency, params, f_ref=f_ref, use_lambda_tildes=True)
+    result = TaylorF2()(frequency, params, {'f_ref': f_ref, 'use_lambda_tildes': True})
+    print(hp )
     assert (hp == result[Polarization.P]).all()
     assert (hc == result[Polarization.C]).all()
 
 
 
-# @pytest.mark.parametrize("segment_length,sampling_rate", [
-#     (4.0, 2048),
-#     (8.0, 4096),
-# ])
-# def test_nrsurhyb3dq8_fd_basic(segment_length, sampling_rate):
-#     model = NRSurHyb3dq8_FD(segment_length=segment_length, sampling_rate=sampling_rate)
-#     freqs = jnp.arange(20, 1024, 1.0 / (segment_length))
-#     # M_tot, dist_mpc, q, chi_1z, chi_2z
-#     source_parameters = jnp.array([60.0, 500.0, 2.0, 0.5, -0.3])
-#     config_parameters = {}
-#     model_parameters = {}
+@pytest.mark.parametrize("segment_length,sampling_rate", [
+    (4.0, 2048),
+    (8.0, 4096),
+])
+def test_nrsurhyb3dq8_fd_basic(segment_length, sampling_rate):
+    freqs = jnp.arange(20, 1024, 1.0 / (segment_length))
+    model = NRSurHyb3dq8_FD(freqs, segment_length=segment_length, sampling_rate=sampling_rate)
 
-#     result = model.full_model(freqs, source_parameters, config_parameters, model_parameters)
-#     assert isinstance(result, dict)
-#     assert Polarization.P in result and Polarization.C in result
-#     assert result[Polarization.P].shape == freqs.shape
-#     assert result[Polarization.C].shape == freqs.shape
+    # M_tot, dist_mpc, q, chi_1z, chi_2z
+    source_parameters = jnp.array([60.0, 500.0, 2.0, 0.5, -0.3])
+    config_parameters = {}
+    model_parameters = {}
 
-# @pytest.mark.parametrize("segment_length,sampling_rate", [
-#     (4.0, 2048),
-#     (8.0, 4096),
-# ])
-# def test_nrsur7dq4_fd_basic(segment_length, sampling_rate):
-#     model = NRSur7dq4_FD(segment_length=segment_length, sampling_rate=sampling_rate)
-#     freqs = jnp.arange(20, 1024, 1.0 / (segment_length))
-#     # M_tot, dist_mpc, q, chi_1x, chi_1y, chi_1z, chi_2x, chi_2y, chi_2z
-#     source_parameters = jnp.array([60.0, 500.0, 1.5, 0.1, 0.2, 0.3, -0.1, -0.2, -0.3])
-#     config_parameters = {}
-#     model_parameters = {}
+    result = model.full_model(freqs, source_parameters, config_parameters, model_parameters)
+    assert isinstance(result, dict)
+    assert Polarization.P in result and Polarization.C in result
+    assert result[Polarization.P].shape == freqs.shape
+    assert result[Polarization.C].shape == freqs.shape
 
-#     result = model.full_model(freqs, source_parameters, config_parameters, model_parameters)
-#     assert isinstance(result, dict)
-#     assert Polarization.P in result and Polarization.C in result
-#     assert result[Polarization.P].shape == freqs.shape
-#     assert result[Polarization.C].shape == freqs.shape
+@pytest.mark.parametrize("segment_length,sampling_rate", [
+    (4.0, 2048),
+    (8.0, 4096),
+])
+def test_nrsur7dq4_fd_basic(segment_length, sampling_rate):
+    freqs = jnp.arange(20, 1024, 1.0 / (segment_length))
+    model = NRSur7dq4_FD(freqs, segment_length=segment_length, sampling_rate=sampling_rate)
+    # M_tot, dist_mpc, q, chi_1x, chi_1y, chi_1z, chi_2x, chi_2y, chi_2z
+    source_parameters = jnp.array([60.0, 500.0, 1.5, 0.1, 0.2, 0.3, -0.1, -0.2, -0.3])
+    config_parameters = {}
+    model_parameters = {}
+
+    result = model.full_model(freqs, source_parameters, config_parameters, model_parameters)
+    assert isinstance(result, dict)
+    assert Polarization.P in result and Polarization.C in result
+    assert result[Polarization.P].shape == freqs.shape
+    assert result[Polarization.C].shape == freqs.shape
