@@ -836,3 +836,325 @@ def IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(LNorm, JNorm, pPrec):
 
     return jnp.array([B_coeff, C_coeff, D_coeff])
 
+def IMRPhenomX_Initialize_MSA_System(pWF, pPrec, ExpansionOrder):
+    eta  = pPrec['eta']
+    eta2 = pPrec['eta2']
+    eta3 = pPrec['eta3']
+    eta4 = pPrec['eta4']
+
+    m1 = pWF['m1']
+    m2 = pWF['m2']
+
+    domegadt_constants_NS = jnp.array([
+        96. / 5., -1486. / 35., -264. / 5., 384. * jnp.pi / 5., 34103. / 945., 
+        13661. / 105., 944. / 15., jnp.pi * (-4159. / 35.), jnp.pi * (-2268. / 5.),
+        (16447322263. / 7276500. + jnp.pi**2 * 512. / 5. - jnp.log(2.) * 109568. / 175. - jnp.euler_gamma * 54784. / 175.),
+        (-56198689. / 11340. + jnp.pi**2 * 902. / 5.),
+        1623. / 140., -1121. / 27., -54784. / 525., -jnp.pi * 883. / 42.,
+        jnp.pi * 71735. / 63., jnp.pi * 73196. / 63.
+    ])
+
+    domegadt_constants_SO = jnp.array([
+        -904. / 5., -120., -62638. / 105., 4636. / 5., -6472. / 35., 3372. / 5.,
+        -jnp.pi * 720., -jnp.pi * 2416. / 5., -208520. / 63., 796069. / 105.,
+        -100019. / 45., -1195759. / 945., 514046. / 105., -8709. / 5.,
+        -jnp.pi * 307708. / 105., jnp.pi * 44011. / 7., -jnp.pi * 7992. / 7.,
+        jnp.pi * 151449. / 35.
+    ])
+
+    domegadt_constants_SS = jnp.array([
+        -494. / 5., -1442. / 5., -233. / 5., -719. / 5.
+    ])
+
+    L_csts_nonspin = jnp.array([
+        3. / 2., 1. / 6., 27. / 8., -19. / 8., 1. / 24., 135. / 16.,
+        -6889. / 144. + 41. / 24. * jnp.pi**2, 31. / 24., 7. / 1296.
+    ])
+
+    L_csts_spinorbit = jnp.array([
+        -14. / 6., -3. / 2., -11. / 2., 133. / 72., -33. / 8., 7. / 4.
+    ])
+
+    # Flip q convention: Chatziioannou uses q < 1 (m1 > m2), IMRPhenomX uses q > 1
+    q = m2 / m1           # q < 1, m1 > m2
+    invq = 1.0 / q
+
+    pPrec['qq'] = q
+    pPrec['invqq'] = invq
+
+    # Reduced mass
+    mu = (m1 * m2) / (m1 + m2)
+    
+    pPrec['delta_qq']  = (1.0 - pPrec['qq']) / (1.0 + pPrec['qq'])
+    pPrec['delta2_qq'] = pPrec['delta_qq'] ** 2
+    pPrec['delta3_qq'] = pPrec['delta_qq'] * pPrec['delta2_qq']
+    pPrec['delta4_qq'] = pPrec['delta_qq'] * pPrec['delta3_qq']
+
+    # Initialize vectors
+    S1v = jnp.array([0.0, 0.0, 0.0])
+    S2v = jnp.array([0.0, 0.0, 0.0])
+    Lhat = jnp.array([0.0, 0.0, 1.0])
+
+    # Set fixed Lhat variables
+    pPrec['Lhat_cos_theta'] = 1.0
+    pPrec['Lhat_phi'] = 0.0
+    pPrec['Lhat_theta'] = 0.0
+
+    # Dimensionful spin vectors (eta = m1 * m2, q = m2 / m1)
+    S1v[0] = pPrec['chi1x'] * eta / q
+    S1v[1] = pPrec['chi1y'] * eta / q
+    S1v[2] = pPrec['chi1z'] * eta / q
+
+    S2v[0] = pPrec['chi2x'] * eta * q
+    S2v[1] = pPrec['chi2y'] * eta * q
+    S2v[2] = pPrec['chi2z'] * eta * q
+
+    # Norms of spin vectors
+    S1_0_norm = jnp.linalg.norm(S1v)
+    S2_0_norm = jnp.linalg.norm(S2v)
+
+    # Store initial spin vectors
+    pPrec['S1_0'] = S1v
+    pPrec['S2_0'] = S2v
+
+    # Reference velocity v and v^2
+    pPrec['v_0'] = jnp.cbrt(pPrec['piGM'] * pWF['fRef'])
+    pPrec['v_0_2'] = pPrec['v_0'] ** 2
+
+    # Reference orbital angular momentum
+    L_0 = Lhat * eta / pPrec['v_0']
+    pPrec['L_0'] = L_0
+    
+    dotS1L = jnp.dot(S1v, Lhat)
+    dotS2L = jnp.dot(S2v, Lhat)
+    dotS1S2 = jnp.dot(S1v, S2v)
+    dotS1Ln = dotS1L / S1_0_norm
+    dotS2Ln = dotS2L / S2_0_norm
+
+    # Store results in the precession structure
+    pPrec['dotS1L'] = dotS1L
+    pPrec['dotS2L'] = dotS2L
+    pPrec['dotS1S2'] = dotS1S2
+    pPrec['dotS1Ln'] = dotS1Ln
+    pPrec['dotS2Ln'] = dotS2Ln
+    
+    # --- PN Coefficients for orbital angular momentum ---
+    pPrec['constants_L'] = jnp.zeros(5)
+    pPrec['constants_L'] = pPrec['constants_L'].at[0].set(
+        L_csts_nonspin[0] + eta * L_csts_nonspin[1]
+    )
+
+    pPrec['constants_L'] = pPrec['constants_L'].at[1].set(
+        IMRPhenomX_Get_PN_beta(L_csts_spinorbit[0], L_csts_spinorbit[1], pPrec)  ## (TODO)
+    )
+
+    pPrec['constants_L'] = pPrec['constants_L'].at[2].set(
+        L_csts_nonspin[2]
+        + eta * L_csts_nonspin[3]
+        + eta ** 2 * L_csts_nonspin[4]
+    )
+
+    pPrec['constants_L'] = pPrec['constants_L'].at[3].set(
+        IMRPhenomX_Get_PN_beta(
+            L_csts_spinorbit[2] + L_csts_spinorbit[3] * eta,
+            L_csts_spinorbit[4] + L_csts_spinorbit[5] * eta,
+            pPrec
+        )
+    )
+
+    pPrec['constants_L'] = pPrec['constants_L'].at[4].set(
+        L_csts_nonspin[5]
+        + L_csts_nonspin[6] * eta
+        + L_csts_nonspin[7] * eta ** 2
+        + L_csts_nonspin[8] * eta ** 3
+    )
+
+    # Effective total spin 
+    Seff = (1.0 + q) * pPrec['dotS1L'] + (1.0 + 1.0 / q) * pPrec['dotS2L']
+    pPrec['Seff'] = Seff
+
+    # Initial total spin, S0 = S1 + S2
+    S_0 = S1v + S2v  
+    pPrec['S_0'] = S0
+
+    # Initial total angular momentum J0 = L + S1 + S2 
+    pPrec['J_0'] = L_0 + S_0 
+
+    pPrec['S_0_norm'] = jnp.linalg.norm(S0)
+
+    pPrec['L_0_norm'] = jnp.linalg.norm(pPrec['L_0'])
+    pPrec['J_0_norm'] = jnp.linalg.norm(pPrec['J_0'])
+    
+    vBCD = IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(pPrec['L_0_norm'], pPrec['J_0_norm'], pPrec)
+    
+    vRoots = IMRPhenomX_Return_Roots_MSA(pPrec['L_0_norm'], pPrec['J_0_norm'], pPrec)
+    
+    pPrec['Spl2'] = vRoots[2]
+    pPrec['Smi2'] = vRoots[1]
+    pPrec['S32']  = vRoots[0]
+
+    pPrec['Spl2pSmi2'] = pPrec['Spl2'] + pPrec['Smi2']
+    pPrec['Spl2mSmi2'] = pPrec['Spl2'] - pPrec['Smi2']
+
+    pPrec['Spl'] = jnp.sqrt(pPrec['Spl2'])
+    pPrec['Smi'] = jnp.sqrt(pPrec['Smi2'])
+
+    # Eq. 45 of PRD, 95, 104004, (2017), arXiv:1703.03967
+    pPrec['SAv2'] = 0.5 * pPrec['Spl2pSmi2']
+    pPrec['SAv']  = jnp.sqrt(pPrec['SAv2'])
+    pPrec['invSAv2'] = 1.0 / pPrec['SAv2']
+    pPrec['invSAv']  = 1.0 / pPrec['SAv']
+
+    # Eq. 41 of PRD, 95, 104004, (2017), arXiv:1703.03967
+    c_1 = 0.5 * (pPrec['J_0_norm']**2 - pPrec['L_0_norm']**2 - pPrec['SAv2']) / (pPrec['L_0_norm'] * eta)
+    pPrec['c1'] = c_1
+    pPrec['c12'] = c_1 ** 2
+    pPrec['c1_over_eta'] = c_1 / eta
+
+    # Average spin couplings over one precession cycle: A9 - A14 of arXiv:1703.03967
+    omqsq = (1.0 - q)**2 + 1e-16
+    omq2  = (1.0 - q**2) + 1e-16
+
+    pPrec['S1L_pav'] = (c_1 * (1.0 + q) - q * eta * Seff) / (eta * omq2)
+    pPrec['S2L_pav'] = -q * (c_1 * (1.0 + q) - eta * Seff) / (eta * omq2)
+    pPrec['S1S2_pav'] = 0.5 * pPrec['SAv2'] - 0.5 * (pPrec['S1_norm_2'] + pPrec['S2_norm_2'])
+    pPrec['S1Lsq_pav'] = pPrec['S1L_pav'] ** 2 + (pPrec['Spl2mSmi2'] ** 2 * pPrec['v_0_2']) / (32.0 * eta2 * omqsq)
+    pPrec['S2Lsq_pav'] = pPrec['S2L_pav'] ** 2 + (q**2 * spl2m_smi2_sq * v0_2) / (32.0 * eta2 * omqsq)
+    pPrec['S1LS2L_pav'] = pPrec['S1L_pav'] * pPrec['S2L_pav'] - q * pPrec['Spl2mSmi2'] * pPrec['v_0_2'] / (32.0 * eta2 * omqsq)
+
+    # beta coefficients
+    pPrec['beta3'] = ((113.0/12.0) + (25.0/4.0)*(m2/m1)) * pPrec['S1L_pav'] 
+                + ((113.0/12.0) + (25.0/4.0)*(m1/m2)) * pPrec['S2L_pav']
+
+    pPrec['beta5'] = (((31319.0/1008.0) - (1159.0/24.0)*eta) + (m2/m1)*((809.0/84.0) - (281.0/8.0)*eta)) * pPrec['S1L_pav'] 
+                + (((31319.0/1008.0) - (1159.0/24.0)*eta) + (m1/m2)*((809.0/84.0) - (281.0/8.0)*eta)) * pPrec['S2L_pav']
+
+    pPrec['beta6'] = jnp.pi * (
+        ((75.0/2.0) + (151.0/6.0)*(m2/m1)) * pPrec['S1L_pav'] +
+        ((75.0/2.0) + (151.0/6.0)*(m1/m2)) * pPrec['S2L_pav']
+    )
+
+    beta7_common = (130325.0/756.0) - (796069.0/2016.0)*eta + (100019.0/864.0)*eta2
+    beta7_S = (1195759.0/18144.0 - 257023.0/1008.0 * eta + 2903.0/32.0 * eta2) 
+
+    pPrec['beta7'] = beta7_common + (m2/m1) * beta7_S * pPrec['S1L_pav'] + beta7_common + (m1/m2) * beta7_S * pPrec['S2L_pav']
+
+    pPrec['sigma4'] = (1.0 / mu) * ((247.0/48.0) * pPrec['S1S2_pav'] - (721.0/48.0) * pPrec['S1L_pav'] * pPrec['S2L_pav'])
+        + (1.0 / (m1**2)) * ((233.0/96.0) * pPrec['S1_norm_2'] - (719.0/96.0) * pPrec['S1Lsq_pav']) 
+        + (1.0 / (m2**2)) * ((233.0/96.0) * pPrec['S2_norm_2'] - (719.0/96.0) * pPrec['S2Lsq_pav'])
+
+    # PN coefficients
+    pPrec['a0'] = 96.0 * eta / 5.0
+    '''
+    pPrec['a2'] = (-(743.0/336.0) - (11.0/4.0)*eta) * pPrec['a0']
+    pPrec['a3'] = (4.0 * jnp.pi - pPrec['beta3']) * pPrec['a0']
+    pPrec['a4'] = ((34103.0/18144.0) + (13661.0/2016.0)*eta + (59.0/18.0)*eta2 - pPrec['sigma4']) * pPrec['a0']
+    pPrec['a5'] = (-(4159.0/672.0)*jnp.pi - (189.0/8.0)*jnp.pi*eta - pPrec['beta5']) * pPrec['a0']
+    '''
+    pPrec['a6'] = ((16447322263.0/139708800.0) + (16.0/3.0)*jnp.pi**2 - (856.0/105.0)*jnp.log(16.0) - (1712.0/105.0)*jnp.euler_gamma 
+            - pPrec['beta6'] + eta*(451.0/48.0)*jnp.pi**2 - (56198689.0/217728.0) + eta2*(541.0/896.0) - eta3*(5605.0/2592.0)) * pPrec['a0']
+    pPrec['a7'] = (-(4415.0/4032.0)*jnp.pi + (358675.0/6048.0)*jnp.pi*eta + (91495.0/1512.0)*jnp.pi*eta2 - pPrec['beta7']) * pPrec['a0']
+    
+    # Default behaviour of IMRPhenomXP (223: MSA with fallback to NNLO)
+    pPrec['a0'] = eta * domegadt_constants_NS[0]
+    pPrec['a2'] = eta * (domegadt_constants_NS[1] + eta * domegadt_constants_NS[2])
+    pPrec['a3'] = eta * (domegadt_constants_NS[3] +
+        IMRPhenomX_Get_PN_beta(domegadt_constants_SO[0],domegadt_constants_SO[1],pPrec))
+    pPrec['a4'] = eta * (domegadt_constants_NS[4] +eta * (domegadt_constants_NS[5] + eta * domegadt_constants_NS[6]) +
+        IMRPhenomX_Get_PN_sigma(domegadt_constants_SS[0],domegadt_constants_SS[1],pPrec) +
+        IMRPhenomX_Get_PN_tau(domegadt_constants_SS[2],domegadt_constants_SS[3],pPrec))
+    pPrec['a5'] = eta * (domegadt_constants_NS[7] +eta * domegadt_constants_NS[8] +
+        IMRPhenomX_Get_PN_beta(
+            domegadt_constants_SO[2] + eta * domegadt_constants_SO[3],
+            domegadt_constants_SO[4] + eta * domegadt_constants_SO[5],
+            pPrec
+        )
+    )
+    
+    pPrec['a0_2'] = pPrec['a0'] * pPrec['a0']
+    pPrec['a0_3'] = pPrec['a0_2'] * pPrec['a0']
+    pPrec['a2_2'] = pPrec['a2'] * pPrec['a2']
+
+    # g-coefficients from Appendix A of Chatziioannou et al, PRD, 95, 104004, (2017), arXiv:1703.03967.
+    pPrec['g0'] = 1.0 / pPrec['a0']
+    pPrec['g2'] = -pPrec['a2'] / pPrec['a0_2']
+    pPrec['g3'] = -pPrec['a3'] / pPrec['a0_2']
+    pPrec['g4'] = -(pPrec['a4'] * pPrec['a0'] - pPrec['a2_2']) / pPrec['a0_3']
+    pPrec['g5'] = -(pPrec['a5'] * pPrec['a0'] - 2.0 * pPrec['a3'] * pPrec['a2']) / pPrec['a0_3']
+
+    delta = pPrec['delta_qq']
+    delta2 = delta * delta
+    delta3 = delta * delta2
+    delta4 = delta * delta3
+
+    # Phase coefficients: Eq. 51 and Appendix C of arXiv:1703.03967
+    pPrec['psi0'] = 0.0
+    pPrec['psi1'] = 3.0 * (2.0 * eta2 * Seff - c_1) / (eta * delta2)
+    pPrec['psi2'] = 0.0
+
+    # Precompute useful quantities
+    c_1_over_nu = pPrec['c1_over_eta']
+    c_1_over_nu_2 = c_1_over_eta * c_1_over_eta
+    one_p_q_sq = (1.0 + q)**2
+    Seff_2 = Seff * Seff
+    q_2 = q * q
+    one_m_q_sq = (1.0 - q)**2
+    one_m_q2_2 = (1.0 - q_2)**2
+    one_m_q_4 = one_m_q_sq * one_m_q_sq
+    
+    Del1 = 4.0 * c_1_over_nu_2 * one_p_q_sq
+    Del2 = 8.0 * c_1_over_nu * q * (1.0 + q) * Seff
+    Del3 = 4.0 * (one_m_q2_2 * pPrec['S1_norm_2'] - q_2 * Seff_2)
+    Del4 = 4.0 * c_1_over_nu_2 * q_2 * one_p_q_sq
+    Del5 = 8.0 * c_1_over_nu * q_2 * (1.0 + q) * Seff
+    Del6 = 4.0 * (one_m_q2_2 * pPrec['S2_norm_2'] - q_2 * Seff_2)
+
+    pPrec['Delta'] = jnp.sqrt(jnp.abs((Del1 - Del2 - Del3) * (Del4 - Del5 - Del6)))
+    
+    u1 = 3.0 * pPrec['g2'] / pPrec['g0']
+    u2 = 0.75 * one_p_q_sq / one_m_q_4
+    u3 = -20.0 * c_1_over_nu_2 * q_2 * one_p_q_sq
+    u4 = 2.0 * one_m_q2_2 * (q * (2.0 + q) * pPrec['S1_norm_2']
+        + (1.0 + 2.0 * q) * pPrec['S2_norm_2'] - 2.0 * q * pPrec['SAv2'])
+    u5 = 4.0 * q_2 * (7.0 + 6.0 * q + 7.0 * q_2) * c_1_over_nu * Seff
+    u6 = 2.0 * q_2 * (3.0 + 4.0 * q + 3.0 * q_2) * Seff_2
+    u7 = q * pPrec['Delta']
+
+    # (Eq. C2 of 1703.03967)
+    pPrec['psi2'] = u1 + u2 * (u3 + u4 + u5 - u6 + u7)
+    
+    # Eq. D1 - D5  of 1703.03967
+    Rm = pPrec['Spl2'] - pPrec['Smi2']
+    Rm_2 = Rm * Rm
+    cp = pPrec['Spl2'] * eta2 - c1_2
+    cm = pPrec['Smi2'] * eta2 - c1_2
+    cpcm = jnp.abs(cp * cm)
+    sqrt_cpcm = jnp.sqrt(cpcm)
+    a1dD = 0.5 + 0.75 / eta
+    a2dD = -0.75 * Seff / eta
+
+    # Eq. E3- E4 of 1703.03967
+    D2RmSq = (cp - sqrt_cpcm) / eta2
+    D4RmSq = -0.5 * Rm * sqrt_cpcm / eta2 - cp / eta4 * (sqrt_cpcm - cp)
+
+    S0m = pPrec['S1_norm_2'] - pPrec['S2_norm_2']
+
+    aw = -3.0 * (1. + q) / q * (2. * (1. + q) * eta2 * Seff * c_1 - (1. + q) * c1_2 + (1. - q) * eta2 * S0m)
+    cw = 3.0 / 32.0 / eta * Rm_2
+    dw = 4.0 * cp - 4.0 * D2RmSq * eta2
+    hw = -2.0 * (2.0 * D2RmSq - Rm) * c_1
+    fw = Rm * D2RmSq - D4RmSq - 0.25 * Rm_2
+
+    adD = aw / dw
+    hdD = hw / dw
+    cdD = cw / dw
+    fdD = fw / dw
+
+    gw = 3. / 16. / eta2 / eta * Rm_2 * (c_1 - eta2 * Seff)
+    gdD = gw / dw
+
+    # Powers of coefficients
+    hdD_2 = hdD * hdD
+    adDfdD = adD * fdD
+    adDfdDhdD = adDfdD * hdD
+    adDhdD_2 = adD * hdD_2
