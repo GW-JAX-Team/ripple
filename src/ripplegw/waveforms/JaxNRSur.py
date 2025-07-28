@@ -25,7 +25,6 @@ class NRSurHyb3dq8_FD(WaveformModel):
             - q: Mass ratio of the binary (m1/m2) [1.0, 8.0]
             - chi_1z: Dimensionless spin of the primary black hole
             - chi_2z: Dimensionless spin of the secondary black hole
-
         """
         hp, hc = self.surrogate.get_waveform_fd(source_parameters)
         return {
