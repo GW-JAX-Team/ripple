@@ -20,11 +20,13 @@ class NRSurHyb3dq8_FD(WaveformModel):
         The source parameters should be ordered as follows:
             - M_tot: Total mass in solar masses
             - dist_mpc: Distance in megaparsecs
+            - theta: inclination angle of the binary in radians
+            - phi: azimuthal angle of the binary in radians
             - q: Mass ratio of the binary (m1/m2) [1.0, 8.0]
             - chi_1z: Dimensionless spin of the primary black hole
             - chi_2z: Dimensionless spin of the secondary black hole
+
         """
-        
         hp, hc = self.surrogate.get_waveform_fd(source_parameters)
         return {
             Polarization.P: hp[self.frequency_index],
@@ -47,6 +49,8 @@ class NRSur7dq4_FD(WaveformModel):
         The source parameters should be ordered as follows:
             - M_tot: Total mass in solar masses
             - dist_mpc: Distance in megaparsecs
+            - theta: inclination angle of the binary in radians
+            - phi: azimuthal angle of the binary in radians
             - q: Mass ratio of the binary (m1/m2) [1.0, 4.0]
             - chi_1x: Dimensionless spin of the primary black hole
             - chi_1y: Dimensionless spin of the primary black hole
