@@ -1265,3 +1265,21 @@ def IMRPhenomX_Initialize_MSA_System(pWF, pPrec, ExpansionOrder):
     pPrec['zeta_0']    = - zeta_0 - vMSA[1]
     
     return pPrec
+
+def IMRPhenomX_Get_PN_beta(a, b, pPrec):
+    return (pPrec['dotS1L'] * (a + b * pPrec['qq']) +
+            pPrec['dotS2L'] * (a + b / pPrec['qq']))
+
+def IMRPhenomX_Get_PN_sigma(a, b, pPrec):
+    return pPrec['inveta'] * (a * pPrec['dotS1S2'] -
+                              b * pPrec['dotS1L'] * pPrec['dotS2L'])
+
+def IMRPhenomX_Get_PN_tau(a, b, pPrec):
+    return (
+        pPrec['qq'] * (pPrec['S1_norm_2'] * a - b * pPrec['dotS1L'] * pPrec['dotS1L']) +
+        (a * pPrec['S2_norm_2'] - b * pPrec['dotS2L'] * pPrec['dotS2L']) / pPrec['qq']
+    ) / pPrec['eta']
+    
+def IMRPhenomX_psiofv(v, v2, psi0, psi1, psi2, pPrec):
+    # Equation 51 in arXiv:1703.03967
+    return psi0 - 0.75 * pPrec['g0'] * pPrec['delta_qq'] * (1.0 + psi1 * v + psi2 * v2) / (v2 * v)
