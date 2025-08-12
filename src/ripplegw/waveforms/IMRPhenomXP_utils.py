@@ -975,12 +975,12 @@ def IMRPhenomX_Initialize_MSA_System(pWF, pPrec, ExpansionOrder):
 
     # Initial total spin, S0 = S1 + S2
     S_0 = S1v + S2v  
-    pPrec['S_0'] = S0
+    pPrec['S_0'] = S_0
 
     # Initial total angular momentum J0 = L + S1 + S2 
     pPrec['J_0'] = L_0 + S_0 
 
-    pPrec['S_0_norm'] = jnp.linalg.norm(S0)
+    pPrec['S_0_norm'] = jnp.linalg.norm(S_0)
 
     pPrec['L_0_norm'] = jnp.linalg.norm(pPrec['L_0'])
     pPrec['J_0_norm'] = jnp.linalg.norm(pPrec['J_0'])
@@ -1019,15 +1019,15 @@ def IMRPhenomX_Initialize_MSA_System(pWF, pPrec, ExpansionOrder):
     pPrec['S2L_pav'] = -q * (c_1 * (1.0 + q) - eta * Seff) / (eta * omq2)
     pPrec['S1S2_pav'] = 0.5 * pPrec['SAv2'] - 0.5 * (pPrec['S1_norm_2'] + pPrec['S2_norm_2'])
     pPrec['S1Lsq_pav'] = pPrec['S1L_pav'] ** 2 + (pPrec['Spl2mSmi2'] ** 2 * pPrec['v_0_2']) / (32.0 * eta2 * omqsq)
-    pPrec['S2Lsq_pav'] = pPrec['S2L_pav'] ** 2 + (q**2 * spl2m_smi2_sq * v0_2) / (32.0 * eta2 * omqsq)
+    pPrec['S2Lsq_pav'] = pPrec['S2L_pav'] ** 2 + (q**2 * (pPrec['Spl2mSmi2'] ** 2) * pPrec['v_0_2']) / (32.0 * eta2 * omqsq)
     pPrec['S1LS2L_pav'] = pPrec['S1L_pav'] * pPrec['S2L_pav'] - q * pPrec['Spl2mSmi2'] * pPrec['v_0_2'] / (32.0 * eta2 * omqsq)
 
     # beta coefficients
-    pPrec['beta3'] = ((113.0/12.0) + (25.0/4.0)*(m2/m1)) * pPrec['S1L_pav'] 
-                + ((113.0/12.0) + (25.0/4.0)*(m1/m2)) * pPrec['S2L_pav']
+    pPrec['beta3'] = ((113.0/12.0) + (25.0/4.0)*(m2/m1)) * pPrec['S1L_pav'] + ((113.0/12.0) 
+                        + (25.0/4.0)*(m1/m2)) * pPrec['S2L_pav']
 
-    pPrec['beta5'] = (((31319.0/1008.0) - (1159.0/24.0)*eta) + (m2/m1)*((809.0/84.0) - (281.0/8.0)*eta)) * pPrec['S1L_pav'] 
-                + (((31319.0/1008.0) - (1159.0/24.0)*eta) + (m1/m2)*((809.0/84.0) - (281.0/8.0)*eta)) * pPrec['S2L_pav']
+    pPrec['beta5'] = (((31319.0/1008.0) - (1159.0/24.0)*eta) + (m2/m1)*((809.0/84.0) 
+                        - (281.0/8.0)*eta)) * pPrec['S1L_pav'] + (((31319.0/1008.0) - (1159.0/24.0)*eta) + (m1/m2)*((809.0/84.0) - (281.0/8.0)*eta)) * pPrec['S2L_pav']
 
     pPrec['beta6'] = jnp.pi * (
         ((75.0/2.0) + (151.0/6.0)*(m2/m1)) * pPrec['S1L_pav'] +
@@ -1039,9 +1039,8 @@ def IMRPhenomX_Initialize_MSA_System(pWF, pPrec, ExpansionOrder):
 
     pPrec['beta7'] = beta7_common + (m2/m1) * beta7_S * pPrec['S1L_pav'] + beta7_common + (m1/m2) * beta7_S * pPrec['S2L_pav']
 
-    pPrec['sigma4'] = (1.0 / mu) * ((247.0/48.0) * pPrec['S1S2_pav'] - (721.0/48.0) * pPrec['S1L_pav'] * pPrec['S2L_pav'])
-        + (1.0 / (m1**2)) * ((233.0/96.0) * pPrec['S1_norm_2'] - (719.0/96.0) * pPrec['S1Lsq_pav']) 
-        + (1.0 / (m2**2)) * ((233.0/96.0) * pPrec['S2_norm_2'] - (719.0/96.0) * pPrec['S2Lsq_pav'])
+    pPrec['sigma4'] = (1.0 / mu) * ((247.0/48.0) * pPrec['S1S2_pav'] - (721.0/48.0) * pPrec['S1L_pav'] * pPrec['S2L_pav']) + (1.0 / (m1**2)) * ((233.0/96.0) * pPrec['S1_norm_2'] 
+                        - (719.0/96.0) * pPrec['S1Lsq_pav']) + (1.0 / (m2**2)) * ((233.0/96.0) * pPrec['S2_norm_2'] - (719.0/96.0) * pPrec['S2Lsq_pav'])
 
     # PN coefficients
     pPrec['a0'] = 96.0 * eta / 5.0
@@ -1094,7 +1093,7 @@ def IMRPhenomX_Initialize_MSA_System(pWF, pPrec, ExpansionOrder):
 
     # Precompute useful quantities
     c_1_over_nu = pPrec['c1_over_eta']
-    c_1_over_nu_2 = c_1_over_eta * c_1_over_eta
+    c_1_over_nu_2 = c_1_over_nu * c_1_over_nu
     one_p_q_sq = (1.0 + q)**2
     Seff_2 = Seff * Seff
     q_2 = q * q
@@ -1126,8 +1125,8 @@ def IMRPhenomX_Initialize_MSA_System(pWF, pPrec, ExpansionOrder):
     # Eq. D1 - D5  of 1703.03967
     Rm = pPrec['Spl2'] - pPrec['Smi2']
     Rm_2 = Rm * Rm
-    cp = pPrec['Spl2'] * eta2 - c1_2
-    cm = pPrec['Smi2'] * eta2 - c1_2
+    cp = pPrec['Spl2'] * eta2 - pPrec['c12']
+    cm = pPrec['Smi2'] * eta2 - pPrec['c12']
     cpcm = jnp.abs(cp * cm)
     sqrt_cpcm = jnp.sqrt(cpcm)
     a1dD = 0.5 + 0.75 / eta
@@ -1139,7 +1138,7 @@ def IMRPhenomX_Initialize_MSA_System(pWF, pPrec, ExpansionOrder):
 
     S0m = pPrec['S1_norm_2'] - pPrec['S2_norm_2']
 
-    aw = -3.0 * (1. + q) / q * (2. * (1. + q) * eta2 * Seff * c_1 - (1. + q) * c1_2 + (1. - q) * eta2 * S0m)
+    aw = -3.0 * (1. + q) / q * (2. * (1. + q) * eta2 * Seff * c_1 - (1. + q) * pPrec['c12'] + (1. - q) * eta2 * S0m)
     cw = 3.0 / 32.0 / eta * Rm_2
     dw = 4.0 * cp - 4.0 * D2RmSq * eta2
     hw = -2.0 * (2.0 * D2RmSq - Rm) * c_1
@@ -1158,3 +1157,111 @@ def IMRPhenomX_Initialize_MSA_System(pWF, pPrec, ExpansionOrder):
     adDfdD = adD * fdD
     adDfdDhdD = adDfdD * hdD
     adDhdD_2 = adD * hdD_2
+
+    # Eq. D10-D15 in PRD, 95, 104004, (2017), arXiv:1703.03967
+    pPrec['Omegaz0'] = a1dD + adD    
+    pPrec['Omegaz1'] = a2dD - adD*Seff - adD*hdD
+    pPrec['Omegaz2'] = adD*hdD*Seff + cdD - adD*fdD + adD*hdD_2
+    pPrec['Omegaz3'] = (adDfdD - cdD - adDhdD_2)*(Seff + hdD) + adDfdDhdD
+    pPrec['Omegaz4'] = (cdD + adDhdD_2 - 2.0*adDfdD)*(hdD*Seff + hdD_2 - fdD) - adD*fdD*fdD
+    pPrec['Omegaz5'] = (cdD - adDfdD + adDhdD_2) * fdD * (Seff + 2.0*hdD) - (cdD + adDhdD_2 - 2.0*adDfdD) * hdD_2 * (Seff + hdD) - adDfdD*fdD*hdD
+    
+    # Condition for MSA fallback to NNLO
+    condition = jnp.abs(pPrec['Omegaz5']) > 1000.0
+    pPrec['MSA_ERROR'] = jnp.where(condition, 1, 0)
+    
+    g0 = pPrec['g0']
+
+    # Eq. 65 coefficients (D16 - D21 of PRD, 95, 104004, (2017), arXiv:1703.03967)
+    pPrec['Omegaz0_coeff'] = 3.0 * g0 * pPrec['Omegaz0']
+    pPrec['Omegaz1_coeff'] = 3.0 * g0 * pPrec['Omegaz1']
+    pPrec['Omegaz2_coeff'] = 3.0 * (g0 * pPrec['Omegaz2'] + pPrec['g2'] * pPrec['Omegaz0'])
+    pPrec['Omegaz3_coeff'] = 3.0 * (g0 * pPrec['Omegaz3'] + pPrec['g2'] * pPrec['Omegaz1'] + pPrec['g3'] * pPrec['Omegaz0'])
+    pPrec['Omegaz4_coeff'] = 3.0 * (g0 * pPrec['Omegaz4'] + pPrec['g2'] * pPrec['Omegaz2'] + pPrec['g3'] * pPrec['Omegaz1'] + pPrec['g4'] * pPrec['Omegaz0'])
+    pPrec['Omegaz5_coeff'] = 3.0 * (g0 * pPrec['Omegaz5'] + pPrec['g2'] * pPrec['Omegaz3'] + pPrec['g3'] * pPrec['Omegaz2'] + pPrec['g4'] * pPrec['Omegaz1'] + pPrec['g5'] * pPrec['Omegaz0'])
+
+    # zeta coefficients (Appendix E of PRD, 95, 104004, (2017), arXiv:1703.03967)
+    c1oveta2 = c_1 / eta2
+    pPrec['Omegazeta0'] = pPrec['Omegaz0']
+    pPrec['Omegazeta1'] = pPrec['Omegaz1'] + pPrec['Omegaz0'] * c1oveta2
+    pPrec['Omegazeta2'] = pPrec['Omegaz2'] + pPrec['Omegaz1'] * c1oveta2
+    pPrec['Omegazeta3'] = pPrec['Omegaz3'] + pPrec['Omegaz2'] * c1oveta2 + gdD
+    pPrec['Omegazeta4'] = pPrec['Omegaz4'] + pPrec['Omegaz3'] * c1oveta2 - gdD * Seff - gdD * hdD
+    pPrec['Omegazeta5'] = pPrec['Omegaz5'] + pPrec['Omegaz4'] * c1oveta2 + gdD * hdD * Seff + gdD * (hdD_2 - fdD)
+
+    pPrec['Omegazeta0_coeff'] = -pPrec['g0'] * pPrec['Omegazeta0']
+    pPrec['Omegazeta1_coeff'] = -1.5 * pPrec['g0'] * pPrec['Omegazeta1']
+    pPrec['Omegazeta2_coeff'] = -3.0 * (pPrec['g0'] * pPrec['Omegazeta2'] + pPrec['g2'] * pPrec['Omegazeta0'])
+    pPrec['Omegazeta3_coeff'] = 3.0 * (pPrec['g0'] * pPrec['Omegazeta3'] + pPrec['g2'] * pPrec['Omegazeta1'] + pPrec['g3'] * pPrec['Omegazeta0'])
+    pPrec['Omegazeta4_coeff'] = 3.0 * (pPrec['g0'] * pPrec['Omegazeta4'] + pPrec['g2'] * pPrec['Omegazeta2'] + pPrec['g3'] * pPrec['Omegazeta1'] + pPrec['g4'] * pPrec['Omegazeta0'])
+    pPrec['Omegazeta5_coeff'] = 1.5 * (pPrec['g0'] * pPrec['Omegazeta5'] + pPrec['g2'] * pPrec['Omegazeta3'] + pPrec['g3'] * pPrec['Omegazeta2'] + pPrec['g4'] * pPrec['Omegazeta1'] + pPrec['g5'] * pPrec['Omegazeta0'])
+    
+    ## Here we're only considering the default setting, where the expansion order for MSA correction is 5
+    ## switch to choose expansion order not yet implemented (TODO)
+    pPrec['Omegaz5_coeff']    = 0.0
+    pPrec['Omegazeta5_coeff'] = 0.0
+    
+
+    condition_equal = jnp.abs(pPrec['Smi2'] - pPrec['Spl2']) < 1.0e-5
+
+    def branch_equal(pPrec):
+        return 0.0
+
+    def branch_not_equal(pPrec):
+        mm_val = jnp.sqrt((pPrec['Smi2'] - pPrec['Spl2']) 
+                          (pPrec['S32'] - pPrec['Spl2']))
+        tmpB_val = ((pPrec['S_0_norm'] * pPrec['S_0_norm']) - pPrec['Spl2']) / (pPrec['Smi2'] - pPrec['Spl2'])
+
+        vol_elem = jnp.dot(jnp.cross(L_0, S1v),S2v)
+        vol_sign_val = jnp.sign(vol_elem)
+
+        psi_v0_val = IMRPhenomX_psiofv(pPrec['v_0'], pPrec['v_0_2'], 0.0,
+                                       pPrec['psi1'], pPrec['psi2'], pPrec)
+
+        # Clamp tmpB in conditions
+        cond_case1 = jnp.logical_and(tmpB_val > 1.0,
+                                     (tmpB_val - 1.0) < 1.0e-5)
+        cond_case2 = jnp.logical_and(tmpB_val < 0.0,
+                                     tmpB_val > -1.0e-5)
+
+        def case1():
+            return gsl_sf_ellint_F( ##(TODO)
+                jnp.arcsin(vol_sign_val * jnp.sqrt(1.0)),
+                mm_val
+            ) - psi_v0_val
+
+        def case2():
+            return gsl_sf_ellint_F(
+                jnp.arcsin(vol_sign_val * jnp.sqrt(0.0)),
+                mm_val
+            ) - psi_v0_val
+
+        def case3():
+            return gsl_sf_ellint_F(
+                jnp.arcsin(vol_sign_val * jnp.sqrt(tmpB_val)),
+                mm_val
+            ) - psi_v0_val
+
+        psi0_val = jnp.select(
+            [cond_case1, cond_case2, jnp.logical_not(
+                jnp.logical_or(tmpB_val > 1.0, tmpB_val < 0.0))],
+            [case1(), case2(), case3()]
+        )
+
+        return psi0_val
+
+    pPrec['psi0'] = jnp.where(condition_equal,
+                     branch_equal(pPrec),
+                     branch_not_equal(pPrec))
+    
+    vMSA = jnp.where(condition_equal, jnp.array([0.,0.,0.]), 
+                     IMRPhenomX_Return_MSA_Corrections_MSA(pPrec['v_0'],pPrec['L_0_norm'],pPrec['J_0_norm'],pPrec))
+    
+    phiz_0        = IMRPhenomX_Return_phiz_MSA(pPrec['v_0'],pPrec['J_0_norm'],pPrec)
+    
+    zeta_0        = IMRPhenomX_Return_zeta_MSA(pPrec['v_0'],pPrec)
+    
+    pPrec['phiz_0']    = - phiz_0 - vMSA[0]
+    pPrec['zeta_0']    = - zeta_0 - vMSA[1]
+    
+    return pPrec
