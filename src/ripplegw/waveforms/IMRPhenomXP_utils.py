@@ -836,6 +836,58 @@ def IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(LNorm, JNorm, pPrec):
 
     return jnp.array([B_coeff, C_coeff, D_coeff])
 
+def IMRPhenomXGetAndSetPrecessionVariables(pWF, m1_SI, m2_SI,
+                                            chi1x, chi1y, chi1z,
+                                            chi2x, chi2y, chi2z,
+                                            lalParams):
+    
+    pPrec['ExpansionOrder'] = XLALSimInspiralWaveformParamsLookupPhenomXPExpansionOrder(lalParams)
+    
+    Mtot_SI = m1_SI + m2_SI  
+    # Normalize masses
+    m1 = m1_SI / Mtot_SI
+    m2 = m2_SI / Mtot_SI
+    M = m1 + m2
+    #pWF['M'] = m1 + m2  ### pWF needs to be a dict??
+
+    # Mass ratio and symmetric mass ratio
+    q   = m1 / m2
+    eta = pWF[1]
+    
+    ## TODO: compute delta?
+    ## TODO: compute chieff?
+    ## TODO: compute twopiGM, piGM?
+
+    # Spin inputs
+    for i, (x, y, z) in enumerate([(chi1x, chi1y, chi1z), (chi2x, chi2y, chi2z)], start=1):
+        chi_norm = jnp.sqrt(x*x + y*y + z*z)
+        pPrec[f'chi{i}x'] = x
+        pPrec[f'chi{i}y'] = y
+        pPrec[f'chi{i}z'] = z
+        pPrec[f'chi{i}_norm'] = chi_norm
+
+    # Dimensionful spins
+    pPrec['S1x'] = chi1x * m1_2
+    pPrec['S1y'] = chi1y * m1_2
+    pPrec['S1z'] = chi1z * m1_2
+    pPrec['S1_norm'] = jnp.abs(pPrec['chi1_norm']) * m1_2
+    pPrec['S2x'] = chi2x * m2_2
+    pPrec['S2y'] = chi2y * m2_2
+    pPrec['S2z'] = chi2z * m2_2
+    pPrec['S2_norm'] = jnp.abs(pPrec['chi2_norm']) * m2_2
+
+    # In-plane magnitudes
+    pPrec['chi1_perp'] = jnp.sqrt(chi1x*chi1x + chi1y*chi1y)
+    pPrec['chi2_perp'] = jnp.sqrt(chi2x*chi2x + chi2y*chi2y)
+    pPrec['S1_perp'] = m1_2 * pPrec['chi1_perp']
+    pPrec['S2_perp'] = m2_2 * pPrec['chi2_perp']
+    STot_x = pPrec['S1x'] + pPrec['S2x']
+    STot_y = pPrec['S1y'] + pPrec['S2y']
+    pPrec['STot_perp'] = jnp.sqrt(STot_x**2 + STot_y**2)
+    pPrec['chiTot_perp'] = pPrec['STot_perp'] * (M**2) / m1_2
+    # pWF['chiTot_perp'] = pPrec['chiTot_perp']  ### pWF needs to be a dict??
+
+    return 0  # Success
 def IMRPhenomX_Initialize_MSA_System(pWF, pPrec, ExpansionOrder):
     eta  = pPrec['eta']
     eta2 = pPrec['eta2']
