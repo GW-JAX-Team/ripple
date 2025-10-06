@@ -1615,7 +1615,7 @@ def IMRPhenomXPCheckMaxOpeningAngle(
     denominator = 81.0 - 57.0 * eta + eta * eta
     v_at_max_beta = jnp.sqrt(2.0 / 3.0) * jnp.sqrt(numerator / denominator)
 
-    status, cBetah, sBetah = IMRPhenomXWignerdCoefficients(cBetah, sBetah, v_at_max_beta, pWF, pPrec)  ## (TODO)
+    status, cBetah, sBetah = WignerdCoefficients(cBetah, sBetah, v_at_max_beta, pWF, pPrec)
 
     jax.lax.cond(
         status != 0,
@@ -1647,6 +1647,57 @@ def IMRPhenomXPCheckMaxOpeningAngle(
         negative_case,
         (pWF['q'], pPrec['conditionalPrecMBand'], max_beta, pPrec['PrecThresholdMband'])
     )
+
+def IMRPhenomX_SetPrecessingRemnantParams(pWF, pPrec, params):
+    
+    # TODO: Not yet implemented toggles:
+    ## Toggle for PNR coprecessing tuning. PNRUseTunedCoprec == 0 for the moment
+    ## Toggle for enforced use of non-precessing spin as is required during tuning of PNR's coprecessing model
+    ## High-level toggle for whether to apply deviations. APPLY_PNR_DEVIATIONS == 0 for the moment
+    
+    af_parallel = XLALSimIMRPhenomXFinalSpin2017(pWF['eta'], pPrec['chi1z'], pPrec['chi2z'])  ## (TODO)
+    M = pWF['M']
+    Lfinal = M * M * af_parallel - pWF['m1_2'] * pPrec['chi1z'] - pWF['m2_2'] * pPrec['chi2z']
+
+    # Just implementing FinalSpinMod fsflag == 3, since it is default for MSA approximation
+    # see arXiv:2004.06503v2
+    # Just implementing branch for MSA_ERROR == 0. No fallback to NNLO for the moment
+
+    # what is this flag?
+    method_flag = XLALSimInspiralWaveformParamsLookupPhenomXPTransPrecessionMethod(  ## (TODO)
+        params
+    )
+    sign = jax.lax.cond(
+        method_flag == 1,
+        lambda _: jnp.copysign(1.0, af_parallel),
+        lambda _: 1.0,
+        operand=None,
+    )
+    pWF['afinal_prec'] = sign * jnp.sqrt(pPrec['SAv2'] + Lfinal**2 + 2.0 * Lfinal * (pPrec['S1L_pav'] + pPrec['S2L_pav'])
+        ) / (M**2)
+    
+    pWF['afinal'] = pWF['afinal_prec']
+    
+    def clip_afinal_prec(_):
+        afinal_prec = jnp.copysign(1.0, pWF['afinal_prec'])
+        afinal = jnp.copysign(1.0, pWF['afinal'])
+        return {**pWF, 'afinal_prec': afinal_prec, 'afinal': afinal}
+
+    def no_clip(_):
+        return pWF
+
+    pWF = jax.lax.cond(
+        jnp.abs(pWF['afinal_prec']) > 1.0,
+        clip_afinal_prec,
+        no_clip,
+        operand=None,
+    )
+
+    # Update ringdown and damping frequency: no precession; to be used for PNR tuned deviations
+    pWF['fRING'] = evaluate_QNMfit_fring22(pWF['afinal']) / pWF['Mfinal']  ## (TODO)
+    pWF['fDAMP'] = evaluate_QNMfit_fdamp22(pWF['afinal']) / pWF['Mfinal']  ## (TODO)
+    
+    return pWF
 
 
 def IMRPhenomX_Get_PN_beta(a, b, pPrec):
