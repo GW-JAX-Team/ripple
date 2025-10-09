@@ -18,22 +18,8 @@ def PhenomXPCoreTwistUp22(
     Mf,  ## Frequency in geometric units (on LAL says Hz?)
     hAS,  ## Underlying aligned-spin IMRPhenomXAS strain
     pWF,  ## IMRPhenomX Waveform Struct (TODO)
-    pPrec  ## IMRPhenomXP Precession Struct (TODO)  ## in py is a dict
+    pPrec  ## IMRPhenomXP Precession Struct (TODO)  
 ):
-
-# check if hp,hc not None not present in PhenomP
-
-    # here it is used to be LAL_MTSUN_SI
-    # f = fHz * gt * M  # Frequency in geometric units   
-    # q = (1.0 + jnp.sqrt(1.0 - 4.0 * eta) - 2.0 * eta) / (2.0 * eta)  ## not needed
-    # m1 = 1.0 / (1.0 + q)  # Mass of the smaller BH for unit total mass M=1.
-    # m2 = q / (1.0 + q)  # Mass of the larger BH for unit total mass M=1.
-    #Sperp = chip * (
-    #    m2 * m2
-    #)  # Dimensionfull spin component in the orbital plane. S_perp = S_2_perp  ## already in pPrec
-    # chi_eff = m1 * chi1_l + m2 * chi2_l  # effective spin for M=1
-
-    # SL = chi1_l * m1 * m1 + chi2_l * m2 * m2  # Dimensionfull aligned spin.  ## already in pPrec
 
     omega = jnp.pi * Mf
     logomega = jnp.log(omega)
@@ -42,17 +28,17 @@ def PhenomXPCoreTwistUp22(
     
     v = omega_cbrt
     
-    vangles = jnp.array([0,0,0])  ## is it okay to use jnp array?? (instead of a struct) it is also defined inside the function...
+    vangles = jnp.array([0,0,0])
     
     ## Euler Angles from Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
-    vangles  = IMRPhenomX_Return_phi_zeta_costhetaL_MSA(v,pWF,pPrec)  ## DONE ## has to output a jnp array
+    vangles  = IMRPhenomX_Return_phi_zeta_costhetaL_MSA(v,pWF,pPrec)
     alpha    = vangles[0] - pPrec["alpha_offset"]
     epsilon  = vangles[1] - pPrec["epsilon_offset"]
     cos_beta = vangles[2]
      
 
     # print("alpha, epsilon: ", alpha, epsilon)
-    cBetah, sBetah = WignerdCoefficients_cosbeta(cos_beta)  ## DONE
+    cBetah, sBetah = WignerdCoefficients_cosbeta(cos_beta)
 
     cBetah2 = cBetah * cBetah
     cBetah3 = cBetah2 * cBetah
@@ -106,9 +92,9 @@ def PhenomXPCoreTwistUp22(
 
 
 def gen_IMRPhenomXP_hphc(f: Array, 
-                          params: Array,  ## equivalent to pWF waveform struct ??
-                          prec_params,    ## equivalent to pPrec precession struct
-                          f_ref: float):  ## why needs to be input separetely ??
+                          params: Array,  
+                          prec_params,    
+                          f_ref: float):
     """
     Returns:
     --------
@@ -120,7 +106,7 @@ def gen_IMRPhenomXP_hphc(f: Array,
 
     hp, hc = PhenomXPCoreTwistUp22(f, h0, params, prec_params)
     
-    hp = h0 * (1 / 2 * (1 + jnp.cos(iota) ** 2))  ## to keep or not to keep ??
+    hp = h0 * (1 / 2 * (1 + jnp.cos(iota) ** 2))  
     hc = -1j * h0 * jnp.cos(iota)
 
     return hp, hc

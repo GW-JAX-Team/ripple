@@ -18,23 +18,30 @@ from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
 
 
 # helper functions for LALtoPhenomP:
-def ROTATEZ(angle, x, y, z):
-    tmp_x = x * jnp.cos(angle) - y * jnp.sin(angle)
-    tmp_y = x * jnp.sin(angle) + y * jnp.cos(angle)
-    return tmp_x, tmp_y, z
+def IMRPhenomX_rotate_y(v, theta):
+    """Rotate vector(s) v about the y-axis by angle theta (radians)."""
+    R_y = jnp.array([
+        [ jnp.cos(theta), 0.0, jnp.sin(theta)],
+        [ 0.0,            1.0, 0.0           ],
+        [-jnp.sin(theta), 0.0, jnp.cos(theta)]
+    ])
+    return R_y @ v
 
-
-def ROTATEY(angle, x, y, z):
-    tmp_x = x * jnp.cos(angle) + z * jnp.sin(angle)
-    tmp_z = -x * jnp.sin(angle) + z * jnp.cos(angle)
-    return tmp_x, y, tmp_z
+def IMRPhenomX_rotate_z(v, theta):
+    """Rotate vector(s) v about the z-axis by angle theta (radians)."""
+    R_z = jnp.array([
+        [ jnp.cos(theta), -jnp.sin(theta), 0.0],
+        [ jnp.sin(theta),  jnp.cos(theta), 0.0],
+        [ 0.0,             0.0,            1.0]
+    ])
+    return R_z @ v
 
 ###
 
 def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
     v,  ## velocity
     pWF,  ## IMRPhenomX waveform struct
-    pPrec  ## IMRPhenomX precession struct  ### LR: casting??
+    pPrec  ## IMRPhenomX precession struct
     ):  ## has to output a jnp array
     
     vout = jnp.array([0,0,0])
@@ -66,15 +73,15 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
     ''' Get phiz_0_MSA and zeta_0_MSA '''
     vMSA = jax.lax.cond((jnp.fabs(pPrec["Smi2"] - pPrec["Spl2"]) > 1.e-5), 
                         IMRPhenomX_Return_MSA_Corrections_MSA,  ## return 3D jnp.array
-                        lambda v, L_norm, J_norm, pPrec: jnp.array([0,0,0]),  ## ugly but okay??
+                        lambda v, L_norm, J_norm, pPrec: jnp.array([0,0,0]),
                         v, L_norm, J_norm, pPrec)   
     
     phiz_MSA     = vMSA[0]
     zeta_MSA     = vMSA[1]
  
-    phiz         = IMRPhenomX_Return_phiz_MSA(v,J_norm,pPrec)  ## (DONE)
-    zeta         = IMRPhenomX_Return_zeta_MSA(v,pPrec)  ## (DONE)
-    cos_theta_L      = IMRPhenomX_costhetaLJ(L_norm3PN,J_norm3PN,SNorm)  ## (DONE)
+    phiz         = IMRPhenomX_Return_phiz_MSA(v,J_norm,pPrec)  
+    zeta         = IMRPhenomX_Return_zeta_MSA(v,pPrec)  
+    cos_theta_L      = IMRPhenomX_costhetaLJ(L_norm3PN,J_norm3PN,SNorm)  
  
     vout[0] = phiz + phiz_MSA
     vout[1] = zeta + zeta_MSA
@@ -470,7 +477,6 @@ def IMRPhenomXGetAndSetPrecessionVariables(pWF, m1_SI, m2_SI,
     m1 = m1_SI / Mtot_SI
     m2 = m2_SI / Mtot_SI
     M = m1 + m2
-    #pWF['M'] = m1 + m2  ### pWF needs to be a dict??
 
     # Mass ratio and symmetric mass ratio
     q   = m1 / m2
@@ -479,6 +485,7 @@ def IMRPhenomXGetAndSetPrecessionVariables(pWF, m1_SI, m2_SI,
     m1_2 = m1**2
     m2_2 = m2**2
     
+    ### pWF needs to be a dict??
     ## TODO: check how is delta stored in pWF
     delta     = pWF['delta']
     ## TODO: compute chieff?
@@ -511,7 +518,7 @@ def IMRPhenomXGetAndSetPrecessionVariables(pWF, m1_SI, m2_SI,
     STot_y = pPrec['S1y'] + pPrec['S2y']
     pPrec['STot_perp'] = jnp.sqrt(STot_x**2 + STot_y**2)
     pPrec['chiTot_perp'] = pPrec['STot_perp'] * (M**2) / m1_2
-    # pWF['chiTot_perp'] = pPrec['chiTot_perp']  ### pWF needs to be a dict??
+    # pWF['chiTot_perp'] = pPrec['chiTot_perp']  
 
     ## disable tuned PNR angles, tuned coprec and mode asymmetries in low in-plane spin limit (TODO)
     
@@ -531,7 +538,7 @@ def IMRPhenomXGetAndSetPrecessionVariables(pWF, m1_SI, m2_SI,
     chi2L = chi2z
 
     pPrec['chi_p'] = chip
-    pWF['chi_p']   = pPrec['chi_p']   # propagate to waveform struct ### pWF needs to be a dict??
+    pWF['chi_p']   = pPrec['chi_p']   # propagate to waveform struct
     pPrec['phi0_aligned'] = pWF['phi0']
 
     # Effective (dimensionful) aligned spin
@@ -548,6 +555,10 @@ def IMRPhenomXGetAndSetPrecessionVariables(pWF, m1_SI, m2_SI,
 
     pPrec['precessing_tag'] = 2
 
+    '''''
+    The following code initializes variables needed for PNR. Since I am implementing only XP->223 for the moment
+    I assume this is not needed (to be checked further)
+    
     # Initialize PNR variables
     pPrec['chi_singleSpin'] = 0.0
     pPrec['costheta_singleSpin'] = 0.0
@@ -577,8 +588,9 @@ def IMRPhenomXGetAndSetPrecessionVariables(pWF, m1_SI, m2_SI,
     status = IMRPhenomX_PNR_GetAndSetCoPrecParams(pWF, pPrec, params)  ## (TODO)
 
     pPrec['MSA_ERROR'] = status
+    '''''
     
-    pPrec = IMRPhenomX_Initialize_MSA_System(pWF,pPrec,pPrec['ExpansionOrder'])  ## is it okay to update
+    pPrec = IMRPhenomX_Initialize_MSA_System(pWF,pPrec,pPrec['ExpansionOrder']) 
     
     IMRPhenomX_SetPrecessingRemnantParams(pWF,pPrec, params) ## (TODO)
     
@@ -1282,7 +1294,6 @@ def IMRPhenomX_SetPrecessingRemnantParams(pWF, pPrec, params):
     # see arXiv:2004.06503v2
     # Just implementing branch for MSA_ERROR == 0. No fallback to NNLO for the moment
 
-    # what is this flag?
     method_flag = XLALSimInspiralWaveformParamsLookupPhenomXPTransPrecessionMethod(  ## (TODO)
         params
     )
@@ -1336,21 +1347,3 @@ def IMRPhenomX_Get_PN_tau(a, b, pPrec):
 def IMRPhenomX_psiofv(v, v2, psi0, psi1, psi2, pPrec):
     # Equation 51 in arXiv:1703.03967
     return psi0 - 0.75 * pPrec['g0'] * pPrec['delta_qq'] * (1.0 + psi1 * v + psi2 * v2) / (v2 * v)
-
-def IMRPhenomX_rotate_y(v, theta):
-    """Rotate vector(s) v about the y-axis by angle theta (radians)."""
-    R_y = jnp.array([
-        [ jnp.cos(theta), 0.0, jnp.sin(theta)],
-        [ 0.0,            1.0, 0.0           ],
-        [-jnp.sin(theta), 0.0, jnp.cos(theta)]
-    ])
-    return R_y @ v
-
-def IMRPhenomX_rotate_z(v, theta):
-    """Rotate vector(s) v about the z-axis by angle theta (radians)."""
-    R_z = jnp.array([
-        [ jnp.cos(theta), -jnp.sin(theta), 0.0],
-        [ jnp.sin(theta),  jnp.cos(theta), 0.0],
-        [ 0.0,             0.0,            1.0]
-    ])
-    return R_z @ v
