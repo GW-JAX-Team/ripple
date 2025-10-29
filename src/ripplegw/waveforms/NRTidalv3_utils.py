@@ -202,6 +202,55 @@ def get_tidal_phase(
     return tidal_phase
 
 
+"""
+PN tidal phase correction, at 7.5PN, to connect with NRTidalv3 Phase post-merger,
+see Eq. (22) and (45) of https://arxiv.org/pdf/2311.07456.pdf
+and is a function of x = angular_orb_freq^(2./3.)
+"""
+def get_tidal_phase_PN(
+               M_omega, # Dimensionless angular GW frequency
+               Xa, #< Mass of companion 1 divided by total mass 
+               lambda1, #< dimensionless tidal deformability of companion 1
+               lambda2, #< dimensionless tidal deformability of companion 2
+               PN_coeffs #< 7.5 PN coefficients
+):
+    """
+    SimNRTunedTidesFDTidalPhase_PN
+    """
+    Xb = 1.0 - Xa
+
+    PN_x = M_omega **(2.0/3.0)              # pow(M_omega, 2.0/3.0)
+    PN_x_2 = PN_x * PN_x                         # pow(PN_x, 2)
+    PN_x_3over2 = PN_x * jnp.sqrt(PN_x)              # pow(PN_x, 3.0/2.0)
+    PN_x_5over2 = PN_x_3over2 * PN_x      # pow(PN_x, 5.0/2.0)
+
+    kappaA = 3.0*Xb*Xa*Xa*Xa*Xa*lambda1
+    kappaB = 3.0*Xa*Xb*Xb*Xb*Xb*lambda2
+
+    # 7.5PN Coefficients 
+    c_NewtA = PN_coeffs[0]
+    c_1A = PN_coeffs[1]
+    c_3over2A = PN_coeffs[2]
+    c_2A = PN_coeffs[3]
+    c_5over2A = PN_coeffs[4]
+
+    c_NewtB = PN_coeffs[5]
+    c_1B = PN_coeffs[6]
+    c_3over2B = PN_coeffs[7]
+    c_2B = PN_coeffs[8]
+    c_5over2B = PN_coeffs[9]
+
+    factorA = -c_NewtA*PN_x_5over2*kappaA
+    factorB = -c_NewtB*PN_x_5over2*kappaB
+
+    tidal_phasePNA = factorA*(1.0 + (c_1A*PN_x) + (c_3over2A*PN_x_3over2) + (c_2A*PN_x_2) + (c_5over2A*PN_x_5over2))
+    tidal_phasePNB = factorB*(1.0 + (c_1B*PN_x) + (c_3over2B*PN_x_3over2) + (c_2B*PN_x_2) + (c_5over2B*PN_x_5over2))
+
+    tidal_phasePN = tidal_phasePNA + tidal_phasePNB
+
+    return tidal_phasePN
+
+
 def get_tidalphasePN_coeffs(theta_intrinsic: Array):
     """
     Coefficients or the PN tidal phase correction, at 7.5PN, to connect with NRTidalv3 Phase post-merger, see Eq. (45) of https://arxiv.org/pdf/2311.07456.pdf
@@ -295,11 +344,11 @@ def get_NRTidalv3_coefficients(
     alpha =   -8.08155404e-03 #alpha
     beta =  -1.13695919e+00 #beta
 
-    kappaA_alpha = jnp.pow(NRTidalv3_coeffs[4] + 1, alpha) #kappaA_alpha
-    kappaB_alpha = jnp.pow(NRTidalv3_coeffs[5] + 1, alpha) #kappaB_alpha
+    kappaA_alpha = (NRTidalv3_coeffs[4] + 1) ** alpha #kappaA_alpha
+    kappaB_alpha = (NRTidalv3_coeffs[5] + 1) ** alpha #kappaB_alpha
 
-    Xa_beta = jnp.pow(Xa, beta) #Xa_beta
-    Xb_beta = jnp.pow(Xb, beta) #Xb_beta
+    Xa_beta = (Xa) ** beta #Xa_beta
+    Xb_beta = (Xb) ** beta #Xb_beta
 
     # Pade approximant coefficients:
     n_5over20 =  -9.40654388e+02 #n_5over20
@@ -341,55 +390,6 @@ def get_NRTidalv3_coefficients(
     NRTidalv3_coeffs = NRTidalv3_coeffs.at[19].set(-(c_5over2B + c_3over2B*NRTidalv3_coeffs[11] - NRTidalv3_coeffs[9]) * inv_c1_B)
 
     return NRTidalv3_coeffs
-
-
-"""
-PN tidal phase correction, at 7.5PN, to connect with NRTidalv3 Phase post-merger,
-see Eq. (22) and (45) of https://arxiv.org/pdf/2311.07456.pdf
-and is a function of x = angular_orb_freq^(2./3.)
-"""
-def get_tidal_phase_PN(
-               M_omega, # Dimensionless angular GW frequency
-               Xa, #< Mass of companion 1 divided by total mass 
-               lambda1, #< dimensionless tidal deformability of companion 1
-               lambda2, #< dimensionless tidal deformability of companion 2
-               PN_coeffs #< 7.5 PN coefficients
-):
-    """
-    SimNRTunedTidesFDTidalPhase_PN
-    """
-    Xb = 1.0 - Xa
-
-    PN_x = M_omega **(2.0/3.0)              # pow(M_omega, 2.0/3.0)
-    PN_x_2 = PN_x * PN_x                         # pow(PN_x, 2)
-    PN_x_3over2 = PN_x * jnp.sqrt(PN_x)              # pow(PN_x, 3.0/2.0)
-    PN_x_5over2 = PN_x_3over2 * PN_x      # pow(PN_x, 5.0/2.0)
-
-    kappaA = 3.0*Xb*Xa*Xa*Xa*Xa*lambda1
-    kappaB = 3.0*Xa*Xb*Xb*Xb*Xb*lambda2
-
-    # 7.5PN Coefficients 
-    c_NewtA = PN_coeffs[0]
-    c_1A = PN_coeffs[1]
-    c_3over2A = PN_coeffs[2]
-    c_2A = PN_coeffs[3]
-    c_5over2A = PN_coeffs[4]
-
-    c_NewtB = PN_coeffs[5]
-    c_1B = PN_coeffs[6]
-    c_3over2B = PN_coeffs[7]
-    c_2B = PN_coeffs[8]
-    c_5over2B = PN_coeffs[9]
-
-    factorA = -c_NewtA*PN_x_5over2*kappaA
-    factorB = -c_NewtB*PN_x_5over2*kappaB
-
-    tidal_phasePNA = factorA*(1.0 + (c_1A*PN_x) + (c_3over2A*PN_x_3over2) + (c_2A*PN_x_2) + (c_5over2A*PN_x_5over2))
-    tidal_phasePNB = factorB*(1.0 + (c_1B*PN_x) + (c_3over2B*PN_x_3over2) + (c_2B*PN_x_2) + (c_5over2B*PN_x_5over2))
-
-    tidal_phasePN = tidal_phasePNA + tidal_phasePNB
-
-    return tidal_phasePN
 
 
 ######################################################################################################################################

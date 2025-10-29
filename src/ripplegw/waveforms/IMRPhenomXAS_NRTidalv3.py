@@ -5,11 +5,13 @@ import jax.numpy as jnp
 from ..constants import gt, m_per_Mpc, PI, TWO_PI, MRSUN, C
 from ..typing import Array
 from ripplegw import Mc_eta_to_ms, lambda_tildes_to_lambdas
-from .IMRPhenom_tidal_utils import get_quadparam_octparam, get_kappa
-from .IMRPhenomD_NRTidalv2 import get_tidal_amplitude, get_spin_phase_correction, get_planck_taper # Same between v2 and v3
+from .IMRPhenom_tidal_utils import get_kappa
+from .IMRPhenomD_NRTidalv2 import get_spin_phase_correction, get_planck_taper, get_tidal_amplitude # Same between v2 and v3
 from .NRTidalv3_utils import _get_merger_frequency, get_tidal_phase, get_NRTidalv3_coefficients, get_tidalphasePN_coeffs, get_tidal_phase_PN, general_planck_taper
 from ripplegw.waveforms import IMRPhenomX_utils
 from .IMRPhenomXAS import Amp, Phase
+import lalsimulation as lalsim
+import lal
 
 
 # This could be a general utils function
@@ -72,7 +74,7 @@ def _gen_IMRPhenomXAS_NRTidalv3(
     psi_SS = get_spin_phase_correction(x_23, theta_intrinsic)
 
     # Reconstruct waveform with NRTidal terms included: h(f) = [A(f) + A_tidal(f)] * Exp{I [phi(f) - phi_tidal(f)]} * window(f)
-    h0 = AA_P * (bbh_amp + A_T) * jnp.exp(1.0j * -(bbh_psi + psi_T + psi_SS))
+    h0 = AA_P * (bbh_amp + A_T) * jnp.exp(1.0j * (bbh_psi + psi_T + psi_SS))
 
     return h0
 
