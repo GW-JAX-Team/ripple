@@ -1320,6 +1320,7 @@ def _gen_IMRPhenomXAS(
     phase_coeffs: Array,
     amp_coeffs: Array,
     f_ref: float,
+    get_phase: bool = False
 ):
     m1, m2, chi1, chi2 = theta_intrinsic
     m1_s = m1 * MTSUN
@@ -1356,12 +1357,16 @@ def _gen_IMRPhenomXAS(
     ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] + 2 * theta_extrinsic[2]
     Psi = Psi + (linb * fM_s) + lina + phifRef - 2 * PI + ext_phase_contrib
 
+    # DEBUG FEATURE
+    if get_phase:
+        return Psi, lina, linb, fM_s, phifRef, psi4tostrain
+
     A = Amp(f, theta_intrinsic, amp_coeffs, D=theta_extrinsic[0])
     h0 = A * jnp.exp(1j * Psi)
     return h0
 
 
-def gen_IMRPhenomXAS(f: Array, params: Array, f_ref: float):
+def gen_IMRPhenomXAS(f: Array, params: Array, f_ref: float, get_phase: bool = False):
     """
     Generate PhenomXAS frequency domain waveform following 2001.11412.
     Note that this waveform also assumes that object one is the more massive.
@@ -1387,7 +1392,7 @@ def gen_IMRPhenomXAS(f: Array, params: Array, f_ref: float):
     amp_coeffs = IMRPhenomX_utils.PhenomX_amp_coeff_table
 
     h0 = _gen_IMRPhenomXAS(
-        f, theta_intrinsic, theta_extrinsic, phase_coeffs, amp_coeffs, f_ref
+        f, theta_intrinsic, theta_extrinsic, phase_coeffs, amp_coeffs, f_ref, get_phase=get_phase
     )
     return h0
 
