@@ -22,6 +22,7 @@ def _gen_IMRPhenomXAS_NRTidalv3(
     bbh_amp: Array,
     bbh_psi: Array,
     no_taper: bool = False,
+    get_phase: bool = False
 ):
     """
     Master internal function to get the GW strain for given parameters. The function takes
@@ -64,6 +65,8 @@ def _gen_IMRPhenomXAS_NRTidalv3(
     NRTidalv3_coeffs = get_NRTidalv3_coefficients(theta_intrinsic, PN_coeffs)
     NRTidalv3_phase = get_tidal_phase(x, NRTidalv3_coeffs, PN_coeffs)
 
+    # TODO: add tidal phase offset
+
     # Check for local minimum TODO
     fHzmrgcheck = 0.9 * f_merger
     increasing = jnp.concatenate([jnp.array([False]), NRTidalv3_phase[1:] >= NRTidalv3_phase[:-1]])
@@ -72,6 +75,9 @@ def _gen_IMRPhenomXAS_NRTidalv3(
 
     psi_T = NRTidalv3_phase * (1 - A_P) + get_tidal_phase_PN(x, Xa, lambda1, lambda2, PN_coeffs) * A_P
     psi_SS = get_spin_phase_correction(x_23, theta_intrinsic)
+
+    if get_phase: # purely for debugging purposes
+        return bbh_psi + psi_T + psi_SS
 
     # Reconstruct waveform with NRTidal terms included: h(f) = [A(f) + A_tidal(f)] * Exp{I [phi(f) - phi_tidal(f)]} * window(f)
     h0 = AA_P * (bbh_amp + A_T) * jnp.exp(1.0j * (bbh_psi + psi_T + psi_SS))
@@ -85,6 +91,7 @@ def gen_IMRPhenomXAS_NRTidalv3(
     f_ref: float,
     use_lambda_tildes: bool = True,
     no_taper: bool = False,
+    get_phase: bool = False
 ) -> Array:
     """
     Generate NRTidalv3 frequency domain waveform following NRTidalv3 paper.
@@ -164,7 +171,7 @@ def gen_IMRPhenomXAS_NRTidalv3(
 
     # Use BBH waveform and add tidal corrections
     return _gen_IMRPhenomXAS_NRTidalv3(
-        f, theta_intrinsic, theta_extrinsic, bbh_amp, bbh_psi, no_taper=no_taper
+        f, theta_intrinsic, theta_extrinsic, bbh_amp, bbh_psi, no_taper=no_taper, get_phase=get_phase
     )
 
 
