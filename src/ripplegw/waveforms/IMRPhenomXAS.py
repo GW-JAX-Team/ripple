@@ -1324,7 +1324,115 @@ def _gen_IMRPhenomXAS(
     phase_coeffs: Array,
     amp_coeffs: Array,
     f_ref: float,
-    get_phase: bool = False
+):
+    m1, m2, chi1, chi2 = theta_intrinsic
+    m1_s = m1 * gt
+    m2_s = m2 * gt
+
+    M_s = m1_s + m2_s
+    eta = m1_s * m2_s / (M_s**2.0)
+    delta = jnp.sqrt(1.0 - 4.0 * eta)
+    mm1 = 0.5 * (1.0 + delta)
+    mm2 = 0.5 * (1.0 - delta)
+
+    StotR = (mm1**2 * chi1 + mm2**2 * chi2) / (mm1**2 + mm2**2)
+    chia = chi1 - chi2
+
+    fM_s = f * M_s
+    fMs_RD, fMs_damp, _, _ = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
+    Psi = Phase(f, theta_intrinsic, phase_coeffs)
+
+    # Generate the linear in f and constant contribution to the phase in order
+    # to roll the waveform such that the peak is at the input tc and phic
+    lina, linb, psi4tostrain = IMRPhenomX_utils.calc_phaseatpeak(
+        eta, StotR, chia, delta
+    )
+    dphi22Ref = (
+        jax.grad(Phase)((fMs_RD - fMs_damp) / M_s, theta_intrinsic, phase_coeffs) / M_s
+    )
+    linb = linb - dphi22Ref - 2.0 * PI * (500.0 + psi4tostrain)
+    # The addition π shift comes from Y22
+    phifRef = (
+        -(Phase(f_ref, theta_intrinsic, phase_coeffs) + linb * (f_ref * M_s) + lina)
+        + PI / 4.0
+        + PI
+    )
+    ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] + 2 * theta_extrinsic[2]
+    Psi = Psi + (linb * fM_s) + lina + phifRef - 2 * PI + ext_phase_contrib
+
+    A = Amp(f, theta_intrinsic, amp_coeffs, D=theta_extrinsic[0])
+    h0 = A * jnp.exp(1j * Psi)
+    return h0
+
+
+def gen_IMRPhenomXAS(f: Array, params: Array, f_ref: float):
+    """
+    Generate PhenomXAS frequency domain waveform following 2001.11412.
+    Note that this waveform also assumes that object one is the more massive.
+    vars array contains both intrinsic and extrinsic variables
+    theta = [Mchirp, eta, chi1, chi2, D, tc, phic]
+    Mchirp: Chirp mass of the system [solar masses]
+    eta: Symmetric mass ratio [between 0.0 and 0.25]
+    chi1: Dimensionless aligned spin of the primary object [between -1 and 1]
+    chi2: Dimensionless aligned spin of the secondary object [between -1 and 1]
+    D: Luminosity distance to source [Mpc]
+    tc: Time of coalesence. This only appears as an overall linear in f contribution to the phase
+    phic: Phase of coalesence
+
+    Returns:
+    --------
+      h0 (array): Complex gravitational wave strain
+    """
+    # Lets make this easier by starting in Mchirp and eta space
+    m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
+    theta_intrinsic = jnp.array([m1, m2, params[2], params[3]])
+    theta_extrinsic = jnp.array([params[4], params[5], params[6]])
+    phase_coeffs = IMRPhenomX_utils.PhenomX_phase_coeff_table
+    amp_coeffs = IMRPhenomX_utils.PhenomX_amp_coeff_table
+
+    h0 = _gen_IMRPhenomXAS(
+        f, theta_intrinsic, theta_extrinsic, phase_coeffs, amp_coeffs, f_ref
+    )
+    return h0
+
+
+def gen_IMRPhenomXAS_hphc(f: Array, params: Array, f_ref: float):
+    """
+    Generate PhenomXAS frequency domain waveform following 2001.11412.
+    vars array contains both intrinsic and extrinsic variables
+    theta = [Mchirp, eta, chi1, chi2, D, tc, phic]
+    Mchirp: Chirp mass of the system [solar masses]
+    eta: Symmetric mass ratio [between 0.0 and 0.25]
+    chi1: Dimensionless aligned spin of the primary object [between -1 and 1]
+    chi2: Dimensionless aligned spin of the secondary object [between -1 and 1]
+    D: Luminosity distance to source [Mpc]
+    tc: Time of coalesence. This only appears as an overall linear in f contribution to the phase
+    phic: Phase of coalesence
+    inclination: Inclination angle of the binary [between 0 and PI]
+
+    f_ref: Reference frequency for the waveform
+
+    Returns:
+    --------
+      hp (array): Strain of the plus polarization
+      hc (array): Strain of the cross polarization
+    """
+    iota = params[7]
+    h0 = gen_IMRPhenomXAS(f, params, f_ref)
+
+    hp = h0 * (1 / 2 * (1 + jnp.cos(iota) ** 2))
+    hc = -1j * h0 * jnp.cos(iota)
+
+    return hp, hc
+
+
+# Debug function
+def get_IMRPhenomXAS_Phase(
+    f: Array,
+    theta_intrinsic: Array,
+    theta_extrinsic: Array,
+    phase_coeffs: Array,
+    f_ref: float,
 ):
     m1, m2, chi1, chi2 = theta_intrinsic
     m1_s = m1 * gt
@@ -1360,71 +1468,4 @@ def _gen_IMRPhenomXAS(
     ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] - theta_extrinsic[2]
     Psi = Psi + (linb * fM_s) + lina + phifRef - 2 * PI + ext_phase_contrib
 
-    # DEBUG FEATURE
-    if get_phase:
-        return Psi, lina, linb, fM_s, phifRef, psi4tostrain
-
-    A = Amp(f, theta_intrinsic, amp_coeffs, D=theta_extrinsic[0])
-    h0 = A * jnp.exp(1j * Psi)
-    return h0
-
-
-def gen_IMRPhenomXAS(f: Array, params: Array, f_ref: float, get_phase: bool = False):
-    """
-    Generate PhenomXAS frequency domain waveform following 2001.11412.
-    Note that this waveform also assumes that object one is the more massive.
-    vars array contains both intrinsic and extrinsic variables
-    theta = [Mchirp, eta, chi1, chi2, D, tc, phic]
-    Mchirp: Chirp mass of the system [solar masses]
-    eta: Symmetric mass ratio [between 0.0 and 0.25]
-    chi1: Dimensionless aligned spin of the primary object [between -1 and 1]
-    chi2: Dimensionless aligned spin of the secondary object [between -1 and 1]
-    D: Luminosity distance to source [Mpc]
-    tc: Time of coalesence. This only appears as an overall linear in f contribution to the phase
-    phic: Phase of coalesence
-
-    Returns:
-    --------
-      h0 (array): Complex gravitational wave strain
-    """
-    # Lets make this easier by starting in Mchirp and eta space
-    m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
-    theta_intrinsic = jnp.array([m1, m2, params[2], params[3]])
-    theta_extrinsic = jnp.array([params[4], params[5], params[6]])
-    phase_coeffs = IMRPhenomX_utils.PhenomX_phase_coeff_table
-    amp_coeffs = IMRPhenomX_utils.PhenomX_amp_coeff_table
-
-    h0 = _gen_IMRPhenomXAS(
-        f, theta_intrinsic, theta_extrinsic, phase_coeffs, amp_coeffs, f_ref, get_phase=get_phase
-    )
-    return h0
-
-
-def gen_IMRPhenomXAS_hphc(f: Array, params: Array, f_ref: float):
-    """
-    Generate PhenomXAS frequency domain waveform following 2001.11412.
-    vars array contains both intrinsic and extrinsic variables
-    theta = [Mchirp, eta, chi1, chi2, D, tc, phic]
-    Mchirp: Chirp mass of the system [solar masses]
-    eta: Symmetric mass ratio [between 0.0 and 0.25]
-    chi1: Dimensionless aligned spin of the primary object [between -1 and 1]
-    chi2: Dimensionless aligned spin of the secondary object [between -1 and 1]
-    D: Luminosity distance to source [Mpc]
-    tc: Time of coalesence. This only appears as an overall linear in f contribution to the phase
-    phic: Phase of coalesence
-    inclination: Inclination angle of the binary [between 0 and PI]
-
-    f_ref: Reference frequency for the waveform
-
-    Returns:
-    --------
-      hp (array): Strain of the plus polarization
-      hc (array): Strain of the cross polarization
-    """
-    iota = params[7]
-    h0 = gen_IMRPhenomXAS(f, params, f_ref)
-
-    hp = h0 * (1 / 2 * (1 + jnp.cos(iota) ** 2))
-    hc = -1j * h0 * jnp.cos(iota)
-
-    return hp, hc
+    return Psi

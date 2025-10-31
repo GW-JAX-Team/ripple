@@ -54,11 +54,11 @@ def _gen_IMRPhenomXAS_NRTidalv3(
 
     # Decide whether to include the Planck taper or not
     if no_taper:
+        P_P = jnp.ones_like(f)
         A_P = jnp.ones_like(f)
-        AA_P = jnp.ones_like(f)
     else:
-        A_P = general_planck_taper(f, 1.15*f_merger, 1.35*f_merger)
-        AA_P = get_planck_taper(f, f_merger)
+        P_P = general_planck_taper(f, 1.15*f_merger, 1.35*f_merger)
+        A_P = get_planck_taper(f, f_merger)
 
     # Get tidal phase and spin corrections for BNS
     PN_coeffs = get_tidalphasePN_coeffs(theta_intrinsic)
@@ -73,14 +73,14 @@ def _gen_IMRPhenomXAS_NRTidalv3(
     valid = (f >= fHzmrgcheck) & increasing
 
 
-    psi_T = NRTidalv3_phase * (1 - A_P) + get_tidal_phase_PN(x, Xa, lambda1, lambda2, PN_coeffs) * A_P
+    psi_T = NRTidalv3_phase * (1 - P_P) + get_tidal_phase_PN(x, Xa, lambda1, lambda2, PN_coeffs) * P_P
     psi_SS = get_spin_phase_correction(x_23, theta_intrinsic)
 
     if get_phase: # purely for debugging purposes
         return bbh_psi + psi_T + psi_SS
 
     # Reconstruct waveform with NRTidal terms included: h(f) = [A(f) + A_tidal(f)] * Exp{I [phi(f) - phi_tidal(f)]} * window(f)
-    h0 = AA_P * (bbh_amp + A_T) * jnp.exp(1.0j * (bbh_psi + psi_T + psi_SS))
+    h0 = A_P * (bbh_amp + A_T) * jnp.exp(1.0j * (bbh_psi + psi_T + psi_SS))
 
     return h0
 
@@ -156,12 +156,13 @@ def gen_IMRPhenomXAS_NRTidalv3(
         jax.grad(Phase)((fMs_RD - fMs_damp) / M_s, bbh_theta_intrinsic, phase_coeffs) / M_s
     )
     linb = linb - dphi22Ref - 2.0 * PI * (500.0 + psi4tostrain)
+    # The addition π shift comes from Y22
     phifRef = (
-        -(Phase(f_ref, bbh_theta_intrinsic, phase_coeffs) + linb * (f_ref * M_s) + lina)
+        -(Phase(f_ref, theta_intrinsic, phase_coeffs) + linb * (f_ref * M_s) + lina)
         + PI / 4.0
         + PI
     )
-    ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] - theta_extrinsic[2]
+    ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] + 2 * theta_extrinsic[2]
     Psi = Psi + (linb * fM_s) + lina + phifRef - 2 * PI + ext_phase_contrib
 
     A = Amp(f, bbh_theta_intrinsic, amp_coeffs, D=theta_extrinsic[0])
