@@ -1337,8 +1337,8 @@ def IMRPhenomX_SetPrecessingRemnantParams(pWF, pPrec, params):
     )
 
     # Update ringdown and damping frequency: no precession; to be used for PNR tuned deviations
-    pWF['fRING'] = evaluate_QNMfit_fring22(pWF['afinal']) / pWF['Mfinal']  ## (TODO)
-    pWF['fDAMP'] = evaluate_QNMfit_fdamp22(pWF['afinal']) / pWF['Mfinal']  ## (TODO)
+    pWF['fRING'] = evaluate_QNMfit_fring22(pWF['afinal']) / pWF['Mfinal']  
+    pWF['fDAMP'] = evaluate_QNMfit_fdamp22(pWF['afinal']) / pWF['Mfinal']  
     
     return pWF
 
@@ -1360,3 +1360,142 @@ def IMRPhenomX_Get_PN_tau(a, b, pPrec):
 def IMRPhenomX_psiofv(v, v2, psi0, psi1, psi2, pPrec):
     # Equation 51 in arXiv:1703.03967
     return psi0 - 0.75 * pPrec['g0'] * pPrec['delta_qq'] * (1.0 + psi1 * v + psi2 * v2) / (v2 * v)
+
+
+def XLALSimIMRPhenomXFinalSpin2017(eta, chi1L, chi2L):
+
+    delta  = jnp.sqrt(1.0 - 4.0 * eta)
+    m1     = 0.5 * (1.0 + delta)
+    m2     = 0.5 * (1.0 - delta)
+    m1Sq   = m1 * m1
+    m2Sq   = m2 * m2
+
+    eta2   = eta * eta
+    eta3   = eta2 * eta
+
+    S = XLALSimIMRPhenomXSTotR(eta, chi1L, chi2L)
+    S2 = S * S
+    S3 = S2 * S
+
+    dchi  = chi1L - chi2L
+    dchi2 = dchi * dchi
+
+    noSpin = (3.4641016151377544 * eta
+              + 20.0830030082033 * eta2
+              - 12.333573402277912 * eta3) / (1.0 + 7.2388440419467335 * eta)
+
+    eqSpin = ((m1Sq + m2Sq) * S
+              + ((-0.8561951310209386 * eta
+                  - 0.09939065676370885 * eta2
+                  + 1.668810429851045 * eta3) * S
+                 + (0.5881660363307388 * eta
+                    - 2.149269067519131 * eta2
+                    + 3.4768263932898678 * eta3) * S2
+                 + (0.142443244743048 * eta
+                    - 0.9598353840147513 * eta2
+                    + 1.9595643107593743 * eta3) * S3)
+              / (1.0 + (-0.9142232693081653
+                        + 2.3191363426522633 * eta
+                        - 9.710576749140989 * eta3) * S))
+
+    uneqSpin = (0.3223660562764661 * dchi * delta * (1 + 9.332575956437443 * eta) * eta2
+                - 0.059808322561702126 * dchi2 * eta3
+                + 2.3170397514509933 * dchi * delta * (1 - 3.2624649875884852 * eta) * eta3 * S)
+
+    return noSpin + eqSpin + uneqSpin
+
+def XLALSimIMRPhenomXSTotR(eta, chi1L, chi2L):
+    """
+    Total spin normalized to [-1, 1]
+    """
+    delta = jnp.sqrt(1.0 - 4.0 * eta)
+    m1 = 0.5 * (1.0 + delta)
+    m2 = 0.5 * (1.0 - delta)
+
+    m1s = m1 * m1
+    m2s = m2 * m2
+
+    # Spin combination
+    return (m1s * chi1L + m2s * chi2L) / (m1s + m2s)
+
+def evaluate_QNMfit_fring22(a):
+    """
+    This implementation is the same as the in from IMRPhenomX_utils -> get_cutoff_fMs
+    Taken from https://lscsoft.docs.ligo.org/lalsuite/lalsimulation/_l_a_l_sim_i_m_r_phenom_t_h_m__fits_8c_source.html
+    Evaluate the ringdown frequency
+    """
+    a2 = a * a
+    a3 = a2 * a
+    a4 = a3 * a
+    a5 = a4 * a
+    a6 = a5 * a
+    a7 = a6 * a
+
+    return (
+        (
+            0.05947169566573468
+            - 0.14989771215394762 * a
+            + 0.09535606290986028 * a2
+            + 0.02260924869042963 * a3
+            - 0.02501704155363241 * a4
+            - 0.005852438240997211 * a5
+            + 0.0027489038393367993 * a6
+            + 0.0005821983163192694 * a7
+        )
+        / (
+            1
+            - 2.8570126619966296 * a
+            + 2.373335413978394 * a2
+            - 0.6036964688511505 * a4
+            + 0.0873798215084077 * a6
+        )
+    )
+    
+def evaluate_QNMfit_fdamp22(a):
+    """
+    This implementation is the same as the in from IMRPhenomX_utils -> get_cutoff_fMs
+    Taken from https://lscsoft.docs.ligo.org/lalsuite/lalsimulation/_l_a_l_sim_i_m_r_phenom_t_h_m__fits_8c_source.html
+    Evaluate the ringdown frequency
+    """
+    a2 = a * a
+    a3 = a2 * a
+    a4 = a3 * a
+    a5 = a4 * a
+    a6 = a5 * a
+    a7 = a6 * a
+    
+    return (
+        (
+            0.014158792290965177
+            - 0.036989395871554566 * a
+            + 0.026822526296575368 * a2
+            + 0.0008490933750566702 * a3
+            - 0.004843996907020524 * a4
+            - 0.00014745235759327472 * a5
+            + 0.0001504546201236794 * a6
+        )
+        / (
+            1
+            - 2.5900842798681376 * a
+            + 1.8952576220623967 * a2
+            - 0.31416610693042507 * a4
+            + 0.009002719412204133 * a6
+        )
+    )
+
+
+##########################
+## NOT YET IMPLEMENTED ###
+##########################
+
+def gsl_sf_ellint_F(x, y):
+    """
+    TODO: Not yet implemented
+    """
+    return x
+
+def XLALSimInspiralWaveformParamsLookupPhenomXPTransPrecessionMethod(dict):
+    """
+    TODO: Not yet implemented
+    """
+    return 1
