@@ -1,9 +1,9 @@
 import jax
 import jax.numpy as jnp
-from ripple import Mc_eta_to_ms
+from ripplegw import Mc_eta_to_ms
 
 from typing import Tuple
-from ..constants import gt, MSUN
+from ..constants import gt, MSUN, G, C
 import numpy as np
 from .IMRPhenomD import Phase as PhDPhase
 from .IMRPhenomD import Amp as PhDAmp
@@ -45,7 +45,7 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
     ):  ## has to output a jnp array
     
     vout = jnp.array([0,0,0])
-    L_norm = pWF["eta"] / v
+    L_norm = pWF['eta'] / v
     
     J_norm = IMRPhenomX_JNorm_MSA(L_norm,pPrec)  
     
@@ -159,15 +159,15 @@ def IMRPhenomX_Return_phiz_MSA(
     log2 = jnp.log(jnp.abs(c1 + JNorm * SAv * v + SAv2 * v))
 
     # Eq. D22-D27 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
-    phiz_0_coeff = (JNorm * pPrec["inveta4"]) * (
+    phiz_0_coeff = (JNorm * pPrec["inveta"]**4) * (
         0.5 * c12 - (c1 * pPrec["eta2"] * invv) / 6.0 - (SAv2 * pPrec["eta2"]) / 3.0 - (pPrec["eta4"] * invv2) / 3.0
     ) - (0.5 * c1 * pPrec["inveta"]) * (
-        c12 * pPrec["inveta4"] - SAv2 * pPrec["inveta2"]
+        c12 * pPrec["inveta"]**4 - SAv2 * pPrec["inveta"]**2
     ) * log1
 
     phiz_1_coeff = (
-        -0.5 * JNorm * pPrec["inveta2"] * (c1 + pPrec["eta"] * LNewt)
-        + 0.5 * pPrec["inveta3"] * (c12 - pPrec["eta2"] * SAv2) * log1
+        -0.5 * JNorm * pPrec["inveta"]**2 * (c1 + pPrec["eta"] * LNewt)
+        + 0.5 * pPrec["inveta"]**3 * (c12 - pPrec["eta2"] * SAv2) * log1
     )
 
     phiz_2_coeff = -JNorm + SAv * log2 - c1 * log1 * pPrec["inveta"]
@@ -328,12 +328,12 @@ def IMRPhenomX_Return_Roots_MSA(LNorm, JNorm, pPrec):
     invalid_case = (
         jnp.isnan(theta) |
         jnp.isnan(sqrtarg) |
-        (pPrec.dotS1Ln == 1.0) |
-        (pPrec.dotS2Ln == 1.0) |
-        (pPrec.dotS1Ln == -1.0) |
-        (pPrec.dotS2Ln == -1.0) |
-        (pPrec.S1_norm_2 == 0.0) |
-        (pPrec.S2_norm_2 == 0.0)
+        (pPrec['dotS1Ln'] == 1.0) |
+        (pPrec['dotS2Ln'] == 1.0) |
+        (pPrec['dotS1Ln'] == -1.0) |
+        (pPrec['dotS2Ln'] == -1.0) |
+        (pPrec['S1_norm_2'] == 0.0) |
+        (pPrec['S2_norm_2'] == 0.0)
     )
 
     def roots_when_valid():
@@ -356,7 +356,7 @@ def IMRPhenomX_Return_Roots_MSA(LNorm, JNorm, pPrec):
         return S32, Smi2, Spl2
 
     def roots_when_invalid():
-        Smi2 = pPrec['S_0_norm_2']
+        Smi2 = pPrec['S_0_norm']**2
         Spl2 = Smi2 + 1e-9
         S32 = 0.0
         return S32, Smi2, Spl2
@@ -392,7 +392,7 @@ def IMRPhenomX_Return_Constants_c_MSA(v, JNorm, pPrec):
 
     y = JNorm * (
         -1.5 * pPrec['eta'] * (pPrec['Spl2'] - pPrec['Smi2'])
-        * (1.0 + 2.0 * Seff * v - (JNorm2 - pPrec['Spl2']) * v2 * pPrec['inveta2'])
+        * (1.0 + 2.0 * Seff * v - (JNorm2 - pPrec['Spl2']) * v2 * pPrec['inveta']**2)
         * (1.0 - Seff * v) * v4
     )
 
@@ -421,7 +421,7 @@ def IMRPhenomX_Return_Psi_MSA(v, v2, pPrec):
 def IMRPhenomX_Return_Psi_dot_MSA(v, pPrec):
     v2 = v * v
 
-    A_coeff = -1.5 * v2 * v2 * v2 * (1.0 - v * pPrec['Seff']) * pPrec['sqrt_inveta']
+    A_coeff = -1.5 * v2 * v2 * v2 * (1.0 - v * pPrec['Seff']) * jnp.sqrt(pPrec['inveta'])
     psi_dot = 0.5 * A_coeff * jnp.sqrt(pPrec['Spl2'] - pPrec['S32'])
 
     return psi_dot
@@ -470,7 +470,9 @@ def IMRPhenomXGetAndSetPrecessionVariables(pWF, m1_SI, m2_SI,
     
     pPrec = {}
     
-    pPrec['ExpansionOrder'] = XLALSimInspiralWaveformParamsLookupPhenomXPExpansionOrder(params)  ## (TODO)
+    ## Here we're only considering the default setting, where the expansion order for MSA correction is 5
+    #pPrec['ExpansionOrder'] = XLALSimInspiralWaveformParamsLookupPhenomXPExpansionOrder(params)  ## (TODO)
+    pPrec['ExpansionOrder'] = 5
     
     Mtot_SI = m1_SI + m2_SI  
     # Normalize masses
@@ -480,7 +482,12 @@ def IMRPhenomXGetAndSetPrecessionVariables(pWF, m1_SI, m2_SI,
 
     # Mass ratio and symmetric mass ratio
     q   = m1 / m2
-    eta = pWF[1]
+    eta = pWF['eta']
+    pPrec['eta'] = eta
+    pPrec['eta2'] = eta**2
+    pPrec['eta3'] = eta**3
+    pPrec['eta4'] = eta**4
+    pPrec['inveta'] = 1 / eta
     
     m1_2 = m1**2
     m2_2 = m2**2
@@ -489,7 +496,8 @@ def IMRPhenomXGetAndSetPrecessionVariables(pWF, m1_SI, m2_SI,
     ## TODO: check how is delta stored in pWF
     delta     = pWF['delta']
     ## TODO: compute chieff?
-    ## TODO: compute twopiGM, piGM?
+    
+    pPrec['piGM'] = jnp.pi * (m1_SI+m2_SI) * G / C / C / C
 
     # Spin inputs
     for i, (x, y, z) in enumerate([(chi1x, chi1y, chi1z), (chi2x, chi2y, chi2z)], start=1):
@@ -508,6 +516,9 @@ def IMRPhenomXGetAndSetPrecessionVariables(pWF, m1_SI, m2_SI,
     pPrec['S2y'] = chi2y * m2_2
     pPrec['S2z'] = chi2z * m2_2
     pPrec['S2_norm'] = jnp.abs(pPrec['chi2_norm']) * m2_2
+    
+    pPrec['S1_norm_2'] = pPrec['S1_norm']**2
+    pPrec['S2_norm_2'] = pPrec['S2_norm']**2
 
     # In-plane magnitudes
     pPrec['chi1_perp'] = jnp.sqrt(chi1x*chi1x + chi1y*chi1y)
@@ -710,8 +721,8 @@ def IMRPhenomXGetAndSetPrecessionVariables(pWF, m1_SI, m2_SI,
     However, the triad X,Y,N used in LAL (the "waveframe") follows the definition in the
         NR Injection Infrastructure (Schmidt et al, arXiv:1703.01076).
  
-    The triads differ from each other by a rotation around N by an angle \zeta. We therefore need to rotate
-        the polarizations by an angle 2 \zeta.
+    The triads differ from each other by a rotation around N by an angle zeta. We therefore need to rotate
+        the polarizations by an angle 2 zeta.
     """
     
     pPrec['Xx_Sf'] = -jnp.cos(pWF['inclination']) * jnp.sin(phiRef)
@@ -761,7 +772,7 @@ def IMRPhenomXGetAndSetPrecessionVariables(pWF, m1_SI, m2_SI,
     pPrec['cexp_i_betah']   = 0.0
     
     """
-    Check whether maximum opening angle becomes larger than \pi/2 or \pi/4.
+    Check whether maximum opening angle becomes larger than pi/2 or pi/4.
  
     If (L + S_L) < 0, then Wigner-d Coefficients will not track the angle between J and L, meaning
         that the model may become pathological as one moves away from the aligned-spin limit.
@@ -805,10 +816,10 @@ def IMRPhenomXGetAndSetPrecessionVariables(pWF, m1_SI, m2_SI,
     return pPrec
 
 def IMRPhenomX_Initialize_MSA_System(pWF, pPrec, ExpansionOrder):
-    eta  = pPrec['eta']
-    eta2 = pPrec['eta2']
-    eta3 = pPrec['eta3']
-    eta4 = pPrec['eta4']
+    eta  = pWF['eta']
+    eta2 = eta*eta
+    eta3 = eta2*eta
+    eta4 = eta3*eta
 
     m1 = pWF['m1']
     m2 = pWF['m2']
@@ -869,13 +880,13 @@ def IMRPhenomX_Initialize_MSA_System(pWF, pPrec, ExpansionOrder):
     pPrec['Lhat_theta'] = 0.0
 
     # Dimensionful spin vectors (eta = m1 * m2, q = m2 / m1)
-    S1v[0] = pPrec['chi1x'] * eta / q
-    S1v[1] = pPrec['chi1y'] * eta / q
-    S1v[2] = pPrec['chi1z'] * eta / q
+    S1v.at[0].set(pPrec['chi1x'] * eta / q)
+    S1v.at[1].set(pPrec['chi1y'] * eta / q)
+    S1v.at[2].set(pPrec['chi1z'] * eta / q)
 
-    S2v[0] = pPrec['chi2x'] * eta * q
-    S2v[1] = pPrec['chi2y'] * eta * q
-    S2v[2] = pPrec['chi2z'] * eta * q
+    S2v.at[0].set(pPrec['chi2x'] * eta * q)
+    S2v.at[1].set(pPrec['chi2y'] * eta * q)
+    S2v.at[2].set(pPrec['chi2z'] * eta * q)
 
     # Norms of spin vectors
     S1_0_norm = jnp.linalg.norm(S1v)
@@ -1079,6 +1090,7 @@ def IMRPhenomX_Initialize_MSA_System(pWF, pPrec, ExpansionOrder):
     pPrec['Delta'] = jnp.sqrt(jnp.abs((Del1 - Del2 - Del3) * (Del4 - Del5 - Del6)))
     
     u1 = 3.0 * pPrec['g2'] / pPrec['g0']
+    ### TODO: when m1=m2, one_p_q_sq = 0, division by zero occurs. Check what to do about it
     u2 = 0.75 * one_p_q_sq / one_m_q_4
     u3 = -20.0 * c_1_over_nu_2 * q_2 * one_p_q_sq
     u4 = 2.0 * one_m_q2_2 * (q * (2.0 + q) * pPrec['S1_norm_2']
@@ -1176,8 +1188,7 @@ def IMRPhenomX_Initialize_MSA_System(pWF, pPrec, ExpansionOrder):
         return 0.0
 
     def branch_not_equal(pPrec):
-        mm_val = jnp.sqrt((pPrec['Smi2'] - pPrec['Spl2']) 
-                          (pPrec['S32'] - pPrec['Spl2']))
+        mm_val = jnp.sqrt((pPrec['Smi2'] - pPrec['Spl2']) / (pPrec['S32'] - pPrec['Spl2']))
         tmpB_val = ((pPrec['S_0_norm'] * pPrec['S_0_norm']) - pPrec['Spl2']) / (pPrec['Smi2'] - pPrec['Spl2'])
 
         vol_elem = jnp.dot(jnp.cross(L_0, S1v),S2v)
@@ -1225,8 +1236,10 @@ def IMRPhenomX_Initialize_MSA_System(pWF, pPrec, ExpansionOrder):
     vMSA = jnp.where(condition_equal, jnp.array([0.,0.,0.]), 
                      IMRPhenomX_Return_MSA_Corrections_MSA(pPrec['v_0'],pPrec['L_0_norm'],pPrec['J_0_norm'],pPrec))
     
+    pPrec['phiz_0'] = 0.
     phiz_0        = IMRPhenomX_Return_phiz_MSA(pPrec['v_0'],pPrec['J_0_norm'],pPrec)
     
+    pPrec['zeta_0'] = 0.
     zeta_0        = IMRPhenomX_Return_zeta_MSA(pPrec['v_0'],pPrec)
     
     pPrec['phiz_0']    = - phiz_0 - vMSA[0]
