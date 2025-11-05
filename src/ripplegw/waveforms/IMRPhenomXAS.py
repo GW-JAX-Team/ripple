@@ -1456,7 +1456,7 @@ def get_IMRPhenomXAS_Phase(
         jax.grad(Phase)((fMs_RD - fMs_damp) / M_s, theta_intrinsic, phase_coeffs) / M_s
     )
     linb = linb - dphi22Ref - 2.0 * PI * (500.0 + psi4tostrain)
-    # The addition π shift comes from Y22
+    # The additional π shift comes from Y22
     phifRef = (
         -(Phase(f_ref, theta_intrinsic, phase_coeffs) + linb * (f_ref * M_s) + lina)
         + PI / 4.0
