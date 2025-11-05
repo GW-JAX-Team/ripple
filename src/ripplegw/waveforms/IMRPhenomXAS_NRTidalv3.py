@@ -14,9 +14,33 @@ import lalsimulation as lalsim
 import lal
 
 
+def fullTidalPhaseCorrection(f: Array, theta_intrinsic: Array, f_final: float, no_taper: bool):
+    # Decide whether to include the Planck taper or not
+    if no_taper:
+        P_P = jnp.ones_like(f)
+    else:
+        P_P = general_planck_taper(f, 1.15*f_final, 1.35*f_final)
+    
+    m1, m2, _, _, lambda1, lambda2 = theta_intrinsic
+    M_s = (m1 + m2) * gt
+    Xa = m1 / (m1 + m2)
+    x = PI * f * M_s
+    x_23 = x**(2.0/3.0)
+        
+    PN_coeffs = get_tidalphasePN_coeffs(theta_intrinsic)
+    NRTidalv3_coeffs = get_NRTidalv3_coefficients(theta_intrinsic, PN_coeffs)
+    NRTidalv3_phase = get_tidal_phase(x, NRTidalv3_coeffs, PN_coeffs)
+    
+    psi_T = NRTidalv3_phase * (1 - P_P) + get_tidal_phase_PN(x, Xa, lambda1, lambda2, PN_coeffs) * P_P
+    psi_SS = get_spin_phase_correction(x_23, theta_intrinsic)
+
+    return psi_T + psi_SS
+
+
 # This could be a general utils function
 def _gen_IMRPhenomXAS_NRTidalv3(
     f: Array,
+    f_ref: float,
     theta_intrinsic: Array,
     theta_extrinsic: Array,
     bbh_amp: Array,
@@ -44,6 +68,7 @@ def _gen_IMRPhenomXAS_NRTidalv3(
     Xa = m1 / (m1 + m2)
     x = PI * f * M_s
     x_23 = x**(2.0/3.0)
+    f_Ms = f * M_s
 
     # Compute kappa
     kappa = get_kappa(theta=theta_intrinsic)
@@ -52,35 +77,57 @@ def _gen_IMRPhenomXAS_NRTidalv3(
     A_T = get_tidal_amplitude(x_23, theta_intrinsic, kappa, distance=theta_extrinsic[0])
     f_merger = _get_merger_frequency(theta_intrinsic)
 
-    # Decide whether to include the Planck taper or not
+    # Tidal phase offset #
+    f_final = f[-1]
+    if f_merger < f_final:
+        f_final = f_merger
+
+    bbh_phase_coeffs = IMRPhenomX_utils.PhenomX_phase_coeff_table
+    # Note: the π shift from Y22 has been moved to the calculation of h0
+    phifRef = (
+        Phase(f_ref, theta_intrinsic[:4], bbh_phase_coeffs)
+        - PI / 4.0 
+    ) # This is part of the BBH phase alignment
+    phiTfRef = fullTidalPhaseCorrection(f_ref, theta_intrinsic, f_final, no_taper)  # This is part of the tidal correction to the phase alignment
+
+    dphi_merger = -jax.grad(Phase)(f_final, theta_intrinsic[:4], bbh_phase_coeffs)\
+                    + jax.grad(fullTidalPhaseCorrection)(f_final, theta_intrinsic, f_final, no_taper)
+    ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] + 2 * theta_extrinsic[2]
+
+    phase_shift = -(phifRef - phiTfRef + dphi_merger*(f_ref*M_s)) + dphi_merger*f_Ms + ext_phase_contrib
+
+     # Get tidal phase and spin corrections for BNS
+    PN_coeffs = get_tidalphasePN_coeffs(theta_intrinsic)
+    NRTidalv3_coeffs = get_NRTidalv3_coefficients(theta_intrinsic, PN_coeffs)
+    NRTidalv3_phase = get_tidal_phase(x, NRTidalv3_coeffs, PN_coeffs)
+    
+    # # TODO: Check for local minimum -> this doesn't seem to work correctly at the moment
+    # fHzmrgcheck = 0.9 * f_merger
+    # increasing = jnp.concatenate([jnp.array([False]), NRTidalv3_phase[1:] >= NRTidalv3_phase[:-1]])
+    # valid = (f >= fHzmrgcheck) & increasing
+    # if jnp.any(valid): # if local minimum found: set NRTidalv3 phase to this vale afterwards
+    #     idx = jnp.argmax(valid)
+    #     tidal_min_value = NRTidalv3_phase[idx]
+    #     mask = (jnp.arange(f.size) >= idx)
+    #     NRTidalv3_phase = jnp.where(mask, tidal_min_value, NRTidalv3_phase)
+
+
+    # Redefine planck taper as LAL uses the merger frequency for this computation, not f_final (which can be f_merger, but isn't guaranteed)
     if no_taper:
         P_P = jnp.ones_like(f)
         A_P = jnp.ones_like(f)
     else:
         P_P = general_planck_taper(f, 1.15*f_merger, 1.35*f_merger)
         A_P = get_planck_taper(f, f_merger)
-
-    # Get tidal phase and spin corrections for BNS
-    PN_coeffs = get_tidalphasePN_coeffs(theta_intrinsic)
-    NRTidalv3_coeffs = get_NRTidalv3_coefficients(theta_intrinsic, PN_coeffs)
-    NRTidalv3_phase = get_tidal_phase(x, NRTidalv3_coeffs, PN_coeffs)
-
-    # TODO: add tidal phase offset
-
-    # Check for local minimum TODO
-    fHzmrgcheck = 0.9 * f_merger
-    increasing = jnp.concatenate([jnp.array([False]), NRTidalv3_phase[1:] >= NRTidalv3_phase[:-1]])
-    valid = (f >= fHzmrgcheck) & increasing
-
-
+    
     psi_T = NRTidalv3_phase * (1 - P_P) + get_tidal_phase_PN(x, Xa, lambda1, lambda2, PN_coeffs) * P_P
     psi_SS = get_spin_phase_correction(x_23, theta_intrinsic)
 
     if get_phase: # purely for debugging purposes
-        return bbh_psi + psi_T + psi_SS
+        return bbh_psi, phase_shift, phifRef, phiTfRef, dphi_merger, psi_T, psi_SS
 
     # Reconstruct waveform with NRTidal terms included: h(f) = [A(f) + A_tidal(f)] * Exp{I [phi(f) - phi_tidal(f)]} * window(f)
-    h0 = A_P * (bbh_amp + A_T) * jnp.exp(1.0j * (bbh_psi + psi_T + psi_SS))
+    h0 = A_P * (bbh_amp + A_T) * jnp.exp(1.0j * ((bbh_psi + phase_shift + PI) - (psi_T + psi_SS))) # The additional π shift comes from Y22
 
     return h0
 
@@ -131,39 +178,42 @@ def gen_IMRPhenomXAS_NRTidalv3(
 
     # Generate the BBH part:
     bbh_theta_intrinsic = jnp.array([m1, m2, chi1, chi2])
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    # m1_s = m1 * gt
+    # m2_s = m2 * gt
 
-    M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s**2.0)
-    delta = jnp.sqrt(1.0 - 4.0 * eta)
-    mm1 = 0.5 * (1.0 + delta)
-    mm2 = 0.5 * (1.0 - delta)
+    # M_s = m1_s + m2_s
+    # eta = m1_s * m2_s / (M_s**2.0)
+    # delta = jnp.sqrt(1.0 - 4.0 * eta)
+    # mm1 = 0.5 * (1.0 + delta)
+    # mm2 = 0.5 * (1.0 - delta)
 
-    StotR = (mm1**2 * chi1 + mm2**2 * chi2) / (mm1**2 + mm2**2)
-    chia = chi1 - chi2
+    # StotR = (mm1**2 * chi1 + mm2**2 * chi2) / (mm1**2 + mm2**2)
+    # chia = chi1 - chi2
 
-    fM_s = f * M_s
-    fMs_RD, fMs_damp, _, _ = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
+    # fM_s = f * M_s
+    # fMs_RD, fMs_damp, _, _ = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
     Psi = Phase(f, bbh_theta_intrinsic, phase_coeffs)
+
+    # linb is cancelled by itself in 737-738 of LALSimIMRPhenomX.c and replaced by its tidal equivalent
+    # For ease of computation and structure, the phase alignment terms are added in _gen_IMRPhenomXAS_NRTidalv3 (even the non-tidal ones as the tidal merger frequency is different from the BBH merger frequency)
 
     # Generate the linear in f and constant contribution to the phase in order
     # to roll the waveform such that the peak is at the input tc and phic
-    lina, linb, psi4tostrain = IMRPhenomX_utils.calc_phaseatpeak(
-        eta, StotR, chia, delta
-    )
-    dphi22Ref = (
-        jax.grad(Phase)((fMs_RD - fMs_damp) / M_s, bbh_theta_intrinsic, phase_coeffs) / M_s
-    )
-    linb = linb - dphi22Ref - 2.0 * PI * (500.0 + psi4tostrain)
-    # The addition π shift comes from Y22
-    phifRef = (
-        -(Phase(f_ref, theta_intrinsic, phase_coeffs) + linb * (f_ref * M_s) + lina)
-        + PI / 4.0
-        + PI
-    )
-    ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] + 2 * theta_extrinsic[2]
-    Psi = Psi + (linb * fM_s) + lina + phifRef - 2 * PI + ext_phase_contrib
+    # lina, linb, psi4tostrain = IMRPhenomX_utils.calc_phaseatpeak(
+    #     eta, StotR, chia, delta
+    # )
+    # dphi22Ref = (
+    #     jax.grad(Phase)((fMs_RD - fMs_damp) / M_s, bbh_theta_intrinsic, phase_coeffs) / M_s
+    # )
+    # linb = linb - dphi22Ref - 2.0 * PI * (500.0 + psi4tostrain)
+    # The additional π shift comes from Y22
+    # phifRef = (
+    #     -(Phase(f_ref, theta_intrinsic[:4], phase_coeffs))
+    #     + PI / 4.0
+    #     + PI
+    # )
+    # ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] + 2 * theta_extrinsic[2]
+    # Psi = Psi + phifRef - 2 * PI + ext_phase_contrib
 
     A = Amp(f, bbh_theta_intrinsic, amp_coeffs, D=theta_extrinsic[0])
 
@@ -172,7 +222,7 @@ def gen_IMRPhenomXAS_NRTidalv3(
 
     # Use BBH waveform and add tidal corrections
     return _gen_IMRPhenomXAS_NRTidalv3(
-        f, theta_intrinsic, theta_extrinsic, bbh_amp, bbh_psi, no_taper=no_taper, get_phase=get_phase
+        f, f_ref, theta_intrinsic, theta_extrinsic, bbh_amp, bbh_psi, no_taper=no_taper, get_phase=get_phase
     )
 
 
