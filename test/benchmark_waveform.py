@@ -12,8 +12,8 @@ import jax.numpy as jnp
 import pandas as pd
 from tqdm import tqdm
 
-from ripple import get_eff_pads, get_match_arr, ms_to_Mc_eta, lambdas_to_lambda_tildes
-from ripple.constants import PI
+from ripplegw import get_eff_pads, get_match_arr, ms_to_Mc_eta, lambdas_to_lambda_tildes
+from ripplegw.constants import PI
 
 import lal
 import lalsimulation as lalsim
@@ -26,8 +26,8 @@ jax.config.update("jax_enable_x64", True)
 
 def check_is_tidal(waveform_name: str):
     # Check if the given waveform is supported:
-    bns_waveforms = ["IMRPhenomD_NRTidalv2", "TaylorF2"]
-    bbh_waveforms = ["IMRPhenomD"]
+    bns_waveforms = ["IMRPhenomD_NRTidalv2", "TaylorF2", "IMRPhenomXAS_NRTidalv3"]
+    bbh_waveforms = ["IMRPhenomD", "IMRPhenomXAS"]
     
     all_waveforms = bns_waveforms + bbh_waveforms
     if waveform_name not in all_waveforms:
@@ -43,7 +43,7 @@ def check_is_tidal(waveform_name: str):
 def get_jitted_waveform(waveform_name: str, fs: np.array, f_ref: float):
     if waveform_name == "IMRPhenomD":
         # Import the waveform
-        from ripple.waveforms.IMRPhenomD import gen_IMRPhenomD_hphc as waveform_generator
+        from ripplegw.waveforms.IMRPhenomD import gen_IMRPhenomD_hphc as waveform_generator
         
         # Get jitted version (note, use IMRPhenomD as underlying waveform model)
         @jax.jit
@@ -53,7 +53,7 @@ def get_jitted_waveform(waveform_name: str, fs: np.array, f_ref: float):
     
     elif waveform_name == "IMRPhenomD_NRTidalv2":
         # Import the waveform
-        from ripple.waveforms.X_NRTidalv2 import gen_NRTidalv2_hphc as waveform_generator
+        from ripplegw.waveforms.X_NRTidalv2 import gen_NRTidalv2_hphc as waveform_generator
         
         # Get jitted version (note, use IMRPhenomD as underlying waveform model)
         @jax.jit
@@ -61,9 +61,29 @@ def get_jitted_waveform(waveform_name: str, fs: np.array, f_ref: float):
             hp, _ = waveform_generator(fs, theta, f_ref, IMRphenom="IMRPhenomD")
             return hp
         
+    elif waveform_name == "IMRPhenomXAS":
+        # Import the waveform
+        from ripplegw.waveforms.IMRPhenomXAS import gen_IMRPhenomXAS_hphc as waveform_generator
+        
+        # Get jitted version (note, use IMRPhenomD as underlying waveform model)
+        @jax.jit
+        def waveform(theta):
+            hp, _ = waveform_generator(fs, theta, f_ref)
+            return hp
+    
+    elif waveform_name == "IMRPhenomXAS_NRTidalv3":
+        # Import the waveform
+        from ripplegw.waveforms.IMRPhenomXAS_NRTidalv3 import gen_IMRPhenomXAS_NRTidalv3_hphc as waveform_generator
+        
+        # Get jitted version (note, use IMRPhenomD as underlying waveform model)
+        @jax.jit
+        def waveform(theta):
+            hp, _ = waveform_generator(fs, theta, f_ref)
+            return hp
+        
     elif waveform_name == "TaylorF2":
         # Import the waveform
-        from ripple.waveforms.TaylorF2 import gen_TaylorF2_hphc as waveform_generator
+        from ripplegw.waveforms.TaylorF2 import gen_TaylorF2_hphc as waveform_generator
         
         # Get jitted version
         @jax.jit
@@ -123,6 +143,9 @@ def random_match(n: int, bounds: dict, IMRphenom: str = "IMRPhenomD_NRTidalv2", 
     # Get a frequency domain waveform
     thetas = []
     matches = []
+
+    import os
+    psd_file = os.path.join(os.path.dirname(__file__), psd_file)
     f_ASD, ASD = np.loadtxt(psd_file, unpack=True)
     ASD = np.sqrt(ASD)
 
@@ -543,7 +566,7 @@ if __name__ == "__main__":
               "lambda": [0.0, 5000.0],
               "d_L": [30.0, 300.0]}
     
-    approximant = "TaylorF2"
+    approximant = "IMRPhenomXAS_NRTidalv3"
     print(f"Checking approximant {approximant}")
     print("Checking mismatches wrt LAL")
     df = random_match(1000, bounds, approximant, outdir = "./")
