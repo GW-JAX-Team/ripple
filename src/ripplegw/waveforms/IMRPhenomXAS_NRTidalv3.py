@@ -79,8 +79,11 @@ def _gen_IMRPhenomXAS_NRTidalv3(
 
     # Tidal phase offset #
     f_final = f[-1]
-    if f_merger < f_final:
-        f_final = f_merger
+    f_final = jax.lax.select(
+        f_merger < f_final,
+        f_merger,
+        f_final
+    )
 
     bbh_phase_coeffs = IMRPhenomX_utils.PhenomX_phase_coeff_table
     # Note: the π shift from Y22 has been moved to the calculation of h0
@@ -88,10 +91,12 @@ def _gen_IMRPhenomXAS_NRTidalv3(
         Phase(f_ref, theta_intrinsic[:4], bbh_phase_coeffs)
         - PI / 4.0 
     ) # This is part of the BBH phase alignment
-    phiTfRef = fullTidalPhaseCorrection(f_ref, theta_intrinsic, f_final, no_taper)  # This is part of the tidal correction to the phase alignment
+    phiTfRef = fullTidalPhaseCorrection(f_ref, theta_intrinsic, f_merger, no_taper)  # This is part of the tidal correction to the phase alignment
 
-    dphi_merger = -jax.grad(Phase)(f_final, theta_intrinsic[:4], bbh_phase_coeffs)\
-                    + jax.grad(fullTidalPhaseCorrection)(f_final, theta_intrinsic, f_final, no_taper)
+    dphiXAS = jax.grad(Phase)(f_final, theta_intrinsic[:4], bbh_phase_coeffs)
+    dphiT = jax.grad(fullTidalPhaseCorrection)(f_final, theta_intrinsic, f_merger, no_taper)
+    dphi_merger = -(dphiXAS - dphiT) / M_s # linb from LAL
+
     ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] + 2 * theta_extrinsic[2]
 
     phase_shift = -(phifRef - phiTfRef + dphi_merger*(f_ref*M_s)) + dphi_merger*f_Ms + ext_phase_contrib
@@ -113,6 +118,7 @@ def _gen_IMRPhenomXAS_NRTidalv3(
 
 
     # Redefine planck taper as LAL uses the merger frequency for this computation, not f_final (which can be f_merger, but isn't guaranteed)
+    # Ok, this^ is not correct, planck taper can be passed as argument to fullTidalPhaseCorrection
     if no_taper:
         P_P = jnp.ones_like(f)
         A_P = jnp.ones_like(f)
@@ -124,7 +130,7 @@ def _gen_IMRPhenomXAS_NRTidalv3(
     psi_SS = get_spin_phase_correction(x_23, theta_intrinsic)
 
     if get_phase: # purely for debugging purposes
-        return bbh_psi, phase_shift, phifRef, phiTfRef, dphi_merger, psi_T, psi_SS
+        return bbh_psi, phase_shift, phifRef, phiTfRef, dphiXAS, dphiT, dphi_merger, psi_T, psi_SS
 
     # Reconstruct waveform with NRTidal terms included: h(f) = [A(f) + A_tidal(f)] * Exp{I [phi(f) - phi_tidal(f)]} * window(f)
     h0 = A_P * (bbh_amp + A_T) * jnp.exp(1.0j * ((bbh_psi + phase_shift + PI) - (psi_T + psi_SS))) # The additional π shift comes from Y22
