@@ -2,11 +2,10 @@
 
 import jax
 import jax.numpy as jnp
-from ..constants import gt, m_per_Mpc, PI, TWO_PI, MRSUN, C
+from ..constants import gt, PI, TWO_PI
 from ..typing import Array
-from ripplegw import Mc_eta_to_ms, lambda_tildes_to_lambdas
-from .IMRPhenom_tidal_utils import get_quadparam_octparam, get_kappa
-from .IMRPhenomD_NRTidalv2 import get_tidal_amplitude
+from .IMRPhenom_tidal_utils import get_kappa
+from .IMRPhenomD_NRTidalv2 import get_spin_phase_correction
 
 
 """
@@ -34,7 +33,6 @@ def _get_merger_frequency(theta: Array):
 
     Args:
         theta (Array): Intrinsic parameters with order (m1, m2, chi1, chi2, lambda1, lambda2)
-        kappa (float, optional): Tidal parameter kappa. Defaults to None, so that it is computed from the given parameters theta.
 
     Returns:
         float: The merger frequency in Hz.
@@ -99,9 +97,39 @@ def _get_merger_frequency(theta: Array):
 
 
     # convert from angular frequency to frequency (divide by 2*pi) and then convert from dimensionless frequency to Hz (divide by mtot * LAL_MTSUN_SI)
-    fHz_merger = Momega_merger / TWO_PI / (M * MRSUN / C)
+    fHz_merger = Momega_merger / TWO_PI / (M * gt)
 
     return fHz_merger
+
+
+# Full tidal correction
+def fullTidalPhaseCorrection(f: Array, theta_intrinsic: Array, P_P: Array):
+    """
+    Returns the NRTidalv3 phase corrections due to tidal and spin effects.
+
+    Args:
+        f (Array):Frequency array
+        theta_intrinsic (Array): Intrinsic parameters of the system [m1, m2, chi1, chi2, lambda1, lambda2]
+        P_P (Array): Taper function. If no_taper was set to True in the master function, then this is just an array of ones. Otherwise this is the Planck taper
+
+    Returns:
+        Array: The NRTidalv3 phase corrections due to tidal and spin effects
+    """
+
+    m1, m2, _, _, lambda1, lambda2 = theta_intrinsic
+    M_s = (m1 + m2) * gt
+    Xa = m1 / (m1 + m2)
+    x = PI * f * M_s
+    x_23 = x**(2.0/3.0)
+        
+    PN_coeffs = get_tidalphasePN_coeffs(theta_intrinsic)
+    NRTidalv3_coeffs = get_NRTidalv3_coefficients(theta_intrinsic, PN_coeffs)
+    NRTidalv3_phase = get_tidal_phase(x, NRTidalv3_coeffs, PN_coeffs)
+    
+    psi_T = NRTidalv3_phase * (1 - P_P) + get_tidal_phase_PN(x, Xa, lambda1, lambda2, PN_coeffs) * P_P
+    psi_SS = get_spin_phase_correction(x_23, theta_intrinsic)
+
+    return psi_T + psi_SS
 
 
 #####################################################################################################################################
@@ -121,17 +149,22 @@ def general_planck_taper(x, y1, y2):
     )
 
 
-"""
-Tidal phase correction for NRTidalv3, Eq. (27,30), from Abac, et. al. (2023) (https://arxiv.org/pdf/2311.07456.pdf)
-and is a function of x = angular_orb_freq^(2./3.)
-"""
 def get_tidal_phase(
-    M_omega: Array, # Dimensionless angular GW frequency
-    NRTidalv3_coeffs: Array, # NRTidalv3 coefficients
-    PN_coeffs: Array # 7.5 PN coefficients to be used as constraints
+    M_omega: Array,
+    NRTidalv3_coeffs: Array, 
+    PN_coeffs: Array 
 ):
     """
-    SimNRTunedTidesFDTidalPhase_v3
+    Tidal phase correction for NRTidalv3, Eq. (27,30), from Abac, et. al. (2023) (https://arxiv.org/pdf/2311.07456.pdf)
+    Jaxified version of SimNRTunedTidesFDTidalPhase_v3.
+
+    Args:
+        M_omega (Array): Dimensionless angular GW frequency
+        NRTidalv3_coeffs (Array): NRTidalv3 coefficients
+        PN_coeffs (Array): 7.5 PN coefficients to be used as constraints
+
+    Returns:
+        tidal_phase (Array): Corrections to the phase due to (dynamical) tides
     """
   
     s1 = NRTidalv3_coeffs[0]
@@ -202,11 +235,6 @@ def get_tidal_phase(
     return tidal_phase
 
 
-"""
-PN tidal phase correction, at 7.5PN, to connect with NRTidalv3 Phase post-merger,
-see Eq. (22) and (45) of https://arxiv.org/pdf/2311.07456.pdf
-and is a function of x = angular_orb_freq^(2./3.)
-"""
 def get_tidal_phase_PN(
                M_omega, # Dimensionless angular GW frequency
                Xa, #< Mass of companion 1 divided by total mass 
@@ -215,8 +243,20 @@ def get_tidal_phase_PN(
                PN_coeffs #< 7.5 PN coefficients
 ):
     """
-    SimNRTunedTidesFDTidalPhase_PN
+    PN tidal phase correction, at 7.5PN, to connect with NRTidalv3 Phase post-merger, see Eq. (22) and (45) of https://arxiv.org/pdf/2311.07456.pdf
+    Jaxified version of SimNRTunedTidesFDTidalPhase_PN
+
+    Args:
+        M_omega (Array): Dimensionless angular GW frequency
+        Xa (float): Mass of companion 1 divided by total mass 
+        lambda1 (float): Dimensionless tidal deformability of companion 1
+        lambda2 (float): Dimensionless tidal deformability of companion 2
+        PN_coeffs (Array): 7.5 PN coefficients
+
+    Returns:
+        tidal_phasePN (Array): PN tidal phase correction, at 7.5PN, to connect with NRTidalv3 Phase post-merger
     """
+
     Xb = 1.0 - Xa
 
     PN_x = M_omega **(2.0/3.0)              # pow(M_omega, 2.0/3.0)
@@ -390,94 +430,6 @@ def get_NRTidalv3_coefficients(
     NRTidalv3_coeffs = NRTidalv3_coeffs.at[19].set(-(c_5over2B + c_3over2B*NRTidalv3_coeffs[11] - NRTidalv3_coeffs[9]) * inv_c1_B)
 
     return NRTidalv3_coeffs
-
-
-######################################################################################################################################
-#########################################################    SPIN EFFECTS    #########################################################
-######################################################################################################################################
-
-
-def get_spin_phase_correction_v3(x: Array, theta: Array) -> Array:
-    """
-    Get the higher order spin corrections with updated unversal relation, as detailed in Section III A of 2311.07456
-
-    Args:
-        x (Array): Angular frequency, in particular, x = (pi M f)^(2/3)
-        theta (Array): Intrinsic parameters (mass1, mass2, chi1, chi2, lambda1, lambda2)
-
-    Returns:
-        Array: Higher order spin corrections to the phase
-    """
-
-    # Compute auxiliary quantities
-    m1, m2, chi1, chi2, lambda1, lambda2 = theta
-    m1_s = m1 * gt
-    m2_s = m2 * gt
-    M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s**2.0)
-
-    # Compute the auxiliary variables
-    X1 = m1_s / M_s
-    X1sq = X1 * X1
-    chi1_sq = chi1 * chi1
-
-    X2 = m2_s / M_s
-    X2sq = X2 * X2
-    chi2_sq = chi2 * chi2
-
-    # Compute quadrupole parameters
-    quadparam1, octparam1 = get_quadparam_octparam(lambda1)
-    quadparam2, octparam2 = get_quadparam_octparam(lambda2)
-
-    # Remove 1 for the BBH baseline, from here on, quadparam is "quadparam hat" as referred to in the NRTidalv2 paper etc
-    quadparam1 -= 1
-    quadparam2 -= 1
-    octparam1 -= 1
-    octparam2 -= 1
-
-    # Get phase contributions
-    SS_2 = -50.0 * quadparam1 * chi1_sq * X1sq - 50.0 * quadparam2 * chi2_sq * X2sq
-
-    SS_3 = (
-        5.0
-        / 84.0
-        * (9407.0 + 8218.0 * X1 - 2016.0 * X1sq)
-        * quadparam1
-        * X1sq
-        * chi1_sq
-        + 5.0
-        / 84.0
-        * (9407.0 + 8218.0 * X2 - 2016.0 * X2sq)
-        * quadparam2
-        * X2sq
-        * chi2_sq
-    )
-
-    SS_3p5 = (
-        -400.0 * PI * quadparam1 * chi1_sq * X1sq
-        - 400.0 * PI * quadparam2 * chi2_sq * X2sq
-    )
-    SSS_3p5 = (
-        10.0
-        * ((X1sq + 308.0 / 3.0 * X1) * chi1 + (X2sq - 89.0 / 3.0 * X2) * chi2)
-        * quadparam1
-        * X1sq
-        * chi1_sq
-        + 10.0
-        * ((X2sq + 308.0 / 3.0 * X2) * chi2 + (X1sq - 89.0 / 3.0 * X1) * chi1)
-        * quadparam2
-        * X2sq
-        * chi2_sq
-        - 440.0 * octparam1 * X1 * X1sq * chi1_sq * chi1
-        - 440.0 * octparam2 * X2 * X2sq * chi2_sq * chi2
-    )
-
-    prefac = 3.0 / (128.0 * eta)
-    psi_SS = prefac * (
-        SS_2 * x ** (-1.0 / 2.0) + SS_3 * x ** (1.0 / 2.0) + (SS_3p5 + SSS_3p5) * x
-    )
-
-    return psi_SS
         
 
 #######################################################################################################################################
