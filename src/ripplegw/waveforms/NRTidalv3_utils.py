@@ -132,6 +132,13 @@ def fullTidalPhaseCorrection(f: Array, theta_intrinsic: Array, P_P: Array):
     return psi_T + psi_SS
 
 
+def changePhase_if_min(f, NRTidalv3_phase, valid):
+    idx = jnp.argmax(valid)
+    tidal_min_value = NRTidalv3_phase[idx]
+    mask = (jnp.arange(f.size) >= idx)
+    return jnp.where(mask, tidal_min_value, NRTidalv3_phase)
+
+
 #####################################################################################################################################
 ###################################################    TIDAL PHASE CORRECTIONS    ###################################################
 #####################################################################################################################################
