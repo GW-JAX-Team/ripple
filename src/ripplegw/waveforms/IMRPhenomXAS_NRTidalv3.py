@@ -7,12 +7,11 @@ from ..typing import Array
 from ripplegw import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from .IMRPhenom_tidal_utils import get_kappa
 from .IMRPhenomD_NRTidalv2 import get_spin_phase_correction, get_planck_taper, get_tidal_amplitude # Same between v2 and v3
-from .NRTidalv3_utils import _get_merger_frequency, get_tidal_phase, get_NRTidalv3_coefficients, get_tidalphasePN_coeffs, get_tidal_phase_PN, general_planck_taper, fullTidalPhaseCorrection
+from .NRTidalv3_utils import _get_merger_frequency, get_tidal_phase, get_NRTidalv3_coefficients, get_tidalphasePN_coeffs, get_tidal_phase_PN, general_planck_taper, fullTidalPhaseCorrection, changePhase_if_min
 from ripplegw.waveforms import IMRPhenomX_utils
 from .IMRPhenomXAS import Amp, Phase
 
 
-# This could be a general utils function
 def _gen_IMRPhenomXAS_NRTidalv3(
     f: Array,
     f_ref: float,
@@ -91,15 +90,19 @@ def _gen_IMRPhenomXAS_NRTidalv3(
     NRTidalv3_coeffs = get_NRTidalv3_coefficients(theta_intrinsic, PN_coeffs)
     NRTidalv3_phase = get_tidal_phase(x, NRTidalv3_coeffs, PN_coeffs)
     
-    # # TODO: Check for local minimum -> this doesn't seem to work correctly at the moment
-    # fHzmrgcheck = 0.9 * f_merger
-    # increasing = jnp.concatenate([jnp.array([False]), NRTidalv3_phase[1:] >= NRTidalv3_phase[:-1]])
-    # valid = (f >= fHzmrgcheck) & increasing
-    # if jnp.any(valid): # if local minimum found: set NRTidalv3 phase to this vale afterwards
-    #     idx = jnp.argmax(valid)
-    #     tidal_min_value = NRTidalv3_phase[idx]
-    #     mask = (jnp.arange(f.size) >= idx)
-    #     NRTidalv3_phase = jnp.where(mask, tidal_min_value, NRTidalv3_phase)
+    # TODO: Check for local minimum -> this doesn't seem to work correctly at the moment
+    fHzmrgcheck = 0.9 * f_merger
+    increasing = jnp.concatenate([jnp.array([False]), NRTidalv3_phase[1:] >= NRTidalv3_phase[:-1]])
+    valid = (f >= fHzmrgcheck) & increasing
+
+    # if local minimum found: set NRTidalv3 phase to this value afterwards
+    x_lax = (f, NRTidalv3_phase, valid)
+    NRTidalv3_phase = jax.lax.cond(
+        jnp.any(valid),
+        lambda arr: changePhase_if_min(*arr),
+        lambda arr: arr[1],
+        x_lax
+    )
 
     
     psi_T = NRTidalv3_phase * (1 - P_P) + get_tidal_phase_PN(x, Xa, lambda1, lambda2, PN_coeffs) * P_P
