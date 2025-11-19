@@ -262,3 +262,26 @@ add_imports = ["from __future__ import annotations"]
 path = "src"
 expand_stars = true
 all = true
+
+[tool.pytest.ini_options]
+addopts = [
+    "--cov=ripplegw",
+    "--cov-report=xml",
+    "--cov-report=term",
+    "--junitxml=test-results.xml",
+    "--cov-append",
+    "-m", "not integration"
+]
+pythonpath = [
+    "src"
+]
+testpaths = "tests"
+junit_family = "xunit2"
+markers = [
+    "integration: marks as integration test",
+    "notebooks: marks as notebook test",
+    "gpu: marks as gpu test",
+    "spark: marks tests which need Spark",
+    "slow: marks tests as slow",
+    "unit: fast offline tests",
+]
