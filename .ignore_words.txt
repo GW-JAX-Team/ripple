@@ -3,6 +3,7 @@ extremal
 imr
 inspiral
 lalsim
+lalsimulation
 ripplegw
 Tidalv
 XLAL

@@ -75,6 +75,7 @@ fast = true
 
 [tool.pylint]
 ignore="CVS"
+ignore-patterns="test.*?py"
 init-hook='import sys; sys.setrecursionlimit(8 * sys.getrecursionlimit())'
 jobs=0
 limit-inference-results=100

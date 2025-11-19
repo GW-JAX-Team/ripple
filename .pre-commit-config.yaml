@@ -52,7 +52,9 @@ repos:
       - id: pylint
         args: [--rcfile=pyproject.toml]
         additional_dependencies: [
+          .,
           jax,
+          pytest
         ]
 
   - repo: https://github.com/asottile/pyupgrade
