@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from jax import lax
+
 
 def xlal_imr_phenom_xp_check_masses_and_spins(  # pylint: disable=too-many-arguments,too-many-positional-arguments
     m1_si: float,
@@ -34,12 +36,8 @@ def xlal_imr_phenom_xp_check_masses_and_spins(  # pylint: disable=too-many-argum
         tuple: A tuple containing possibly swapped values of
             (m1_si, m2_si, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z).
     """
-    if m1_si < m2_si:
-        # Swap masses
-        m1_si, m2_si = m2_si, m1_si
-        # Swap spins
-        chi1x, chi2x = chi2x, chi1x
-        chi1y, chi2y = chi2y, chi1y
-        chi1z, chi2z = chi2z, chi1z
-
-    return m1_si, m2_si, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z
+    return lax.cond(
+        m1_si < m2_si,
+        lambda: (m2_si, m1_si, chi2x, chi2y, chi2z, chi1x, chi1y, chi1z),
+        lambda: (m1_si, m2_si, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z),
+    )
