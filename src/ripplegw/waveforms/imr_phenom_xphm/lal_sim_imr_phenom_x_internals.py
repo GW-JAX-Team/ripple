@@ -11,8 +11,15 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_inspiral_waveform_flags import (
 )
 
 
-def _generate_valid_modes(max_l: int):
-    """Precompute valid (ell, emm) pairs statically."""
+def _generate_valid_modes(max_l: int) -> tuple[jnp.ndarray, jnp.ndarray]:
+    """Precompute valid (ell, emm) pairs statically.
+
+    Args:
+        max_l: Maximum ell value.
+
+    Returns:
+        Tuple of JAX arrays (ell_array, emm_array) containing valid modes.
+    """
     ell_list = []
     emm_list = []
     for ell in range(2, max_l + 1):
@@ -26,7 +33,17 @@ def _generate_valid_modes(max_l: int):
 def _check_input_mode_array_impl(
     mode_array: jnp.ndarray, ell_valid: jnp.ndarray, emm_valid: jnp.ndarray, max_l: int
 ) -> bool:
-    """Internal implementation of mode array checking."""
+    """Internal implementation of mode array checking.
+
+    Args:
+        mode_array: JAX boolean array indicating active modes.
+        ell_valid: JAX array of valid ell values to check.
+        emm_valid: JAX array of valid emm values to check.
+        max_l: Maximum ell value for bounds checking.
+
+    Returns:
+        True if all active modes are allowed, raises error otherwise.
+    """
     # Allowed modes: (l, |m|) pairs
     allowed_l = jnp.array([2, 2, 3, 3, 4])
     allowed_m = jnp.array([2, 1, 3, 2, 4])
