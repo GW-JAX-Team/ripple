@@ -15,6 +15,7 @@ from .IMRPhenomD_utils import (
 )
 from ..typing import Array
 from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
+from .spherical_harmonics import *
 
 
 # helper functions for LALtoPhenomP:
@@ -791,27 +792,29 @@ def IMRPhenomXGetAndSetPrecessionVariables(pWF, m1_SI, m2_SI,
     
     ytheta  = pPrec['thetaJN']
     yphi    = 0.0
-    pPrec['Y2m2']         = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 2, -2)  ## (TODO)
-    pPrec['Y2m1']         = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 2, -1)
-    pPrec['Y20']          = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 2,  0)
-    pPrec['Y21']          = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 2,  1)
-    pPrec['Y22']          = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 2,  2)
-    pPrec['Y3m3']         = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 3, -3)
-    pPrec['Y3m2']         = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 3, -2)
-    pPrec['Y3m1']         = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 3, -1)
-    pPrec['Y30']          = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 3,  0)
-    pPrec['Y31']          = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 3,  1)
-    pPrec['Y32']          = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 3,  2)
-    pPrec['Y33']          = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 3,  3)
-    pPrec['Y4m4']         = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 4, -4)
-    pPrec['Y4m3']         = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 4, -3)
-    pPrec['Y4m2']         = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 4, -2)
-    pPrec['Y4m1']         = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 4, -1)
-    pPrec['Y40']          = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 4,  0)
-    pPrec['Y41']          = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 4,  1)
-    pPrec['Y42']          = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 4,  2)
-    pPrec['Y43']          = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 4,  3)
-    pPrec['Y44']          = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 4,  4)
+    
+    pPrec['Y2m2']         = compute_sminus2_l2(ytheta, -2)
+    pPrec['Y2m1']         = compute_sminus2_l2(ytheta, -1)
+    pPrec['Y20']          = compute_sminus2_l2(ytheta,  0)
+    pPrec['Y21']          = compute_sminus2_l2(ytheta,  1)
+    pPrec['Y22']          = compute_sminus2_l2(ytheta,  2)
+    pPrec['Y3m3']         = compute_sminus2_l3(ytheta, -3)
+    pPrec['Y3m2']         = compute_sminus2_l3(ytheta, -2)
+    pPrec['Y3m1']         = compute_sminus2_l3(ytheta, -1)
+    pPrec['Y30']          = compute_sminus2_l3(ytheta,  0)
+    pPrec['Y31']          = compute_sminus2_l3(ytheta,  1)
+    pPrec['Y32']          = compute_sminus2_l3(ytheta,  2)
+    pPrec['Y33']          = compute_sminus2_l3(ytheta,  3)
+    pPrec['Y4m4']         = compute_sminus2_l4(ytheta, -4)
+    pPrec['Y4m3']         = compute_sminus2_l4(ytheta, -3)
+    pPrec['Y4m2']         = compute_sminus2_l4(ytheta, -2)
+    pPrec['Y4m1']         = compute_sminus2_l4(ytheta, -1)
+    pPrec['Y40']          = compute_sminus2_l4(ytheta,  0)
+    pPrec['Y41']          = compute_sminus2_l4(ytheta,  1)
+    pPrec['Y42']          = compute_sminus2_l4(ytheta,  2)
+    pPrec['Y43']          = compute_sminus2_l4(ytheta,  3)
+    pPrec['Y44']          = compute_sminus2_l4(ytheta,  4)
+    
     
     return pPrec
 
