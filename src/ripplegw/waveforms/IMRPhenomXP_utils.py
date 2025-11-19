@@ -295,10 +295,36 @@ def IMRPhenomX_JNorm_MSA(LNorm, pPrec):
     JNorm2 = (LNorm * LNorm + 2.0 * LNorm * pPrec['c1_over_eta'] + pPrec['SAv2'])
     return jnp.sqrt(JNorm2)
 
-def IMRPhenomX_Return_SNorm_MSA():
-    ## TODO: implement elliptic Jacobi functions
-    return
-    
+def IMRPhenomX_Return_SNorm_MSA(v, pPrec):
+
+    v2 = v * v
+
+    cancel_condition = jnp.abs(pPrec['Smi2'] - pPrec['Spl2']) < 1e-5
+
+    def sn_zero(_):
+        sn = jnp.array(0.0)
+        return sn
+
+    def sn_jacobi(_):
+        # Equation 25 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
+        m = (pPrec['Smi2'] - pPrec['Spl2']) / (pPrec['S32'] - pPrec['Spl2'])
+
+        psi = IMRPhenomX_psiofv(
+            v, v2,
+            pPrec['psi0'], pPrec['psi1'], pPrec['psi2'],
+            pPrec
+        )
+
+        # Jacobi elliptic functions
+        sn, cn, dn = gsl_sf_elljac_e(psi, m)
+        return sn
+
+    sn = jax.lax.cond(cancel_condition, sn_zero, sn_jacobi, operand=None)
+
+    # Equation 23 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
+    SNorm2 = pPrec['Spl2'] + (pPrec['Smi2'] - pPrec['Spl2']) * sn * sn
+
+    return jnp.sqrt(SNorm2)
     
 def IMRPhenomX_L_norm_3PN_of_v(v: float, v2: float, L_norm: float, pPrec) -> float:
     cL = pPrec['constants_L']  # shorthand
@@ -1485,6 +1511,51 @@ def evaluate_QNMfit_fdamp22(a):
             + 0.009002719412204133 * a6
         )
     )
+    
+def XLALSimIMRPhenomXLPNAnsatz(v, LNorm, L0, L1, L2, L3, L4, L5, L6, L7, L8, L8L):
+    """
+    Computes the PN orbital angular momentum expansion.
+    v : Input velocity.
+    LNorm : Orbital angular momentum normalization (e.g. η / sqrt(x)).
+    L0–L8, L8L : PN coefficients.
+    
+    Returns
+    L : Post-Newtonian angular momentum.
+    """
+
+    x = v * v
+    x2 = x * x
+    x3 = x * x2
+    x4 = x * x3
+    sqx = jnp.sqrt(x)
+
+    L = (
+        L0
+        + L1 * sqx
+        + L2 * x
+        + L3 * (x * sqx)
+        + L4 * x2
+        + L5 * (x2 * sqx)
+        + L6 * x3
+        + L7 * (x3 * sqx)
+        + L8 * x4
+        + L8L * x4 * jnp.log(x)
+    )
+    return LNorm * L
+
+
+def Get_alphaepsilon_atfref(mprime, pPrec, pWF):
+
+    omega_ref = pWF['piM'] * pWF['fRef'] * (2.0 / mprime)
+
+    v = jnp.cbrt(omega_ref)
+
+    vangles = IMRPhenomX_Return_phi_zeta_costhetaL_MSA(v, pWF, pPrec)
+
+    alpha_offset   = vangles[0] - pPrec['alpha0']
+    epsilon_offset = vangles[1] - pPrec['epsilon0']
+    
+    return alpha_offset, epsilon_offset
 
 
 ##########################
