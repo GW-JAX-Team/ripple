@@ -1,23 +1,15 @@
-from math import pi
-from tqdm import tqdm
 import jax.numpy as jnp
-import time
-import jax
-from jax import grad, vmap
-
-from ripple.waveforms import IMRPhenomXAS, IMRPhenomX_utils, IMRPhenomD
+import lal
+import lalsimulation as lalsim
 import matplotlib.pyplot as plt
-from ripple.constants import gt
-from ripple import get_eff_pads, get_match_arr
-
-from WF4Py import waveforms
 
 # plt.style.use("../plot_style.mplstyle")
 import numpy as np
-import cProfile
-import lalsimulation as lalsim
-from ripple import ms_to_Mc_eta, Mc_eta_to_ms
-import lal
+from tqdm import tqdm
+from WF4Py import waveforms
+
+from ripple import get_eff_pads, get_match_arr, ms_to_Mc_eta
+from ripple.waveforms import IMRPhenomX_utils, IMRPhenomXAS
 
 
 def test_phase_phenomXAS():

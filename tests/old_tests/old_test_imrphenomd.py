@@ -1,25 +1,21 @@
-from math import pi
-from tqdm import tqdm
-import jax.numpy as jnp
 import time
+
 import jax
-from jax import grad, vmap
-
-from ripple import get_eff_pads, get_match_arr
-from ripple.waveforms import PPE_IMRPhenomD, IMRPhenomD, IMRPhenomD_utils
-import matplotlib.pyplot as plt
-from ripple.constants import gt
-
-#plt.style.use("../plot_style.mplstyle")
-import numpy as np
-import cProfile
-import lalsimulation as lalsim
-from ripple import ms_to_Mc_eta
+import jax.numpy as jnp
 import lal
+import lalsimulation as lalsim
+import matplotlib.pyplot as plt
+
+# plt.style.use("../plot_style.mplstyle")
+import numpy as np
+from jax import grad, vmap
+from tqdm import tqdm
+
+from ripple import get_eff_pads, get_match_arr, ms_to_Mc_eta
+from ripple.waveforms import IMRPhenomD, IMRPhenomD_utils, PPE_IMRPhenomD
 
 
 def profile_grad():
-    from jax import grad
 
     # Now lets compute the waveform ripple
     m1 = 20.0
@@ -302,7 +298,7 @@ def test_Amp_phenomD():
 
     plt.figure(figsize=(7, 5))
     plt.plot(
-        freq[f_mask], #* ((theta[0] + theta[1]) * 4.92549094830932e-6),
+        freq[f_mask],  # * ((theta[0] + theta[1]) * 4.92549094830932e-6),
         hp.data.data[f_mask],
         label="lalsuite",
     )
@@ -358,8 +354,8 @@ def plot_waveforms():
         [Mc, eta, chi1[2], chi2[2], dist_mpc, tc, phic, inclination]
     )
 
-    #ppes = np.random.uniform(0,1e-5, 15)
-    #print(ppes)
+    # ppes = np.random.uniform(0,1e-5, 15)
+    # print(ppes)
 
     theta = np.array([m1_msun, m2_msun, chi1[2], chi2[2]])
     f_l = 32.0
@@ -404,7 +400,9 @@ def plot_waveforms():
     freqs = np.arange(len(hp.data.data)) * del_f
     mask_lal = (freqs >= f_l) & (freqs < f_u)
 
-    hp_ripple, hc_ripple = PPE_IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple, ppes, f_ref)
+    hp_ripple, hc_ripple = PPE_IMRPhenomD.gen_IMRPhenomD_polar(
+        fs, theta_ripple, ppes, f_ref
+    )
 
     plt.figure(figsize=(15, 5))
     plt.plot(
@@ -820,7 +818,6 @@ def benchmark_waveform_call():
 
 
 if __name__ == "__main__":
-    import cProfile, pstats
 
     # profiler = cProfile.Profile()
     # profiler.enable()

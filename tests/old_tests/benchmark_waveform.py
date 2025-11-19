@@ -1,15 +1,15 @@
 """This is the version as taken from Thomas Edward's Github repo"""
 
-from math import pi
-import jax.numpy as jnp
 import time
+from math import pi
+
 import jax
-from jax import vmap
-
+import jax.numpy as jnp
 import numpy as np
-from ripple import ms_to_Mc_eta
-
+from jax import vmap
 from jax.config import config
+
+from ripple import ms_to_Mc_eta
 
 config.update("jax_enable_x64", True)
 
