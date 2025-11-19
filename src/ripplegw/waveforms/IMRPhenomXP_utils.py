@@ -714,17 +714,17 @@ def IMRPhenomXGetAndSetPrecessionVariables(pWF, m1_SI, m2_SI,
     tmp_v = jnp.array([pPrec['Nx_Sf'], pPrec['Ny_Sf'], pPrec['Nz_Sf']])
 
     # Rotate around z, then y
-    tmp_v = IMRPhenomX_rotate_z(-pPrec['phiJ_Sf'], tmp_v)
-    tmp_v = IMRPhenomX_rotate_y(-pPrec['thetaJ_Sf'], tmp_v)
+    tmp_v = IMRPhenomX_rotate_z(tmp_v, -pPrec['phiJ_Sf'])
+    tmp_v = IMRPhenomX_rotate_y(tmp_v, -pPrec['thetaJ_Sf'])
 
     ## Difference in overall - sign w.r.t PhenomPv2 code 
     pPrec['kappa'] = jnp.where((jnp.abs(tmp_v[0]) < 1e-15) & (jnp.abs(tmp_v[1]) < 1e-15), 0.0, jnp.arctan2(tmp_v[1], tmp_v[0]))
     
     ## Now determine alpha0 by rotating LN. In the source frame, LN = {0,0,1}
     tmp_v = jnp.array([0,0,1])
-    tmp_v = IMRPhenomX_rotate_z(-pPrec['phiJ_Sf'], tmp_v)
-    tmp_v = IMRPhenomX_rotate_y(-pPrec['thetaJ_Sf'], tmp_v)
-    tmp_v = IMRPhenomX_rotate_z(-pPrec['kappa'], tmp_v)
+    tmp_v = IMRPhenomX_rotate_z(tmp_v, -pPrec['phiJ_Sf'])
+    tmp_v = IMRPhenomX_rotate_y(tmp_v, -pPrec['thetaJ_Sf'])
+    tmp_v = IMRPhenomX_rotate_z(tmp_v, -pPrec['kappa'])
     
     pPrec['alpha0'] = jnp.pi - pPrec['kappa']
     
@@ -757,9 +757,9 @@ def IMRPhenomXGetAndSetPrecessionVariables(pWF, m1_SI, m2_SI,
     pPrec['Xz_Sf'] =  jnp.sin(pWF['inclination'])
     
     tmp_v = jnp.array([pPrec['Xx_Sf'],pPrec['Xy_Sf'],pPrec['Xz_Sf']])
-    tmp_v = IMRPhenomX_rotate_z(-pPrec['phiJ_Sf'], tmp_v)
-    tmp_v = IMRPhenomX_rotate_y(-pPrec['thetaJ_Sf'], tmp_v)
-    tmp_v = IMRPhenomX_rotate_z(-pPrec['kappa'], tmp_v)
+    tmp_v = IMRPhenomX_rotate_z(tmp_v, -pPrec['phiJ_Sf'])
+    tmp_v = IMRPhenomX_rotate_y(tmp_v, -pPrec['thetaJ_Sf'])
+    tmp_v = IMRPhenomX_rotate_z(tmp_v, -pPrec['kappa'])
     
     pPrec['PArun_Jf'] = jnp.array([pPrec['Nz_Jf'],0,-pPrec['Nx_Jf']])
 
@@ -1491,7 +1491,6 @@ def evaluate_QNMfit_fdamp22(a):
     a4 = a3 * a
     a5 = a4 * a
     a6 = a5 * a
-    a7 = a6 * a
     
     return (
         (
@@ -1567,6 +1566,12 @@ def gsl_sf_ellint_F(x, y):
     TODO: Not yet implemented
     """
     return x
+
+def gsl_sf_elljac_e(x, y):
+    """
+    TODO: Not yet implemented
+    """
+    return jnp.array(1.), jnp.array(2.), jnp.array(3.)
 
 def XLALSimInspiralWaveformParamsLookupPhenomXPTransPrecessionMethod(dict):
     """
