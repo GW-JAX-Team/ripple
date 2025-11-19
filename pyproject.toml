@@ -1,9 +1,61 @@
 [build-system]
-requires = [
-    "setuptools>=42",
-    "wheel"
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name =  "ripplegw"
+description = "A small jax package for differentiable and fast gravitational wave data analysis."
+readme = "README.md"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12"
 ]
-build-backend = "setuptools.build_meta"
+requires-python = ">=3.9"
+dynamic = ["version"]
+dependencies = [
+    "jax",
+    "jaxlib",
+    "numpy>=1,<2",
+]
+keywords = [
+    "gravitational waves",
+    "jax"
+]
+
+[project.optional-dependencies]
+test = [
+    "bandit[toml]==1.8.2",
+    "black==25.1.0",
+    "check-manifest==0.50",
+    "flake8-bugbear==24.12.12",
+    "flake8-docstrings",
+    "flake8-formatter_junit_xml",
+    "flake8",
+    "flake8-pyproject",
+    "pre-commit==4.1.0",
+    "pylint==3.3.4",
+    "pylint_junit",
+    "pytest-cov==6.0.0",
+    "pytest-mock<3.14.1",
+    "pytest-runner",
+    "pytest==8.3.4",
+    "pytest-github-actions-annotate-failures",
+    "shellcheck-py==0.10.0.1"
+]
+
+[project.urls]
+Documentation = "https://ripple.readthedocs.io/en/latest/"
+Source = "https://github.com/GW-JAX-Team/ripple"
+Tracker = "https://github.com/GW-JAX-Team/ripple/issues"
 
 [tool.bandit]
 exclude_dirs = ["build","dist","tests","scripts"]
