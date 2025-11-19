@@ -1,3 +1,6 @@
+imr
 lalsim
+ripplegw
+Tidalv
 XLAL
 XPHM

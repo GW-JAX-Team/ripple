@@ -51,6 +51,9 @@ repos:
     hooks:
       - id: pylint
         args: [--rcfile=pyproject.toml]
+        additional_dependeicies: [
+          .
+        ]
 
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.20.0
