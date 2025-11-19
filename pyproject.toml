@@ -57,6 +57,12 @@ Documentation = "https://ripple.readthedocs.io/en/latest/"
 Source = "https://github.com/GW-JAX-Team/ripple"
 Tracker = "https://github.com/GW-JAX-Team/ripple/issues"
 
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ripplegw"]
+
 [tool.bandit]
 exclude_dirs = ["build","dist","tests","scripts"]
 number = 4
