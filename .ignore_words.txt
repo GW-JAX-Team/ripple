@@ -4,6 +4,7 @@ imr
 inspiral
 lalsim
 lalsimulation
+lalsuite
 ripplegw
 Tidalv
 XLAL
