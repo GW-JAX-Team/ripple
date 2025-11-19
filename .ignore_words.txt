@@ -1,4 +1,7 @@
+checkify
+extremal
 imr
+inspiral
 lalsim
 ripplegw
 Tidalv

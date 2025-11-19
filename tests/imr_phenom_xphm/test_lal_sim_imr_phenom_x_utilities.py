@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ripplegw.waveforms.IMRPhenomXPHM.lal_sim_imr_phenom_x_utilities import (
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import (
     xlal_imr_phenom_xp_check_masses_and_spins,
 )
 

@@ -12,9 +12,9 @@ from ripplegw.waveforms import (
     IMRPhenomPv2_utils,
     IMRPhenomX_utils,
     IMRPhenomXAS,
-    IMRPhenomXPHM,
     SineGaussian,
     TaylorF2,
+    imr_phenom_xphm,
 )
 
 __all__ = [
@@ -25,9 +25,9 @@ __all__ = [
     "IMRPhenomPv2",
     "IMRPhenomPv2_utils",
     "IMRPhenomXAS",
-    "IMRPhenomXPHM",
     "IMRPhenomX_utils",
     "IMRPhenom_tidal_utils",
     "SineGaussian",
     "TaylorF2",
+    "imr_phenom_xphm",
 ]
