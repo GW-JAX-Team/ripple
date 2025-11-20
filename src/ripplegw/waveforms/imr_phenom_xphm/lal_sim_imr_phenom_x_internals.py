@@ -6,20 +6,23 @@ import jax
 import jax.numpy as jnp
 from jax.experimental import checkify
 
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
+    IMRPhenomXUsefulPowersDataClass,
+)
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_inspiral_waveform_flags import (
     xlal_sim_inspiral_mode_array_is_mode_active,
 )
 
 
 @checkify.checkify
-def imr_phenom_x_initialize_powers(number: float | jnp.ndarray) -> dict:
+def imr_phenom_x_initialize_powers(number: float | jnp.ndarray) -> IMRPhenomXUsefulPowersDataClass:
     """Initialize various powers of the input number.
 
     Args:
         number: Input number (float or JAX array).
 
     Returns:
-        Dictionary mapping power names to their computed values.
+        IMRPhenomXUsefulPowersDataClass containing computed power values.
     """
     # Ensure number is a JAX array for consistent operations
     number = jnp.asarray(number)
@@ -31,41 +34,41 @@ def imr_phenom_x_initialize_powers(number: float | jnp.ndarray) -> dict:
     sixth = jnp.power(number, 1.0 / 6.0)
     m_sixth = 1.0 / sixth
 
-    # Build the powers dictionary
-    powers = {
-        "one_sixth": sixth,
-        "m_one_sixth": m_sixth,
-        "m_one": 1.0 / number,
-        "itself": number,
-        "one_third": sixth * sixth,
-        "m_one_third": 1.0 / (sixth * sixth),
-        "two_thirds": (sixth * sixth) ** 2,
-        "m_two_thirds": 1.0 / ((sixth * sixth) ** 2),
-        "four_thirds": ((sixth * sixth) ** 2) ** 2,
-        "m_four_thirds": 1.0 / (((sixth * sixth) ** 2) ** 2),
-        "five_thirds": (((sixth * sixth) ** 2) ** 2) * (sixth * sixth),
-        "m_five_thirds": 1.0 / ((((sixth * sixth) ** 2) ** 2) * (sixth * sixth)),
-        "seven_thirds": (((sixth * sixth) ** 2) ** 2) * number,
-        "m_seven_thirds": 1.0 / ((((sixth * sixth) ** 2) ** 2) * number),
-        "eight_thirds": ((((sixth * sixth) ** 2) ** 2) * number) * (sixth * sixth),
-        "m_eight_thirds": 1.0 / (((((sixth * sixth) ** 2) ** 2) * number) * (sixth * sixth)),
-        "ten_thirds": ((((sixth * sixth) ** 2) ** 2) * number) * number,
-        "m_ten_thirds": 1.0 / (((((sixth * sixth) ** 2) ** 2) * number) * number),
-        "two": number * number,
-        "three": number * number * number,
-        "four": number * number * number * number,
-        "five": number * number * number * number * number,
-        "m_two": 1.0 / (number * number),
-        "m_three": 1.0 / (number * number * number),
-        "m_four": 1.0 / (number * number * number * number),
-        "m_five": 1.0 / (number * number * number * number * number),
-        "seven_sixths": sixth * number,
-        "m_seven_sixths": m_sixth / number,
-        "log": jnp.log(number),
-        "sqrt": sixth * sixth * sixth,  # Equivalent to sqrt(number)
-    }
-
-    return powers
+    # Build the powers dataclass
+    return IMRPhenomXUsefulPowersDataClass(
+        seven_sixths=sixth * number,
+        one_sixth=sixth,
+        ten_thirds=((((sixth * sixth) ** 2) ** 2) * number) * number,
+        eight_thirds=((((sixth * sixth) ** 2) ** 2) * number) * (sixth * sixth),
+        seven_thirds=(((sixth * sixth) ** 2) ** 2) * number,
+        five_thirds=(((sixth * sixth) ** 2) ** 2) * (sixth * sixth),
+        four_thirds=((sixth * sixth) ** 2) ** 2,
+        two_thirds=(sixth * sixth) ** 2,
+        one_third=sixth * sixth,
+        five=number * number * number * number * number,
+        four=number * number * number * number,
+        three=number * number * number,
+        two=number * number,
+        sqrt=sixth * sixth * sixth,  # Equivalent to sqrt(number)
+        itself=number,
+        m_sqrt=1.0 / (sixth * sixth * sixth),  # 1/sqrt(number)
+        m_one=1.0 / number,
+        m_two=1.0 / (number * number),
+        m_three=1.0 / (number * number * number),
+        m_four=1.0 / (number * number * number * number),
+        m_five=1.0 / (number * number * number * number * number),
+        m_six=m_sixth,
+        m_one_third=1.0 / (sixth * sixth),
+        m_two_thirds=1.0 / ((sixth * sixth) ** 2),
+        m_four_thirds=1.0 / (((sixth * sixth) ** 2) ** 2),
+        m_five_thirds=1.0 / ((((sixth * sixth) ** 2) ** 2) * (sixth * sixth)),
+        m_seven_thirds=1.0 / ((((sixth * sixth) ** 2) ** 2) * number),
+        m_eight_thirds=1.0 / (((((sixth * sixth) ** 2) ** 2) * number) * (sixth * sixth)),
+        m_ten_thirds=1.0 / (((((sixth * sixth) ** 2) ** 2) * number) * number),
+        m_one_sixth=m_sixth,
+        m_seven_sixths=m_sixth / number,
+        log=jnp.log(number),
+    )
 
 
 def _generate_valid_modes(max_l: int) -> tuple[jnp.ndarray, jnp.ndarray]:
