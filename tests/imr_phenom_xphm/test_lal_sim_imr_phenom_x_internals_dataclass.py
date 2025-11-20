@@ -7,7 +7,10 @@ import dataclasses
 import jax
 import pytest
 
-from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import IMRPhenomXWaveformDataClass
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
+    IMRPhenomXUsefulPowersDataClass,
+    IMRPhenomXWaveformDataClass,
+)
 
 
 class TestIMRPhenomXWaveformDataClass:
@@ -180,3 +183,93 @@ class TestIMRPhenomXWaveformDataClass:
         copied = dataclasses.replace(p_wf1)  # Shallow copy
         assert copied == p_wf1
         assert copied is not p_wf1  # Different object
+
+
+class TestIMRPhenomXUsefulPowersDataClass:
+    """Test suite for IMRPhenomXUsefulPowersDataClass."""
+
+    @pytest.fixture
+    def sample_powers_data(self):
+        """Fixture for sample data to create the powers dataclass."""
+        return {
+            "seven_sixths": 1.0,
+            "one_sixth": 1.0,
+            "ten_thirds": 1.0,
+            "eight_thirds": 1.0,
+            "seven_thirds": 1.0,
+            "five_thirds": 1.0,
+            "four_thirds": 1.0,
+            "two_thirds": 1.0,
+            "one_third": 1.0,
+            "five": 1.0,
+            "four": 1.0,
+            "three": 1.0,
+            "two": 1.0,
+            "sqrt": 1.0,
+            "itself": 1.0,
+            "m_sqrt": 1.0,
+            "m_one": 1.0,
+            "m_two": 1.0,
+            "m_three": 1.0,
+            "m_four": 1.0,
+            "m_five": 1.0,
+            "m_six": 1.0,
+            "m_one_third": 1.0,
+            "m_two_thirds": 1.0,
+            "m_four_thirds": 1.0,
+            "m_five_thirds": 1.0,
+            "m_seven_thirds": 1.0,
+            "m_eight_thirds": 1.0,
+            "m_ten_thirds": 1.0,
+            "m_one_sixth": 1.0,
+            "m_seven_sixths": 1.0,
+            "log": 1.0,
+        }
+
+    def test_instantiation_and_field_access(self, sample_powers_data):
+        """Test that the dataclass can be instantiated and fields accessed."""
+        p_pow = IMRPhenomXUsefulPowersDataClass(**sample_powers_data)
+        assert p_pow.seven_sixths == 1.0
+        assert p_pow.one_third == 1.0
+        assert isinstance(p_pow.five, float)
+
+    def test_immutability(self, sample_powers_data):
+        """Test that the dataclass is immutable (if frozen=True)."""
+        p_pow = IMRPhenomXUsefulPowersDataClass(**sample_powers_data)
+        with pytest.raises(dataclasses.FrozenInstanceError):
+            p_pow.seven_sixths = 2.0  # Should fail if frozen
+
+    def test_functional_update(self, sample_powers_data):
+        """Test updating fields with dataclasses.replace()."""
+        p_pow = IMRPhenomXUsefulPowersDataClass(**sample_powers_data)
+        updated = dataclasses.replace(p_pow, seven_sixths=2.0, one_third=0.5)
+        assert updated.seven_sixths == 2.0
+        assert updated.one_third == 0.5
+        assert p_pow.seven_sixths == 1.0  # Original unchanged
+
+    def test_jax_tree_operations(self, sample_powers_data):
+        """Test JAX tree flattening and unflattening."""
+        p_pow = IMRPhenomXUsefulPowersDataClass(**sample_powers_data)
+        flat, treedef = jax.tree_util.tree_flatten(p_pow)
+        reconstructed = jax.tree_util.tree_unflatten(treedef, flat)
+        assert reconstructed == p_pow
+
+    def test_jit_compatibility(self, sample_powers_data):
+        """Test that the dataclass works with jax.jit."""
+
+        @jax.jit
+        def sum_powers(p_pow):
+            return p_pow.seven_sixths + p_pow.one_third
+
+        p_pow = IMRPhenomXUsefulPowersDataClass(**sample_powers_data)
+        result = sum_powers(p_pow)
+        assert result == 2.0
+
+    def test_equality_and_copy(self, sample_powers_data):
+        """Test equality and copying."""
+        p_pow1 = IMRPhenomXUsefulPowersDataClass(**sample_powers_data)
+        p_pow2 = IMRPhenomXUsefulPowersDataClass(**sample_powers_data)
+        assert p_pow1 == p_pow2
+        copied = dataclasses.replace(p_pow1)  # Shallow copy
+        assert copied == p_pow1
+        assert copied is not p_pow1  # Different object
