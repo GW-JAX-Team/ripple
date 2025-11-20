@@ -183,3 +183,42 @@ class IMRPhenomXWaveformDataClass:  # pylint: disable=too-many-instance-attribut
     xhm_phase_at_f_inspiral_align: float
 
     imr_phenom_xpnr_force_xhm_alignment: int
+
+
+@jax.tree_util.register_dataclass
+@dataclasses.dataclass(frozen=True)
+class IMRPhenomXUsefulPowersDataClass:  # pylint: disable=too-many-instance-attributes
+    """Dataclass to hold useful powers for IMRPhenomX computations."""
+
+    seven_sixths: float
+    one_sixth: float
+    ten_thirds: float
+    eight_thirds: float
+    seven_thirds: float
+    five_thirds: float
+    four_thirds: float
+    two_thirds: float
+    one_third: float
+    five: float
+    four: float
+    three: float
+    two: float
+    sqrt: float
+    itself: float
+    m_sqrt: float
+    m_one: float
+    m_two: float
+    m_three: float
+    m_four: float
+    m_five: float
+    m_six: float
+    m_one_third: float
+    m_two_thirds: float
+    m_four_thirds: float
+    m_five_thirds: float
+    m_seven_thirds: float
+    m_eight_thirds: float
+    m_ten_thirds: float
+    m_one_sixth: float
+    m_seven_sixths: float
+    log: float
