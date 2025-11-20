@@ -5,9 +5,26 @@ from __future__ import annotations
 import dataclasses
 
 import jax
+import jax.tree_util
 
 
-@jax.tree_util.register_dataclass
+def _register_dataclass(cls):
+    """Register a dataclass with JAX tree utilities (version-agnostic)."""
+    # Get all field names from the dataclass
+    field_names = [f.name for f in dataclasses.fields(cls)]
+
+    def flatten_fn(obj):
+        values = tuple(getattr(obj, name) for name in field_names)
+        return values, field_names
+
+    def unflatten_fn(field_names, values):
+        return cls(**dict(zip(field_names, values)))
+
+    jax.tree_util.register_pytree_node(cls, flatten_fn, unflatten_fn)
+    return cls
+
+
+@_register_dataclass
 @dataclasses.dataclass(frozen=True)
 class IMRPhenomXWaveformDataClass:  # pylint: disable=too-many-instance-attributes
     """Dataclass to hold internal parameters for IMRPhenomX waveform generation."""
@@ -185,7 +202,7 @@ class IMRPhenomXWaveformDataClass:  # pylint: disable=too-many-instance-attribut
     imr_phenom_xpnr_force_xhm_alignment: int
 
 
-@jax.tree_util.register_dataclass
+@_register_dataclass
 @dataclasses.dataclass(frozen=True)
 class IMRPhenomXUsefulPowersDataClass:  # pylint: disable=too-many-instance-attributes
     """Dataclass to hold useful powers for IMRPhenomX computations."""
