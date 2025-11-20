@@ -31,9 +31,9 @@ class TestImrPhenomXInitializePowers:
         err, powers = imr_phenom_x_initialize_powers(0.0)
         err.throw()
         # For zero, some values are inf or nan, but check basic ones
-        assert powers["itself"] == 0.0
-        assert jnp.isinf(powers["m_one"])  # 1/0 = inf
-        assert jnp.isneginf(powers["log"])  # log(0) = -inf
+        assert powers.itself == 0.0
+        assert jnp.isinf(powers.m_one)  # 1/0 = inf
+        assert jnp.isneginf(powers.log)  # log(0) = -inf
 
     def test_scalar_one(self):
         """Test computation for scalar input number=1."""
@@ -41,18 +41,18 @@ class TestImrPhenomXInitializePowers:
         err.throw()
 
         # Check some key values
-        assert powers["itself"] == 1.0
-        assert powers["one_sixth"] == 1.0
-        assert powers["m_one_sixth"] == 1.0
-        assert powers["one_third"] == 1.0
-        assert powers["two_thirds"] == 1.0
-        assert powers["four_thirds"] == 1.0
-        assert powers["two"] == 1.0
-        assert powers["three"] == 1.0
-        assert powers["four"] == 1.0
-        assert powers["five"] == 1.0
-        assert powers["log"] == 0.0
-        assert powers["sqrt"] == 1.0
+        assert powers.itself == 1.0
+        assert powers.one_sixth == 1.0
+        assert powers.m_one_sixth == 1.0
+        assert powers.one_third == 1.0
+        assert powers.two_thirds == 1.0
+        assert powers.four_thirds == 1.0
+        assert powers.two == 1.0
+        assert powers.three == 1.0
+        assert powers.four == 1.0
+        assert powers.five == 1.0
+        assert powers.log == 0.0
+        assert powers.sqrt == 1.0
 
     def test_scalar_eight(self):
         """Test computation for scalar input number=8."""
@@ -60,11 +60,11 @@ class TestImrPhenomXInitializePowers:
         err.throw()
 
         sixth = 8.0 ** (1 / 6)  # ≈ 1.5874010519681996
-        assert jnp.allclose(powers["one_sixth"], sixth)
-        assert jnp.allclose(powers["m_one_sixth"], 1.0 / sixth)
-        assert jnp.allclose(powers["two"], 64.0)
-        assert jnp.allclose(powers["log"], jnp.log(8.0))
-        assert jnp.allclose(powers["sqrt"], jnp.sqrt(8.0))
+        assert jnp.allclose(powers.one_sixth, sixth)
+        assert jnp.allclose(powers.m_one_sixth, 1.0 / sixth)
+        assert jnp.allclose(powers.two, 64.0)
+        assert jnp.allclose(powers.log, jnp.log(8.0))
+        assert jnp.allclose(powers.sqrt, jnp.sqrt(8.0))
 
     def test_array_input(self):
         """Test that function works with array input."""
@@ -73,12 +73,12 @@ class TestImrPhenomXInitializePowers:
         err.throw()
 
         # Check vectorization
-        assert jnp.allclose(powers["itself"], numbers)
-        assert jnp.allclose(powers["two"], numbers**2)
-        assert jnp.allclose(powers["log"], jnp.log(numbers))
+        assert jnp.allclose(powers.itself, numbers)
+        assert jnp.allclose(powers.two, numbers**2)
+        assert jnp.allclose(powers.log, jnp.log(numbers))
         # Check one_sixth
         expected_sixth = numbers ** (1 / 6)
-        assert jnp.allclose(powers["one_sixth"], expected_sixth)
+        assert jnp.allclose(powers.one_sixth, expected_sixth)
 
     def test_jit_compatibility(self):
         """Test that the function is JIT-compatible."""
@@ -87,13 +87,13 @@ class TestImrPhenomXInitializePowers:
         # Test scalar
         err, powers = jit_powers(1.0)
         err.throw()
-        assert powers["itself"] == 1.0
+        assert powers.itself == 1.0
 
         # Test array
         numbers = jnp.array([1.0, 2.0])
         err, powers = jit_powers(numbers)
         err.throw()
-        assert jnp.allclose(powers["itself"], numbers)
+        assert jnp.allclose(powers.itself, numbers)
 
 
 class TestCheckInputModeArray:
