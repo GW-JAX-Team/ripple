@@ -11,6 +11,63 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_inspiral_waveform_flags import (
 )
 
 
+@checkify.checkify
+def imr_phenom_x_initialize_powers(number: float | jnp.ndarray) -> dict:
+    """Initialize various powers of the input number.
+
+    Args:
+        number: Input number (float or JAX array).
+
+    Returns:
+        Dictionary mapping power names to their computed values.
+    """
+    # Ensure number is a JAX array for consistent operations
+    number = jnp.asarray(number)
+
+    # Sanity check
+    checkify.check(jnp.all(number >= 0), "Error: number must be non-negative.")
+
+    # Compute sixth root and its reciprocal
+    sixth = jnp.power(number, 1.0 / 6.0)
+    m_sixth = 1.0 / sixth
+
+    # Build the powers dictionary
+    powers = {
+        "one_sixth": sixth,
+        "m_one_sixth": m_sixth,
+        "m_one": 1.0 / number,
+        "itself": number,
+        "one_third": sixth * sixth,
+        "m_one_third": 1.0 / (sixth * sixth),
+        "two_thirds": (sixth * sixth) ** 2,
+        "m_two_thirds": 1.0 / ((sixth * sixth) ** 2),
+        "four_thirds": ((sixth * sixth) ** 2) ** 2,
+        "m_four_thirds": 1.0 / (((sixth * sixth) ** 2) ** 2),
+        "five_thirds": (((sixth * sixth) ** 2) ** 2) * (sixth * sixth),
+        "m_five_thirds": 1.0 / ((((sixth * sixth) ** 2) ** 2) * (sixth * sixth)),
+        "seven_thirds": (((sixth * sixth) ** 2) ** 2) * number,
+        "m_seven_thirds": 1.0 / ((((sixth * sixth) ** 2) ** 2) * number),
+        "eight_thirds": ((((sixth * sixth) ** 2) ** 2) * number) * (sixth * sixth),
+        "m_eight_thirds": 1.0 / (((((sixth * sixth) ** 2) ** 2) * number) * (sixth * sixth)),
+        "ten_thirds": ((((sixth * sixth) ** 2) ** 2) * number) * number,
+        "m_ten_thirds": 1.0 / (((((sixth * sixth) ** 2) ** 2) * number) * number),
+        "two": number * number,
+        "three": number * number * number,
+        "four": number * number * number * number,
+        "five": number * number * number * number * number,
+        "m_two": 1.0 / (number * number),
+        "m_three": 1.0 / (number * number * number),
+        "m_four": 1.0 / (number * number * number * number),
+        "m_five": 1.0 / (number * number * number * number * number),
+        "seven_sixths": sixth * number,
+        "m_seven_sixths": m_sixth / number,
+        "log": jnp.log(number),
+        "sqrt": sixth * sixth * sixth,  # Equivalent to sqrt(number)
+    }
+
+    return powers
+
+
 def _generate_valid_modes(max_l: int) -> tuple[jnp.ndarray, jnp.ndarray]:
     """Precompute valid (ell, emm) pairs statically.
 
