@@ -719,7 +719,6 @@ def get_mergerringdown_raw_phase(
     return phiRD, (cL, CV_phase_RD0)
 
 
-# @jax.jit
 def Phase(f: Array, theta: Array, phase_coeffs: Array) -> Array:
     """
     Computes the phase of the PhenomD waveform following 1508.07253.
@@ -1316,7 +1315,6 @@ def Amp(f: Array, theta: Array, amp_coeffs: Array, D=1.0) -> Array:
     return Overallamp * Amp * (fM_s ** (-7.0 / 6.0))
 
 
-# @jax.jit
 def _gen_IMRPhenomXAS(
     f: Array,
     theta_intrinsic: Array,
