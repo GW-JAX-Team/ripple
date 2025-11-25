@@ -8,8 +8,11 @@ TODO: Implement precession here as well.
 import time
 import numpy as np
 import jax
+jax.config.update("jax_enable_x64", True)
+
 import jax.numpy as jnp
 import pandas as pd
+from ripplegw.waveforms.NRTidalv3_utils import _get_merger_frequency
 from tqdm import tqdm
 
 from ripplegw import get_eff_pads, get_match_arr, ms_to_Mc_eta, lambdas_to_lambda_tildes
@@ -17,8 +20,6 @@ from ripplegw.constants import PI
 
 import lal
 import lalsimulation as lalsim
-
-jax.config.update("jax_enable_x64", True)
 
 ########################### 
 ### Auxiliary functions ###
@@ -65,7 +66,7 @@ def get_jitted_waveform(waveform_name: str, fs: np.array, f_ref: float):
         # Import the waveform
         from ripplegw.waveforms.IMRPhenomXAS import gen_IMRPhenomXAS_hphc as waveform_generator
         
-        # Get jitted version (note, use IMRPhenomD as underlying waveform model)
+        # Get jitted version
         @jax.jit
         def waveform(theta):
             hp, _ = waveform_generator(fs, theta, f_ref)
@@ -75,7 +76,7 @@ def get_jitted_waveform(waveform_name: str, fs: np.array, f_ref: float):
         # Import the waveform
         from ripplegw.waveforms.IMRPhenomXAS_NRTidalv3 import gen_IMRPhenomXAS_NRTidalv3_hphc as waveform_generator
         
-        # Get jitted version (note, use IMRPhenomD as underlying waveform model)
+        # Get jitted version
         @jax.jit
         def waveform(theta):
             hp, _ = waveform_generator(fs, theta, f_ref)
@@ -143,6 +144,7 @@ def random_match(n: int, bounds: dict, IMRphenom: str = "IMRPhenomD_NRTidalv2", 
     # Get a frequency domain waveform
     thetas = []
     matches = []
+    delta_f_merger = []
 
     import os
     psd_file = os.path.join(os.path.dirname(__file__), psd_file)
@@ -152,22 +154,22 @@ def random_match(n: int, bounds: dict, IMRphenom: str = "IMRPhenomD_NRTidalv2", 
     # Mismatches computations:
     for _ in tqdm(range(n)):
         non_precessing_matchmaking(
-            bounds, IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches  
+            bounds, IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches, delta_f_merger
         )
 
     # Save and report mismatches
     thetas = np.array(thetas)
     matches = np.array(matches)
     if outdir is not None:
-        csv_name = f"{outdir}/matches_{IMRphenom}_withMIN.csv"
+        csv_name = f"{outdir}/matches_{IMRphenom}_highMass.csv"
         print(f"Saving matches to {csv_name}")
-        df = save_matches(csv_name, thetas, matches, is_tidal=is_tidal, verbose=True)
+        df = save_matches(csv_name, thetas, matches, delta_f_merger=delta_f_merger, is_tidal=is_tidal, verbose=True)
 
     return df
 
 
 def non_precessing_matchmaking(
-    bounds, IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches,
+    bounds, IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches, delta_f_merger,
 ):
     
     is_tidal = check_is_tidal(IMRphenom)
@@ -179,7 +181,7 @@ def non_precessing_matchmaking(
     l1 = np.random.uniform(bounds["lambda"][0], bounds["lambda"][1])
     l2 = np.random.uniform(bounds["lambda"][0], bounds["lambda"][1])
 
-    dist_mpc = np.random.uniform(bounds["d_L"][0], bounds["d_L"][1])
+    dist_mpc = 50 #np.random.uniform(bounds["d_L"][0], bounds["d_L"][1])
     tc = 0.0
     inclination = np.random.uniform(0, 2*PI)
     phi_ref = np.random.uniform(0, 2*PI)
@@ -281,7 +283,21 @@ def non_precessing_matchmaking(
     )
     thetas.append(theta)
 
-def save_matches(filename, thetas, matches, verbose=True, is_tidal=False):
+    # M = theta[0] + theta[1]
+    # q = theta[0]/theta[1]
+    # f_merger_LAL = lalsim.SimNRTunedTidesMergerFrequency_v3(
+    #     M,
+    #     theta[4],
+    #     theta[5],
+    #     q,
+    #     theta[2],
+    #     theta[3]
+    # )
+    # f_merger_ripple = _get_merger_frequency(theta[:6])
+
+    # delta_f_merger.append(f_merger_ripple - f_merger_LAL)
+
+def save_matches(filename, thetas, matches, delta_f_merger, verbose=True, is_tidal=False):
 
     # Get the parameters, which depends on whether or not tidal:
     if is_tidal:
@@ -309,7 +325,9 @@ def save_matches(filename, thetas, matches, verbose=True, is_tidal=False):
                 'phi_ref': phi_ref,
                 'inclination': inclination,
                 'match': matches, 
-                'mismatch': mismatches}
+                'mismatch': mismatches,
+                # 'delta_f_merger': delta_f_merger
+                }
     else:
         m1          = thetas[:, 0]
         m2          = thetas[:, 1]
@@ -562,8 +580,8 @@ if __name__ == "__main__":
     
     # Showing an example of benchmarking:
     bounds = {"m": [0.5, 3.0],
-              "chi": [-0.05, 0.05],
-              "lambda": [0.0, 5000.0],
+              "chi": [0, 0.99],
+              "lambda": [0.0, 25000.0],
               "d_L": [30.0, 300.0]}
     
     approximant = "IMRPhenomXAS_NRTidalv3"
