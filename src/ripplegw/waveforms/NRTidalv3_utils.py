@@ -39,9 +39,7 @@ def _get_merger_frequency(theta: Array):
     """
     m1, m2, chi1, chi2, lambda1, lambda2 = theta
     M = m1 + m2
-    m1_s = m1 * gt
-    m2_s = m2 * gt
-    q = m1_s / m2_s
+    q = m1 / m2
 
     Xa = q/(1.0+q)
     Xb = 1.0 - Xa
@@ -103,7 +101,7 @@ def _get_merger_frequency(theta: Array):
 
 
 # Full tidal correction
-def fullTidalPhaseCorrection(f: Array, theta_intrinsic: Array, P_P: Array):
+def fullTidalPhaseCorrection(Mf: Array, theta_intrinsic: Array, P_P: Array):
     """
     Returns the NRTidalv3 phase corrections due to tidal and spin effects.
 
@@ -117,9 +115,8 @@ def fullTidalPhaseCorrection(f: Array, theta_intrinsic: Array, P_P: Array):
     """
 
     m1, m2, _, _, lambda1, lambda2 = theta_intrinsic
-    M_s = (m1 + m2) * gt
     Xa = m1 / (m1 + m2)
-    x = PI * f * M_s
+    x = PI * Mf
     x_23 = x**(2.0/3.0)
         
     PN_coeffs = get_tidalphasePN_coeffs(theta_intrinsic)
@@ -133,7 +130,9 @@ def fullTidalPhaseCorrection(f: Array, theta_intrinsic: Array, P_P: Array):
 
 
 def changePhase_if_min(f, NRTidalv3_phase, valid):
-    idx = jnp.argmax(valid)
+    idx = jnp.argmax(valid) - 1
+    idx = jnp.maximum(idx, 0) # Avoid negative index
+
     tidal_min_value = NRTidalv3_phase[idx]
     mask = (jnp.arange(f.size) >= idx)
     return jnp.where(mask, tidal_min_value, NRTidalv3_phase)
@@ -185,7 +184,7 @@ def get_tidal_phase(
     # expression for the effective love number enhancement factor, see Eq. (27) of https://arxiv.org/pdf/2311.07456.pdf.*/
     dynk2bar = 1.0 + ((s1) - 1)*(1.0/(1.0 + exps2Mom*exps2s3)) - ((s1-1.0)/(1.0 + exps2s3)) - 2.0*M_omega*((s1) - 1)*s2*exps2s3/((1.0 + exps2s3)*(1.0 + exps2s3))
     
-    PN_x = M_omega**(2.0/3.0) # redundant computation?
+    PN_x = M_omega**(2.0/3.0) 
     PN_x_2 = PN_x * PN_x
     PN_x_3 = PN_x * PN_x_2
     PN_x_3over2 = PN_x * jnp.sqrt(PN_x)
