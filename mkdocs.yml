@@ -27,9 +27,6 @@ theme:
              icon: material/brightness-2
              name: Light mode
 
-    twitter_name: "@physicskaze"
-    twitter_url: "https://twitter.com/physicskaze"
-
 markdown_extensions:
     - pymdownx.arithmatex:  # Render LaTeX via MathJax
         generic: true
