@@ -1422,3 +1422,49 @@ def gen_IMRPhenomXAS_hphc(f: Array, params: Array, f_ref: float):
     hc = -1j * h0 * jnp.cos(iota)
 
     return hp, hc
+
+
+# Debug function
+def get_IMRPhenomXAS_Phase(
+    f: Array,
+    theta_intrinsic: Array,
+    theta_extrinsic: Array,
+    phase_coeffs: Array,
+    f_ref: float,
+):
+    m1, m2, chi1, chi2 = theta_intrinsic
+    m1_s = m1 * gt
+    m2_s = m2 * gt
+
+    M_s = m1_s + m2_s
+    eta = m1_s * m2_s / (M_s**2.0)
+    delta = jnp.sqrt(1.0 - 4.0 * eta)
+    mm1 = 0.5 * (1.0 + delta)
+    mm2 = 0.5 * (1.0 - delta)
+
+    StotR = (mm1**2 * chi1 + mm2**2 * chi2) / (mm1**2 + mm2**2)
+    chia = chi1 - chi2
+
+    fM_s = f * M_s
+    fMs_RD, fMs_damp, _, _ = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
+    Psi = Phase(f, theta_intrinsic, phase_coeffs)
+
+    # Generate the linear in f and constant contribution to the phase in order
+    # to roll the waveform such that the peak is at the input tc and phic
+    lina, linb, psi4tostrain = IMRPhenomX_utils.calc_phaseatpeak(
+        eta, StotR, chia, delta
+    )
+    dphi22Ref = (
+        jax.grad(Phase)((fMs_RD - fMs_damp) / M_s, theta_intrinsic, phase_coeffs) / M_s
+    )
+    linb = linb - dphi22Ref - 2.0 * PI * (500.0 + psi4tostrain)
+    # The additional π shift comes from Y22
+    phifRef = (
+        -(Phase(f_ref, theta_intrinsic, phase_coeffs) + linb * (f_ref * M_s) + lina)
+        + PI / 4.0
+        + PI
+    )
+    ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] + 2 * theta_extrinsic[2]
+    Psi = Psi + (linb * fM_s) + lina + phifRef - 2 * PI + ext_phase_contrib
+
+    return Psi
