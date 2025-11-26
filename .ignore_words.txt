@@ -6,6 +6,7 @@ dchi
 deformabilities
 deformability
 dphase
+EOSQ
 extremal
 hcross
 hplus
