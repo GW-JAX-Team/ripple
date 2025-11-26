@@ -12,13 +12,14 @@ from ripplegw.waveforms.imr_phenom_xphm.dataclass_utils import _register_datacla
 class IMRPhenomXWaveformDataClass:  # pylint: disable=too-many-instance-attributes
     """Dataclass to hold internal parameters for IMRPhenomX waveform generation."""
 
-    # Debug flag
-    debug: int
-
     # Model version parameters
     imr_phenom_x_inspiral_phase_version: int
     imr_phenom_x_intermediate_phase_version: int
     imr_phenom_x_ringdown_phase_version: int
+
+    imr_phenom_x_inspiral_amp_version: int
+    imr_phenom_x_intermediate_amp_version: int
+    imr_phenom_x_ringdown_amp_version: int
 
     # Implemented for PhenomPNR coprecessing model.
     # When used, this value will be determined by the corresponding value in prec_struct.
@@ -222,3 +223,6 @@ class IMRPhenomXUsefulPowersDataClass:  # pylint: disable=too-many-instance-attr
     m_one_sixth: float
     m_seven_sixths: float
     log: float
+
+    # Debug flag
+    debug: int = 0
