@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import jax.numpy as jnp
 from jax import lax
 
 
@@ -41,3 +42,52 @@ def xlal_imr_phenom_xp_check_masses_and_spins(  # pylint: disable=too-many-argum
         lambda: (m2_si, m1_si, chi2x, chi2y, chi2z, chi1x, chi1y, chi1z),
         lambda: (m1_si, m2_si, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z),
     )
+
+
+def imr_phenom_x_approx_equal(x: float, y: float, epsilon: float) -> bool:
+    """Check if two floats are approximately equal within epsilon.
+
+    Equivalent to gsl_fcmp returning 0 (approximate equality).
+
+    Args:
+        x: First value.
+        y: Second value.
+        epsilon: Tolerance for comparison.
+
+    Returns:
+        True if |x - y| <= epsilon * max(|x|, |y|), False otherwise.
+    """
+    abs_diff = jnp.abs(x - y)
+    max_abs = jnp.maximum(jnp.abs(x), jnp.abs(y))
+    return abs_diff <= epsilon * max_abs
+
+
+def imr_phenom_x_internal_nudge(x: float, y: float, epsilon: float) -> float:
+    """Nudge x towards y by epsilon if they're approximately equal.
+
+    If y != 0 and x ≈ y (within relative epsilon), return y.
+    If y == 0 and |x - y| < epsilon, return y.
+    Otherwise return x unchanged.
+
+    Args:
+        x: Value to potentially nudge.
+        y: Target value.
+        epsilon: Tolerance for comparison.
+
+    Returns:
+        Nudged or original value.
+    """
+
+    def nudge_branch_y_nonzero(_):
+        """Nudge x to y when y != 0 and x ≈ y (relative tolerance)."""
+        is_approx = imr_phenom_x_approx_equal(x, y, epsilon)
+        return lax.cond(is_approx, lambda _: y, lambda _: x, operand=None)
+
+    def nudge_branch_y_zero(_):
+        """Nudge x to y when y == 0 and |x - y| < epsilon (absolute tolerance)."""
+        is_close = jnp.abs(x - y) < epsilon
+        return lax.cond(is_close, lambda _: y, lambda _: x, operand=None)
+
+    # Check if y is nonzero or zero and apply appropriate branch
+    y_is_nonzero = y != 0.0
+    return lax.cond(y_is_nonzero, nudge_branch_y_nonzero, nudge_branch_y_zero, operand=None)

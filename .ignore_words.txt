@@ -8,6 +8,7 @@ deformability
 dphase
 EOSQ
 extremal
+fcmp
 hcross
 hplus
 imr
