@@ -9,6 +9,7 @@ dphase
 EOSQ
 extremal
 fcmp
+Geometrized
 hcross
 hplus
 imr
@@ -20,6 +21,7 @@ lalsimulation
 lalsuite
 meco
 MSUN
+MTSUN
 phen
 prec
 Qfrom
@@ -30,6 +32,7 @@ Tidalv
 treedef
 unflatten
 unflattening
+unphysical
 vmap
 XLAL
 XPHM
