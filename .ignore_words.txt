@@ -3,6 +3,8 @@ checkify
 coprec
 coprecessing
 dchi
+deformabilities
+deformability
 dphase
 extremal
 hcross
@@ -14,9 +16,13 @@ lalsim
 lalsimulation
 lalsuite
 meco
+MSUN
+phen
 prec
+Qfrom
 ringdown
 ripplegw
+rtol
 Tidalv
 treedef
 unflatten
