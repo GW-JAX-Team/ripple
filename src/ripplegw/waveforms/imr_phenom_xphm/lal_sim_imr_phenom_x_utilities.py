@@ -91,3 +91,20 @@ def imr_phenom_x_internal_nudge(x: float, y: float, epsilon: float) -> float:
     # Check if y is nonzero or zero and apply appropriate branch
     y_is_nonzero = y != 0.0
     return lax.cond(y_is_nonzero, nudge_branch_y_nonzero, nudge_branch_y_zero, operand=None)
+
+
+def xlal_sim_imr_phenom_x_chi_eff(eta: float, chi1l: float, chi2l: float) -> float:
+    """Compute the effective spin parameter chi_eff.
+
+    Args:
+        eta: Symmetric mass ratio.
+        chi1l: Dimensionless spin component of the first body along the orbital angular momentum.
+        chi2l: Dimensionless spin component of the second body along the orbital angular momentum.
+
+    Returns:
+        Effective spin parameter chi_eff.
+    """
+    delta = jnp.sqrt(1.0 - 4.0 * eta)
+    mm1 = 0.5 * (1.0 + delta)
+    mm2 = 0.5 * (1.0 - delta)
+    return mm1 * chi1l + mm2 * chi2l
