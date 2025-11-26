@@ -108,3 +108,21 @@ def xlal_sim_imr_phenom_x_chi_eff(eta: float, chi1l: float, chi2l: float) -> flo
     mm1 = 0.5 * (1.0 + delta)
     mm2 = 0.5 * (1.0 - delta)
     return mm1 * chi1l + mm2 * chi2l
+
+
+def xlal_sim_imr_phenom_x_chi_pn_hat(eta: float, chi1l: float, chi2l: float) -> float:
+    """Compute the PN hat spin parameter chi_pn_hat.
+
+    Args:
+        eta: Symmetric mass ratio.
+        chi1l: Dimensionless spin component of the first body along the orbital angular momentum.
+        chi2l: Dimensionless spin component of the second body along the orbital angular momentum.
+
+    Returns:
+        PN hat spin parameter chi_pn_hat.
+    """
+    delta = jnp.sqrt(1.0 - 4.0 * eta)
+    mm1 = 0.5 * (1.0 + delta)
+    mm2 = 0.5 * (1.0 - delta)
+    chi_eff = mm1 * chi1l + mm2 * chi2l
+    return (chi_eff - (38.0 / 113.0) * eta * (chi1l + chi2l)) / (1.0 - (76.0 / 113.0) * eta)
