@@ -20,10 +20,12 @@ class TestIMRPhenomXWaveformDataClass:
     def sample_data(self):
         """Fixture for sample data to create the dataclass."""
         return {
-            "debug": 0,
             "imr_phenom_x_inspiral_phase_version": 104,
             "imr_phenom_x_intermediate_phase_version": 105,
             "imr_phenom_x_ringdown_phase_version": 105,
+            "imr_phenom_x_inspiral_amp_version": 1,
+            "imr_phenom_x_intermediate_amp_version": 2,
+            "imr_phenom_x_ringdown_amp_version": 3,
             "imr_phenom_xpnr_use_tuned_coprec": 1,
             "imr_phenom_xpnr_use_tuned_coprec_33": 0,
             "imr_phenom_x_return_co_prec": 0,
@@ -140,7 +142,6 @@ class TestIMRPhenomXWaveformDataClass:
         assert p_wf.m1 == 1.0
         assert p_wf.eta == 0.25
         assert p_wf.lal_params == {}
-        assert isinstance(p_wf.debug, int)
         assert isinstance(p_wf.m1_si, float)
 
     def test_immutability(self, sample_data):
