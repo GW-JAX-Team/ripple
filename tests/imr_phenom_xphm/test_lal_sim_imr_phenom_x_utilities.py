@@ -4,12 +4,22 @@ from __future__ import annotations
 
 import jax
 import jax.numpy as jnp
+import numpy as np
+import pytest
 
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import (
     imr_phenom_x_approx_equal,
     imr_phenom_x_internal_nudge,
     xlal_imr_phenom_xp_check_masses_and_spins,
+    xlal_sim_imr_phenom_x_chi_eff,
 )
+
+try:
+    from lalsimulation import SimIMRPhenomXchiEff
+
+    HAS_LAL = True
+except ImportError:
+    HAS_LAL = False
 
 
 def test_xlal_imr_phenom_xp_check_masses_and_spins():
@@ -195,3 +205,122 @@ class TestImrPhenomXInternalNudge:
         # 2.0 > 1e-10, not approximately equal, return x
         result = imr_phenom_x_internal_nudge(-1.0, 1.0, 1e-10)
         assert float(result) == -1.0
+
+
+class TestXlalSimImrPhenomXChiEff:
+    """Test xlal_sim_imr_phenom_x_chi_eff function."""
+
+    def test_chi_eff_zero_spins(self):
+        """Test chi_eff with zero spins."""
+        eta = 0.25  # Equal mass: m1 = m2
+        chi1l = 0.0
+        chi2l = 0.0
+        result = xlal_sim_imr_phenom_x_chi_eff(eta, chi1l, chi2l)
+        assert jnp.isclose(float(result), 0.0, atol=1e-14)
+
+    def test_chi_eff_equal_aligned_spins(self):
+        """Test chi_eff with equal aligned spins."""
+        eta = 0.25  # Equal mass
+        chi1l = 0.5
+        chi2l = 0.5
+        result = xlal_sim_imr_phenom_x_chi_eff(eta, chi1l, chi2l)
+        # For equal mass: mm1 = mm2 = 0.5
+        # chi_eff = 0.5 * 0.5 + 0.5 * 0.5 = 0.5
+        assert jnp.isclose(float(result), 0.5, rtol=1e-6)
+
+    def test_chi_eff_opposite_spins(self):
+        """Test chi_eff with opposite spins."""
+        eta = 0.25  # Equal mass
+        chi1l = 0.5
+        chi2l = -0.5
+        result = xlal_sim_imr_phenom_x_chi_eff(eta, chi1l, chi2l)
+        # For equal mass: mm1 = mm2 = 0.5
+        # chi_eff = 0.5 * 0.5 + 0.5 * (-0.5) = 0
+        assert jnp.isclose(float(result), 0.0, atol=1e-6)
+
+    def test_chi_eff_unequal_mass(self):
+        """Test chi_eff with unequal mass ratio."""
+        # m1 = 10, m2 = 5: eta = 10*5 / (10+5)^2 = 50/225 ≈ 0.222
+        eta = 50.0 / 225.0
+        chi1l = 0.3
+        chi2l = 0.1
+        result = xlal_sim_imr_phenom_x_chi_eff(eta, chi1l, chi2l)
+
+        # delta = sqrt(1 - 4*eta) = sqrt(1 - 4*0.222) = sqrt(0.111) ≈ 0.333
+        # mm1 = 0.5 * (1 + 0.333) ≈ 0.667
+        # mm2 = 0.5 * (1 - 0.333) ≈ 0.333
+        # chi_eff = 0.667 * 0.3 + 0.333 * 0.1
+        delta = np.sqrt(1.0 - 4.0 * eta)
+        mm1 = 0.5 * (1.0 + delta)
+        mm2 = 0.5 * (1.0 - delta)
+        expected = mm1 * 0.3 + mm2 * 0.1
+        assert jnp.isclose(float(result), expected, rtol=1e-6)
+
+    def test_chi_eff_negative_spins(self):
+        """Test chi_eff with negative spin values."""
+        eta = 0.25
+        chi1l = -0.4
+        chi2l = -0.6
+        result = xlal_sim_imr_phenom_x_chi_eff(eta, chi1l, chi2l)
+        # For equal mass: mm1 = mm2 = 0.5
+        # chi_eff = 0.5 * (-0.4) + 0.5 * (-0.6) = -0.5
+        assert jnp.isclose(float(result), -0.5, rtol=1e-6)
+
+    def test_chi_eff_jit_compatible(self):
+        """Test that xlal_sim_imr_phenom_x_chi_eff is JIT-compatible."""
+        jitted_func = jax.jit(xlal_sim_imr_phenom_x_chi_eff)
+        eta = 0.25
+        chi1l = 0.5
+        chi2l = 0.3
+        result = jitted_func(eta, chi1l, chi2l)
+        expected = xlal_sim_imr_phenom_x_chi_eff(eta, chi1l, chi2l)
+        assert jnp.isclose(float(result), float(expected), rtol=1e-6)
+
+    @pytest.mark.skipif(not HAS_LAL, reason="lalsimulation not available")
+    def test_chi_eff_cross_validation_equal_mass(self):
+        """Cross-validate chi_eff against LAL for equal mass case."""
+        eta = 0.25
+        chi1l = 0.4
+        chi2l = 0.3
+
+        result_jax = xlal_sim_imr_phenom_x_chi_eff(eta, chi1l, chi2l)
+        result_lal = SimIMRPhenomXchiEff(eta, chi1l, chi2l)
+
+        assert jnp.isclose(float(result_jax), result_lal, rtol=1e-6)
+
+    @pytest.mark.skipif(not HAS_LAL, reason="lalsimulation not available")
+    def test_chi_eff_cross_validation_unequal_mass(self):
+        """Cross-validate chi_eff against LAL for unequal mass case."""
+        # m1 = 15, m2 = 5: eta = 15*5 / (15+5)^2 = 75/400 = 0.1875
+        eta = 75.0 / 400.0
+        chi1l = -0.5
+        chi2l = 0.2
+
+        result_jax = xlal_sim_imr_phenom_x_chi_eff(eta, chi1l, chi2l)
+        result_lal = SimIMRPhenomXchiEff(eta, chi1l, chi2l)
+
+        assert jnp.isclose(float(result_jax), result_lal, rtol=1e-6)
+
+    @pytest.mark.skipif(not HAS_LAL, reason="lalsimulation not available")
+    def test_chi_eff_cross_validation_zero_spins(self):
+        """Cross-validate chi_eff against LAL with zero spins."""
+        eta = 0.1875
+        chi1l = 0.0
+        chi2l = 0.0
+
+        result_jax = xlal_sim_imr_phenom_x_chi_eff(eta, chi1l, chi2l)
+        result_lal = SimIMRPhenomXchiEff(eta, chi1l, chi2l)
+
+        assert jnp.isclose(float(result_jax), result_lal, rtol=1e-6)
+
+    @pytest.mark.skipif(not HAS_LAL, reason="lalsimulation not available")
+    def test_chi_eff_cross_validation_extremal_spins(self):
+        """Cross-validate chi_eff against LAL with near-extremal spins."""
+        eta = 0.25
+        chi1l = 0.99
+        chi2l = -0.99
+
+        result_jax = xlal_sim_imr_phenom_x_chi_eff(eta, chi1l, chi2l)
+        result_lal = SimIMRPhenomXchiEff(eta, chi1l, chi2l)
+
+        assert jnp.isclose(float(result_jax), result_lal, rtol=1e-6)
