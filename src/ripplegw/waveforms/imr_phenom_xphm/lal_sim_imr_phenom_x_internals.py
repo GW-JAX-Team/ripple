@@ -615,6 +615,9 @@ def imr_phenom_x_set_waveform_variables(
         e_rad=0.0,
         a_final_non_prec=afinal_nonprec,
         lal_params=lal_params,
+        m=0.0,
+        m1_2=0.0,
+        m2_2=0.0,
     )
     return waveform_dataclass
 

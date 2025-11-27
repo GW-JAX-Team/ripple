@@ -74,9 +74,9 @@ class IMRPhenomXWaveformDataClass:  # pylint: disable=too-many-instance-attribut
     theta_ls: float  # PNR Specific
     a1: float  # PNR Specific
 
-    # m: float
-    # m1_2: float
-    # m2_2: float
+    m: float
+    m1_2: float
+    m2_2: float
 
     # Matter parameters
     lambda1: float
