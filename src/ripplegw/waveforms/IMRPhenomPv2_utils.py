@@ -1,19 +1,14 @@
 import jax
 import jax.numpy as jnp
-from ripplegw import Mc_eta_to_ms
 
 from typing import Tuple
-from ..constants import gt, MSUN
+from ..constants import gt
 import numpy as np
-from .IMRPhenomD import Phase as PhDPhase
-from .IMRPhenomD import Amp as PhDAmp
 from .IMRPhenomD_utils import (
-    get_coeffs,
-    get_transition_frequencies,
     EradRational0815,
     FinalSpin0815_s,
 )
-from ..typing import Array
+from jaxtyping import Array
 from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
 
 MAX_TOL_ATAN = 1.0e-15
@@ -177,7 +172,7 @@ def convert_spins(
     return chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz
 
 
-def SpinWeightedY(theta, phi, s, l, m):
+def SpinWeightedY(theta, phi, s, l, m):  # noqa: E741
     "copied from SphericalHarmonics.c in LAL"
     if s == -2:
         if l == 2:

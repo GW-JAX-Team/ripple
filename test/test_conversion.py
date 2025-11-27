@@ -1,4 +1,4 @@
-from ripple import lambdas_to_lambda_tildes, lambda_tildes_to_lambdas
+from ripplegw import lambdas_to_lambda_tildes, lambda_tildes_to_lambdas
 import jax.numpy as jnp
 import numpy as np
 

@@ -8,3 +8,12 @@ updates:
     target-branch: "ripple-dev"
     commit-message:
       prefix: "ci"
+  
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    target-branch: "ripple-dev"
+    commit-message:
+      prefix: "deps"

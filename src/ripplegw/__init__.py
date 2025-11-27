@@ -7,7 +7,6 @@ and comparing waveforms.
 # from jax.config import config
 # config.update("jax_enable_x64", True)
 
-import ripplegw
 from math import pi
 from typing import Callable, Optional, Tuple
 import warnings
@@ -16,7 +15,7 @@ from jax import random
 import jax.numpy as jnp
 
 from .constants import C, G
-from .typing import Array
+from jaxtyping import Array
 
 
 def Mc_eta_to_ms(m):

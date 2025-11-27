@@ -4,7 +4,7 @@ This file implements the TaylorF2 waveform, as described in the LALSuite library
 
 import jax.numpy as jnp
 from ..constants import EulerGamma, gt, m_per_Mpc, PI, MRSUN
-from ..typing import Array
+from jaxtyping import Array
 from ripplegw import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from .IMRPhenom_tidal_utils import get_quadparam_octparam
 
@@ -368,14 +368,14 @@ def _gen_TaylorF2(
     dist_mpc, tc, phi_ref = theta_extrinsic
     m1_s = m1 * gt
     m2_s = m2 * gt
-    M = m1 + m2
+    # M = m1 + m2
     M_s = (m1 + m2) * gt
     eta = m1_s * m2_s / (M_s**2.0)
     piM = PI * M_s
 
     # TODO: incorporate this into the waveform
-    vISCO = 1.0 / jnp.sqrt(6.0)
-    fISCO = vISCO * vISCO * vISCO / piM
+    # vISCO = 1.0 / jnp.sqrt(6.0)
+    # fISCO = vISCO * vISCO * vISCO / piM
 
     # Get the phasing coefficients
     phasing_coeffs, phasing_log_coeffs = get_PNPhasing_F2(
