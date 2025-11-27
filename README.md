@@ -20,7 +20,7 @@ Ripple can be installed using
 pip3 install ripplegw
 ```
 
-Note that by default we do not include enable float64 in `jax`` since we want allow users to use float32 to improve performance.
+Note that by default we do not enable float64 in `jax` since we want to allow users to use float32 to improve performance.
 If you require float64, please include the following code at the start of the script:
 
 ```
