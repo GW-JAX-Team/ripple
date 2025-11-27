@@ -6,11 +6,22 @@ from typing import ClassVar
 
 import jax
 import jax.numpy as jnp
+from jax.experimental import checkify
+jax.config.update("jax_enable_x64", True)
 import pytest
 
+from ripplegw.constants import PI
+from ripplegw.waveforms.imr_phenom_xphm.lal_constants import LAL_MSUN_SI
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals import (
     check_input_mode_array,
     imr_phenom_x_initialize_powers,
+    imr_phenom_x_set_waveform_variables,
+)
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
+    IMRPhenomXUsefulPowersDataClass,
+)
+from ripplegw.waveforms.imr_phenom_xphm.parameter_dataclass import (
+    IMRPhenomXPHMParameterDataClass,
 )
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_inspiral_waveform_flags import (
     xlal_sim_inspiral_create_mode_array,
@@ -194,6 +205,184 @@ class TestCheckInputModeArray:
         err.throw()
         assert result is True  # Since 4 > 3, not checked
 
+
+class TestSetWaveformVariables:
+    """Tests for imr_phenom_x_set_waveform_variables function."""
+
+    def test_basic_initialization(self):
+        """Test initialization with standard parameters."""
+        m1_si = 30.0 * LAL_MSUN_SI
+        m2_si = 20.0 * LAL_MSUN_SI
+        chi1l = 0.5
+        chi2l = -0.3
+        delta_f = 0.125
+        f_ref = 20.0
+        phi0 = 0.0
+        f_min = 20.0
+        f_max = 1024.0
+        distance = 1.0e6 * 3.08567758149137e16  # 1 Mpc
+        inclination = 0.5
+
+        lal_params = IMRPhenomXPHMParameterDataClass()
+        # Initialize powers (needed for the function)
+        _, powers = imr_phenom_x_initialize_powers(PI)
+
+        err, waveform_vars = imr_phenom_x_set_waveform_variables(
+            m1_si,
+            m2_si,
+            chi1l,
+            chi2l,
+            delta_f,
+            f_ref,
+            phi0,
+            f_min,
+            f_max,
+            distance,
+            inclination,
+            lal_params,
+            powers,
+        )
+        err.throw()
+
+        # Check some derived quantities
+        assert waveform_vars.m1_si == m1_si
+        assert waveform_vars.m2_si == m2_si
+        assert waveform_vars.chi1l == chi1l
+        assert waveform_vars.chi2l == chi2l
+        assert waveform_vars.delta_f == delta_f
+        assert waveform_vars.f_ref == f_ref
+        assert waveform_vars.phi0 == phi0
+        assert waveform_vars.f_min == f_min
+        assert waveform_vars.f_max == f_max
+        assert waveform_vars.distance == distance
+        assert waveform_vars.inclination == inclination
+
+        # Check calculated quantities
+        # eta = m1*m2/(m1+m2)^2 = 600/2500 = 0.24
+        expected_eta = (30 * 20) / (50 * 50)
+        assert jnp.allclose(waveform_vars.eta, expected_eta)
+
+    def test_mass_swap(self):
+        """Test that masses and spins are swapped if m2 > m1."""
+        m1_si = 20.0 * LAL_MSUN_SI
+        m2_si = 30.0 * LAL_MSUN_SI
+        chi1l = 0.5
+        chi2l = -0.3
+
+        lal_params = IMRPhenomXPHMParameterDataClass()
+        _, powers = imr_phenom_x_initialize_powers(PI)
+
+        err, waveform_vars = imr_phenom_x_set_waveform_variables(
+            m1_si,
+            m2_si,
+            chi1l,
+            chi2l,
+            0.1,
+            20.0,
+            0.0,
+            20.0,
+            100.0,
+            1.0e22,
+            0.0,
+            lal_params,
+            powers,
+        )
+        err.throw()
+
+        # Should be swapped so m1 >= m2
+        assert waveform_vars.m1_si == m2_si
+        assert waveform_vars.m2_si == m1_si
+        assert waveform_vars.chi1l == chi2l
+        assert waveform_vars.chi2l == chi1l
+
+    def test_spin_clamping(self):
+        """Test that spins slightly outside [-1, 1] are clamped."""
+        m1_si = 30.0 * LAL_MSUN_SI
+        m2_si = 30.0 * LAL_MSUN_SI
+        chi1l = 1.0000001  # Slightly > 1
+        chi2l = -1.0000001  # Slightly < -1
+
+        lal_params = IMRPhenomXPHMParameterDataClass()
+        _, powers = imr_phenom_x_initialize_powers(PI)
+
+        err, waveform_vars = imr_phenom_x_set_waveform_variables(
+            m1_si,
+            m2_si,
+            chi1l,
+            chi2l,
+            0.1,
+            20.0,
+            0.0,
+            20.0,
+            100.0,
+            1.0e22,
+            0.0,
+            lal_params,
+            powers,
+        )
+        err.throw()
+
+        assert jnp.isclose(waveform_vars.chi1l, 1.0)
+        assert jnp.isclose(waveform_vars.chi2l, -1.0)
+
+    def test_unphysical_spins(self):
+        """Test that highly unphysical spins raise an error."""
+        m1_si = 30.0 * LAL_MSUN_SI
+        m2_si = 30.0 * LAL_MSUN_SI
+        chi1l = 1.5  # Clearly > 1
+        chi2l = 0.0
+
+        lal_params = IMRPhenomXPHMParameterDataClass()
+        _, powers = imr_phenom_x_initialize_powers(PI)
+
+        with pytest.raises(Exception, match="Unphysical spins requested"):
+            err, _ = imr_phenom_x_set_waveform_variables(
+                m1_si,
+                m2_si,
+                chi1l,
+                chi2l,
+                0.1,
+                20.0,
+                0.0,
+                20.0,
+                100.0,
+                1.0e22,
+                0.0,
+                lal_params,
+                powers,
+            )
+            err.throw()
+
+    def test_jit_compatibility(self):
+        """Test JIT compatibility."""
+        m1_si = 30.0 * LAL_MSUN_SI
+        m2_si = 20.0 * LAL_MSUN_SI
+        chi1l = 0.0
+        chi2l = 0.0
+
+        lal_params = IMRPhenomXPHMParameterDataClass()
+        _, powers = imr_phenom_x_initialize_powers(PI)
+
+        jit_set_vars = jax.jit(imr_phenom_x_set_waveform_variables)
+
+        err, waveform_vars = jit_set_vars(
+            m1_si,
+            m2_si,
+            chi1l,
+            chi2l,
+            0.1,
+            20.0,
+            0.0,
+            20.0,
+            100.0,
+            1.0e22,
+            0.0,
+            lal_params,
+            powers,
+        )
+        err.throw()
+
+        assert waveform_vars.m1_si == m1_si
 
 if __name__ == "__main__":
     pytest.main([__file__])

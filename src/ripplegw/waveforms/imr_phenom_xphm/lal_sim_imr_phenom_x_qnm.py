@@ -1,10 +1,10 @@
 import jax
 import jax.numpy as jnp
+from jax.experimental import checkify
 
 def evaluate_QNMfit_fring22(finalDimlessSpin):
 
-    if (abs(finalDimlessSpin) > 1.0):
-        jax.debug.print("PhenomX evaluate_QNMfit_fring22 function: |finalDimlessSpin| > 1.0 not supported")
+    checkify.check(jnp.abs(finalDimlessSpin) <= 1.0, "PhenomX evaluate_QNMfit_fring22 function: |finalDimlessSpin| > 1.0 not supported")
 
     x2= finalDimlessSpin*finalDimlessSpin
     x3= x2*finalDimlessSpin
@@ -25,8 +25,7 @@ def evaluate_QNMfit_fring22(finalDimlessSpin):
 
 def evaluate_QNMfit_fdamp22(finalDimlessSpin):
 
-    if (abs(finalDimlessSpin) > 1.0):
-        jax.debug.print("PhenomX evaluate_QNMfit_fdamp22 function: |finalDimlessSpin| > 1.0 not supported")
+    checkify.check(jnp.abs(finalDimlessSpin) <= 1.0, "PhenomX evaluate_QNMfit_fdamp22 function: |finalDimlessSpin| > 1.0 not supported")
 
     x2= finalDimlessSpin*finalDimlessSpin
     x3= x2*finalDimlessSpin

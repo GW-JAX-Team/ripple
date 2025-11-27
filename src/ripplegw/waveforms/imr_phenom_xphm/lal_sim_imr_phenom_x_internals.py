@@ -203,6 +203,7 @@ def _validate_ringdown_amplitude_version(rd_amp_version: jnp.ndarray) -> bool:
 
 
 # TODO: Not finished
+@checkify.checkify
 def imr_phenom_x_set_waveform_variables(
     m1_si: float,
     m2_si: float,
@@ -270,65 +271,88 @@ def imr_phenom_x_set_waveform_variables(
     quad_param1_in = 1.0
     quad_param2_in = 1.0
 
-    if lal_params.phen_x_tidal != 0:
-        lambda1_in = lal_params.lambda1
-        lambda2_in = lal_params.lambda2
-        if lambda1_in < 0.0 or lambda2_in < 0.0:
-            checkify.check(False, "Tidal deformabilities lambda1 and lambda2 must be non-negative.")
-            # Set quadrupole-monopole parameters from tidal deformabilities
-        lal_params = xlal_sim_inspiral_set_quad_mon_params_from_lambdas(lal_params)
+    # def _tidal_branch(lal_params):
+    #     lambda1_in = lal_params.lambda1
+    #     lambda2_in = lal_params.lambda2
+    #     checkify.check((lambda1_in >= 0.0) & (lambda2_in >= 0.0), "Tidal deformabilities lambda1 and lambda2 must be non-negative.")
+    #     lal_params = xlal_sim_inspiral_set_quad_mon_params_from_lambdas(lal_params)
+    #     quad_param1_in = 1.0 + lal_params.d_quad_mon1
+    #     quad_param2_in = 1.0 + lal_params.d_quad_mon2
+    #     return lambda1_in, lambda2_in, quad_param1_in, quad_param2_in, lal_params
 
-        quad_param1_in = 1.0 + lal_params.d_quad_mon1
-        quad_param2_in = 1.0 + lal_params.d_quad_mon2
+    # def _no_tidal_branch(lal_params):
+    #     return 0.0, 0.0, 1.0, 1.0, lal_params
 
-    if m1_in >= m2_in:
-        chi1l = chi1l_in
-        chi2l = chi2l_in
-        m1 = m1_in
-        m2 = m2_in
-        lambda1 = lambda1_in
-        lambda2 = lambda2_in
-        quad_param1 = quad_param1_in
-        quad_param2 = quad_param2_in
-    else:
-        chi1l = chi2l_in
-        chi2l = chi1l_in
-        m1 = m2_in
-        m2 = m1_in
-        lambda1 = lambda2_in
-        lambda2 = lambda1_in
-        quad_param1 = quad_param2_in
-        quad_param2 = quad_param1_in
+    # lambda1_in, lambda2_in, quad_param1_in, quad_param2_in, lal_params = jax.lax.cond(
+    #     lal_params.phen_x_tidal != 0,
+    #     _tidal_branch,
+    #     _no_tidal_branch,
+    #     lal_params
+    # )
 
-    if chi1l > 1.0:
-        chi1l = imr_phenom_x_internal_nudge(chi1l, 1.0, 1e-6)
-    if chi2l > 1.0:
-        chi2l = imr_phenom_x_internal_nudge(chi2l, 1.0, 1e-6)
-    if chi1l < -1.0:
-        chi1l = imr_phenom_x_internal_nudge(chi1l, -1.0, 1e-6)
-    if chi2l < -1.0:
-        chi2l = imr_phenom_x_internal_nudge(chi2l, -1.0, 1e-6)
+    def _swap_parameters(operand):
+        m1_in, m2_in, chi1l_in, chi2l_in, lambda1_in, lambda2_in, quad_param1_in, quad_param2_in = operand
+        return chi2l_in, chi1l_in, m2_in, m1_in, lambda2_in, lambda1_in, quad_param2_in, quad_param1_in
+
+    def _keep_parameters(operand):
+        m1_in, m2_in, chi1l_in, chi2l_in, lambda1_in, lambda2_in, quad_param1_in, quad_param2_in = operand
+        return chi1l_in, chi2l_in, m1_in, m2_in, lambda1_in, lambda2_in, quad_param1_in, quad_param2_in
+
+    operand = (m1_in, m2_in, chi1l_in, chi2l_in, lambda1_in, lambda2_in, quad_param1_in, quad_param2_in)
+    chi1l, chi2l, m1, m2, lambda1, lambda2, quad_param1, quad_param2 = jax.lax.cond(
+        m1_in >= m2_in,
+        _keep_parameters,
+        _swap_parameters,
+        operand
+    )
+
+    chi1l = jax.lax.cond(
+        chi1l > 1.0,
+        lambda x: imr_phenom_x_internal_nudge(x, 1.0, 1e-6),
+        lambda x: x,
+        chi1l
+    )
+    chi2l = jax.lax.cond(
+        chi2l > 1.0,
+        lambda x: imr_phenom_x_internal_nudge(x, 1.0, 1e-6),
+        lambda x: x,
+        chi2l
+    )
+    chi1l = jax.lax.cond(
+        chi1l < -1.0,
+        lambda x: imr_phenom_x_internal_nudge(x, -1.0, 1e-6),
+        lambda x: x,
+        chi1l
+    )
+    chi2l = jax.lax.cond(
+        chi2l < -1.0,
+        lambda x: imr_phenom_x_internal_nudge(x, -1.0, 1e-6),
+        lambda x: x,
+        chi2l
+    )
 
     # If spins are still unphysical after checking for small round-off errors, fail.
-    if chi1l > 1.0 or chi1l < -1.0 or chi2l > 1.0 or chi2l < -1.0:
-        checkify.check(False, "Unphysical spins requested: must obey the Kerr bound [-1,1].")
+    # if chi1l > 1.0 or chi1l < -1.0 or chi2l > 1.0 or chi2l < -1.0:
+    checkify.check((chi1l <= 1.0) & (chi1l >= -1.0) & (chi2l <= 1.0) & (chi2l >= -1.0), "Unphysical spins requested: must obey the Kerr bound [-1,1].")
 
     # Symmetric mass ratio
     delta = jnp.abs((m1 - m2) / (m1 + m2))
-    Mc, eta = ms_to_Mc_eta(m1, m2)
+    Mc, eta = ms_to_Mc_eta((m1, m2))
     # eta = jnp.abs(0.25 * (1.0 - delta * delta))
     q = m1 / m2
 
-    if eta > 0.25:
-        eta = 0.25
-    if eta > 0.25 or eta < 0.0:
-        checkify.check(False, "Unphysical mass ratio %s requested.", eta)
+    # eta = jnp.where(eta > 0.25, 0.25, eta)
+    # if eta > 0.25 or eta < 0.0:
+    checkify.check((eta <= 0.25) & (eta >= 0.0), "Unphysical mass ratio requested.")
 
-    if eta == 0.25:
-        q = 1.0
+    q = jax.lax.select(
+        eta == 0.25,
+        1.0,
+        q
+    )
 
     # Check the mass ratio
-    checkify.check(q > 1000.0, "The model is not supported for mass ratios > 1000.")
+    checkify.check(q <= 1000.0, "The model is not supported for mass ratios > 1000.")
 
     m_tot = m1 + m2
     M_sec = m_tot * gt
@@ -361,10 +385,12 @@ def imr_phenom_x_set_waveform_variables(
     deltaMF   = M_sec*delta_f #XLALSimIMRPhenomXUtilsHztoMf(deltaF,Mtot)
 
     # /* Define the default end of the waveform as: 0.3 Mf. This value is chosen such that the 44 mode also shows the ringdown part. */
-    fCutDef = 0.3
     # // If chieff is very high the ringdown of the 44 is almost cut it out when using 0.3, so we increase a little bit the cut of freq up 0.33.
-    if chiEff > 0.99: 
-        fCutDef = 0.33
+    fCutDef = jax.lax.select(
+        chiEff > 0.99,
+        0.33,
+        0.3,
+    )
 
     # /* Minimum and maximum frequency */
     fMin      = f_min
@@ -375,8 +401,9 @@ def imr_phenom_x_set_waveform_variables(
     fCut      = fCutDef / M_sec
 
     # /* Sanity check that minimum start frequency is less than cut-off frequency */
-    if (fCut <= fMin):
-        jax.debug.print(f"(fCut = {fCut} Hz) <= f_min = {fMin}")
+    # if (fCut <= fMin):
+    #     jax.debug.print(f"(fCut = {fCut} Hz) <= f_min = {fMin}")
+    checkify.check(fCut > fMin, "Error: f_cut must be greater than f_min.")
 
     # if(debug)
     # {
@@ -389,11 +416,20 @@ def imr_phenom_x_set_waveform_variables(
 
     # /* By default f_max_prime is f_max. If fCut < fMax, then use fCut, i.e. waveform up to fMax will be zeros */
     f_max_prime   = fMax
-    f_max_prime   = fMax if fMax else fCut
-    f_max_prime   = fCut if (f_max_prime > fCut) else f_max_prime
+    # f_max_prime   = jax.lax.select( # fMax if fMax else fCut
+    #     fMax,
+    #     fMax,
+    #     fCut
+    # )
+    f_max_prime   = jax.lax.select( # fCut if (f_max_prime > fCut) else f_max_prime
+        f_max_prime > fCut,
+        fCut,
+        f_max_prime
+    )
 
-    if f_max_prime <= fMin:
-        jax.debug.print("f_max <= f_min")
+    # if f_max_prime <= fMin:
+    #     jax.debug.print("f_max <= f_min")
+    checkify.check(f_max_prime > fMin, "Error: f_max_prime must be greater than f_min.")
 
     # if(debug)
     # {
@@ -425,10 +461,12 @@ def imr_phenom_x_set_waveform_variables(
     # 	printf("fda = %.6f\n",fDAMP)
     # }
 
-    if Mfinal > 1.0:
-        jax.debug.print("IMRPhenomX_FinalMass2018: Final mass > 1.0 not physical.")
-    if abs(afinal) > 1.0:
-        jax.debug.print("IMRPhenomX_FinalSpin2018: Final spin > 1.0 is not physical.")
+    # if Mfinal > 1.0:
+    #     jax.debug.print("IMRPhenomX_FinalMass2018: Final mass > 1.0 not physical.")
+    checkify.check(Mfinal <= 1.0, "IMRPhenomX_FinalMass2018: Final mass > 1.0 not physical.")
+    # if abs(afinal) > 1.0:
+    #     jax.debug.print("IMRPhenomX_FinalSpin2018: Final spin > 1.0 is not physical.")
+    checkify.check(abs(afinal) <= 1.0, "IMRPhenomX_FinalSpin2018: Final spin > 1.0 is not physical.")
 
     # /* Fit to the hybrid minimum energy circular orbit (MECO), Cabero et al, Phys.Rev. D95 (2017) */
     fMECO       = xlal_sim_imr_phenom_x_fMECO(eta,chi1l,chi2l)
@@ -442,9 +480,10 @@ def imr_phenom_x_set_waveform_variables(
     #     printf("fISCO = %.6f\n",fISCO)
     # }
 
-    if(fMECO > fISCO):
-        # /* If MECO > fISCO, throw an error - this may be the case for very corner cases in the parameter space (e.g. q ~ 1000, chi ~ 0.999) */
-        jax.debug.print("Error: f_MECO cannot be greater than f_ISCO.")
+    # if(fMECO > fISCO):
+    #     # /* If MECO > fISCO, throw an error - this may be the case for very corner cases in the parameter space (e.g. q ~ 1000, chi ~ 0.999) */
+    #     jax.debug.print("Error: f_MECO cannot be greater than f_ISCO.")
+    checkify.check(fMECO <= fISCO, "Error: f_MECO cannot be greater than f_ISCO.")
 
 
     # /* Distance and inclination */

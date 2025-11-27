@@ -274,3 +274,7 @@ class TestIMRPhenomXUsefulPowersDataClass:
         copied = dataclasses.replace(p_pow1)  # Shallow copy
         assert copied == p_pow1
         assert copied is not p_pow1  # Different object
+
+
+if __name__ == "__main__":
+    pytest.main([__file__])

@@ -222,7 +222,7 @@ def xlal_sim_imr_phenom_xphm(
 
     lal_params_dataclass = IMRPhenomXPHMParameterDataClass()
     # Initialize IMRPhenomX waveform struct and check that it is initialized correctly.
-    waveform_variables = imr_phenom_x_set_waveform_variables(
+    error, waveform_variables = imr_phenom_x_set_waveform_variables(
         m1_si,
         m2_si,
         chi1z,
@@ -460,10 +460,13 @@ def xlal_sim_imr_phenom_xphm_frequency_seqeuence_one_mode(
 
     jax.debug.print("Initializing waveform dict...")
 
+    # Initialize powers of pi
+    error, powers_of_pi = imr_phenom_x_initialize_powers(jnp.pi)
+
     # Initialize IMR PhenomX waveform struct and check that it initialized correctly.
     # We pass inclination 0 since for the individual modes is not relevant.
 
-    p_wf = imr_phenom_x_set_waveform_variables(
+    error, p_wf = imr_phenom_x_set_waveform_variables(
         m1_si,
         m2_si,
         chi1z,
@@ -476,6 +479,7 @@ def xlal_sim_imr_phenom_xphm_frequency_seqeuence_one_mode(
         distance,
         inclination,
         lal_params_aux,
+        powers_of_pi,
     )
 
     jax.debug.print("Initializing precession dict...")

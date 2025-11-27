@@ -252,8 +252,11 @@ def xlal_sim_imr_phenom_x_fMECO(eta, chi1L, chi2L):
 def xlal_sim_imr_phenom_x_fISCO(chif):
 
     Z1 = 1.0 + (1.0 - chif*chif)**(1/3) * ((1 + chif)**(1/3) + (1 - chif)**(1/3))
-    if Z1>3:
-        Z1=3. #Finite precission may give Z1>3, but this can not happen.
+    Z1 = lax.select( #Finite precission may give Z1>3, but this can not happen.
+        Z1 > 3,
+        3.0,
+        Z1
+    )
     Z2 = jnp.sqrt(3.0*chif*chif + Z1*Z1)
 
     rISCO    = 3.0 + Z2 - xlal_sim_imr_phenom_x_sign(chif)*jnp.sqrt( (3 - Z1) * (3 + Z1 + 2*Z2) )
@@ -266,4 +269,12 @@ def xlal_sim_imr_phenom_x_fISCO(chif):
 
 
 def xlal_sim_imr_phenom_x_sign(x):
-    return 1.0 if x > 0. else (-1.0 if x < 0.0 else 0.0)
+    return lax.select( #1.0 if x > 0. else (-1.0 if x < 0.0 else 0.0)
+        x > 0.0,
+        1.0,
+        lax.select(
+            x < 0.0,
+            -1.0,
+            0.0,
+        ),
+    )
