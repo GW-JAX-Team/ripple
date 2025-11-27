@@ -1,10 +1,22 @@
 .DS_Store
 .ipynb_checkpoints/
 .python-version
-*__pycache__
+__pycache__/
 *.egg-info
 docs/build/*
 figures/*.pdf
 .vscode/*
 
+# Coverage
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+
+# Build
 build/*
+dist/
+
+# Virtual environments
+.venv/
+venv/

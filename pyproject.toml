@@ -44,8 +44,8 @@ cuda = [
     "jax[cuda12]>=0.5.0",
 ]
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "ripplegw",
     "pre-commit>=4.2.0",
     "coverage>=7.7.0",
@@ -53,6 +53,7 @@ dev-dependencies = [
     "pytest>=8.3.3",
     "pytest-cov>=6.0.0",
     "ruff>=0.12.2",
+    "tqdm>=4.66.0",
     # "pyright>=1.1.402",  # Temporarily disabled - re-enable once type errors are fixed
 ]
 
