@@ -4,7 +4,7 @@ A small `jax` package for differentiable and fast gravitational wave data analys
 
 # Getting Started
 
-Note that Thibeau Wouters and Kaze Wong will soon become the main developers of ripple so please contact them if you have comments/questions.
+Ripple is now maintained by the GW-JAX-Team organization. Originally developed by Thomas Edwards and Adam Coogan, with significant contributions from Kaze Wong and the community. For questions or comments, please open an issue on the [GitHub repository](https://github.com/GW-JAX-Team/ripple).
 
 ## Documentation
 

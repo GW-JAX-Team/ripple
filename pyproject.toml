@@ -29,7 +29,7 @@ dependencies = [
 
 [project.urls]
 Documentation = "https://ripple.readthedocs.io/en/latest/"
-"Bug Tracker" = "https://github.com/tedwards2412/ripple"
+"Bug Tracker" = "https://github.com/GW-JAX-Team/ripple"
 
 [project.optional-dependencies]
 docs = [

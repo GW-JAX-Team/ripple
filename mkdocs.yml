@@ -1,8 +1,8 @@
 site_name: ripple
 site_description: A light weight jax package for differentiable and fast gravitational wave data analysis.
-site_author: Thomas Edwards, Kaze Wong
-repo_url: https://github.com/tedwards2412/ripple
-repo_name: tedwards2412/ripple
+site_author: GW JAX Team (originally by Thomas Edwards)
+repo_url: https://github.com/GW-JAX-Team/ripple
+repo_name: GW-JAX-Team/ripple
 
 theme:
     name: material
