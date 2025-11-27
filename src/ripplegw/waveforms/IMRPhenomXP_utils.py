@@ -73,9 +73,9 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
     
     ''' Get phiz_0_MSA and zeta_0_MSA '''
     vMSA = jax.lax.cond((jnp.fabs(pPrec["Smi2"] - pPrec["Spl2"]) > 1.e-5), 
-                        IMRPhenomX_Return_MSA_Corrections_MSA,  ## return 3D jnp.array
-                        lambda v, L_norm, J_norm, pPrec: jnp.array([0,0,0]),
-                        v, L_norm, J_norm, pPrec)   
+                        lambda args: IMRPhenomX_Return_MSA_Corrections_MSA(*args),  ## return 3D jnp.array
+                        lambda args: jnp.array([0.,0.,0.]),
+                        (v, L_norm, J_norm, pPrec))   
     
     phiz_MSA     = vMSA[0]
     zeta_MSA     = vMSA[1]
@@ -84,9 +84,9 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
     zeta         = IMRPhenomX_Return_zeta_MSA(v,pPrec)  
     cos_theta_L      = IMRPhenomX_costhetaLJ(L_norm3PN,J_norm3PN,SNorm)  
  
-    vout[0] = phiz + phiz_MSA
-    vout[1] = zeta + zeta_MSA
-    vout[2] = cos_theta_L
+    vout.at[0].set(phiz + phiz_MSA)
+    vout.at[1].set(zeta + zeta_MSA)
+    vout.at[2].set(cos_theta_L)
         
     return vout
 
@@ -351,17 +351,18 @@ def IMRPhenomX_Return_Roots_MSA(LNorm, JNorm, pPrec):
 
     theta = jnp.arccos(acosarg) / 3.0
     cos_theta = jnp.cos(theta)
-
-    invalid_case = (
-        jnp.isnan(theta) |
-        jnp.isnan(sqrtarg) |
-        (pPrec['dotS1Ln'] == 1.0) |
-        (pPrec['dotS2Ln'] == 1.0) |
-        (pPrec['dotS1Ln'] == -1.0) |
-        (pPrec['dotS2Ln'] == -1.0) |
-        (pPrec['S1_norm_2'] == 0.0) |
-        (pPrec['S2_norm_2'] == 0.0)
-    )
+    
+    print(f'{p=}, {sqrtarg=}, {theta=}, {B=}, {B2=}, {C=}')
+    
+    vector_condition = jnp.logical_or(jnp.isnan(theta),
+                                                   (jnp.isnan(sqrtarg)))
+    scalar_condition = jnp.logical_or.reduce(jnp.array([(pPrec['dotS1Ln'] == 1.0),
+                                                   (pPrec['dotS2Ln'] == 1.0),
+                                                   (pPrec['dotS1Ln'] == -1.0),
+                                                   (pPrec['dotS2Ln'] == -1.0),
+                                                   (pPrec['S1_norm_2'] == 0.0),
+                                                   (pPrec['S2_norm_2'] == 0.0)]))
+    invalid_case = jnp.logical_or(vector_condition, scalar_condition)
 
     def roots_when_valid():
         tmp1 = 2.0 * sqrtarg * jnp.cos(theta - 4.0 * jnp.pi / 3.0) - B / 3.0
@@ -380,21 +381,23 @@ def IMRPhenomX_Return_Roots_MSA(LNorm, JNorm, pPrec):
         S32 = tmp5
         Smi2 = jnp.abs(tmp6)
         Spl2 = jnp.abs(tmp4)
-        return S32, Smi2, Spl2
+        return jnp.array([S32, Smi2, Spl2])
 
     def roots_when_invalid():
-        Smi2 = pPrec['S_0_norm']**2
+        Smi2 = pPrec['S_0_norm']**2 * jnp.ones_like(LNorm)
         Spl2 = Smi2 + 1e-9
-        S32 = 0.0
-        return S32, Smi2, Spl2
+        S32 = jnp.zeros_like(LNorm)
+        return jnp.array([S32, Smi2, Spl2])
 
-    S32, Smi2, Spl2 = jax.lax.cond(
-        invalid_case,
-        roots_when_invalid,
-        roots_when_valid
+    roots_array = jnp.where(
+        jnp.atleast_1d(invalid_case),
+        roots_when_invalid(),
+        roots_when_valid()
     )
+    
+    print(f'{roots_array=}')
 
-    return jnp.array([S32, Smi2, Spl2])
+    return roots_array
 
 def IMRPhenomX_Return_Constants_c_MSA(v, JNorm, pPrec):
     v2 = v * v
@@ -490,16 +493,23 @@ def IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(LNorm, JNorm, pPrec):
 
     return jnp.array([B_coeff, C_coeff, D_coeff])
 
-def IMRPhenomXGetAndSetPrecessionVariables(pWF, m1_SI, m2_SI,
-                                            chi1x, chi1y, chi1z,
-                                            chi2x, chi2y, chi2z,
-                                            params):
+def IMRPhenomXGetAndSetPrecessionVariables(pWF, params):
+    
+    m1_SI = pWF['m1']*gt
+    m2_SI = pWF['m2']*gt
+    
+    chi1x, chi1y, chi1z, chi2x, chi2y, chi2z = pWF['chi1x'], pWF['chi1y'], pWF['chi1z'], pWF['chi2x'], pWF['chi2y'], pWF['chi2z']
     
     pPrec = {}
     
     ## Here we're only considering the default setting, where the expansion order for MSA correction is 5
-    #pPrec['ExpansionOrder'] = XLALSimInspiralWaveformParamsLookupPhenomXPExpansionOrder(params)  ## (TODO)
+    ## pPrec['ExpansionOrder'] = XLALSimInspiralWaveformParamsLookupPhenomXPExpansionOrder(params)  ## (TODO)
     pPrec['ExpansionOrder'] = 5
+    
+    ## allow for conditional disabling of precession multibanding given mass ratio and opening angle  ## (TODO) -> line 137 of x_precession.C
+    pPrec['conditionalPrecMBand'] = 0
+    ## default value for PrecThresholdMband according to arXiv:2004.06503v2, Table VI
+    pPrec['PrecThresholdMband'] = 1e-3
     
     Mtot_SI = m1_SI + m2_SI  
     # Normalize masses
@@ -655,7 +665,7 @@ def IMRPhenomXGetAndSetPrecessionVariables(pWF, m1_SI, m2_SI,
     pPrec['L8L'] = 0.0
     
     pPrec['LRef'] = (
-        M * M * XLALSimIMRPhenomXLPNAnsatz(  ## (TODO)
+        M * M * XLALSimIMRPhenomXLPNAnsatz(
             pWF['v_ref'],  ## (TODO) check if variables in pWF are stored correctly
             pWF['eta'] / pWF['v_ref'],
             pPrec['L0'], pPrec['L1'], pPrec['L2'], pPrec['L3'], pPrec['L4'],
@@ -784,7 +794,7 @@ def IMRPhenomXGetAndSetPrecessionVariables(pWF, m1_SI, m2_SI,
     
     pPrec['epsilon0'] = pPrec['phiJ_Sf'] - jnp.pi
     
-    alpha_offset, epsilon_offset = Get_alphaepsilon_atfref(2, pPrec, pWF)  ## (TODO)
+    alpha_offset, epsilon_offset = Get_alphaepsilon_atfref(2, pPrec, pWF)  
     pPrec['alpha_offset']     = alpha_offset
     pPrec['epsilon_offset']   = epsilon_offset
     pPrec['alpha_offset_1']   = alpha_offset
@@ -1288,22 +1298,15 @@ def IMRPhenomXPCheckMaxOpeningAngle(
     denominator = 81.0 - 57.0 * eta + eta * eta
     v_at_max_beta = jnp.sqrt(2.0 / 3.0) * jnp.sqrt(numerator / denominator)
 
-    status, cBetah, sBetah = WignerdCoefficients(cBetah, sBetah, v_at_max_beta, pWF, pPrec)
+    cBetah, sBetah = WignerdCoefficients(v_at_max_beta, pWF, pPrec)
 
-    jax.lax.cond(
-        status != 0,
-        lambda s: jax.debug.print("Call to IMRPhenomXWignerdCoefficients failed."), 
-        lambda s: s,
-        status
-    )
-
-    L_min = XLALSimIMRPhenomXL2PNNS(v_at_max_beta, eta)  ## (TODO)
+    L_min = XLALSimIMRPhenomXL2PNNS(v_at_max_beta, eta)  
     max_beta = 2.0 * jnp.arccos(cBetah)
     
     def positive_case(vals):
-        q, conditionalPrecMBand = vals[0,1]
+        q, conditionalPrecMBand = vals[0], vals[1]
         jax.debug.print('The maximum opening angle exceeds Pi/2. The model may be pathological in this regime.')
-        return jax.lax.cond((q > 7.0 and conditionalPrecMBand == 1), lambda x: x*0, lambda x: x, vals[3])
+        return jax.lax.cond(jnp.logical_and(q > 7.0, conditionalPrecMBand == 1), lambda x: x*0, lambda x: x, vals[3])
     
     def negative_case(vals):
         max_beta = vals[2]
