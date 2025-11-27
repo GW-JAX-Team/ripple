@@ -14,7 +14,7 @@ from .IMRPhenomD_utils import (
 
 from .IMRPhenomD_QNMdata import fM_CUT
 from ..constants import EulerGamma, gt, m_per_Mpc, C, PI
-from ..typing import Array
+from jaxtyping import Array
 from ripplegw import Mc_eta_to_ms
 
 

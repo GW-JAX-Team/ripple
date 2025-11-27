@@ -3,7 +3,7 @@ import jax
 import jax.numpy as jnp
 from ..constants import EulerGamma, gt, m_per_Mpc, C, PI
 from ripplegw.waveforms import IMRPhenomX_utils
-from ..typing import Array
+from jaxtyping import Array
 
 from ripplegw import Mc_eta_to_ms
 
@@ -68,9 +68,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, phase_coeffs: Array) -> Array:
             )
         )
         / 16.0
-    ) * PI ** (
-        4.0 / 3.0
-    )
+    ) * PI ** (4.0 / 3.0)
     phi5 = 0.0
     phi5L = ((5.0 * (46374.0 - 6552.0 * eta) * PI) / 4536.0) * PI ** (5.0 / 3.0) + (
         (
@@ -542,7 +540,7 @@ def get_intermediate_raw_phase(
         - b2 * (fM_s**-1.0)
         - b3 * (fM_s**-2.0) / 2.0
         - (b4 * (fM_s**-3.0) / 3.0)
-        + (2.0 * cL * jnp.arctan(((fM_s - fMs_RD)) / (2.0 * fMs_damp))) / fMs_damp
+        + (2.0 * cL * jnp.arctan((fM_s - fMs_RD) / (2.0 * fMs_damp))) / fMs_damp
     )
 
 
@@ -557,8 +555,8 @@ def get_mergerringdown_raw_phase(
     delta = jnp.sqrt(1.0 - 4.0 * eta)
     mm1 = 0.5 * (1.0 + delta)
     mm2 = 0.5 * (1.0 - delta)
-    chi_eff = mm1 * chi1 + mm2 * chi2
-    S = (chi_eff - (38.0 / 113.0) * eta * (chi1 + chi2)) / (1.0 - (76.0 * eta / 113.0))
+    # chi_eff = mm1 * chi1 + mm2 * chi2
+    # S = (chi_eff - (38.0 / 113.0) * eta * (chi1 + chi2)) / (1.0 - (76.0 * eta / 113.0))
     chia = chi1 - chi2
     StotR = (mm1**2 * chi1 + mm2**2 * chi2) / (mm1**2 + mm2**2)
 
@@ -1016,7 +1014,7 @@ def get_intermediate_Amp(
     m2_s = m2 * gt
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
-    eta2 = eta * eta
+    # eta2 = eta * eta
     delta = jnp.sqrt(1.0 - 4.0 * eta)
 
     mm1 = 0.5 * (1.0 + delta)
