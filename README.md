@@ -9,7 +9,7 @@
 <img src="https://badgen.net/badge/License/MIT/blue" alt="license"/>
 </a>
 <a href='https://coveralls.io/github/GW-JAX-Team/ripple?branch=main'>
-<img src='https://badgen.net/coveralls/c/github/GW-JAX-Team/ripple/main' alt='Coverage Status' />
+<img src='https://badgen.net/coveralls/c/github/GW-JAX-Team/ripple/main' alt='coverage' />
 </a> 
 
 Ripple is a JAX-based package for differentiable and hardware-accelerated gravitational wave data analysis. It is maintained by the GW-JAX-Team organization and was originally developed by Thomas Edwards and Adam Coogan, with significant contributions from Kaze Wong and the community.
