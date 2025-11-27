@@ -54,7 +54,7 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
     
     L_norm3PN = IMRPhenomX_L_norm_3PN_of_v(v, v*v, L_norm, pPrec)   ## for 223
     
-    J_norm3PN = IMRPhenomX_JNorm_MSA(L_norm3PN,pPrec)  
+    J_norm3PN = IMRPhenomX_JNorm_MSA(L_norm3PN,pPrec)
     
     vRoots    = IMRPhenomX_Return_Roots_MSA(L_norm,J_norm,pPrec)  ## return jnp.array
     
@@ -97,6 +97,35 @@ def WignerdCoefficients_cosbeta(
     cos_beta_half = + jnp.sqrt( jnp.fabs(1.0 + cos_beta) / 2.0 )
     sin_beta_half = + jnp.sqrt( jnp.fabs(1.0 - cos_beta) / 2.0 )
  
+    return cos_beta_half, sin_beta_half
+
+def WignerdCoefficients(
+  v,        # Cubic root of (Pi * Frequency (geometric))
+  pWF,     # IMRPhenomX waveform struct   
+  pPrec   # IMRPhenomX precession struct 
+):
+    # This implementation is different respect to the one in Pv2_utils
+    
+    # Orbital angular momentum L
+    L = XLALSimIMRPhenomXLPNAnsatz(
+        v,
+        pWF['eta'] / v,
+        pPrec['L0'], pPrec['L1'], pPrec['L2'], pPrec['L3'], pPrec['L4'],
+        pPrec['L5'], pPrec['L6'], pPrec['L7'], pPrec['L8'], pPrec['L8L']
+    )
+
+    # We ignore the sign of L + SL below:
+    # s = S_perp / (L + SL)
+    denom = L + pPrec['SL']
+    s = pPrec['Sperp'] / denom
+    s2 = s * s
+
+    cos_beta = jnp.sign(denom) / jnp.sqrt(1.0 + s2)
+
+    # cos(beta/2) and sin(beta/2) 
+    cos_beta_half = jnp.sqrt(jnp.abs(1.0 + cos_beta) / 2.0)
+    sin_beta_half = jnp.sqrt(jnp.abs(1.0 - cos_beta) / 2.0)
+
     return cos_beta_half, sin_beta_half
 
 def IMRPhenomX_costhetaLJ(
@@ -1545,6 +1574,18 @@ def XLALSimIMRPhenomXLPNAnsatz(v, LNorm, L0, L1, L2, L3, L4, L5, L6, L7, L8, L8L
     )
     return LNorm * L
 
+def XLALSimIMRPhenomXL2PNNS(v, eta):
+    
+    eta2 = eta * eta
+    x = v * v
+    x2 = x * x
+    sqx = v
+
+    return (eta / sqx) * (
+        1.0
+        + x  * (1.5 + eta / 6.0)
+        + x2 * (27.0 / 8.0 - (19.0 * eta) / 8.0 + eta2 / 24.0)
+    )
 
 def Get_alphaepsilon_atfref(mprime, pPrec, pWF):
 
