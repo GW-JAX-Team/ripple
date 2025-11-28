@@ -63,7 +63,6 @@ ripplegw = { workspace = true }
 
 [tool.ruff]
 include = ["src"]
-exclude = ["test", "docs", "notebooks"]
 
 [tool.ruff.lint]
 ignore = [
@@ -76,7 +75,6 @@ ignore = [
 
 [tool.pyright]
 include = ["src"]
-exclude = ["docs", "test"]
 
 [tool.coverage.report]
 exclude_also = [
