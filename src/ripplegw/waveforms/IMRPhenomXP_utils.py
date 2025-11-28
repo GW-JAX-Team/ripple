@@ -45,7 +45,6 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
     pPrec  ## IMRPhenomX precession struct
     ):  ## has to output a jnp array
     
-    vout = jnp.array([0,0,0])
     L_norm = pWF['eta'] / v
     
     J_norm = IMRPhenomX_JNorm_MSA(L_norm,pPrec)  
@@ -72,22 +71,29 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
     pPrec["S_norm_2"]    = SNorm * SNorm
     
     ''' Get phiz_0_MSA and zeta_0_MSA '''
-    vMSA = jax.lax.cond((jnp.fabs(pPrec["Smi2"] - pPrec["Spl2"]) > 1.e-5), 
-                        lambda args: IMRPhenomX_Return_MSA_Corrections_MSA(*args),  ## return 3D jnp.array
-                        lambda args: jnp.array([0.,0.,0.]),
-                        (v, L_norm, J_norm, pPrec))   
+    condition = jnp.atleast_1d(jnp.fabs(pPrec["Smi2"] - pPrec["Spl2"]) > 1.e-5)
+    ## this check is needed because of broadcasting if condition is N-dimensional 
+    # (N,) cannot broadcast to (N,3)
+    condition = condition[..., None] if condition.ndim == 1 else condition  
     
-    phiz_MSA     = vMSA[0]
-    zeta_MSA     = vMSA[1]
- 
-    phiz         = IMRPhenomX_Return_phiz_MSA(v,J_norm,pPrec)  
-    zeta         = IMRPhenomX_Return_zeta_MSA(v,pPrec)  
-    cos_theta_L      = IMRPhenomX_costhetaLJ(L_norm3PN,J_norm3PN,SNorm)  
- 
-    vout.at[0].set(phiz + phiz_MSA)
-    vout.at[1].set(zeta + zeta_MSA)
-    vout.at[2].set(cos_theta_L)
+    vMSA = jnp.where(condition, 
+                        IMRPhenomX_Return_MSA_Corrections_MSA(v, L_norm, J_norm, pPrec),  ## return v.shape[0]x3 dimensional jnp.array
+                        jnp.zeros((jnp.atleast_1d(v).shape[0], 3)),
+                    )   
         
+    phiz_MSA     = vMSA[:,0]
+    zeta_MSA     = vMSA[:,1]
+
+    phiz         = jnp.atleast_1d(IMRPhenomX_Return_phiz_MSA(v,J_norm,pPrec))  
+    zeta         = jnp.atleast_1d(IMRPhenomX_Return_zeta_MSA(v,pPrec))
+    cos_theta_L      = jnp.atleast_1d(IMRPhenomX_costhetaLJ(L_norm3PN,J_norm3PN,SNorm)) 
+
+    vout = jnp.stack([
+        phiz + phiz_MSA,
+        zeta + zeta_MSA,
+        cos_theta_L
+    ], axis=-1)
+    
     return vout
 
 def WignerdCoefficients_cosbeta(
@@ -318,7 +324,7 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
     vMSA_x = jnp.where(jnp.isnan(vMSA_x), 0.0, vMSA_x)
     vMSA_y = jnp.where(jnp.isnan(vMSA_y), 0.0, vMSA_y)
 
-    return jnp.array([vMSA_x, vMSA_y, 0.0])
+    return jnp.stack([vMSA_x, vMSA_y, jnp.zeros_like(vMSA_x)], axis=-1)
 
 def IMRPhenomX_JNorm_MSA(LNorm, pPrec):
     JNorm2 = (LNorm * LNorm + 2.0 * LNorm * pPrec['c1_over_eta'] + pPrec['SAv2'])
@@ -330,11 +336,11 @@ def IMRPhenomX_Return_SNorm_MSA(v, pPrec):
 
     cancel_condition = jnp.abs(pPrec['Smi2'] - pPrec['Spl2']) < 1e-5
 
-    def sn_zero(_):
+    def sn_zero():
         sn = jnp.array(0.0)
         return sn
 
-    def sn_jacobi(_):
+    def sn_jacobi():
         # Equation 25 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
         m = (pPrec['Smi2'] - pPrec['Spl2']) / (pPrec['S32'] - pPrec['Spl2'])
 
@@ -348,7 +354,7 @@ def IMRPhenomX_Return_SNorm_MSA(v, pPrec):
         sn, cn, dn = gsl_sf_elljac_e(psi, m)
         return sn
 
-    sn = jax.lax.cond(cancel_condition, sn_zero, sn_jacobi, operand=None)
+    sn = jnp.where(cancel_condition, sn_zero(), sn_jacobi())
 
     # Equation 23 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
     SNorm2 = pPrec['Spl2'] + (pPrec['Smi2'] - pPrec['Spl2']) * sn * sn
@@ -1595,8 +1601,8 @@ def Get_alphaepsilon_atfref(mprime, pPrec, pWF):
 
     vangles = IMRPhenomX_Return_phi_zeta_costhetaL_MSA(v, pWF, pPrec)
 
-    alpha_offset   = vangles[0] - pPrec['alpha0']
-    epsilon_offset = vangles[1] - pPrec['epsilon0']
+    alpha_offset   = vangles[:,0] - pPrec['alpha0']
+    epsilon_offset = vangles[:,1] - pPrec['epsilon0']
     
     return alpha_offset, epsilon_offset
 
