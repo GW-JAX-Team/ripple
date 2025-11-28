@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import dataclasses
+
 import jax
 import jax.numpy as jnp
 from jax.experimental import checkify
@@ -19,8 +21,8 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_inspiral_waveform_flags import (
 )
 from ripplegw.waveforms.imr_phenom_xphm.parameter_dataclass import IMRPhenomXPHMParameterDataClass
 
-def IMRPhenomXPHM_setup_mode_array(lalParams: dict):
-  ModeArray = lalParams.get("mode_array", None) # ModeArray = XLALSimInspiralWaveformParamsLookupModeArray(lalParams)
+def IMRPhenomXPHM_setup_mode_array(lalParams: IMRPhenomXPHMParameterDataClass) -> None:
+  ModeArray = lalParams.mode_array # ModeArray = XLALSimInspiralWaveformParamsLookupModeArray(lalParams)
 
   # /* If the mode array is empty, populate using a default choice of modes */
   if not ModeArray:
@@ -39,7 +41,7 @@ def IMRPhenomXPHM_setup_mode_array(lalParams: dict):
     xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 3, -3)
     xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 3, -2)
     xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 4, -4)
-    lalParams["mode_array"] = ModeArray
+    lalParams = dataclasses.replace(lalParams, mode_array=ModeArray)
 
   else:
       jax.debug.print("Using custom non-precessing modes for PhenomXPHM.") 
@@ -163,7 +165,7 @@ def xlal_sim_imr_phenom_xphm(
     f_max: float,
     delta_f: float,
     f_ref_in: float,
-    lal_params: dict,
+    lal_params: IMRPhenomXPHMParameterDataClass,
 ) -> None:
     """A JAX implementation of XLALSimIMRPhenomXPHM.
 

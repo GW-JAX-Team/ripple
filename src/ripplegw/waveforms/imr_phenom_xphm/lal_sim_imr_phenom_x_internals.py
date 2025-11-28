@@ -202,7 +202,6 @@ def _validate_ringdown_amplitude_version(rd_amp_version: jnp.ndarray) -> bool:
     return result
 
 
-# TODO: Not finished
 @checkify.checkify
 def imr_phenom_x_set_waveform_variables(
     m1_si: float,
@@ -540,7 +539,15 @@ def imr_phenom_x_set_waveform_variables(
 
     APPLY_PNR_DEVIATIONS = 0
 
-    # /* Set nonprecessing value of select precession quantities (PNRUseTunedCoprec)*/
+    ############################## Comes from IMRPhenomXGetAndSetPrecessionVariables function in LAL ##############################
+    m_tot_si = m1_si + m2_si  # Total mass in SI units:        m1_SI + m2_SI
+    m1_normalised = m1_si / m_tot_si    # Normalized mass of larger companion:   m1_SI / Mtot_SI
+    m2_normalised = m2_si / m_tot_si    # Normalized mass of smaller companion:  m2_SI / Mtot_SI
+    M  = m1_normalised + m2_normalised  # Total mass in solar units -> I believe this LAL comment is incorrect, but I'm keeping it for reference
+
+    m1_2 = m1_normalised * m1_normalised
+    m2_2 = m2_normalised * m2_normalised
+    ###############################################################################################################################
 
     waveform_dataclass = IMRPhenomXWaveformDataClass(
         imr_phenom_x_inspiral_phase_version=lal_params.ins_phase_version,
@@ -559,7 +566,7 @@ def imr_phenom_x_set_waveform_variables(
         q=q,
         eta=eta,
         mc=Mc,
-        m_tot_si=m1_si+m1_si,
+        m_tot_si=m_tot_si,
         m_tot=m_tot,
         m1=m1/m_tot,
         m2=m2/m_tot,
@@ -654,9 +661,9 @@ def imr_phenom_x_set_waveform_variables(
         e_rad=0.0,
         a_final_non_prec=afinal_nonprec,
         lal_params=lal_params,
-        m=0.0,
-        m1_2=0.0,
-        m2_2=0.0,
+        m=M,
+        m1_2=m1_2,
+        m2_2=m2_2,
     )
     return waveform_dataclass
 
@@ -730,7 +737,7 @@ def _check_input_mode_array_impl(
     return True
 
 
-def check_input_mode_array(lal_params: dict, max_l: int = 8) -> tuple[checkify.Error, bool]:
+def check_input_mode_array(lal_params: IMRPhenomXPHMParameterDataClass, max_l: int = 8) -> tuple[checkify.Error, bool]:
     """Check if mode_array in lal_params contains only allowed modes.
 
     Args:
@@ -744,11 +751,11 @@ def check_input_mode_array(lal_params: dict, max_l: int = 8) -> tuple[checkify.E
     ell_valid, emm_valid = _generate_valid_modes(max_l)
 
     # Check if mode_array is present
-    has_mode_array = "mode_array" in lal_params
+    has_mode_array = lal_params.mode_array is not None
 
     def check_with_mode_array():
         """Check modes when mode_array is present."""
-        mode_array = lal_params["mode_array"]
+        mode_array = lal_params.mode_array
         return _check_input_mode_array_impl(mode_array, ell_valid, emm_valid, max_l)
 
     def check_without_mode_array():

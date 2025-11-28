@@ -447,3 +447,7 @@ class TestXlalSimImrPhenomXChiPNHat:
         result_lal = SimIMRPhenomXchiPNHat(eta, chi1l, chi2l)
 
         assert jnp.isclose(float(result_jax), result_lal, rtol=1e-6)
+
+
+if __name__ == "__main__":
+    pytest.main([__file__])

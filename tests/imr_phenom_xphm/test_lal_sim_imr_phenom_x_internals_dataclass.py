@@ -10,6 +10,13 @@ import pytest
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
     IMRPhenomXUsefulPowersDataClass,
     IMRPhenomXWaveformDataClass,
+    IMRPhenomXPrecessionDataClass
+)
+
+from data_class_sample_data import (
+    WAVEFORM_DATA_CLASS_SAMPLE,
+    USEFUL_POWERS_SAMPLE,
+    PRECESSION_DATA_CLASS_SAMPLE
 )
 
 
@@ -19,123 +26,8 @@ class TestIMRPhenomXWaveformDataClass:
     @pytest.fixture
     def sample_data(self):
         """Fixture for sample data to create the dataclass."""
-        return {
-            "imr_phenom_x_inspiral_phase_version": 104,
-            "imr_phenom_x_intermediate_phase_version": 105,
-            "imr_phenom_x_ringdown_phase_version": 105,
-            "imr_phenom_x_inspiral_amp_version": 1,
-            "imr_phenom_x_intermediate_amp_version": 2,
-            "imr_phenom_x_ringdown_amp_version": 3,
-            "imr_phenom_xpnr_use_tuned_coprec": 1,
-            "imr_phenom_xpnr_use_tuned_coprec_33": 0,
-            "imr_phenom_x_return_co_prec": 0,
-            "phenom_x_only_return_phase": 0,
-            "mu1": 0.0,
-            "mu2": 0.0,
-            "mu3": 0.0,
-            "mu4": 0.0,
-            "nu0": 0.0,
-            "nu4": 0.0,
-            "nu5": 0.0,
-            "nu6": 0.0,
-            "zeta1": 0.0,
-            "zeta2": 0.0,
-            "pnr_dev_parameter": 0.0,
-            "pnr_window": 0.0,
-            "apply_pnr_deviations": 0,
-            "m1_si": 1.0,
-            "m2_si": 1.0,
-            "m_tot_si": 2.0,
-            "m1": 1.0,
-            "m2": 1.0,
-            "m_tot": 2.0,
-            "mc": 1.0,
-            "q": 1.0,
-            "eta": 0.25,
-            "delta": 0.0,
-            "chi1l": 0.0,
-            "chi2l": 0.0,
-            "chi_eff": 0.0,
-            "chi_pn_hat": 0.0,
-            "s_tot_r": 0.0,
-            "dchi": 0.0,
-            "dchi_half": 0.0,
-            "sl": 0.0,
-            "sigma_l": 0.0,
-            "chi_tot_perp": 0.0,
-            "chi_p": 0.0,
-            "theta_ls": 0.0,
-            "a1": 0.0,
-            "m": 1.0,
-            "m1_2": 1.0,
-            "m2_2": 1.0,
-            "lambda1": 0.0,
-            "lambda2": 0.0,
-            "quad_param1": 0.0,
-            "quad_param2": 0.0,
-            "kappa2_t": 0.0,
-            "f_merger": 0.0,
-            "eta2": 0.0625,
-            "eta3": 0.015625,
-            "eta4": 0.00390625,
-            "chi1l2": 0.0,
-            "chi1l3": 0.0,
-            "chi2l2": 0.0,
-            "chi2l3": 0.0,
-            "chi1l2l": 0.0,
-            "dphase0": 0.0,
-            "amp0": 1.0,
-            "amp_norm": 1.0,
-            "f_meco": 0.0,
-            "f_isco": 0.0,
-            "beta_rd": 0.0,
-            "f_ring22_prec": 0.0,
-            "f_ring_eff_shift_divided_by_emm": 0.0,
-            "f_ring_cp": 0.0,
-            "f_ring": 0.0,
-            "f_damp": 0.0,
-            "f_ring21": 0.0,
-            "f_damp21": 0.0,
-            "f_ring33": 0.0,
-            "f_damp33": 0.0,
-            "f_ring32": 0.0,
-            "f_damp32": 0.0,
-            "f_ring44": 0.0,
-            "f_damp44": 0.0,
-            "f_min": 0.0,
-            "f_max": 0.0,
-            "m_f_max": 0.0,
-            "f_max_prime": 0.0,
-            "delta_f": 0.0,
-            "delta_mf": 0.0,
-            "f_cut": 0.0,
-            "f_cut_def": 0.0,
-            "f_ref": 0.0,
-            "m_f_ref": 0.0,
-            "m_sec": 0.0,
-            "phi_ref_in": 0.0,
-            "phi0": 0.0,
-            "phi_f_ref": 0.0,
-            "pi_m": 0.0,
-            "v_ref": 0.0,
-            "e_rad": 0.0,
-            "a_final": 0.0,
-            "m_final": 0.0,
-            "a_final_prec": 0.0,
-            "a_final_non_prec": 0.0,
-            "distance": 1.0,
-            "inclination": 0.0,
-            "beta": 0.0,
-            "lal_params": {},
-            "pnr_single_spin": 0,
-            "f_inspiral_align": 0.0,
-            "xas_dphase_at_f_inspiral_align": 0.0,
-            "xas_phase_at_f_inspiral_align": 0.0,
-            "xhm_dphase_at_f_inspiral_align": 0.0,
-            "xhm_phase_at_f_inspiral_align": 0.0,
-            "imr_phenom_xpnr_force_xhm_alignment": 0,
-        }
-
+        return WAVEFORM_DATA_CLASS_SAMPLE
+    
     def test_instantiation_and_field_access(self, sample_data):
         """Test that the dataclass can be instantiated and fields accessed."""
         p_wf = IMRPhenomXWaveformDataClass(**sample_data)
@@ -192,40 +84,7 @@ class TestIMRPhenomXUsefulPowersDataClass:
     @pytest.fixture
     def sample_powers_data(self):
         """Fixture for sample data to create the powers dataclass."""
-        return {
-            "seven_sixths": 1.0,
-            "one_sixth": 1.0,
-            "ten_thirds": 1.0,
-            "eight_thirds": 1.0,
-            "seven_thirds": 1.0,
-            "five_thirds": 1.0,
-            "four_thirds": 1.0,
-            "two_thirds": 1.0,
-            "one_third": 1.0,
-            "five": 1.0,
-            "four": 1.0,
-            "three": 1.0,
-            "two": 1.0,
-            "sqrt": 1.0,
-            "itself": 1.0,
-            "m_sqrt": 1.0,
-            "m_one": 1.0,
-            "m_two": 1.0,
-            "m_three": 1.0,
-            "m_four": 1.0,
-            "m_five": 1.0,
-            "m_six": 1.0,
-            "m_one_third": 1.0,
-            "m_two_thirds": 1.0,
-            "m_four_thirds": 1.0,
-            "m_five_thirds": 1.0,
-            "m_seven_thirds": 1.0,
-            "m_eight_thirds": 1.0,
-            "m_ten_thirds": 1.0,
-            "m_one_sixth": 1.0,
-            "m_seven_sixths": 1.0,
-            "log": 1.0,
-        }
+        return USEFUL_POWERS_SAMPLE
 
     def test_instantiation_and_field_access(self, sample_powers_data):
         """Test that the dataclass can be instantiated and fields accessed."""
@@ -274,6 +133,44 @@ class TestIMRPhenomXUsefulPowersDataClass:
         copied = dataclasses.replace(p_pow1)  # Shallow copy
         assert copied == p_pow1
         assert copied is not p_pow1  # Different object
+
+
+class TestIMRPhenomXPrecessionDataClass:
+    """Test suite for IMRPhenomXPrecessionDataClass."""
+
+    @pytest.fixture
+    def sample_data(self):
+        """Fixture for sample data to create the dataclass."""
+        return PRECESSION_DATA_CLASS_SAMPLE
+
+    def test_initialization(self, sample_data):
+        """Test that the dataclass can be initialized with valid data."""
+        prec_data = IMRPhenomXPrecessionDataClass(**sample_data)
+
+        # Check a few fields to ensure they are set correctly
+        assert prec_data.IMRPhenomXPrecVersion == sample_data["IMRPhenomXPrecVersion"]
+        assert prec_data.IMRPhenomXReturnCoPrec == sample_data["IMRPhenomXReturnCoPrec"]
+        assert prec_data.debug_prec == sample_data["debug_prec"]
+        assert prec_data.A1 == sample_data["A1"]
+        assert prec_data.cexp_i_alpha == sample_data["cexp_i_alpha"]
+
+    def test_immutability(self, sample_data):
+        """Test that the dataclass is immutable (frozen)."""
+        prec_data = IMRPhenomXPrecessionDataClass(**sample_data)
+
+        with pytest.raises(dataclasses.FrozenInstanceError):
+            prec_data.IMRPhenomXPrecVersion = 100
+
+    def test_jit_compatibility(self, sample_data):
+        """Test that the dataclass can be used in JIT-compiled functions."""
+
+        @jax.jit
+        def get_version(data):
+            return data.IMRPhenomXPrecVersion
+
+        prec_data = IMRPhenomXPrecessionDataClass(**sample_data)
+        version = get_version(prec_data)
+        assert version == sample_data["IMRPhenomXPrecVersion"]
 
 
 if __name__ == "__main__":
