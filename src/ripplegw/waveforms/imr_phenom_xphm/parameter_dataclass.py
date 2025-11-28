@@ -6,7 +6,7 @@ import dataclasses
 
 from ripplegw.waveforms.imr_phenom_xphm.dataclass_utils import _register_dataclass
 
-from jaxtyping import Array
+from ripplegw.typing import Array
 
 
 @_register_dataclass
