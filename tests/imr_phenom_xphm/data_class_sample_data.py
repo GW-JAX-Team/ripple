@@ -3,7 +3,7 @@ from jaxtyping import Array
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
     IMRPhenomXUsefulPowersDataClass,
     IMRPhenomXWaveformDataClass,
-    IMRPhenomXPrecessionDataClass
+    # IMRPhenomXPrecessionDataClass
 )
 
 WAVEFORM_DATA_CLASS_SAMPLE = {

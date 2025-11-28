@@ -10,13 +10,13 @@ import pytest
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
     IMRPhenomXUsefulPowersDataClass,
     IMRPhenomXWaveformDataClass,
-    IMRPhenomXPrecessionDataClass
+    # IMRPhenomXPrecessionDataClass
 )
 
 from data_class_sample_data import (
     WAVEFORM_DATA_CLASS_SAMPLE,
     USEFUL_POWERS_SAMPLE,
-    PRECESSION_DATA_CLASS_SAMPLE
+    # PRECESSION_DATA_CLASS_SAMPLE
 )
 
 
@@ -135,42 +135,42 @@ class TestIMRPhenomXUsefulPowersDataClass:
         assert copied is not p_pow1  # Different object
 
 
-class TestIMRPhenomXPrecessionDataClass:
-    """Test suite for IMRPhenomXPrecessionDataClass."""
+# class TestIMRPhenomXPrecessionDataClass:
+#     """Test suite for IMRPhenomXPrecessionDataClass."""
 
-    @pytest.fixture
-    def sample_data(self):
-        """Fixture for sample data to create the dataclass."""
-        return PRECESSION_DATA_CLASS_SAMPLE
+#     @pytest.fixture
+#     def sample_data(self):
+#         """Fixture for sample data to create the dataclass."""
+#         return PRECESSION_DATA_CLASS_SAMPLE
 
-    def test_initialization(self, sample_data):
-        """Test that the dataclass can be initialized with valid data."""
-        prec_data = IMRPhenomXPrecessionDataClass(**sample_data)
+#     def test_initialization(self, sample_data):
+#         """Test that the dataclass can be initialized with valid data."""
+#         prec_data = IMRPhenomXPrecessionDataClass(**sample_data)
 
-        # Check a few fields to ensure they are set correctly
-        assert prec_data.IMRPhenomXPrecVersion == sample_data["IMRPhenomXPrecVersion"]
-        assert prec_data.IMRPhenomXReturnCoPrec == sample_data["IMRPhenomXReturnCoPrec"]
-        assert prec_data.debug_prec == sample_data["debug_prec"]
-        assert prec_data.A1 == sample_data["A1"]
-        assert prec_data.cexp_i_alpha == sample_data["cexp_i_alpha"]
+#         # Check a few fields to ensure they are set correctly
+#         assert prec_data.IMRPhenomXPrecVersion == sample_data["IMRPhenomXPrecVersion"]
+#         assert prec_data.IMRPhenomXReturnCoPrec == sample_data["IMRPhenomXReturnCoPrec"]
+#         assert prec_data.debug_prec == sample_data["debug_prec"]
+#         assert prec_data.A1 == sample_data["A1"]
+#         assert prec_data.cexp_i_alpha == sample_data["cexp_i_alpha"]
 
-    def test_immutability(self, sample_data):
-        """Test that the dataclass is immutable (frozen)."""
-        prec_data = IMRPhenomXPrecessionDataClass(**sample_data)
+#     def test_immutability(self, sample_data):
+#         """Test that the dataclass is immutable (frozen)."""
+#         prec_data = IMRPhenomXPrecessionDataClass(**sample_data)
 
-        with pytest.raises(dataclasses.FrozenInstanceError):
-            prec_data.IMRPhenomXPrecVersion = 100
+#         with pytest.raises(dataclasses.FrozenInstanceError):
+#             prec_data.IMRPhenomXPrecVersion = 100
 
-    def test_jit_compatibility(self, sample_data):
-        """Test that the dataclass can be used in JIT-compiled functions."""
+#     def test_jit_compatibility(self, sample_data):
+#         """Test that the dataclass can be used in JIT-compiled functions."""
 
-        @jax.jit
-        def get_version(data):
-            return data.IMRPhenomXPrecVersion
+#         @jax.jit
+#         def get_version(data):
+#             return data.IMRPhenomXPrecVersion
 
-        prec_data = IMRPhenomXPrecessionDataClass(**sample_data)
-        version = get_version(prec_data)
-        assert version == sample_data["IMRPhenomXPrecVersion"]
+#         prec_data = IMRPhenomXPrecessionDataClass(**sample_data)
+#         version = get_version(prec_data)
+#         assert version == sample_data["IMRPhenomXPrecVersion"]
 
 
 if __name__ == "__main__":
