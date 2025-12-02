@@ -54,7 +54,7 @@ def get_jitted_waveform(waveform_name: str, fs: np.array, f_ref: float):
     
     elif waveform_name == "IMRPhenomD_NRTidalv2":
         # Import the waveform
-        from ripplegw.waveforms.X_NRTidalv2 import gen_NRTidalv2_hphc as waveform_generator
+        from ripplegw.waveforms.IMRPhenomD_NRTidalv2 import gen_NRTidalv2_hphc as waveform_generator
         
         # Get jitted version (note, use IMRPhenomD as underlying waveform model)
         @jax.jit
