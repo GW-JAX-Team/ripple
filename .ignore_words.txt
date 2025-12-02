@@ -1,4 +1,5 @@
 argnames
+cexp
 checkify
 coprec
 coprecessing
