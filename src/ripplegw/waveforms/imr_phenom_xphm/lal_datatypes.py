@@ -16,3 +16,6 @@ class LIGOTimeGPS:
     """Seconds since 0h UTC 6 Jan 1980."""
     gps_nano_seconds: int
     """Residual nanoseconds."""
+
+
+LIGO_TIME_GPS_ZERO = LIGOTimeGPS(gps_seconds=0, gps_nano_seconds=0)
