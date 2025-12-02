@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import dataclasses
 
-from ripplegw.waveforms.imr_phenom_xphm.dataclass_utils import _register_dataclass
-
 from ripplegw.typing import Array
+from ripplegw.waveforms.imr_phenom_xphm.dataclass_utils import _register_dataclass
 
 
 @_register_dataclass
-@dataclasses.dataclass(frozen=True) 
+@dataclasses.dataclass(frozen=True)
 class IMRPhenomXPHMParameterDataClass:  # pylint: disable=too-many-instance-attributes
     """Dataclass to hold parameters for IMRPhenomXPHM waveform generation."""
 
@@ -27,7 +26,7 @@ class IMRPhenomXPHMParameterDataClass:  # pylint: disable=too-many-instance-attr
 
     phenom_x_only_return_phase: int = 0
     pnr_force_xhm_alignment: int = 0
-    
+
     mode_array: Array | None = None
     # Tidal parameters
     # Enable or disable tidal effects
@@ -48,6 +47,24 @@ class IMRPhenomXPHMParameterDataClass:  # pylint: disable=too-many-instance-attr
     pnr_interp_tolerance: float = 0.01
     antisymmetric_waveform: int = 0
     mband_version: int = 0
+
+    # IMRPhenomXHM parameters
+    phenom_xhm_release_version: int = 122022
+    ins_phase_hm_version: int = 122019
+    int_phase_hm_version: int = 122019
+    rd_phase_hm_version: int = 122019
+    ins_amp_hm_version: int = 3
+    int_amp_hm_version: int = 2
+    rd_amp_hm_version: int = 0
+    ins_amp_fits_version: int = 122018
+    int_amp_fits_version: int = 122018
+    rd_amp_fits_version: int = 122018
+    ins_amp_freqs_version: int = 122018
+    int_amp_freqs_version: int = 122018
+    rd_amp_freqs_version: int = 122018
+    phase_ref_21: float = 0.0
+    threshold_mband: float = 0.001
+    amp_interpol_mb: int = 1
 
     def copy(self, **kwargs) -> IMRPhenomXPHMParameterDataClass:
         """Create a new instance of the dataclass, optionally replacing some fields."""
