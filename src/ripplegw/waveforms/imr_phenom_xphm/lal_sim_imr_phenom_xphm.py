@@ -7,6 +7,7 @@ import jax.numpy as jnp
 from jax.experimental import checkify
 
 from ripplegw.typing import Array
+from ripplegw.waveforms.imr_phenom_xphm.lal_datatypes import LIGO_TIME_GPS_ZERO
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals import (
     check_input_mode_array,
     imr_phenom_x_initialize_powers,
@@ -672,28 +673,16 @@ def imr_phenom_xphm_hplus_hcross(
         p_wf.f_max_prime > p_wf.f_min, "Error: (fCut = %.2f Hz) <= f_min = %.2f Hz", p_wf.f_max_prime, p_wf.f_min
     )
 
+    ligo_time_gps_zero = LIGO_TIME_GPS_ZERO
 
-#   /* Set LIGOTimeGPS */
-#   LIGOTimeGPS ligotimegps_zero = LIGOTIMEGPSZERO; // = {0,0}
+    delta_f = p_wf.delta_f
 
-#   REAL8 deltaF = pWF->deltaF;
+    mode_array = lal_params.mode_array
 
-#    LALValue *ModeArray = XLALSimInspiralWaveformParamsLookupModeArray(lalParams);
+    checkify.check(mode_array is not None, "Error: ModeArray is NULL when it shouldn't be. Aborting.")
 
-#    /* At this point ModeArray should contain the list of modes
-#    and therefore if NULL then something is wrong and abort. */
-#     if (ModeArray == NULL)
-#     {
-#      XLAL_ERROR(XLAL_EDOM, "ModeArray is NULL when it shouldn't be. Aborting.\n");
-#     }
+    threshold_mb = lal_params.threshold_mband
 
-#     INT4 status = 0; //Variable to check correct functions calls.
-#     /*
-#         Take input/default value for the threshold of the Multibanding for the hlms modes.
-#         If = 0 then do not use Multibanding. Default value defined in XLALSimInspiralWaveformParams.c.
-#         If the input freqs_In is non-uniform the Multibanding has been already switche off.
-#     */
-#     REAL8 thresholdMB  = XLALSimInspiralWaveformParamsLookupPhenomXHMThresholdMband(lalParams);
 
 #    if(pPrec->precessing_tag==3){
 #         status=IMRPhenomX_Initialize_Euler_Angles(pWF,pPrec,lalParams);
