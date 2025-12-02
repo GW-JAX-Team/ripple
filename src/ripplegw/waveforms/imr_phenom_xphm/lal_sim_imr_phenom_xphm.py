@@ -274,11 +274,6 @@ def xlal_sim_imr_phenom_xphm(
 
     jax.lax.cond(lal_params.pnr_use_tuned_angles, check_tuned_angles, no_check, operand=None)
 
-    # TODO
-    # /* Initialize IMRPhenomX Precession struct and check that it generated successfully */
-    # IMRPhenomXPrecessionStruct *pPrec
-    # pPrec  = XLALMalloc(sizeof(IMRPhenomXPrecessionStruct))
-
     _error, lal_params_aux = imr_phenom_xphm_setup_mode_array(lal_params_aux)
 
     pPrec = IMRPhenomXPrecessionDataClass()
