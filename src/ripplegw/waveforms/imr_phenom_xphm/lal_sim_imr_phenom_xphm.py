@@ -23,6 +23,7 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_inspiral_waveform_flags import (
 from ripplegw.waveforms.imr_phenom_xphm.parameter_dataclass import IMRPhenomXPHMParameterDataClass
 
 
+@checkify.checkify
 def imr_phenom_xphm_setup_mode_array(lal_params: IMRPhenomXPHMParameterDataClass) -> IMRPhenomXPHMParameterDataClass:
     """Setup the mode array in lal_params.
 
@@ -35,28 +36,27 @@ def imr_phenom_xphm_setup_mode_array(lal_params: IMRPhenomXPHMParameterDataClass
     mode_array = lal_params.mode_array  # ModeArray = XLALSimInspiralWaveformParamsLookupModeArray(lalParams)
 
     # /* If the mode array is empty, populate using a default choice of modes */
-    def setup_default_modes(lal_params):
+    # Note: Using Python if since mode_array is None (static value, not traced by JAX)
+    if mode_array is None:
         # /* Default behavior */
         mode_array = xlal_sim_inspiral_create_mode_array()
 
         # /* IMRPhenomXHM has the following calibrated modes. 22 mode taken from IMRPhenomXAS */
-        xlal_sim_inspiral_mode_array_activate_mode(mode_array, 2, 2)
-        xlal_sim_inspiral_mode_array_activate_mode(mode_array, 2, 1)
-        xlal_sim_inspiral_mode_array_activate_mode(mode_array, 3, 3)
-        xlal_sim_inspiral_mode_array_activate_mode(mode_array, 3, 2)
-        xlal_sim_inspiral_mode_array_activate_mode(mode_array, 4, 4)
-        xlal_sim_inspiral_mode_array_activate_mode(mode_array, 2, -2)
-        xlal_sim_inspiral_mode_array_activate_mode(mode_array, 2, -1)
-        xlal_sim_inspiral_mode_array_activate_mode(mode_array, 3, -3)
-        xlal_sim_inspiral_mode_array_activate_mode(mode_array, 3, -2)
-        xlal_sim_inspiral_mode_array_activate_mode(mode_array, 4, -4)
+        mode_array = xlal_sim_inspiral_mode_array_activate_mode(mode_array, 2, 2)
+        mode_array = xlal_sim_inspiral_mode_array_activate_mode(mode_array, 2, 1)
+        mode_array = xlal_sim_inspiral_mode_array_activate_mode(mode_array, 3, 3)
+        mode_array = xlal_sim_inspiral_mode_array_activate_mode(mode_array, 3, 2)
+        mode_array = xlal_sim_inspiral_mode_array_activate_mode(mode_array, 4, 4)
+        mode_array = xlal_sim_inspiral_mode_array_activate_mode(mode_array, 2, -2)
+        mode_array = xlal_sim_inspiral_mode_array_activate_mode(mode_array, 2, -1)
+        mode_array = xlal_sim_inspiral_mode_array_activate_mode(mode_array, 3, -3)
+        mode_array = xlal_sim_inspiral_mode_array_activate_mode(mode_array, 3, -2)
+        mode_array = xlal_sim_inspiral_mode_array_activate_mode(mode_array, 4, -4)
         lal_params = dataclasses.replace(lal_params, mode_array=mode_array)
-        return lal_params
+    else:
+        # Always return a new instance for consistency
+        lal_params = dataclasses.replace(lal_params)
 
-    def use_custom_modes(lal_params):
-        return lal_params
-
-    lal_params = jax.lax.cond(mode_array is None, setup_default_modes, use_custom_modes, lal_params)
     return lal_params
 
 
@@ -279,7 +279,7 @@ def xlal_sim_imr_phenom_xphm(
     # IMRPhenomXPrecessionStruct *pPrec
     # pPrec  = XLALMalloc(sizeof(IMRPhenomXPrecessionStruct))
 
-    lal_params_aux = imr_phenom_xphm_setup_mode_array(lal_params_aux)
+    _error, lal_params_aux = imr_phenom_xphm_setup_mode_array(lal_params_aux)
 
     pPrec = IMRPhenomXPrecessionDataClass()
     # TODO
