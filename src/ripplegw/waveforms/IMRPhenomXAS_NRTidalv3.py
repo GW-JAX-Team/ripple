@@ -139,7 +139,7 @@ def gen_IMRPhenomXAS_NRTidalv3(
         lambda2: Dimensionless tidal deformability of secondary object
         D: Luminosity distance to source [Mpc]
         tc: Time of coalesence. This only appears as an overall linear in f contribution to the phase
-    phic: Phase of coalesence
+        phic: Phase of coalesence
 
     f_ref: Reference frequency for the waveform
 
