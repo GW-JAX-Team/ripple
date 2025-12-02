@@ -1,15 +1,12 @@
-import jax.numpy as jnp
 import jax
-from ripple import get_eff_pads, get_match_arr
+import jax.numpy as jnp
+import lal
+import lalsimulation as lalsim
+import numpy as np
+from jax.config import config
 from tqdm import tqdm
 
-import numpy as np
-from ripple import ms_to_Mc_eta, Mc_eta_to_ms
-import lalsimulation as lalsim
-import lal
-
-import matplotlib.pyplot as plt
-from jax.config import config
+from ripple import get_eff_pads, get_match_arr, ms_to_Mc_eta
 
 config.update("jax_enable_x64", True)
 

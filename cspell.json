@@ -1,0 +1,50 @@
+{
+    "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+    "version": "0.2",
+    "language": "en",
+    "dictionaries": [
+        "en",
+        "ignore-words",
+        "python",
+        "softwareTerms",
+        "node"
+    ],
+    "dictionaryDefinitions": [
+        {
+            "name": "ignore-words",
+            "path": ".ignore_words.txt",
+            "addWords": true
+        }
+    ],
+    "languageSettings": [
+        {
+            "languageId": "*",
+            "locale": "en",
+            "dictionaries": [
+                "en",
+                "ignore-words"
+            ]
+        },
+        {
+            "languageId": "python",
+            "locale": "en",
+            "dictionaries": [
+                "en",
+                "ignore-words",
+                "python",
+                "softwareTerms",
+                "node"
+            ]
+        }
+    ],
+    "ignorePaths": [
+        "node_modules/**",
+        ".ignore_words.txt",
+        "**/dist/**"
+    ],
+    "ignoreRegExpList": [
+        "np(?:\\.[a-zA-Z_][a-zA-Z0-9_]*)+",
+        "scipy(?:\\.[a-zA-Z_][a-zA-Z0-9_]*)+",
+        "pycbc(?:\\.[a-zA-Z_][a-zA-Z0-9_]*)+"
+    ]
+}

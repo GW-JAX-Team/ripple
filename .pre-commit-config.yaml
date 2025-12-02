@@ -1,0 +1,114 @@
+---
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit.com hooks
+
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ""
+  autoupdate_commit_msg: "[pre-commit.ci] pre-commit autoupdate"
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-yaml
+      - id: check-toml
+      - id: debug-statements
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+      - id: requirements-txt-fixer
+      - id: trailing-whitespace
+      - id: check-docstring-first
+      - id: check-json
+
+  - repo: https://github.com/PyCQA/isort
+    rev: 6.1.0
+    hooks:
+      - id: isort
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.13.3
+    hooks:
+      - id: ruff
+        args: [--fix, --config=pyproject.toml]
+
+  - repo: https://github.com/psf/black
+    rev: 25.9.0 # Matches pyproject.toml
+    hooks:
+      - id: black
+        args: [--config=pyproject.toml]
+
+  - repo: https://github.com/PyCQA/pylint
+    rev: v3.3.8
+    hooks:
+      - id: pylint
+        args: [--rcfile=pyproject.toml]
+        additional_dependencies: [
+          .,
+          jax,
+          pytest
+        ]
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.20.0
+    hooks:
+      - id: pyupgrade
+        args: [--py39-plus]
+
+  - repo: https://github.com/hadialqattan/pycln
+    rev: v2.5.0
+    hooks:
+      - id: pycln
+
+  - repo: https://github.com/streetsidesoftware/cspell-cli
+    rev: v9.2.0 # Keep this version or update to the latest stable
+    hooks:
+      - id: cspell
+        name: Check spelling in Python, reSt, and Markdown files.
+        args: ["--config", "cspell.json"]
+        files: ^.*\.(py|rst|md)$
+      - id: cspell
+        name: Check commit message spelling.
+        args:
+          - --config
+          - cspell.json
+          - --no-must-find-files
+          - --no-progress
+          - --no-summary
+          - --files
+          - .git/COMMIT_EDITMSG
+        stages: [commit-msg]
+        always_run: true
+
+  - repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.10.0
+    hooks:
+      - id: python-check-blanket-noqa
+      - id: python-check-blanket-type-ignore
+      - id: python-no-log-warn
+      - id: python-no-eval
+      - id: python-use-type-annotations
+      - id: rst-backticks
+      - id: rst-directive-colons
+      - id: rst-inline-touching-normal
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: "1.8.6"
+    hooks:
+      - id: bandit
+        args: ["-c", "pyproject.toml"]
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0 # Use the latest stable version
+    hooks:
+      - id: detect-secrets
+        name: Detect secrets within the codebase
+        description: Detect and block secrets from committing to the codebase
