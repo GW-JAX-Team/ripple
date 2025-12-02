@@ -667,13 +667,11 @@ def imr_phenom_xphm_hplus_hcross(
         lal_params: LAL Dictionary Structure.
     """
 
+    # Check that f_max_prime > f_min
+    checkify.check(
+        p_wf.f_max_prime > p_wf.f_min, "Error: (fCut = %.2f Hz) <= f_min = %.2f Hz", p_wf.f_max_prime, p_wf.f_min
+    )
 
-# {
-
-#   if (pWF->f_max_prime <= pWF->fMin)
-#   {
-#     XLAL_ERROR(XLAL_EDOM, "(fCut = %g Hz) <= f_min = %g\n", pWF->f_max_prime, pWF->fMin);
-#   }
 
 #   /* Set LIGOTimeGPS */
 #   LIGOTimeGPS ligotimegps_zero = LIGOTIMEGPSZERO; // = {0,0}
