@@ -183,7 +183,7 @@ def non_precessing_matchmaking(
 
     dist_mpc = 50 #np.random.uniform(bounds["d_L"][0], bounds["d_L"][1])
     tc = 0.0
-    inclination = np.random.uniform(0, 2*PI)
+    inclination = np.random.uniform(0, PI)
     phi_ref = np.random.uniform(0, 2*PI)
     
     # Ensure m1 > m2
@@ -395,7 +395,7 @@ def benchmark_speed(IMRphenom: str, n: int = 10_000):
 
     dist_mpc = np.random.uniform(0, 1000, n)
     tc = np.zeros_like(dist_mpc)
-    inclination = np.random.uniform(0, 2*PI, n)
+    inclination = np.random.uniform(0, PI, n)
     phi_ref = np.random.uniform(0, 2*PI, n)
     
     waveform = get_jitted_waveform(IMRphenom, fs, f_ref)
@@ -462,7 +462,7 @@ def benchmark_speed_lal(IMRphenom, n: int = 10_000):
 
     dist_mpc = np.random.uniform(0, 1000, n)
     tc = np.zeros_like(dist_mpc)
-    inclination = np.random.uniform(0, 2*PI, n)
+    inclination = np.random.uniform(0, PI, n)
     phi_ref = np.random.uniform(0, 2*PI, n)
         
     theta = np.array([m1, m2, s1, s2, l1, l2, dist_mpc, tc, phi_ref, inclination]).T
