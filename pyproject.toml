@@ -61,9 +61,6 @@ dev = [
 [tool.uv.sources]
 ripplegw = { workspace = true }
 
-[tool.ruff]
-include = ["src"]
-
 [tool.ruff.lint]
 ignore = [
     "F722",  # Forward annotations evaluation (false positive with jaxtyping)
