@@ -49,6 +49,10 @@ class IMRPhenomXPHMParameterDataClass:  # pylint: disable=too-many-instance-attr
     antisymmetric_waveform: int = 0
     mband_version: int = 0
 
+    def copy(self, **kwargs) -> IMRPhenomXPHMParameterDataClass:
+        """Create a new instance of the dataclass, optionally replacing some fields."""
+        return dataclasses.replace(self, **kwargs)
+
 
 ###### These are here to easily find some of the standard parameter values used in LAL ######
 
