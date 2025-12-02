@@ -17,34 +17,35 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import (
 )
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_inspiral_waveform_flags import (
     xlal_sim_inspiral_create_mode_array,
-    xlal_sim_inspiral_mode_array_activate_mode
+    xlal_sim_inspiral_mode_array_activate_mode,
 )
 from ripplegw.waveforms.imr_phenom_xphm.parameter_dataclass import IMRPhenomXPHMParameterDataClass
 
+
 def IMRPhenomXPHM_setup_mode_array(lalParams: IMRPhenomXPHMParameterDataClass) -> None:
-  ModeArray = lalParams.mode_array # ModeArray = XLALSimInspiralWaveformParamsLookupModeArray(lalParams)
+    ModeArray = lalParams.mode_array  # ModeArray = XLALSimInspiralWaveformParamsLookupModeArray(lalParams)
 
-  # /* If the mode array is empty, populate using a default choice of modes */
-  if not ModeArray:
-    # /* Default behaviour */
-    jax.debug.print("Using default non-precessing modes for IMRPhenomXPHM: 2|2|, 2|1|, 3|3|, 3|2|, 4|4|.")
-    ModeArray = xlal_sim_inspiral_create_mode_array()
+    # /* If the mode array is empty, populate using a default choice of modes */
+    if not ModeArray:
+        # /* Default behaviour */
+        jax.debug.print("Using default non-precessing modes for IMRPhenomXPHM: 2|2|, 2|1|, 3|3|, 3|2|, 4|4|.")
+        ModeArray = xlal_sim_inspiral_create_mode_array()
 
-    # /* IMRPhenomXHM has the following calibrated modes. 22 mode taken from IMRPhenomXAS */
-    xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 2, 2)
-    xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 2, 1)
-    xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 3, 3)
-    xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 3, 2)
-    xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 4, 4)
-    xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 2, -2)
-    xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 2, -1)
-    xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 3, -3)
-    xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 3, -2)
-    xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 4, -4)
-    lalParams = dataclasses.replace(lalParams, mode_array=ModeArray)
+        # /* IMRPhenomXHM has the following calibrated modes. 22 mode taken from IMRPhenomXAS */
+        xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 2, 2)
+        xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 2, 1)
+        xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 3, 3)
+        xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 3, 2)
+        xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 4, 4)
+        xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 2, -2)
+        xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 2, -1)
+        xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 3, -3)
+        xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 3, -2)
+        xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 4, -4)
+        lalParams = dataclasses.replace(lalParams, mode_array=ModeArray)
 
-  else:
-      jax.debug.print("Using custom non-precessing modes for PhenomXPHM.") 
+    else:
+        jax.debug.print("Using custom non-precessing modes for PhenomXPHM.")
 
 
 def check_mass_ratio(mass_ratio: float) -> float:
@@ -220,11 +221,11 @@ def xlal_sim_imr_phenom_xphm(
     lal_params_aux = lal_params.copy()
 
     # Initialize the useful powers of pi.
-    error, powers_of_pi = imr_phenom_x_initialize_powers(jnp.pi)
+    _error, powers_of_pi = imr_phenom_x_initialize_powers(jnp.pi)
 
     lal_params_dataclass = IMRPhenomXPHMParameterDataClass()
     # Initialize IMRPhenomX waveform struct and check that it is initialized correctly.
-    error, waveform_variables = imr_phenom_x_set_waveform_variables(
+    _error, waveform_variables = imr_phenom_x_set_waveform_variables(
         m1_si,
         m2_si,
         chi1z,
@@ -237,7 +238,7 @@ def xlal_sim_imr_phenom_xphm(
         distance,
         inclination,
         lal_params_dataclass,
-        powers_of_pi
+        powers_of_pi,
     )
 
     # REAL8Sequence *freqs = XLALCreateREAL8Sequence(2) # To interface with ripple, the frequency array should probably be created outside and passed as an argument
@@ -253,7 +254,7 @@ def xlal_sim_imr_phenom_xphm(
     # }
 
     # TODO
-    # /* Initialize IMRPhenomX Precession struct and check that it generated successfully */ 
+    # /* Initialize IMRPhenomX Precession struct and check that it generated successfully */
     # IMRPhenomXPrecessionStruct *pPrec
     # pPrec  = XLALMalloc(sizeof(IMRPhenomXPrecessionStruct))
 
@@ -680,7 +681,6 @@ def xlal_sim_imr_phenom_xphm_frequency_seqeuence_one_mode(
 #   COMPLEX16FrequencySeries *htilde22 = NULL;
 
 
-
 #   /* Initialize the power of pi for the HM internal functions. */
 #   status = IMRPhenomX_Initialize_Powers(&powers_of_lalpiHM, LAL_PI);
 #   XLAL_CHECK(XLAL_SUCCESS == status, XLAL_EFUNC, "Failed to initialize useful powers of LAL_PI.");
@@ -760,7 +760,6 @@ def xlal_sim_imr_phenom_xphm_frequency_seqeuence_one_mode(
 #     antiSym_amp = XLALCreateREAL8Sequence(freqs->length);
 #     antiSym_phi = XLALCreateREAL8Sequence(freqs->length);
 #   }
-
 
 
 #   /***** Loop over non-precessing modes ******/
@@ -1064,7 +1063,6 @@ def xlal_sim_imr_phenom_xphm_frequency_seqeuence_one_mode(
 #         #endif
 
 
-
 #         /* Compute non-uniform coarse frequency grid as 1D array */
 #         REAL8Sequence *coarseFreqs;
 #         XLALSimIMRPhenomXPHMMultibandingGrid(&coarseFreqs, ell, emmprime, pWF, lalParams);
@@ -1304,7 +1302,6 @@ def xlal_sim_imr_phenom_xphm_frequency_seqeuence_one_mode(
 
 #             break;
 #           }
-
 
 
 #            default:
