@@ -246,13 +246,22 @@ def xlal_sim_imr_phenom_xphm(
     freqs.at[0].set(waveform_variables.f_min)
     freqs.at[1].set(waveform_variables.f_max_prime)
 
-    # TODO
-    # if(XLALSimInspiralWaveformParamsLookupPhenomXPNRUseTunedAngles(lalParams)){ # This is passed as an argument?
-    #     XLAL_CHECK(
-    #     (fRef >=  pWF->fMin)&&(fRef <= pWF->f_max_prime),
-    #     XLAL_EFUNC,
-    #     "Error: f_min = %.2f <= fRef = %.2f < f_max = %.2f required when using tuned angles.\n",pWF->fMin,fRef,pWF->f_max_prime)
-    # }
+    def check_tuned_angles(_):
+        """Check frequency bounds when using tuned angles."""
+        checkify.check(
+            jnp.logical_and(f_ref >= waveform_variables.f_min, f_ref <= waveform_variables.f_max_prime),
+            "Error: f_min = %.2f <= f_ref = %.2f < f_max = %.2f required when using tuned angles.",
+            waveform_variables.f_min,
+            f_ref,
+            waveform_variables.f_max_prime,
+        )
+        return None
+
+    def no_check(_):
+        """No check needed."""
+        return None
+
+    jax.lax.cond(lal_params.pnr_use_tuned_angles, check_tuned_angles, no_check, operand=None)
 
     # TODO
     # /* Initialize IMRPhenomX Precession struct and check that it generated successfully */
