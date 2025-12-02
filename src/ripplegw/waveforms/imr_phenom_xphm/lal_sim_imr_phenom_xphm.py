@@ -12,7 +12,10 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals import (
     imr_phenom_x_initialize_powers,
     imr_phenom_x_set_waveform_variables,
 )
-from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import IMRPhenomXPrecessionDataClass
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
+    IMRPhenomXPrecessionDataClass,
+    IMRPhenomXWaveformDataClass,
+)
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import (
     xlal_imr_phenom_xp_check_masses_and_spins,
 )
@@ -274,9 +277,10 @@ def xlal_sim_imr_phenom_xphm(
 
     jax.lax.cond(lal_params.pnr_use_tuned_angles, check_tuned_angles, no_check, operand=None)
 
+    p_prec = IMRPhenomXPrecessionDataClass()
+
     _error, lal_params_aux = imr_phenom_xphm_setup_mode_array(lal_params_aux)
 
-    pPrec = IMRPhenomXPrecessionDataClass()
     # TODO
     # status = IMRPhenomXGetAndSetPrecessionVariables(
     #             pWF,
@@ -642,12 +646,28 @@ def xlal_sim_imr_phenom_xphm_frequency_seqeuence_one_mode(
     jax.debug.print("Call to imr_phenom_xphm_one_mode complete.")
 
 
-# def imr_phenom_xphm_hphc(
-#    freqs_In,                            #/**< Frequency array to evaluate the model. (fmin, fmax) for equally spaced grids. */
-#    IMRPhenomXWaveformStruct *pWF,       #/**< IMRPhenomX Waveform Struct  */
-#    IMRPhenomXPrecessionStruct *pPrec,   #/**< IMRPhenomXP Precession Struct  */
-#    LALDict *lalParams                   #/**< LAL Dictionary Structure    */
-# )
+def imr_phenom_xphm_hplus_hcross(
+    hp_tilde: Array,
+    hc_tilde: Array,
+    freqs_in: Array,  # /**< Frequency array to evaluate the model. (fmin, fmax) for equally spaced grids. */
+    p_wf: IMRPhenomXWaveformDataClass,  # /**< IMRPhenomX Waveform Struct  */
+    p_prec: IMRPhenomXPrecessionDataClass,  # /**< IMRPhenomXP Precession Struct  */
+    lal_params: IMRPhenomXPHMParameterDataClass,  # /**< LAL Dictionary Structure    */
+):
+    """Core function to compute the plus and cross polarizations of the multimode precessing waveform.
+
+    Equivalent to XLALSimIMRPhenomXPHM_hplushcross.
+
+    Args:
+        hp_tilde: Plus polarization frequency series (output).
+        hc_tilde: Cross polarization frequency series (output).
+        freqs_in: Frequency array to evaluate the model. (fmin, fmax) for equally spaced grids.
+        p_wf: IMRPhenomX Waveform Struct.
+        p_prec: IMRPhenomXP Precession Struct.
+        lal_params: LAL Dictionary Structure.
+    """
+
+
 # {
 
 #   if (pWF->f_max_prime <= pWF->fMin)
