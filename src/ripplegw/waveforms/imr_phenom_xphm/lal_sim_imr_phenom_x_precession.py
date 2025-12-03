@@ -1343,6 +1343,15 @@ def imr_phenom_x_spin_taylor_angles_splines_all(
         p_prec: Precession data class to be initialized.
         lal_params: Parameter data class containing LAL parameters.
     """
+    f_ref = p_wf.f_ref
+
+    # Sanity checks
+    checkify.check(f_min > 0, "f_min must be positive.")
+    checkify.check(f_max > 0, "f_max must be positive.")
+    checkify.check(f_max > f_min, "f_max must be greater than f_min.")
+    checkify.check(f_ref >= f_min, "f_ref must be >= f_min.")
+
+    # Evaluate the splines for alpha and cosbeta.
 
 
 def imr_phenom_x_initialize_euler_angles(  # pylint: disable=unused-argument,unused-variable
