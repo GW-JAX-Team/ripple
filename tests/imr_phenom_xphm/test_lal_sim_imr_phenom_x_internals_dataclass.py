@@ -6,17 +6,12 @@ import dataclasses
 
 import jax
 import pytest
+from data_class_sample_data import PRECESSION_DATA_CLASS_SAMPLE, USEFUL_POWERS_SAMPLE, WAVEFORM_DATA_CLASS_SAMPLE
 
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
+    IMRPhenomXPrecessionDataClass,
     IMRPhenomXUsefulPowersDataClass,
     IMRPhenomXWaveformDataClass,
-    IMRPhenomXPrecessionDataClass
-)
-
-from data_class_sample_data import (
-    WAVEFORM_DATA_CLASS_SAMPLE,
-    USEFUL_POWERS_SAMPLE,
-    PRECESSION_DATA_CLASS_SAMPLE
 )
 
 
@@ -27,7 +22,7 @@ class TestIMRPhenomXWaveformDataClass:
     def sample_data(self):
         """Fixture for sample data to create the dataclass."""
         return WAVEFORM_DATA_CLASS_SAMPLE
-    
+
     def test_instantiation_and_field_access(self, sample_data):
         """Test that the dataclass can be instantiated and fields accessed."""
         p_wf = IMRPhenomXWaveformDataClass(**sample_data)

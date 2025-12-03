@@ -6,33 +6,32 @@ import jax
 import jax.numpy as jnp
 from jax.experimental import checkify
 
-from ripplegw.constants import PI, gt, MRSUN
+from ripplegw import ms_to_Mc_eta
+from ripplegw.constants import MRSUN, PI, gt
 from ripplegw.waveforms.imr_phenom_xphm.lal_constants import LAL_MSUN_SI
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
     IMRPhenomXUsefulPowersDataClass,
     IMRPhenomXWaveformDataClass,
 )
-from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import (
-    imr_phenom_x_internal_nudge,
-    xlal_sim_imr_phenom_x_chi_eff,
-    xlal_sim_imr_phenom_x_chi_pn_hat,
-    xlal_sim_imr_phenom_x_stot_r,
-    xlal_sim_imr_phenom_x_dchi,
-    xlal_sim_imr_phenom_x_final_mass_2017,
-    xlal_sim_imr_phenom_x_final_spin_2017,
-    xlal_sim_imr_phenom_x_fISCO,
-    xlal_sim_imr_phenom_x_fMECO,
-)
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_qnm import (
     evaluate_QNMfit_fdamp22,
     evaluate_QNMfit_fring22,
 )
-from ripplegw.waveforms.imr_phenom_xphm.lal_sim_inspiral import xlal_sim_inspiral_set_quad_mon_params_from_lambdas
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import (
+    imr_phenom_x_internal_nudge,
+    xlal_sim_imr_phenom_x_chi_eff,
+    xlal_sim_imr_phenom_x_chi_pn_hat,
+    xlal_sim_imr_phenom_x_dchi,
+    xlal_sim_imr_phenom_x_f_isco,
+    xlal_sim_imr_phenom_x_f_meco,
+    xlal_sim_imr_phenom_x_final_mass_2017,
+    xlal_sim_imr_phenom_x_final_spin_2017,
+    xlal_sim_imr_phenom_x_stot_r,
+)
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_inspiral_waveform_flags import (
     xlal_sim_inspiral_mode_array_is_mode_active,
 )
 from ripplegw.waveforms.imr_phenom_xphm.parameter_dataclass import IMRPhenomXPHMParameterDataClass
-from ripplegw import ms_to_Mc_eta
 from ripplegw.waveforms.IMRPhenom_tidal_utils import get_kappa
 from ripplegw.waveforms.IMRPhenomD_NRTidalv2 import _get_merger_frequency
 
@@ -203,7 +202,7 @@ def _validate_ringdown_amplitude_version(rd_amp_version: jnp.ndarray) -> bool:
 
 
 @checkify.checkify
-def imr_phenom_x_set_waveform_variables(
+def imr_phenom_x_set_waveform_variables(  # pylint: disable=too-many-statements,too-many-positional-arguments,too-many-locals,too-many-arguments
     m1_si: float,
     m2_si: float,
     chi1l_in: float,
@@ -273,7 +272,8 @@ def imr_phenom_x_set_waveform_variables(
     # def _tidal_branch(lal_params):
     #     lambda1_in = lal_params.lambda1
     #     lambda2_in = lal_params.lambda2
-    #     checkify.check((lambda1_in >= 0.0) & (lambda2_in >= 0.0), "Tidal deformabilities lambda1 and lambda2 must be non-negative.")
+    #     checkify.check((lambda1_in >= 0.0) & (lambda2_in >= 0.0),
+    #                   "Tidal deformabilities lambda1 and lambda2 must be non-negative.")
     #     lal_params = xlal_sim_inspiral_set_quad_mon_params_from_lambdas(lal_params)
     #     quad_param1_in = 1.0 + lal_params.d_quad_mon1
     #     quad_param2_in = 1.0 + lal_params.d_quad_mon2
@@ -299,44 +299,24 @@ def imr_phenom_x_set_waveform_variables(
 
     operand = (m1_in, m2_in, chi1l_in, chi2l_in, lambda1_in, lambda2_in, quad_param1_in, quad_param2_in)
     chi1l, chi2l, m1, m2, lambda1, lambda2, quad_param1, quad_param2 = jax.lax.cond(
-        m1_in >= m2_in,
-        _keep_parameters,
-        _swap_parameters,
-        operand
+        m1_in >= m2_in, _keep_parameters, _swap_parameters, operand
     )
 
-    chi1l = jax.lax.cond(
-        chi1l > 1.0,
-        lambda x: imr_phenom_x_internal_nudge(x, 1.0, 1e-6),
-        lambda x: x,
-        chi1l
-    )
-    chi2l = jax.lax.cond(
-        chi2l > 1.0,
-        lambda x: imr_phenom_x_internal_nudge(x, 1.0, 1e-6),
-        lambda x: x,
-        chi2l
-    )
-    chi1l = jax.lax.cond(
-        chi1l < -1.0,
-        lambda x: imr_phenom_x_internal_nudge(x, -1.0, 1e-6),
-        lambda x: x,
-        chi1l
-    )
-    chi2l = jax.lax.cond(
-        chi2l < -1.0,
-        lambda x: imr_phenom_x_internal_nudge(x, -1.0, 1e-6),
-        lambda x: x,
-        chi2l
-    )
+    chi1l = jax.lax.cond(chi1l > 1.0, lambda x: imr_phenom_x_internal_nudge(x, 1.0, 1e-6), lambda x: x, chi1l)
+    chi2l = jax.lax.cond(chi2l > 1.0, lambda x: imr_phenom_x_internal_nudge(x, 1.0, 1e-6), lambda x: x, chi2l)
+    chi1l = jax.lax.cond(chi1l < -1.0, lambda x: imr_phenom_x_internal_nudge(x, -1.0, 1e-6), lambda x: x, chi1l)
+    chi2l = jax.lax.cond(chi2l < -1.0, lambda x: imr_phenom_x_internal_nudge(x, -1.0, 1e-6), lambda x: x, chi2l)
 
     # If spins are still unphysical after checking for small round-off errors, fail.
     # if chi1l > 1.0 or chi1l < -1.0 or chi2l > 1.0 or chi2l < -1.0:
-    checkify.check((chi1l <= 1.0) & (chi1l >= -1.0) & (chi2l <= 1.0) & (chi2l >= -1.0), "Unphysical spins requested: must obey the Kerr bound [-1,1].")
+    checkify.check(
+        (chi1l <= 1.0) & (chi1l >= -1.0) & (chi2l <= 1.0) & (chi2l >= -1.0),
+        "Unphysical spins requested: must obey the Kerr bound [-1,1].",
+    )
 
     # Symmetric mass ratio
     delta = jnp.abs((m1 - m2) / (m1 + m2))
-    Mc, eta = ms_to_Mc_eta((m1, m2))
+    mc, eta = ms_to_Mc_eta((m1, m2))
     # eta = jnp.abs(0.25 * (1.0 - delta * delta))
     q = m1 / m2
 
@@ -344,65 +324,59 @@ def imr_phenom_x_set_waveform_variables(
     # if eta > 0.25 or eta < 0.0:
     checkify.check((eta <= 0.25) & (eta >= 0.0), "Unphysical mass ratio requested.")
 
-    q = jax.lax.select(
-        eta == 0.25,
-        1.0,
-        q
-    )
+    q = jax.lax.select(eta == 0.25, 1.0, q)
 
     # Check the mass ratio
     checkify.check(q <= 1000.0, "The model is not supported for mass ratios > 1000.")
 
     m_tot = m1 + m2
-    M_sec = m_tot * gt
+    m_sec = m_tot * gt
     eta2 = eta * eta
-    kappa2T = get_kappa(jnp.array([m1, m2, chi1l, chi2l, lambda1, lambda2]))
-    f_merger = _get_merger_frequency(jnp.array([m1, m2, chi1l, chi2l, lambda1, lambda2]), kappa2T)
+    kappa2_t = get_kappa(jnp.array([m1, m2, chi1l, chi2l, lambda1, lambda2]))
+    f_merger = _get_merger_frequency(jnp.array([m1, m2, chi1l, chi2l, lambda1, lambda2]), kappa2_t)
 
     # /* Spin parameterisations */
-    chiEff    = xlal_sim_imr_phenom_x_chi_eff(eta,chi1l,chi2l)
-    chiPNHat  = xlal_sim_imr_phenom_x_chi_pn_hat(eta,chi1l,chi2l)
-    STotR     = xlal_sim_imr_phenom_x_stot_r(eta,chi1l,chi2l)
-    dchi      = xlal_sim_imr_phenom_x_dchi(chi1l,chi2l)
-    dchi_half = dchi*0.5
+    chi_eff = xlal_sim_imr_phenom_x_chi_eff(eta, chi1l, chi2l)
+    chi_pn_hat = xlal_sim_imr_phenom_x_chi_pn_hat(eta, chi1l, chi2l)
+    s_tot_r = xlal_sim_imr_phenom_x_stot_r(eta, chi1l, chi2l)
+    dchi = xlal_sim_imr_phenom_x_dchi(chi1l, chi2l)
+    dchi_half = dchi * 0.5
 
-    SigmaL    = (chi2l * m2) - (chi1l * m1) 			# // SigmaL = (M/m2)*(S2.L) - (M/m2)*(S1.L)
-    SL        = chi1l * (m1 * m1) + chi2l * (m2 * m2)  # // SL = S1.L + S2.L
+    sigma_l = (chi2l * m2) - (chi1l * m1)  # // SigmaL = (M/m2)*(S2.L) - (M/m2)*(S1.L)
+    sl = chi1l * (m1 * m1) + chi2l * (m2 * m2)  # // SL = S1.L + S2.L
 
-    fRef      = f_ref
-    phiRef_In = phi0
-    phi0      = phi0							#// Orbital phase at reference frequency (as passed from lalsimulation)
-    beta      = PI*0.5 - phi0 				#// Azimuthal angle of binary at reference frequency
-    phifRef   = 0.0							#// This is calculated later
+    phi_ref_in = phi0
+    # phi0 = phi0  # // Orbital phase at reference frequency (as passed from lalsimulation)
+    beta = PI * 0.5 - phi0  # // Azimuthal angle of binary at reference frequency
+    phi_f_ref = 0.0  # // This is calculated later
 
     # /* Geometric reference frequency */
-    MfRef     = M_sec*fRef #XLALSimIMRPhenomXUtilsHztoMf(fRef,Mtot)
-    piM       = PI * M_sec
-    v_ref     = (piM * fRef)**(1/3)
+    m_f_ref = m_sec * f_ref  # XLALSimIMRPhenomXUtilsHztoMf(fRef,Mtot)
+    pi_m = PI * m_sec
+    v_ref = (pi_m * f_ref) ** (1 / 3)
 
-    deltaF    = delta_f
-    deltaMF   = M_sec*delta_f #XLALSimIMRPhenomXUtilsHztoMf(deltaF,Mtot)
+    delta_mf = m_sec * delta_f  # XLALSimIMRPhenomXUtilsHztoMf(deltaF,Mtot)
 
-    # /* Define the default end of the waveform as: 0.3 Mf. This value is chosen such that the 44 mode also shows the ringdown part. */
-    # // If chieff is very high the ringdown of the 44 is almost cut it out when using 0.3, so we increase a little bit the cut of freq up 0.33.
-    fCutDef = jax.lax.select(
-        chiEff > 0.99,
+    # /* Define the default end of the waveform as: 0.3 Mf.
+    #  This value is chosen such that the 44 mode also shows the ringdown part. */
+    # // If chieff is very high the ringdown of the 44 is almost cut it out when using 0.3,
+    # so we increase a little bit the cut of freq up 0.33.
+    f_cut_def = jax.lax.select(
+        chi_eff > 0.99,
         0.33,
         0.3,
     )
 
     # /* Minimum and maximum frequency */
-    fMin      = f_min
-    fMax      = f_max
-    MfMax     = M_sec*f_max #XLALSimIMRPhenomXUtilsHztoMf(fMax,Mtot)
+    m_f_max = m_sec * f_max  # XLALSimIMRPhenomXUtilsHztoMf(fMax,Mtot)
 
     # /* Convert fCut to physical cut-off frequency */
-    fCut      = fCutDef / M_sec
+    f_cut = f_cut_def / m_sec
 
     # /* Sanity check that minimum start frequency is less than cut-off frequency */
     # if (fCut <= fMin):
     #     jax.debug.print(f"(fCut = {fCut} Hz) <= f_min = {fMin}")
-    checkify.check(fCut > fMin, "Error: f_cut must be greater than f_min.")
+    checkify.check(f_cut > f_min, "Error: f_cut must be greater than f_min.")
 
     # if(debug)
     # {
@@ -414,21 +388,19 @@ def imr_phenom_x_set_waveform_variables(
     # }
 
     # /* By default f_max_prime is f_max. If fCut < fMax, then use fCut, i.e. waveform up to fMax will be zeros */
-    f_max_prime   = fMax
+    f_max_prime = f_max
     # f_max_prime   = jax.lax.select( # fMax if fMax else fCut
     #     fMax,
     #     fMax,
     #     fCut
     # )
-    f_max_prime   = jax.lax.select( # fCut if (f_max_prime > fCut) else f_max_prime
-        f_max_prime > fCut,
-        fCut,
-        f_max_prime
-    )
+    f_max_prime = jax.lax.select(
+        f_max_prime > f_cut, f_cut, f_max_prime
+    )  # fCut if (f_max_prime > fCut) else f_max_prime
 
     # if f_max_prime <= fMin:
     #     jax.debug.print("f_max <= f_min")
-    checkify.check(f_max_prime > fMin, "Error: f_max_prime must be greater than f_min.")
+    checkify.check(f_max_prime > f_min, "Error: f_max_prime must be greater than f_min.")
 
     # if(debug)
     # {
@@ -439,18 +411,16 @@ def imr_phenom_x_set_waveform_variables(
 
     # /* Final Mass and Spin */
     # NOTE: These are only default values
-    Mfinal    = xlal_sim_imr_phenom_x_final_mass_2017(eta,chi1l,chi2l)
-    afinal    = xlal_sim_imr_phenom_x_final_spin_2017(eta,chi1l,chi2l)
+    m_final = xlal_sim_imr_phenom_x_final_mass_2017(eta, chi1l, chi2l)
+    afinal = xlal_sim_imr_phenom_x_final_spin_2017(eta, chi1l, chi2l)
 
     # /* (500) Set default values of physically specific final spin parameters for use with PNR/XCP */
-    afinal_nonprec = afinal     #// NOTE: This is only a default value see LALSimIMRPhenomX_precession.c
-    afinal_prec    = afinal     #// NOTE: This is only a default value see LALSimIMRPhenomX_precession.c
+    afinal_nonprec = afinal  # // NOTE: This is only a default value see LALSimIMRPhenomX_precession.c
+    afinal_prec = afinal  # // NOTE: This is only a default value see LALSimIMRPhenomX_precession.c
 
     # /* Ringdown and damping frequency of final BH */
-    fRING     = evaluate_QNMfit_fring22(afinal) / (Mfinal)
-    fDAMP     = evaluate_QNMfit_fdamp22(afinal) / (Mfinal)
-
-
+    f_ring = evaluate_QNMfit_fring22(afinal) / (m_final)
+    f_damp = evaluate_QNMfit_fdamp22(afinal) / (m_final)
 
     # if(debug)
     # {
@@ -462,16 +432,16 @@ def imr_phenom_x_set_waveform_variables(
 
     # if Mfinal > 1.0:
     #     jax.debug.print("IMRPhenomX_FinalMass2018: Final mass > 1.0 not physical.")
-    checkify.check(Mfinal <= 1.0, "IMRPhenomX_FinalMass2018: Final mass > 1.0 not physical.")
+    checkify.check(m_final <= 1.0, "IMRPhenomX_FinalMass2018: Final mass > 1.0 not physical.")
     # if abs(afinal) > 1.0:
     #     jax.debug.print("IMRPhenomX_FinalSpin2018: Final spin > 1.0 is not physical.")
     checkify.check(abs(afinal) <= 1.0, "IMRPhenomX_FinalSpin2018: Final spin > 1.0 is not physical.")
 
     # /* Fit to the hybrid minimum energy circular orbit (MECO), Cabero et al, Phys.Rev. D95 (2017) */
-    fMECO       = xlal_sim_imr_phenom_x_fMECO(eta,chi1l,chi2l)
+    f_meco = xlal_sim_imr_phenom_x_f_meco(eta, chi1l, chi2l)
 
     # /* Innermost stable circular orbit (ISCO), e.g. Ori et al, Phys.Rev. D62 (2000) 124022 */
-    fISCO       = xlal_sim_imr_phenom_x_fISCO(afinal)
+    f_isco = xlal_sim_imr_phenom_x_f_isco(afinal)
 
     # if(debug)
     # {
@@ -480,18 +450,18 @@ def imr_phenom_x_set_waveform_variables(
     # }
 
     # if(fMECO > fISCO):
-    #     # /* If MECO > fISCO, throw an error - this may be the case for very corner cases in the parameter space (e.g. q ~ 1000, chi ~ 0.999) */
+    #     # /* If MECO > fISCO, throw an error - this may be the case
+    #       for very corner cases in the parameter space (e.g. q ~1000, chi ~ 0.999) */
     #     jax.debug.print("Error: f_MECO cannot be greater than f_ISCO.")
-    checkify.check(fMECO <= fISCO, "Error: f_MECO cannot be greater than f_ISCO.")
-
+    checkify.check(f_meco <= f_isco, "Error: f_MECO cannot be greater than f_ISCO.")
 
     # /* Distance and inclination */
-    distance    = distance
-    inclination = inclination
+    # distance = distance
+    # inclination = inclination
 
     # /* Amplitude normalization */
-    amp0        = m_tot * MRSUN * m_tot * gt / distance
-    ampNorm     = jnp.sqrt(2.0/3.0) * jnp.sqrt(eta) * powers_of_lalpi.m_one_sixth
+    amp0 = m_tot * MRSUN * m_tot * gt / distance
+    amp_norm = jnp.sqrt(2.0 / 3.0) * jnp.sqrt(eta) * powers_of_lalpi.m_one_sixth
 
     # if(debug)
     # {
@@ -505,49 +475,51 @@ def imr_phenom_x_set_waveform_variables(
     #     printf("\n\n **** Sanity checks complete. Waveform struct has been initialized. **** \n\n")
     # }
 
-    dphase0 = 5.0 / (128.0 * PI**(5.0/3.0))
+    dphase0 = 5.0 / (128.0 * PI ** (5.0 / 3.0))
 
     # /* Set nonprecessing value of select precession quantities (PNRUseTunedCoprec)*/
-    chiTot_perp = 0.0
+    chi_tot_perp = 0.0
     chi_p = 0.0
-    theta_LS = 0.0
+    theta_ls = 0.0
     a1 = 0.0
-    PNR_DEV_PARAMETER = 0.0
-    PNR_SINGLE_SPIN = 0
-    MU1 = 0
-    MU2 = 0
-    MU3 = 0
-    MU4 = 0
-    NU0 = 0
-    NU4 = 0
-    NU5 = 0
-    NU6 = 0
-    ZETA1 = 0
-    ZETA2 = 0
-    fRINGEffShiftDividedByEmm = 0
+    pnr_dev_parameter = 0.0
+    pnr_single_spin = 0
+    mu1 = 0
+    mu2 = 0
+    mu3 = 0
+    mu4 = 0
+    nu0 = 0
+    nu4 = 0
+    nu5 = 0
+    nu6 = 0
+    zeta1 = 0
+    zeta2 = 0
+    f_ring_eff_shift_divided_by_emm = 0
 
     f_inspiral_align = 0.0
-    XAS_dphase_at_f_inspiral_align = 0.0
-    XAS_phase_at_f_inspiral_align = 0.0
-    XHM_dphase_at_f_inspiral_align = 0.0
-    XHM_phase_at_f_inspiral_align = 0.0
+    xas_dphase_at_f_inspiral_align = 0.0
+    xas_phase_at_f_inspiral_align = 0.0
+    xhm_dphase_at_f_inspiral_align = 0.0
+    xhm_phase_at_f_inspiral_align = 0.0
 
-    betaRD = 0.0
-    fRING22_prec = 0.0
-    fRINGCP = 0.0
+    beta_rd = 0.0
+    f_ring22_prec = 0.0
+    f_ring_cp = 0.0
     pnr_window = 0.0
 
-    APPLY_PNR_DEVIATIONS = 0
+    apply_pnr_deviations = 0
 
-    ############################## Comes from IMRPhenomXGetAndSetPrecessionVariables function in LAL ##############################
+    ## Comes from IMRPhenomXGetAndSetPrecessionVariables function in LAL ##
     m_tot_si = m1_si + m2_si  # Total mass in SI units:        m1_SI + m2_SI
-    m1_normalised = m1_si / m_tot_si    # Normalized mass of larger companion:   m1_SI / Mtot_SI
-    m2_normalised = m2_si / m_tot_si    # Normalized mass of smaller companion:  m2_SI / Mtot_SI
-    M  = m1_normalised + m2_normalised  # Total mass in solar units -> I believe this LAL comment is incorrect, but I'm keeping it for reference
+    m1_normalised = m1_si / m_tot_si  # Normalized mass of larger companion:   m1_SI / Mtot_SI
+    m2_normalised = m2_si / m_tot_si  # Normalized mass of smaller companion:  m2_SI / Mtot_SI
+    # Total mass in solar units -> I believe this LAL comment is incorrect,
+    m = m1_normalised + m2_normalised
+    # but I'm keeping it for reference
 
     m1_2 = m1_normalised * m1_normalised
     m2_2 = m2_normalised * m2_normalised
-    ###############################################################################################################################
+    ##############################################################################
 
     waveform_dataclass = IMRPhenomXWaveformDataClass(
         imr_phenom_x_inspiral_phase_version=lal_params.ins_phase_version,
@@ -565,85 +537,85 @@ def imr_phenom_x_set_waveform_variables(
         m2_si=m2 * LAL_MSUN_SI,
         q=q,
         eta=eta,
-        mc=Mc,
+        mc=mc,
         m_tot_si=m_tot_si,
         m_tot=m_tot,
-        m1=m1/m_tot,
-        m2=m2/m_tot,
-        m_sec=M_sec,
+        m1=m1 / m_tot,
+        m2=m2 / m_tot,
+        m_sec=m_sec,
         delta=delta,
         eta2=eta2,
-        eta3=eta*eta2,
+        eta3=eta * eta2,
         chi1l=chi1l,
         chi2l=chi2l,
-        chi1l2l=chi1l*chi2l,
-        chi1l2=chi1l*chi1l,
-        chi1l3=chi1l*chi1l*chi1l,
-        chi2l2=chi2l*chi2l,
-        chi2l3=chi2l*chi2l*chi2l,
-        chi_eff=chiEff,
-        chi_pn_hat=chiPNHat,
-        chi_tot_perp=chiTot_perp,
+        chi1l2l=chi1l * chi2l,
+        chi1l2=chi1l * chi1l,
+        chi1l3=chi1l * chi1l * chi1l,
+        chi2l2=chi2l * chi2l,
+        chi2l3=chi2l * chi2l * chi2l,
+        chi_eff=chi_eff,
+        chi_pn_hat=chi_pn_hat,
+        chi_tot_perp=chi_tot_perp,
         chi_p=chi_p,
-        theta_ls=theta_LS,
+        theta_ls=theta_ls,
         a1=a1,
-        mu1=MU1,
-        mu2=MU2,
-        mu3=MU3,
-        mu4=MU4,
-        nu0=NU0,
-        nu4=NU4,
-        nu5=NU5,
-        nu6=NU6,
-        zeta1=ZETA1,
-        zeta2=ZETA2,
-        pnr_dev_parameter=PNR_DEV_PARAMETER,
+        mu1=mu1,
+        mu2=mu2,
+        mu3=mu3,
+        mu4=mu4,
+        nu0=nu0,
+        nu4=nu4,
+        nu5=nu5,
+        nu6=nu6,
+        zeta1=zeta1,
+        zeta2=zeta2,
+        pnr_dev_parameter=pnr_dev_parameter,
         pnr_window=pnr_window,
-        apply_pnr_deviations=APPLY_PNR_DEVIATIONS,
-        pnr_single_spin=PNR_SINGLE_SPIN,
-        f_ring_eff_shift_divided_by_emm=fRINGEffShiftDividedByEmm,
-        s_tot_r=STotR,
+        apply_pnr_deviations=apply_pnr_deviations,
+        pnr_single_spin=pnr_single_spin,
+        f_ring_eff_shift_divided_by_emm=f_ring_eff_shift_divided_by_emm,
+        s_tot_r=s_tot_r,
         dchi=dchi,
         dchi_half=dchi_half,
-        sl=SL,
-        sigma_l=SigmaL,
+        sl=sl,
+        sigma_l=sigma_l,
         lambda1=lambda1,
         lambda2=lambda2,
         quad_param1=quad_param1,
         quad_param2=quad_param2,
-        kappa2_t=kappa2T,
+        kappa2_t=kappa2_t,
         f_merger=f_merger,
-        f_ref=fRef,
-        phi_ref_in=phiRef_In,
+        f_ref=f_ref,
+        phi_ref_in=phi_ref_in,
         phi0=phi0,
         beta=beta,
         v_ref=v_ref,
-        delta_f=deltaF,
-        f_min=fMin,
-        f_max=fMax,
+        delta_f=delta_f,
+        f_min=f_min,
+        f_max=f_max,
         f_max_prime=f_max_prime,
-        f_cut=fCut,
-        m_final=Mfinal,
+        f_cut=f_cut,
+        m_final=m_final,
         a_final=afinal,
         a_final_prec=afinal_prec,
-        f_ring=fRING,
-        f_damp=fDAMP,
+        f_ring=f_ring,
+        f_damp=f_damp,
         distance=distance,
         inclination=inclination,
         amp0=amp0,
-        amp_norm=ampNorm,
+        amp_norm=amp_norm,
         dphase0=dphase0,
-        eta4=eta2*eta2,
-        f_meco=fMECO,
-        f_isco=fISCO,
-        beta_rd=betaRD,
-        f_ring22_prec=fRING22_prec,
-        f_ring_cp=fRINGCP,
+        eta4=eta2 * eta2,
+        f_meco=f_meco,
+        f_isco=f_isco,
+        beta_rd=beta_rd,
+        f_ring22_prec=f_ring22_prec,
+        f_ring_cp=f_ring_cp,
         f_inspiral_align=f_inspiral_align,
-        xas_dphase_at_f_inspiral_align=XAS_dphase_at_f_inspiral_align,
-        xas_phase_at_f_inspiral_align=XAS_phase_at_f_inspiral_align,
-        xhm_dphase_at_f_inspiral_align=XHM_dphase_at_f_inspiral_align,
-        xhm_phase_at_f_inspiral_align=XHM_phase_at_f_inspiral_align,
+        xas_dphase_at_f_inspiral_align=xas_dphase_at_f_inspiral_align,
+        xas_phase_at_f_inspiral_align=xas_phase_at_f_inspiral_align,
+        xhm_dphase_at_f_inspiral_align=xhm_dphase_at_f_inspiral_align,
+        xhm_phase_at_f_inspiral_align=xhm_phase_at_f_inspiral_align,
         f_ring21=0.0,
         f_damp21=0.0,
         f_ring32=0.0,
@@ -652,16 +624,16 @@ def imr_phenom_x_set_waveform_variables(
         f_damp33=0.0,
         f_ring44=0.0,
         f_damp44=0.0,
-        m_f_max=MfMax,
-        delta_mf=deltaMF,
-        f_cut_def=fCutDef,
-        m_f_ref=MfRef,
-        phi_f_ref=phifRef,
-        pi_m=piM,
+        m_f_max=m_f_max,
+        delta_mf=delta_mf,
+        f_cut_def=f_cut_def,
+        m_f_ref=m_f_ref,
+        phi_f_ref=phi_f_ref,
+        pi_m=pi_m,
         e_rad=0.0,
         a_final_non_prec=afinal_nonprec,
         lal_params=lal_params,
-        m=M,
+        m=m,
         m1_2=m1_2,
         m2_2=m2_2,
     )

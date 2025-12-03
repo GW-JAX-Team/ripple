@@ -7,45 +7,61 @@ import jax.numpy as jnp
 from jax.experimental import checkify
 
 from ripplegw.typing import Array
+from ripplegw.waveforms.imr_phenom_xphm.lal_datatypes import LIGO_TIME_GPS_ZERO
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals import (
     check_input_mode_array,
     imr_phenom_x_initialize_powers,
     imr_phenom_x_set_waveform_variables,
 )
-from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import IMRPhenomXPrecessionDataClass
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
+    IMRPhenomXPrecessionDataClass,
+    IMRPhenomXWaveformDataClass,
+)
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import (
     xlal_imr_phenom_xp_check_masses_and_spins,
 )
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_inspiral_waveform_flags import (
     xlal_sim_inspiral_create_mode_array,
-    xlal_sim_inspiral_mode_array_activate_mode
+    xlal_sim_inspiral_mode_array_activate_mode,
 )
 from ripplegw.waveforms.imr_phenom_xphm.parameter_dataclass import IMRPhenomXPHMParameterDataClass
 
-def IMRPhenomXPHM_setup_mode_array(lalParams: IMRPhenomXPHMParameterDataClass) -> None:
-  ModeArray = lalParams.mode_array # ModeArray = XLALSimInspiralWaveformParamsLookupModeArray(lalParams)
 
-  # /* If the mode array is empty, populate using a default choice of modes */
-  if not ModeArray:
-    # /* Default behaviour */
-    jax.debug.print("Using default non-precessing modes for IMRPhenomXPHM: 2|2|, 2|1|, 3|3|, 3|2|, 4|4|.")
-    ModeArray = xlal_sim_inspiral_create_mode_array()
+@checkify.checkify
+def imr_phenom_xphm_setup_mode_array(lal_params: IMRPhenomXPHMParameterDataClass) -> IMRPhenomXPHMParameterDataClass:
+    """Setup the mode array in lal_params.
 
-    # /* IMRPhenomXHM has the following calibrated modes. 22 mode taken from IMRPhenomXAS */
-    xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 2, 2)
-    xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 2, 1)
-    xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 3, 3)
-    xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 3, 2)
-    xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 4, 4)
-    xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 2, -2)
-    xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 2, -1)
-    xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 3, -3)
-    xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 3, -2)
-    xlal_sim_inspiral_mode_array_activate_mode(ModeArray, 4, -4)
-    lalParams = dataclasses.replace(lalParams, mode_array=ModeArray)
+    Args:
+        lal_params: Parameter dataclass with mode_array attribute.
 
-  else:
-      jax.debug.print("Using custom non-precessing modes for PhenomXPHM.") 
+    Returns:
+        Updated parameter dataclass with mode_array set to default if it was None.
+    """
+    mode_array = lal_params.mode_array  # ModeArray = XLALSimInspiralWaveformParamsLookupModeArray(lalParams)
+
+    # /* If the mode array is empty, populate using a default choice of modes */
+    # Note: Using Python if since mode_array is None (static value, not traced by JAX)
+    if mode_array is None:
+        # /* Default behavior */
+        mode_array = xlal_sim_inspiral_create_mode_array()
+
+        # /* IMRPhenomXHM has the following calibrated modes. 22 mode taken from IMRPhenomXAS */
+        mode_array = xlal_sim_inspiral_mode_array_activate_mode(mode_array, 2, 2)
+        mode_array = xlal_sim_inspiral_mode_array_activate_mode(mode_array, 2, 1)
+        mode_array = xlal_sim_inspiral_mode_array_activate_mode(mode_array, 3, 3)
+        mode_array = xlal_sim_inspiral_mode_array_activate_mode(mode_array, 3, 2)
+        mode_array = xlal_sim_inspiral_mode_array_activate_mode(mode_array, 4, 4)
+        mode_array = xlal_sim_inspiral_mode_array_activate_mode(mode_array, 2, -2)
+        mode_array = xlal_sim_inspiral_mode_array_activate_mode(mode_array, 2, -1)
+        mode_array = xlal_sim_inspiral_mode_array_activate_mode(mode_array, 3, -3)
+        mode_array = xlal_sim_inspiral_mode_array_activate_mode(mode_array, 3, -2)
+        mode_array = xlal_sim_inspiral_mode_array_activate_mode(mode_array, 4, -4)
+        lal_params = dataclasses.replace(lal_params, mode_array=mode_array)
+    else:
+        # Always return a new instance for consistency
+        lal_params = dataclasses.replace(lal_params)
+
+    return lal_params
 
 
 def check_mass_ratio(mass_ratio: float) -> float:
@@ -221,11 +237,11 @@ def xlal_sim_imr_phenom_xphm(
     lal_params_aux = lal_params.copy()
 
     # Initialize the useful powers of pi.
-    error, powers_of_pi = imr_phenom_x_initialize_powers(jnp.pi)
+    _error, powers_of_pi = imr_phenom_x_initialize_powers(jnp.pi)
 
     lal_params_dataclass = IMRPhenomXPHMParameterDataClass()
     # Initialize IMRPhenomX waveform struct and check that it is initialized correctly.
-    error, waveform_variables = imr_phenom_x_set_waveform_variables(
+    _error, waveform_variables = imr_phenom_x_set_waveform_variables(
         m1_si,
         m2_si,
         chi1z,
@@ -238,29 +254,34 @@ def xlal_sim_imr_phenom_xphm(
         distance,
         inclination,
         lal_params_dataclass,
-        powers_of_pi
+        powers_of_pi,
     )
 
     # REAL8Sequence *freqs = XLALCreateREAL8Sequence(2) # To interface with ripple, the frequency array should probably be created outside and passed as an argument
     freqs.at[0].set(waveform_variables.f_min)
     freqs.at[1].set(waveform_variables.f_max_prime)
 
-    # TODO
-    # if(XLALSimInspiralWaveformParamsLookupPhenomXPNRUseTunedAngles(lalParams)){ # This is passed as an argument?
-    #     XLAL_CHECK(
-    #     (fRef >=  pWF->fMin)&&(fRef <= pWF->f_max_prime),
-    #     XLAL_EFUNC,
-    #     "Error: f_min = %.2f <= fRef = %.2f < f_max = %.2f required when using tuned angles.\n",pWF->fMin,fRef,pWF->f_max_prime)
-    # }
+    def check_tuned_angles(_):
+        """Check frequency bounds when using tuned angles."""
+        checkify.check(
+            jnp.logical_and(f_ref >= waveform_variables.f_min, f_ref <= waveform_variables.f_max_prime),
+            "Error: f_min = %.2f <= f_ref = %.2f < f_max = %.2f required when using tuned angles.",
+            waveform_variables.f_min,
+            f_ref,
+            waveform_variables.f_max_prime,
+        )
+        return None
 
-    # TODO
-    # /* Initialize IMRPhenomX Precession struct and check that it generated successfully */ 
-    # IMRPhenomXPrecessionStruct *pPrec
-    # pPrec  = XLALMalloc(sizeof(IMRPhenomXPrecessionStruct))
+    def no_check(_):
+        """No check needed."""
+        return None
 
-    IMRPhenomXPHM_setup_mode_array(lal_params_aux)
+    jax.lax.cond(lal_params.pnr_use_tuned_angles, check_tuned_angles, no_check, operand=None)
 
-    pPrec = IMRPhenomXPrecessionDataClass()
+    p_prec = IMRPhenomXPrecessionDataClass()
+
+    _error, lal_params_aux = imr_phenom_xphm_setup_mode_array(lal_params_aux)
+
     # TODO
     # status = IMRPhenomXGetAndSetPrecessionVariables(
     #             pWF,
@@ -626,40 +647,42 @@ def xlal_sim_imr_phenom_xphm_frequency_seqeuence_one_mode(
     jax.debug.print("Call to imr_phenom_xphm_one_mode complete.")
 
 
-# def imr_phenom_xphm_hphc(
-#    freqs_In,                            #/**< Frequency array to evaluate the model. (fmin, fmax) for equally spaced grids. */
-#    IMRPhenomXWaveformStruct *pWF,       #/**< IMRPhenomX Waveform Struct  */
-#    IMRPhenomXPrecessionStruct *pPrec,   #/**< IMRPhenomXP Precession Struct  */
-#    LALDict *lalParams                   #/**< LAL Dictionary Structure    */
-# )
-# {
+def imr_phenom_xphm_hplus_hcross(
+    hp_tilde: Array,
+    hc_tilde: Array,
+    freqs_in: Array,  # /**< Frequency array to evaluate the model. (fmin, fmax) for equally spaced grids. */
+    p_wf: IMRPhenomXWaveformDataClass,  # /**< IMRPhenomX Waveform Struct  */
+    p_prec: IMRPhenomXPrecessionDataClass,  # /**< IMRPhenomXP Precession Struct  */
+    lal_params: IMRPhenomXPHMParameterDataClass,  # /**< LAL Dictionary Structure    */
+):
+    """Core function to compute the plus and cross polarizations of the multimode precessing waveform.
 
-#   if (pWF->f_max_prime <= pWF->fMin)
-#   {
-#     XLAL_ERROR(XLAL_EDOM, "(fCut = %g Hz) <= f_min = %g\n", pWF->f_max_prime, pWF->fMin);
-#   }
+    Equivalent to XLALSimIMRPhenomXPHM_hplushcross.
 
-#   /* Set LIGOTimeGPS */
-#   LIGOTimeGPS ligotimegps_zero = LIGOTIMEGPSZERO; // = {0,0}
+    Args:
+        hp_tilde: Plus polarization frequency series (output).
+        hc_tilde: Cross polarization frequency series (output).
+        freqs_in: Frequency array to evaluate the model. (fmin, fmax) for equally spaced grids.
+        p_wf: IMRPhenomX Waveform Struct.
+        p_prec: IMRPhenomXP Precession Struct.
+        lal_params: LAL Dictionary Structure.
+    """
 
-#   REAL8 deltaF = pWF->deltaF;
+    # Check that f_max_prime > f_min
+    checkify.check(
+        p_wf.f_max_prime > p_wf.f_min, "Error: (fCut = %.2f Hz) <= f_min = %.2f Hz", p_wf.f_max_prime, p_wf.f_min
+    )
 
-#    LALValue *ModeArray = XLALSimInspiralWaveformParamsLookupModeArray(lalParams);
+    ligo_time_gps_zero = LIGO_TIME_GPS_ZERO
 
-#    /* At this point ModeArray should contain the list of modes
-#    and therefore if NULL then something is wrong and abort. */
-#     if (ModeArray == NULL)
-#     {
-#      XLAL_ERROR(XLAL_EDOM, "ModeArray is NULL when it shouldn't be. Aborting.\n");
-#     }
+    delta_f = p_wf.delta_f
 
-#     INT4 status = 0; //Variable to check correct functions calls.
-#     /*
-#         Take input/default value for the threshold of the Multibanding for the hlms modes.
-#         If = 0 then do not use Multibanding. Default value defined in XLALSimInspiralWaveformParams.c.
-#         If the input freqs_In is non-uniform the Multibanding has been already switche off.
-#     */
-#     REAL8 thresholdMB  = XLALSimInspiralWaveformParamsLookupPhenomXHMThresholdMband(lalParams);
+    mode_array = lal_params.mode_array
+
+    checkify.check(mode_array is not None, "Error: ModeArray is NULL when it shouldn't be. Aborting.")
+
+    threshold_mb = lal_params.threshold_mband
+
 
 #    if(pPrec->precessing_tag==3){
 #         status=IMRPhenomX_Initialize_Euler_Angles(pWF,pPrec,lalParams);
@@ -680,7 +703,6 @@ def xlal_sim_imr_phenom_xphm_frequency_seqeuence_one_mode(
 
 #   /* Object to store the non-precessing 22 mode waveform and to be recycled when calling the 32 mode in multibanding. */
 #   COMPLEX16FrequencySeries *htilde22 = NULL;
-
 
 
 #   /* Initialize the power of pi for the HM internal functions. */
@@ -762,7 +784,6 @@ def xlal_sim_imr_phenom_xphm_frequency_seqeuence_one_mode(
 #     antiSym_amp = XLALCreateREAL8Sequence(freqs->length);
 #     antiSym_phi = XLALCreateREAL8Sequence(freqs->length);
 #   }
-
 
 
 #   /***** Loop over non-precessing modes ******/
@@ -1066,7 +1087,6 @@ def xlal_sim_imr_phenom_xphm_frequency_seqeuence_one_mode(
 #         #endif
 
 
-
 #         /* Compute non-uniform coarse frequency grid as 1D array */
 #         REAL8Sequence *coarseFreqs;
 #         XLALSimIMRPhenomXPHMMultibandingGrid(&coarseFreqs, ell, emmprime, pWF, lalParams);
@@ -1306,7 +1326,6 @@ def xlal_sim_imr_phenom_xphm_frequency_seqeuence_one_mode(
 
 #             break;
 #           }
-
 
 
 #            default:
