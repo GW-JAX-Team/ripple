@@ -16,6 +16,7 @@ Cabero
 cexp
 Chatziioannou
 arraylike
+Carlson
 checkify
 chieff
 contrusction
@@ -30,6 +31,12 @@ deltaf
 dimensionful
 dphase
 EFUNC
+ellint
+ellipfinc
+ellipj
+ellipkinc
+elliprf
+elljac
 EOSQ
 extremal
 fcmp
@@ -51,6 +58,8 @@ interp
 Interpolants
 inveta
 isco
+Jacobi
+JIT
 jitted
 lalpi
 lalsim
@@ -101,6 +110,7 @@ seglen
 Siemonsen
 Sperp
 stot
+SciPy
 Tidalv
 treedef
 twopi
