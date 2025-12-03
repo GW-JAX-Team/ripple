@@ -59,8 +59,8 @@ class IMRPhenomXPrecessionDataClass:  # pylint: disable=too-many-instance-attrib
     debug_prec: int = 0
 
     # Mass and spin weightings
-    a1: float = 0.0  # Mass weighted pre-factor, see Eq. 3.2 of Schmidt et al, arXiv:1408.1810
-    a2: float = 0.0  # Mass weighted pre-factor, see Eq. 3.2 of Schmidt et al, arXiv:1408.1810
+    big_a1: float = 0.0  # Mass weighted pre-factor, see Eq. 3.2 of Schmidt et al, arXiv:1408.1810
+    big_a2: float = 0.0  # Mass weighted pre-factor, see Eq. 3.2 of Schmidt et al, arXiv:1408.1810
     a_sp_1: float = 0.0  # \f$A1 * S_{1 \perp}\f$, see Eq. 3.3 of Schmidt et al, arXiv:1408.1810
     a_sp_2: float = 0.0  # \f$A2 * S_{2 \perp}\f$, see Eq. 3.3 of Schmidt et al, arXiv:1408.1810
     chi1_perp: float = 0.0  # \f$ \chi_{1 \perp} \f$
@@ -357,8 +357,8 @@ class IMRPhenomXPrecessionDataClass:  # pylint: disable=too-many-instance-attrib
 
     delta: float = 0.0  # Eq. C3 of arXiv:1703.03967
 
-    d2: float = 0.0
-    d3: float = 0.0
+    big_d2: float = 0.0
+    big_d3: float = 0.0
 
     # Precession averaged total spin, Eq. 45
     s_av: float = 0.0  # \f$ S_{\rm{av}} \f$ as defined in Eq. 45 of arXiv:1703.03967
