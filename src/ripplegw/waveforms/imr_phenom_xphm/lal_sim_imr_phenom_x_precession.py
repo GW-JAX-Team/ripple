@@ -1,31 +1,36 @@
+from __future__ import annotations
+
+import dataclasses
+
 import jax
 import jax.numpy as jnp
 from jax.experimental import checkify
 
-import dataclasses
-
-from ripplegw.typing import Array
-from ripplegw.constants import PI, MSUN, MRSUN, gt, G, C
-
+from ripplegw.constants import PI, C, G
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
-    IMRPhenomXUsefulPowersDataClass,
-    IMRPhenomXWaveformDataClass,
     IMRPhenomXPrecessionDataClass,
+    IMRPhenomXWaveformDataClass,
 )
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import xlalsim_imr_phenom_x_utils_hz_to_mf
 from ripplegw.waveforms.imr_phenom_xphm.parameter_dataclass import IMRPhenomXPHMParameterDataClass
-from ripplegw.waveforms.imr_phenom_xphm.lal_sim_inspiral_waveform_flags import (
-    xlal_sim_inspiral_mode_array_is_mode_active
-)
+
 
 def get_deltaF_from_wfstruct(pWF: IMRPhenomXWaveformDataClass) -> float:
+    """Compute deltaF from waveform structure parameters.
 
-  REAL8 seglen=XLALSimInspiralChirpTimeBound(pWF->fRef, pWF->m1_SI, pWF->m2_SI, pWF->chi1L,pWF->chi2L);
-  REAL8 deltaFv1= 1./MAX(4.,pow(2, ceil(log(seglen)/log(2))));
-  REAL8 deltaF = MIN(deltaFv1,0.1);
-  REAL8 deltaMF = XLALSimIMRPhenomXUtilsHztoMf(deltaF,pWF->Mtot);
-  return(deltaMF);
+    Args:
+        pWF: Waveform dataclass containing fRef, m1_SI, m2_SI, chi1L, chi2L, Mtot.
+    """
 
-}
+
+#   REAL8 seglen=XLALSimInspiralChirpTimeBound(pWF->fRef, pWF->m1_SI, pWF->m2_SI, pWF->chi1L,pWF->chi2L);
+#   REAL8 deltaFv1= 1./MAX(4.,pow(2, ceil(log(seglen)/log(2))));
+#   REAL8 deltaF = MIN(deltaFv1,0.1);
+#   REAL8 deltaMF = XLALSimIMRPhenomXUtilsHztoMf(deltaF,pWF->Mtot);
+#   return(deltaMF);
+
+# }
+
 
 @checkify.checkify
 def imr_phenom_x_set_precession_var(
@@ -40,49 +45,43 @@ def imr_phenom_x_set_precession_var(
     chi2y: float,
     chi2z: float,
     lalParams: IMRPhenomXPHMParameterDataClass,
-    debug_flag: int
+    debug_flag: int,
 ) -> None:
 
-#   /*
-#       Here we assume m1 > m2, q > 1, dm = m1 - m2 = delta = sqrt(1-4eta) > 0
-#   */
+    #   /*
+    #       Here we assume m1 > m2, q > 1, dm = m1 - m2 = delta = sqrt(1-4eta) > 0
+    #   */
     # pWF.lal_params = lalParams
 
     # /* Pre-cache useful powers here */:
-    pPrec.sqrt2   = 1.4142135623730951
-    pPrec.sqrt5   = 2.23606797749978981
-    pPrec.sqrt6   = 2.44948974278317788
-    pPrec.sqrt7   = 2.64575131106459072
-    pPrec.sqrt10  = 3.16227766016838
-    pPrec.sqrt14  = 3.74165738677394133
-    pPrec.sqrt15  = 3.87298334620741702
-    pPrec.sqrt70  = 8.36660026534075563
-    pPrec.sqrt30  = 5.477225575051661
+    pPrec.sqrt2 = 1.4142135623730951
+    pPrec.sqrt5 = 2.23606797749978981
+    pPrec.sqrt6 = 2.44948974278317788
+    pPrec.sqrt7 = 2.64575131106459072
+    pPrec.sqrt10 = 3.16227766016838
+    pPrec.sqrt14 = 3.74165738677394133
+    pPrec.sqrt15 = 3.87298334620741702
+    pPrec.sqrt70 = 8.36660026534075563
+    pPrec.sqrt30 = 5.477225575051661
     pPrec.sqrt2p5 = 1.58113883008419
 
-#   pPrec->debug_prec = debug_flag
+    #   pPrec->debug_prec = debug_flag
 
-    #/* Sort out version-specific flags */
+    # /* Sort out version-specific flags */
 
-    #// Get IMRPhenomX precession version from LAL dictionary
+    # // Get IMRPhenomX precession version from LAL dictionary
     IMRPhenomXPrecVersion = lalParams.precession_version
-    IMRPhenomXPrecVersion = jax.lax.select(
-        IMRPhenomXPrecVersion == 300,
-        223,
-        IMRPhenomXPrecVersion
-    )
+    IMRPhenomXPrecVersion = jax.lax.select(IMRPhenomXPrecVersion == 300, 223, IMRPhenomXPrecVersion)
 
-    #// default to NNLO angles if in-plane spins are negligible and one of the SpinTaylor options has been selected. The solutions would be dominated by numerical noise.
-    chi_in_plane = jnp.sqrt(chi1x*chi1x+chi1y*chi1y+chi2x*chi2x+chi2y*chi2y)
+    # // default to NNLO angles if in-plane spins are negligible and one of the SpinTaylor options has been selected. The solutions would be dominated by numerical noise.
+    chi_in_plane = jnp.sqrt(chi1x * chi1x + chi1y * chi1y + chi2x * chi2x + chi2y * chi2y)
 
     # if(chi_in_plane<1e-6 && pPrec->IMRPhenomXPrecVersion==330)
     # {
     # pPrec->IMRPhenomXPrecVersion=102
     # }
     IMRPhenomXPrecVersion = jax.lax.select(
-        (chi_in_plane < 1e-6) & (IMRPhenomXPrecVersion == 330),
-        102,
-        IMRPhenomXPrecVersion
+        (chi_in_plane < 1e-6) & (IMRPhenomXPrecVersion == 330), 102, IMRPhenomXPrecVersion
     )
 
     # if(chi_in_plane<1e-7 && (pPrec->IMRPhenomXPrecVersion==320||pPrec->IMRPhenomXPrecVersion==321||pPrec->IMRPhenomXPrecVersion==310||pPrec->IMRPhenomXPrecVersion==311))
@@ -90,9 +89,15 @@ def imr_phenom_x_set_precession_var(
     # pPrec->IMRPhenomXPrecVersion=102
     # }
     IMRPhenomXPrecVersion = jax.lax.select(
-        (chi_in_plane < 1e-7) & ((IMRPhenomXPrecVersion == 320) | (IMRPhenomXPrecVersion == 321) | (IMRPhenomXPrecVersion == 310) | (IMRPhenomXPrecVersion == 311)),
+        (chi_in_plane < 1e-7)
+        & (
+            (IMRPhenomXPrecVersion == 320)
+            | (IMRPhenomXPrecVersion == 321)
+            | (IMRPhenomXPrecVersion == 310)
+            | (IMRPhenomXPrecVersion == 311)
+        ),
         102,
-        IMRPhenomXPrecVersion
+        IMRPhenomXPrecVersion,
     )
 
     # // Get expansion order for MSA system of equations. Default is taken to be 5.
@@ -119,116 +124,115 @@ def imr_phenom_x_set_precession_var(
     # MBandPrecVersion = 0 /* current default value is 0 */
     # conditionalPrecMBand = 1
     # }
-    is_version_2 = (MBandPrecVersion == 2)
+    is_version_2 = MBandPrecVersion == 2
     conditionalPrecMBand = jax.lax.select(is_version_2, 1, conditionalPrecMBand)
     MBandPrecVersion = jax.lax.select(is_version_2, 0, MBandPrecVersion)
 
-
     # /* Define a number of convenient local parameters */
-    m1 = m1_SI / pWF.m_tot_si    # Normalized mass of larger companion:   m1_SI / Mtot_SI
-    m2 = m2_SI / pWF.m_tot_si    # Normalized mass of smaller companion:  m2_SI / Mtot_SI
-    M  = m1 + m2                 # Total mass in solar units
+    m1 = m1_SI / pWF.m_tot_si  # Normalized mass of larger companion:   m1_SI / Mtot_SI
+    m2 = m2_SI / pWF.m_tot_si  # Normalized mass of smaller companion:  m2_SI / Mtot_SI
+    M = m1 + m2  # Total mass in solar units
 
-    #// Useful powers of mass
-    m1_2      = m1 * m1
-    m1_3      = m1 * m1_2
-    m1_4      = m1 * m1_3
-    m1_5      = m1 * m1_4
-    m1_6      = m1 * m1_5
-    m1_7      = m1 * m1_6
-    m1_8      = m1 * m1_7
+    # // Useful powers of mass
+    m1_2 = m1 * m1
+    m1_3 = m1 * m1_2
+    m1_4 = m1 * m1_3
+    m1_5 = m1 * m1_4
+    m1_6 = m1 * m1_5
+    m1_7 = m1 * m1_6
+    m1_8 = m1 * m1_7
 
-    m2_2      = m2 * m2
+    m2_2 = m2 * m2
 
     # I'm keeping this here, but note that these three lines have been moved to the setting of IMRPhenomXPHMParameterDataClass
-#   pWF->M = M
-#   pWF->m1_2 = m1_2
-#   pWF->m2_2 = m2_2
+    #   pWF->M = M
+    #   pWF->m1_2 = m1_2
+    #   pWF->m2_2 = m2_2
 
-    q         = m1/m2  # q = m1 / m2 > 1.0
+    q = m1 / m2  # q = m1 / m2 > 1.0
 
     # // Powers of eta
-    eta       = pWF.eta
-    eta2      = eta*eta
-    eta3      = eta*eta2
-    eta4      = eta*eta3
-    eta5      = eta*eta4
-    eta6      = eta*eta5
+    eta = pWF.eta
+    eta2 = eta * eta
+    eta3 = eta * eta2
+    eta4 = eta * eta3
+    eta5 = eta * eta4
+    eta6 = eta * eta5
 
     # // \delta in terms of q > 1
-    delta     = pWF.delta
-    delta2    = delta*delta
-    delta3    = delta*delta2
+    delta = pWF.delta
+    delta2 = delta * delta
+    delta3 = delta * delta2
 
     # // Cache these powers, as we use them regularly
-    eta            = eta
-    eta2           = eta2
-    eta3           = eta3
-    eta4           = eta4
+    eta = eta
+    eta2 = eta2
+    eta3 = eta3
+    eta4 = eta4
 
-    inveta         = 1.0 / eta
-    inveta2        = 1.0 / eta2
-    inveta3        = 1.0 / eta3
-    inveta4        = 1.0 / eta4
-    sqrt_inveta    = 1.0 / jnp.sqrt(eta)
+    inveta = 1.0 / eta
+    inveta2 = 1.0 / eta2
+    inveta3 = 1.0 / eta3
+    inveta4 = 1.0 / eta4
+    sqrt_inveta = 1.0 / jnp.sqrt(eta)
 
-    chi_eff   = pWF.chi_eff
+    chi_eff = pWF.chi_eff
 
-    twopiGM        = 2*PI * G * (m1_SI + m2_SI) / C**3
-    piGM           = PI * G *(m1_SI + m2_SI) / C**3
+    twopiGM = 2 * PI * G * (m1_SI + m2_SI) / C**3
+    piGM = PI * G * (m1_SI + m2_SI) / C**3
 
     # /* Set spin variables in pPrec struct */
-    chi1x          = chi1x
-    chi1y          = chi1y
-    chi1_norm      = jnp.sqrt(chi1x*chi1x + chi1y*chi1y + chi1z*chi1z)
+    chi1x = chi1x
+    chi1y = chi1y
+    chi1_norm = jnp.sqrt(chi1x * chi1x + chi1y * chi1y + chi1z * chi1z)
 
-    chi2x          = chi2x
-    chi2y          = chi2y
-    chi2z          = chi2z
-    chi2_norm      = jnp.sqrt(chi2x*chi2x + chi2y*chi2y + chi2z*chi2z)
+    chi2x = chi2x
+    chi2y = chi2y
+    chi2z = chi2z
+    chi2_norm = jnp.sqrt(chi2x * chi2x + chi2y * chi2y + chi2z * chi2z)
 
     # /* Check that spins obey Kerr bound */
     # if((!PNRUseTunedAngles)||(pWF->PNR_SINGLE_SPIN != 1)){ #/*Allow the single-spin mapping for PNR to break the Kerr limit*/
     # XLAL_CHECK(fabs(pPrec->chi1_norm) <= 1.0, XLAL_EDOM, "Error in IMRPhenomXSetPrecessionVariables: |S1/m1^2| must be <= 1.\n")
     # XLAL_CHECK(fabs(pPrec->chi2_norm) <= 1.0, XLAL_EDOM, "Error in IMRPhenomXSetPrecessionVariables: |S2/m2^2| must be <= 1.\n")
     # }
-    kerr_check_cond = ((not PNRUseTunedAngles) | (pWF.pnr_single_spin != 1))
+    kerr_check_cond = (not PNRUseTunedAngles) | (pWF.pnr_single_spin != 1)
     checkify.check(
         kerr_check_cond & (jnp.abs(chi1_norm) <= 1.0),
-        "Error in IMRPhenomXSetPrecessionVariables: |S1/m1^2| must be <= 1.\n"
+        "Error in IMRPhenomXSetPrecessionVariables: |S1/m1^2| must be <= 1.\n",
     )
     checkify.check(
         kerr_check_cond & (jnp.abs(chi2_norm) <= 1.0),
-        "Error in IMRPhenomXSetPrecessionVariables: |S2/m2^2| must be <= 1.\n"
+        "Error in IMRPhenomXSetPrecessionVariables: |S2/m2^2| must be <= 1.\n",
     )
 
     # /* Calculate dimensionful spins */
-    S1x        = chi1x * m1_2
-    S1y        = chi1y * m1_2
-    S1z        = chi1z * m1_2
-    S1_norm    = jnp.abs(chi1_norm) * m1_2
+    S1x = chi1x * m1_2
+    S1y = chi1y * m1_2
+    S1z = chi1z * m1_2
+    S1_norm = jnp.abs(chi1_norm) * m1_2
 
-    S2x        = chi2x * m2_2
-    S2y        = chi2y * m2_2
-    S2z        = chi2z * m2_2
-    S2_norm    = jnp.abs(chi2_norm) * m2_2
+    S2x = chi2x * m2_2
+    S2y = chi2y * m2_2
+    S2z = chi2z * m2_2
+    S2_norm = jnp.abs(chi2_norm) * m2_2
 
     # // Useful powers
-    S1_norm_2  = S1_norm * S1_norm
-    S2_norm_2  = S2_norm * S2_norm
+    S1_norm_2 = S1_norm * S1_norm
+    S2_norm_2 = S2_norm * S2_norm
 
-    chi1_perp  = jnp.sqrt(chi1x*chi1x + chi1y*chi1y)
-    chi2_perp  = jnp.sqrt(chi2x*chi2x + chi2y*chi2y)
+    chi1_perp = jnp.sqrt(chi1x * chi1x + chi1y * chi1y)
+    chi2_perp = jnp.sqrt(chi2x * chi2x + chi2y * chi2y)
 
     # /* Get spin projections */
-    S1_perp    = (m1_2) * jnp.sqrt(chi1x*chi1x + chi1y*chi1y)
-    S2_perp    = (m2_2) * jnp.sqrt(chi2x*chi2x + chi2y*chi2y)
+    S1_perp = (m1_2) * jnp.sqrt(chi1x * chi1x + chi1y * chi1y)
+    S2_perp = (m2_2) * jnp.sqrt(chi2x * chi2x + chi2y * chi2y)
 
     # /* Norm of in-plane vector sum: Norm[ S1perp + S2perp ] */
-    STot_perp     = jnp.sqrt( (S1x+S2x)*(S1x+S2x) + (S1y+S2y)*(S1y+S2y) )
+    STot_perp = jnp.sqrt((S1x + S2x) * (S1x + S2x) + (S1y + S2y) * (S1y + S2y))
 
     # /* This is called chiTot_perp to distinguish from Sperp used in contrusction of chi_p. For normalization, see Sec. IV D of arXiv:2004.06503 */
-    chiTot_perp   = STot_perp * (M*M) / m1_2
+    chiTot_perp = STot_perp * (M * M) / m1_2
     # /* Store chiTot_perp to pWF so that it can be used in XCP modifications (PNRUseTunedCoprec) */
     pWF = dataclasses.replace(pWF, chiTot_perp=chiTot_perp)
 
@@ -245,78 +249,53 @@ def imr_phenom_x_set_precession_var(
     low_spin_cond = (chi_in_plane < 1e-7) & (IMRPhenomXPNRUseTunedAngles == 1) & (pWF.pnr_single_spin != 1)
     lalParams = jax.lax.cond(
         low_spin_cond,
-        lambda x: dataclasses.replace(
-            x,
-            pnr_use_tuned_angles=0,
-            antisymmetric_waveform=0,
-            pnr_use_tuned_coprec=0
-        ),
+        lambda x: dataclasses.replace(x, pnr_use_tuned_angles=0, antisymmetric_waveform=0, pnr_use_tuned_coprec=0),
         lambda x: x,
-        lalParams
+        lalParams,
     )
-    PNRUseTunedAngles = jax.lax.select(
-        low_spin_cond,
-        0,
-        PNRUseTunedAngles
-    )
-    IMRPhenomXAntisymmetricWaveform = jax.lax.select(
-        low_spin_cond,
-        0,
-        IMRPhenomXAntisymmetricWaveform
-    )
-
+    PNRUseTunedAngles = jax.lax.select(low_spin_cond, 0, PNRUseTunedAngles)
+    IMRPhenomXAntisymmetricWaveform = jax.lax.select(low_spin_cond, 0, IMRPhenomXAntisymmetricWaveform)
 
     # /*
     # Calculate the effective precessing spin parameter (Schmidt et al, PRD 91, 024043, 2015):
     #     - m1 > m2, so body 1 is the larger black hole
     # */
-    A1             = 2.0 + (3.0 * m2) / (2.0 * m1)
-    A2             = 2.0 + (3.0 * m1) / (2.0 * m2)
-    ASp1           = A1 * S1_perp
-    ASp2           = A2 * S2_perp
+    A1 = 2.0 + (3.0 * m2) / (2.0 * m1)
+    A2 = 2.0 + (3.0 * m1) / (2.0 * m2)
+    ASp1 = A1 * S1_perp
+    ASp2 = A2 * S2_perp
 
     # /* S_p = max(A1 S1_perp, A2 S2_perp) */
-    num       = jax.lax.select(
-        ASp2 > ASp1, 
-        ASp2,
-        ASp1
-    )
-    den       = jax.lax.select(
-        m2 > m1,
-        A2*(m2_2),
-        A1*(m1_2)
-    )
+    num = jax.lax.select(ASp2 > ASp1, ASp2, ASp1)
+    den = jax.lax.select(m2 > m1, A2 * (m2_2), A1 * (m1_2))
 
     # /* chi_p = max(A1 * Sp1 , A2 * Sp2) / (A_i * m_i^2) where i is the index of the larger BH */
-    chip      = num / den
-    chi1L     = chi1z
-    chi2L     = chi2z
+    chip = num / den
+    chi1L = chi1z
+    chi2L = chi2z
 
-
-    chi_p          = chip
+    chi_p = chip
     # // (PNRUseTunedCoprec)
     pWF = dataclasses.replace(pWF, chi_p=chi_p)
-    phi0_aligned   = pWF.phi0
+    phi0_aligned = pWF.phi0
 
     # /* Effective (dimensionful) aligned spin */
-    SL             = chi1L*m1_2 + chi2L*m2_2
+    SL = chi1L * m1_2 + chi2L * m2_2
 
     # /* Effective (dimensionful) in-plane spin */
-    Sperp          = chip * m1_2                  #/* m1 > m2 */
+    Sperp = chip * m1_2  # /* m1 > m2 */
 
-    MSA_ERROR      = 0
+    MSA_ERROR = 0
 
     # pWF22AS = NULL
 
     # // get first digit of precessing version: this tags the method employed to compute the Euler angles
     # // 1: NNLO 2: MSA 3: SpinTaylor (numerical)
-    precversionTag=(IMRPhenomXPrecVersion-(IMRPhenomXPrecVersion%100))/100
+    precversionTag = (IMRPhenomXPrecVersion - (IMRPhenomXPrecVersion % 100)) / 100
 
     # /* start of SpinTaylor code */
 
-
     # ######## NOTE if precversionTag==3: ######## -> Spin-Taylor
-
 
     # # // allocate memory to store arrays with results of the PN precession equations
     # # status=XLAL_SUCCESS
@@ -325,7 +304,6 @@ def imr_phenom_x_set_precession_var(
 
     # # // check mode array to estimate frequency range over which splines will need to be evaluated
     # ModeArray = lalParams.mode_array
-    
 
     # # if (ModeArray != NULL)
     # # {
@@ -355,7 +333,6 @@ def imr_phenom_x_set_precession_var(
     # )
     # L_MAX_PNR = LMAX_PNR
 
-    
     # # // buffer for GSL interpolation to succeed
     # # // set first to fMin
     # flow = pWF.f_min
@@ -434,7 +411,6 @@ def imr_phenom_x_set_precession_var(
     #     REAL8 fmin_HM_ringdowm = XLALSimIMRPhenomXUtilsMftoHz(XLALSimIMRPhenomXUtilsHztoMf(flow, pWF->Mtot) - (Mf_RD_lm - Mf_RD_22), pWF->Mtot)
     #     flow = ((fmin_HM_ringdowm < fmin_HM_inspiral)&&(fmin_HM_ringdowm > 0.0)) ? fmin_HM_ringdowm : fmin_HM_inspiral
     # }
-
 
     # double pnr_interpolation_deltaf = IMRPhenomX_PNR_HMInterpolationDeltaF(flow, pWF, pPrec)
     # pPrec->integration_buffer = 1.4*pnr_interpolation_deltaf
@@ -521,8 +497,8 @@ def imr_phenom_x_set_precession_var(
     #                         }
     # // end of SpinTaylor code
 
-#             }
 
+#             }
 
 
 #   /* update  precessing version to catch possible fallbacks of SpinTaylor angles */
@@ -620,7 +596,6 @@ def imr_phenom_x_set_precession_var(
 #   in IMRPhenomXGetAndSetPrecessionVariables.\n")
 
 #   /*..#...#...#...#...#...#...#...#...#...#...#...#...#...#...*/
-
 
 
 #   //
@@ -799,7 +774,7 @@ def imr_phenom_x_set_precession_var(
 #   pPrec->LRef = M * M * XLALSimIMRPhenomXLPNAnsatz(pWF->v_ref, pWF->eta / pWF->v_ref, pPrec->L0, pPrec->L1, pPrec->L2, pPrec->L3, pPrec->L4, pPrec->L5, pPrec->L6, pPrec->L7, pPrec->L8, pPrec->L8L)
 
 #   /*
-#     In the following code block we construct the convetions that relate the source frame and the LAL frame.
+#     In the following code block we construct the conventions that relate the source frame and the LAL frame.
 
 #     A detailed discussion of the conventions can be found in Appendix C and D of arXiv:2004.06503 and https://dcc.ligo.org/LIGO-T1500602
 #   */
@@ -1347,3 +1322,79 @@ def imr_phenom_x_set_precession_var(
 
 #   return XLAL_SUCCESS
 # }
+
+
+def imr_phenom_x_initialize_euler_angles(  # pylint: disable=unused-argument,unused-variable
+    p_wf: IMRPhenomXWaveformDataClass,
+    p_prec: IMRPhenomXPrecessionDataClass,
+    lal_params: IMRPhenomXPHMParameterDataClass,
+):
+    """Initialize Euler angles for IMRPhenomXPHM waveform model.
+
+    Args:
+        p_wf: Waveform data class containing waveform parameters.
+        p_prec: Precession data class to be initialized.
+        lal_params: Parameter data class containing LAL parameters.
+    """
+    threshold_pmb = lal_params.threshold_mband
+
+    buffer = p_prec.integration_buffer
+
+    # start below fMin to avoid interpolation artefacts
+    f_min_angles = (p_wf.f_min - buffer) * 2 / p_prec.M_MAX
+
+    # check we still pass a meaningful fmin
+    checkify.check(
+        f_min_angles > 0.0,
+        "Error - imr_phenom_x_initialize_euler_angles: fMin is too low and numerical angles could not be computed.",
+    )
+
+    # If MB is on, we take advantage of the fact that we can compute angles on an array
+
+    m_fmax_angles = jax.lax.cond(
+        threshold_pmb > 0.0,
+        lambda: p_wf.f_ring + 4.0 * p_wf.f_damp,
+        lambda: (
+            jnp.maximum(p_wf.mf_max, p_wf.f_ring + 4.0 * p_wf.f_damp)
+            + xlalsim_imr_phenom_x_utils_hz_to_mf(buffer, p_wf.m_tot)
+        )
+        * 2
+        / p_prec.M_MIN,
+    )
+
+    # If MB is on, we take advantage of the fact that we can compute angles on an array
+
+    #   if(thresholdPMB>0.)
+    #     pPrec->Mfmax_angles = pWF->fRING+4.*pWF->fDAMP;
+    #   else
+    #     pPrec->Mfmax_angles = (MAX(pWF->MfMax,pWF->fRING+4.*pWF->fDAMP)+XLALSimIMRPhenomXUtilsHztoMf(buffer,pWF->Mtot))*2./pPrec->M_MIN;
+
+    m_fmax_angles = jax.lax.cond(
+        threshold_pmb > 0.0,
+        lambda: p_wf.f_ring + 4.0 * p_wf.f_damp,
+        lambda: (
+            jnp.maximum(p_wf.mf_max, p_wf.f_ring + 4.0 * p_wf.f_damp)
+            + xlalsim_imr_phenom_x_utils_hz_to_mf(buffer, p_wf.m_tot)
+        )
+        * 2
+        / p_prec.M_MIN,
+    )
+
+    p_prec = p_prec.replace(Mfmax_angles=m_fmax_angles)
+
+    #   REAL8 fmaxAngles = XLALSimIMRPhenomXUtilsMftoHz(pPrec->Mfmax_angles,pWF->Mtot);
+
+    #   // we add a few bins to fmax to make sure we do not run into interpolation errors
+    #   status = IMRPhenomX_SpinTaylorAnglesSplinesAll(fminAngles,fmaxAngles,pWF,pPrec,lalParams);
+    #   XLAL_CHECK(status == XLAL_SUCCESS, XLAL_EFUNC, "%s: IMRPhenomX_SpinTaylorAnglesSplinesAll failed.",__func__);
+
+    #   status = gsl_spline_eval_e(pPrec->alpha_spline, pPrec->ftrans_MRD, pPrec->alpha_acc,&pPrec->alpha_ftrans);
+    #   XLAL_CHECK(status == XLAL_SUCCESS, XLAL_EFUNC, "%s: could not compute alpha et the end of inspiral.",__func__);
+
+    #   status = gsl_spline_eval_e(pPrec->cosbeta_spline, pPrec->ftrans_MRD, pPrec->cosbeta_acc,&pPrec->cosbeta_ftrans);
+    #   XLAL_CHECK(status == XLAL_SUCCESS, XLAL_EFUNC, "%s: could not compute cosbeta et the end of inspiral.",__func__);
+
+    #   status = gsl_spline_eval_e(pPrec->gamma_spline, pPrec->ftrans_MRD, pPrec->gamma_acc,&pPrec->gamma_ftrans);
+    #   XLAL_CHECK(status == XLAL_SUCCESS, XLAL_EFUNC, "%s: could not compute gamma et the end of inspiral.",__func__);
+
+    #   return status;

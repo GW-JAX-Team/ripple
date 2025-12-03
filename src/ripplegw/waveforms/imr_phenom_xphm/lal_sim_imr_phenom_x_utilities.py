@@ -6,6 +6,7 @@ import jax.numpy as jnp
 from jax import lax
 
 from ripplegw.constants import PI
+from ripplegw.waveforms.imr_phenom_xphm.lal_constants import LAL_MTSUN_SI
 
 
 def xlal_imr_phenom_xp_check_masses_and_spins(  # pylint: disable=too-many-arguments,too-many-positional-arguments
@@ -392,3 +393,29 @@ def xlal_sim_imr_phenom_x_sign(x: float) -> float:
             0.0,
         ),
     )
+
+
+def xlal_sim_imr_phenom_x_utils_hz_to_mf(f_hz: float, m_tot_msun: float) -> float:
+    """Convert frequency from Hz to dimensionless Mf units.
+
+    Args:
+        f_hz: Frequency in Hz.
+        m_tot_msun: Total mass in solar masses.
+
+    Returns:
+        Frequency in dimensionless Mf units.
+    """
+    return f_hz * (LAL_MTSUN_SI * m_tot_msun)
+
+
+def xlal_sim_imr_phenom_x_utils_mf_to_hz(mf: float, m_tot_msun: float) -> float:
+    """Convert frequency from dimensionless Mf units to Hz.
+
+    Args:
+        mf: Frequency in dimensionless Mf units.
+        m_tot_msun: Total mass in solar masses.
+
+    Returns:
+        Frequency in Hz.
+    """
+    return mf / (LAL_MTSUN_SI * m_tot_msun)
