@@ -1628,12 +1628,12 @@ def imr_phenom_x_initialize_euler_angles(  # pylint: disable=unused-argument,unu
     #   return status;
 
 
-def imr_phenom_x_rotate_z(angle: float, vs: float, vy: float, vz: float) -> tuple[float, float, float]:
+def imr_phenom_x_rotate_z(angle: float, vx: float, vy: float, vz: float) -> tuple[float, float, float]:
     """Rotate a vector around the z-axis by a given angle.
 
     Args:
         angle: Rotation angle in radians.
-        vs: x-component of the vector.
+        vx: x-component of the vector.
         vy: y-component of the vector.
         vz: z-component of the vector.
 
@@ -1643,8 +1643,30 @@ def imr_phenom_x_rotate_z(angle: float, vs: float, vy: float, vz: float) -> tupl
     cos_angle = jnp.cos(angle)
     sin_angle = jnp.sin(angle)
 
-    vx_rotated = cos_angle * vs - sin_angle * vy
-    vy_rotated = sin_angle * vs + cos_angle * vy
+    vx_rotated = cos_angle * vx - sin_angle * vy
+    vy_rotated = sin_angle * vx + cos_angle * vy
     vz_rotated = vz
+
+    return vx_rotated, vy_rotated, vz_rotated
+
+
+def imr_phenom_x_rotate_y(angle: float, vx: float, vy: float, vz: float) -> tuple[float, float, float]:
+    """Rotate a vector around the y-axis by a given angle.
+
+    Args:
+        angle: Rotation angle in radians.
+        vx: x-component of the vector.
+        vy: y-component of the vector.
+        vz: z-component of the vector.
+
+    Returns:
+        A tuple containing the rotated vector components (vx', vy', vz').
+    """
+    cos_angle = jnp.cos(angle)
+    sin_angle = jnp.sin(angle)
+
+    vx_rotated = cos_angle * vx + sin_angle * vz
+    vy_rotated = vy
+    vz_rotated = -sin_angle * vx + cos_angle * vz
 
     return vx_rotated, vy_rotated, vz_rotated
