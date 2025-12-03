@@ -1,4 +1,5 @@
 afinal
+alphaaux
 alphaepsilon
 Ansatz
 argnames
@@ -24,8 +25,10 @@ contrusction
 coprec
 coprecessing
 cosbeta
+cosbetamax
 costheta
 Cphi
+cspline
 dchi
 deformabilities
 deformability
@@ -64,6 +67,7 @@ lalsuite
 Lhat
 LIGO
 LMAX
+Lnorm
 Marsat
 mband
 meco

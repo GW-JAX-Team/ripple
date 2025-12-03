@@ -1327,7 +1327,7 @@ def imr_phenom_x_set_precession_var(
 # }
 
 
-def imr_phenom_x_interpolate_alpha_beta_spin_taylor(
+def imr_phenom_x_interpolate_alpha_beta_spin_taylor(  # pylint: disable=unused-argument,unused-variable
     p_wf: IMRPhenomXWaveformDataClass,
     p_prec: IMRPhenomXPrecessionDataClass,
     lal_params: IMRPhenomXPHMParameterDataClass,
@@ -1340,7 +1340,7 @@ def imr_phenom_x_interpolate_alpha_beta_spin_taylor(
         p_prec: Precession data class containing precession parameters.
         lal_params: Parameter data class containing LAL parameters.
     """
-    len_pn = p_prec.PNarrays.shape[0]
+    len_pn = p_prec.pn_arrays.v_pn.shape[0]
 
     # Initialize arrays
     f_gw = jnp.zeros(len_pn)
@@ -1358,168 +1358,172 @@ def imr_phenom_x_interpolate_alpha_beta_spin_taylor(
     }
 
     def loop_body(i: int, state: dict):
-        pass
+        ln_hat_x_temp = p_prec.pn_arrays.ln_hat_x_pn[i]
+        ln_hat_y_temp = p_prec.pn_arrays.ln_hat_y_pn[i]
+        ln_hat_z_temp = p_prec.pn_arrays.ln_hat_z_pn[i]
 
-        #       REAL8Sequence *fgw =NULL ;
-        #       /* Setup sequences for angles*/
-        #       REAL8Sequence *alpha = NULL;
-        #       REAL8Sequence *alphaaux = NULL;
-        #       REAL8Sequence *cosbeta = NULL;
+    final_state = jax.lax.fori_loop(0, len_pn, loop_body, init_state)
 
-        #       fgw=XLALCreateREAL8Sequence(lenPN);
-        #       alpha=XLALCreateREAL8Sequence(lenPN);
-        #       alphaaux=XLALCreateREAL8Sequence(lenPN);
-        #       cosbeta=XLALCreateREAL8Sequence(lenPN);
+    #       REAL8Sequence *fgw =NULL ;
+    #       /* Setup sequences for angles*/
+    #       REAL8Sequence *alpha = NULL;
+    #       REAL8Sequence *alphaaux = NULL;
+    #       REAL8Sequence *cosbeta = NULL;
 
-        #       REAL8 fgw_Mf, fgw_Hz, Mfmax_PN=0.;
-        #       // i_max is used to discard possibly unphysical points in the calculation of the final spin
-        #       UINT8 i_max=0;
-        #       REAL8 LNhatx_temp,LNhaty_temp,LNhatz_temp;
+    #       fgw=XLALCreateREAL8Sequence(lenPN);
+    #       alpha=XLALCreateREAL8Sequence(lenPN);
+    #       alphaaux=XLALCreateREAL8Sequence(lenPN);
+    #       cosbeta=XLALCreateREAL8Sequence(lenPN);
 
-        #       for(UINT8 i=0; i < lenPN; i++){
+    #       REAL8 fgw_Mf, fgw_Hz, Mfmax_PN=0.;
+    #       // i_max is used to discard possibly unphysical points in the calculation of the final spin
+    #       UINT8 i_max=0;
+    #       REAL8 LNhatx_temp,LNhaty_temp,LNhatz_temp;
 
-        #           LNhatx_temp = (pPrec->PNarrays->LNhatx_PN->data->data[i]);
-        #           LNhaty_temp = (pPrec->PNarrays->LNhaty_PN->data->data[i]);
-        #           LNhatz_temp = (pPrec->PNarrays->LNhatz_PN->data->data[i]);
+    #       for(UINT8 i=0; i < lenPN; i++){
 
-        #           IMRPhenomX_rotate_z(-pPrec->phiJ_Sf,  &LNhatx_temp, &LNhaty_temp, &LNhatz_temp);
-        #           IMRPhenomX_rotate_y(-pPrec->thetaJ_Sf, &LNhatx_temp, &LNhaty_temp, &LNhatz_temp);
-        #           IMRPhenomX_rotate_z(-pPrec->kappa,  &LNhatx_temp, &LNhaty_temp, &LNhatz_temp);
+    #           LNhatx_temp = (pPrec->PNarrays->LNhatx_PN->data->data[i]);
+    #           LNhaty_temp = (pPrec->PNarrays->LNhaty_PN->data->data[i]);
+    #           LNhatz_temp = (pPrec->PNarrays->LNhatz_PN->data->data[i]);
 
-        #           fgw_Hz= pow(pPrec->PNarrays->V_PN->data->data[i],3.)/pPrec->piGM;
-        #           fgw_Mf= XLALSimIMRPhenomXUtilsHztoMf(fgw_Hz,pWF->Mtot);
+    #           IMRPhenomX_rotate_z(-pPrec->phiJ_Sf,  &LNhatx_temp, &LNhaty_temp, &LNhatz_temp);
+    #           IMRPhenomX_rotate_y(-pPrec->thetaJ_Sf, &LNhatx_temp, &LNhaty_temp, &LNhatz_temp);
+    #           IMRPhenomX_rotate_z(-pPrec->kappa,  &LNhatx_temp, &LNhaty_temp, &LNhatz_temp);
 
-        #           if(fgw_Hz>0.){
+    #           fgw_Hz= pow(pPrec->PNarrays->V_PN->data->data[i],3.)/pPrec->piGM;
+    #           fgw_Mf= XLALSimIMRPhenomXUtilsHztoMf(fgw_Hz,pWF->Mtot);
 
-        #           /* Compute Euler angles in the J frame */
-        #           alphaaux->data[i] = atan2(LNhaty_temp, LNhatx_temp);
-        #           cosbeta->data[i] = LNhatz_temp;
-        #           fgw->data[i] = fgw_Mf;
-        #           Mfmax_PN = fgw_Mf;
-        #           i_max = i;
-        #           }
+    #           if(fgw_Hz>0.){
 
-        #           else
-        #               break;
+    #           /* Compute Euler angles in the J frame */
+    #           alphaaux->data[i] = atan2(LNhaty_temp, LNhatx_temp);
+    #           cosbeta->data[i] = LNhatz_temp;
+    #           fgw->data[i] = fgw_Mf;
+    #           Mfmax_PN = fgw_Mf;
+    #           i_max = i;
+    #           }
 
-        #       }
+    #           else
+    #               break;
 
-        #     REAL8 fmax_inspiral;
-        #     if(pPrec->IMRPhenomXPNRUseTunedAngles)
-        #     fmax_inspiral = Mfmax_PN;
-        #     else
-        #     fmax_inspiral = Mfmax_PN-pWF->deltaMF;
+    #       }
 
-        #     if(fmax_inspiral > pWF->fRING-pWF->fDAMP) fmax_inspiral = 1.020 * pWF->fMECO;
+    #     REAL8 fmax_inspiral;
+    #     if(pPrec->IMRPhenomXPNRUseTunedAngles)
+    #     fmax_inspiral = Mfmax_PN;
+    #     else
+    #     fmax_inspiral = Mfmax_PN-pWF->deltaMF;
 
-        #     pPrec->ftrans_MRD = 0.98*fmax_inspiral;
-        #     pPrec->fmax_inspiral= fmax_inspiral;
+    #     if(fmax_inspiral > pWF->fRING-pWF->fDAMP) fmax_inspiral = 1.020 * pWF->fMECO;
 
-        #     // Interpolate alpha
-        #     XLALSimIMRPhenomXUnwrapArray(alphaaux->data, alpha->data, lenPN);
+    #     pPrec->ftrans_MRD = 0.98*fmax_inspiral;
+    #     pPrec->fmax_inspiral= fmax_inspiral;
 
-        #     pPrec->alpha_acc = gsl_interp_accel_alloc();
-        #     pPrec->alpha_spline = gsl_spline_alloc(gsl_interp_cspline, lenPN);
+    #     // Interpolate alpha
+    #     XLALSimIMRPhenomXUnwrapArray(alphaaux->data, alpha->data, lenPN);
 
-        #     status = gsl_spline_init(pPrec->alpha_spline, fgw->data, alpha->data, lenPN);
+    #     pPrec->alpha_acc = gsl_interp_accel_alloc();
+    #     pPrec->alpha_spline = gsl_spline_alloc(gsl_interp_cspline, lenPN);
 
-        #     if (status != GSL_SUCCESS)
-        #     {
-        #          XLALPrintError("Error in %s: error in computing gsl spline for alpha.\n",__func__);
-        #     }
+    #     status = gsl_spline_init(pPrec->alpha_spline, fgw->data, alpha->data, lenPN);
 
-        #     // Interpolate cosbeta
-        #     pPrec->cosbeta_acc = gsl_interp_accel_alloc();
-        #     pPrec->cosbeta_spline = gsl_spline_alloc(gsl_interp_cspline, lenPN);
-        #     status =gsl_spline_init(pPrec->cosbeta_spline, fgw->data, cosbeta->data, lenPN);
+    #     if (status != GSL_SUCCESS)
+    #     {
+    #          XLALPrintError("Error in %s: error in computing gsl spline for alpha.\n",__func__);
+    #     }
 
-        #     if (status != GSL_SUCCESS)
-        #     {
-        #          XLALPrintError("Error in %s: error in computing gsl spline for cos(beta).\n",__func__);
-        #     }
+    #     // Interpolate cosbeta
+    #     pPrec->cosbeta_acc = gsl_interp_accel_alloc();
+    #     pPrec->cosbeta_spline = gsl_spline_alloc(gsl_interp_cspline, lenPN);
+    #     status =gsl_spline_init(pPrec->cosbeta_spline, fgw->data, cosbeta->data, lenPN);
 
-        #     REAL8 cosbetamax;
+    #     if (status != GSL_SUCCESS)
+    #     {
+    #          XLALPrintError("Error in %s: error in computing gsl spline for cos(beta).\n",__func__);
+    #     }
 
-        #     status = gsl_spline_eval_e(pPrec->cosbeta_spline, fmax_inspiral, pPrec->cosbeta_acc,&cosbetamax);
-        #     if(status != GSL_SUCCESS)
-        #     {
-        #         XLALPrintError("Error in %s: error in computing cosbeta.\n",__func__);
-        #     }
+    #     REAL8 cosbetamax;
 
-        #     // estimate final spin using spins at the end of the PN integration
+    #     status = gsl_spline_eval_e(pPrec->cosbeta_spline, fmax_inspiral, pPrec->cosbeta_acc,&cosbetamax);
+    #     if(status != GSL_SUCCESS)
+    #     {
+    #         XLALPrintError("Error in %s: error in computing cosbeta.\n",__func__);
+    #     }
 
-        #     if(XLALSimInspiralWaveformParamsLookupPhenomXPFinalSpinMod(LALparams)==4){
+    #     // estimate final spin using spins at the end of the PN integration
 
-        #     REAL8 m1 = pWF->m1_SI / pWF->Mtot_SI;
-        #     REAL8 m2 = pWF->m2_SI / pWF->Mtot_SI;
+    #     if(XLALSimInspiralWaveformParamsLookupPhenomXPFinalSpinMod(LALparams)==4){
 
-        #     vector Lnf  = {pPrec->PNarrays->LNhatx_PN->data->data[i_max],pPrec->PNarrays->LNhaty_PN->data->data[i_max],pPrec->PNarrays->LNhatz_PN->data->data[i_max]};
-        #     REAL8 Lnorm = sqrt(IMRPhenomX_vector_dot_product(Lnf,Lnf));
-        #     vector S1f  = {pPrec->PNarrays->S1x_PN->data->data[i_max],pPrec->PNarrays->S1y_PN->data->data[i_max],pPrec->PNarrays->S1z_PN->data->data[i_max]};
-        #     vector S2f  = {pPrec->PNarrays->S2x_PN->data->data[i_max],pPrec->PNarrays->S2y_PN->data->data[i_max],pPrec->PNarrays->S2z_PN->data->data[i_max]};
+    #     REAL8 m1 = pWF->m1_SI / pWF->Mtot_SI;
+    #     REAL8 m2 = pWF->m2_SI / pWF->Mtot_SI;
 
-        #     REAL8 dotS1L = IMRPhenomX_vector_dot_product(S1f,Lnf)/Lnorm;
-        #     REAL8 dotS2L  = IMRPhenomX_vector_dot_product(S2f,Lnf)/Lnorm;
-        #     vector S1_perp = IMRPhenomX_vector_diff(S1f,IMRPhenomX_vector_scalar(Lnf, dotS1L));
-        #     S1_perp = IMRPhenomX_vector_scalar(S1_perp,m1*m1);
-        #     vector S2_perp = IMRPhenomX_vector_diff(S2f,IMRPhenomX_vector_scalar(Lnf, dotS2L));
-        #     S2_perp = IMRPhenomX_vector_scalar(S2_perp,m2*m2);
-        #     vector Stot_perp = IMRPhenomX_vector_sum(S1_perp,S2_perp);
-        #     REAL8 S_perp_norm = sqrt(IMRPhenomX_vector_dot_product(Stot_perp,Stot_perp));
-        #     REAL8 chi_perp_norm = S_perp_norm *pow(m1 + m2,2)/pow(m1,2);
+    #     vector Lnf  = {pPrec->PNarrays->LNhatx_PN->data->data[i_max],pPrec->PNarrays->LNhaty_PN->data->data[i_max],pPrec->PNarrays->LNhatz_PN->data->data[i_max]};
+    #     REAL8 Lnorm = sqrt(IMRPhenomX_vector_dot_product(Lnf,Lnf));
+    #     vector S1f  = {pPrec->PNarrays->S1x_PN->data->data[i_max],pPrec->PNarrays->S1y_PN->data->data[i_max],pPrec->PNarrays->S1z_PN->data->data[i_max]};
+    #     vector S2f  = {pPrec->PNarrays->S2x_PN->data->data[i_max],pPrec->PNarrays->S2y_PN->data->data[i_max],pPrec->PNarrays->S2z_PN->data->data[i_max]};
 
-        #     pWF->afinal= copysign(1.0, cosbetamax)* XLALSimIMRPhenomXPrecessingFinalSpin2017(pWF->eta,dotS1L,dotS2L,chi_perp_norm);
+    #     REAL8 dotS1L = IMRPhenomX_vector_dot_product(S1f,Lnf)/Lnorm;
+    #     REAL8 dotS2L  = IMRPhenomX_vector_dot_product(S2f,Lnf)/Lnorm;
+    #     vector S1_perp = IMRPhenomX_vector_diff(S1f,IMRPhenomX_vector_scalar(Lnf, dotS1L));
+    #     S1_perp = IMRPhenomX_vector_scalar(S1_perp,m1*m1);
+    #     vector S2_perp = IMRPhenomX_vector_diff(S2f,IMRPhenomX_vector_scalar(Lnf, dotS2L));
+    #     S2_perp = IMRPhenomX_vector_scalar(S2_perp,m2*m2);
+    #     vector Stot_perp = IMRPhenomX_vector_sum(S1_perp,S2_perp);
+    #     REAL8 S_perp_norm = sqrt(IMRPhenomX_vector_dot_product(Stot_perp,Stot_perp));
+    #     REAL8 chi_perp_norm = S_perp_norm *pow(m1 + m2,2)/pow(m1,2);
 
-        #     pWF->fRING     = evaluate_QNMfit_fring22(pWF->afinal) / (pWF->Mfinal);
-        #     pWF->fDAMP     = evaluate_QNMfit_fdamp22(pWF->afinal) / (pWF->Mfinal);
-        #     }
+    #     pWF->afinal= copysign(1.0, cosbetamax)* XLALSimIMRPhenomXPrecessingFinalSpin2017(pWF->eta,dotS1L,dotS2L,chi_perp_norm);
 
-        #     // initialize parameters for RD continuation
-        #     pPrec->alpha_params    = XLALMalloc(sizeof(PhenomXPalphaMRD));
-        #     pPrec->beta_params    = XLALMalloc(sizeof(PhenomXPbetaMRD));
+    #     pWF->fRING     = evaluate_QNMfit_fring22(pWF->afinal) / (pWF->Mfinal);
+    #     pWF->fDAMP     = evaluate_QNMfit_fdamp22(pWF->afinal) / (pWF->Mfinal);
+    #     }
 
-        #     if(pPrec->IMRPhenomXPrecVersion==320 || pPrec->IMRPhenomXPrecVersion==321 || pPrec->IMRPhenomXPrecVersion==330 ){
+    #     // initialize parameters for RD continuation
+    #     pPrec->alpha_params    = XLALMalloc(sizeof(PhenomXPalphaMRD));
+    #     pPrec->beta_params    = XLALMalloc(sizeof(PhenomXPbetaMRD));
 
-        #     status = alphaMRD_coeff(*pPrec->alpha_spline, *pPrec->alpha_acc, pPrec->fmax_inspiral, pWF, pPrec->alpha_params);
-        #     if(status!=XLAL_SUCCESS) XLALPrintError("XLAL Error in %s: error in computing parameters for MRD continuation of Euler angles.\n",__func__);
+    #     if(pPrec->IMRPhenomXPrecVersion==320 || pPrec->IMRPhenomXPrecVersion==321 || pPrec->IMRPhenomXPrecVersion==330 ){
 
-        #     status = betaMRD_coeff(*pPrec->cosbeta_spline, *pPrec->cosbeta_acc, pPrec->fmax_inspiral, pWF, pPrec);
-        #      if(status!=XLAL_SUCCESS) XLALPrintError("XLAL Error in %s: error in computing parameters for MRD continuation of Euler angles.\n",__func__);
+    #     status = alphaMRD_coeff(*pPrec->alpha_spline, *pPrec->alpha_acc, pPrec->fmax_inspiral, pWF, pPrec->alpha_params);
+    #     if(status!=XLAL_SUCCESS) XLALPrintError("XLAL Error in %s: error in computing parameters for MRD continuation of Euler angles.\n",__func__);
 
-        #     }
+    #     status = betaMRD_coeff(*pPrec->cosbeta_spline, *pPrec->cosbeta_acc, pPrec->fmax_inspiral, pWF, pPrec);
+    #      if(status!=XLAL_SUCCESS) XLALPrintError("XLAL Error in %s: error in computing parameters for MRD continuation of Euler angles.\n",__func__);
 
-        #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->V_PN);
-        #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->S1x_PN);
-        #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->S1y_PN);
-        #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->S1z_PN);
-        #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->S2x_PN);
-        #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->S2y_PN);
-        #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->S2z_PN);
-        #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->LNhatx_PN);
-        #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->LNhaty_PN);
-        #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->LNhatz_PN);
-        #     XLALFree(pPrec->PNarrays);
+    #     }
 
-        #     XLALDestroyREAL8Sequence(fgw);
-        #     XLALDestroyREAL8Sequence(alphaaux);
-        #     XLALDestroyREAL8Sequence(cosbeta);
-        #     XLALDestroyREAL8Sequence(alpha);
+    #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->V_PN);
+    #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->S1x_PN);
+    #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->S1y_PN);
+    #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->S1z_PN);
+    #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->S2x_PN);
+    #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->S2y_PN);
+    #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->S2z_PN);
+    #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->LNhatx_PN);
+    #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->LNhaty_PN);
+    #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->LNhatz_PN);
+    #     XLALFree(pPrec->PNarrays);
 
-        #     if(status != GSL_SUCCESS){
+    #     XLALDestroyREAL8Sequence(fgw);
+    #     XLALDestroyREAL8Sequence(alphaaux);
+    #     XLALDestroyREAL8Sequence(cosbeta);
+    #     XLALDestroyREAL8Sequence(alpha);
 
-        #     gsl_spline_free(pPrec->alpha_spline);
-        #     gsl_spline_free(pPrec->cosbeta_spline);
-        #     gsl_interp_accel_free(pPrec->alpha_acc);
-        #     gsl_interp_accel_free(pPrec->cosbeta_acc);
+    #     if(status != GSL_SUCCESS){
 
-        #     }
+    #     gsl_spline_free(pPrec->alpha_spline);
+    #     gsl_spline_free(pPrec->cosbeta_spline);
+    #     gsl_interp_accel_free(pPrec->alpha_acc);
+    #     gsl_interp_accel_free(pPrec->cosbeta_acc);
 
-        #     return status;
+    #     }
 
-        #   }
+    #     return status;
+
+    #   }
 
 
-def imr_phenom_x_spin_taylor_angles_splines_all(
+def imr_phenom_x_spin_taylor_angles_splines_all(  # pylint: disable=unused-argument,unused-variable
     f_min: float,
     f_max: float,
     p_wf: IMRPhenomXWaveformDataClass,
@@ -1578,7 +1582,7 @@ def imr_phenom_x_initialize_euler_angles(  # pylint: disable=unused-argument,unu
         lambda: p_wf.f_ring + 4.0 * p_wf.f_damp,
         lambda: (
             jnp.maximum(p_wf.mf_max, p_wf.f_ring + 4.0 * p_wf.f_damp)
-            + xlalsim_imr_phenom_x_utils_hz_to_mf(buffer, p_wf.m_tot)
+            + xlal_sim_imr_phenom_x_utils_hz_to_mf(buffer, p_wf.m_tot)
         )
         * 2
         / p_prec.M_MIN,
