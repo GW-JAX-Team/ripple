@@ -14,9 +14,9 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals import (
     imr_phenom_x_set_waveform_variables,
 )
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
-    IMRPhenomXPrecessionDataClass,
     IMRPhenomXWaveformDataClass,
 )
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_precession_dataclass import IMRPhenomXPrecessionDataClass
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import (
     xlal_imr_phenom_xp_check_masses_and_spins,
 )

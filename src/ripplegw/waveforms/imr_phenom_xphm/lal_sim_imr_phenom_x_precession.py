@@ -8,9 +8,9 @@ from jax.experimental import checkify
 
 from ripplegw.constants import PI, C, G
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
-    IMRPhenomXPrecessionDataClass,
     IMRPhenomXWaveformDataClass,
 )
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_precession_dataclass import IMRPhenomXPrecessionDataClass
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import (
     xlal_sim_imr_phenom_x_utils_hz_to_mf,
     xlal_sim_imr_phenom_x_utils_mf_to_hz,
