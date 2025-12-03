@@ -1329,7 +1329,7 @@ def imr_phenom_x_initialize_euler_angles(  # pylint: disable=unused-argument,unu
     lal_params: IMRPhenomXPHMParameterDataClass,
 ):
     """Initialize Euler angles for IMRPhenomXPHM waveform model.
-    
+
     Args:
         p_wf: Waveform data class containing waveform parameters.
         p_prec: Precession data class to be initialized.
