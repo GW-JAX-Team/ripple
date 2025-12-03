@@ -11,7 +11,10 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass
     IMRPhenomXPrecessionDataClass,
     IMRPhenomXWaveformDataClass,
 )
-from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import xlalsim_imr_phenom_x_utils_hz_to_mf
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import (
+    xlal_sim_imr_phenom_x_utils_hz_to_mf,
+    xlal_sim_imr_phenom_x_utils_mf_to_hz,
+)
 from ripplegw.waveforms.imr_phenom_xphm.parameter_dataclass import IMRPhenomXPHMParameterDataClass
 
 
@@ -1374,13 +1377,15 @@ def imr_phenom_x_initialize_euler_angles(  # pylint: disable=unused-argument,unu
         lambda: p_wf.f_ring + 4.0 * p_wf.f_damp,
         lambda: (
             jnp.maximum(p_wf.mf_max, p_wf.f_ring + 4.0 * p_wf.f_damp)
-            + xlalsim_imr_phenom_x_utils_hz_to_mf(buffer, p_wf.m_tot)
+            + xlal_sim_imr_phenom_x_utils_hz_to_mf(buffer, p_wf.m_tot)
         )
         * 2
         / p_prec.M_MIN,
     )
 
     p_prec = p_prec.replace(Mfmax_angles=m_fmax_angles)
+
+    fmax_angles = xlal_sim_imr_phenom_x_utils_mf_to_hz(p_prec.Mfmax_angles, p_wf.m_tot)
 
     #   REAL8 fmaxAngles = XLALSimIMRPhenomXUtilsMftoHz(pPrec->Mfmax_angles,pWF->Mtot);
 
