@@ -3,6 +3,7 @@ alphaaux
 alphaepsilon
 Ansatz
 argnames
+argnums
 artefacts
 Arun
 Arunx
@@ -59,6 +60,7 @@ interp
 Interpolants
 inveta
 isco
+jittable
 jitted
 lalpi
 lalsim
