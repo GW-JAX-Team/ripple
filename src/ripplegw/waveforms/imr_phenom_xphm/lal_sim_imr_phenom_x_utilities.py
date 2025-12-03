@@ -406,3 +406,16 @@ def xlal_sim_imr_phenom_x_utils_hz_to_mf(f_hz: float, m_tot_msun: float) -> floa
         Frequency in dimensionless Mf units.
     """
     return f_hz * (LAL_MTSUN_SI * m_tot_msun)
+
+
+def xlal_sim_imr_phenom_x_utils_mf_to_hz(mf: float, m_tot_msun: float) -> float:
+    """Convert frequency from dimensionless Mf units to Hz.
+
+    Args:
+        mf: Frequency in dimensionless Mf units.
+        m_tot_msun: Total mass in solar masses.
+
+    Returns:
+        Frequency in Hz.
+    """
+    return mf / (LAL_MTSUN_SI * m_tot_msun)
