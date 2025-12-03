@@ -8,10 +8,11 @@ from jax.experimental import checkify
 
 from ripplegw.constants import PI, C, G
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
-    IMRPhenomXPrecessionDataClass,
     IMRPhenomXWaveformDataClass,
 )
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_precession_dataclass import IMRPhenomXPrecessionDataClass
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import (
+    xlal_sim_imr_phenom_x_unwrap_array,
     xlal_sim_imr_phenom_x_utils_hz_to_mf,
     xlal_sim_imr_phenom_x_utils_mf_to_hz,
 )
@@ -1327,7 +1328,311 @@ def imr_phenom_x_set_precession_var(
 # }
 
 
-def imr_phenom_x_spin_taylor_angles_splines_all(
+def imr_phenom_x_interpolate_alpha_beta_spin_taylor(  # pylint: disable=unused-argument,unused-variable
+    p_wf: IMRPhenomXWaveformDataClass,
+    p_prec: IMRPhenomXPrecessionDataClass,
+    lal_params: IMRPhenomXPHMParameterDataClass,
+):
+    """
+    IMRPhenomX Interpolate alpha and beta using Spin Taylor method.
+
+    This function replicates the C code behavior of looping through PN arrays,
+    rotating the orbital angular momentum direction to the J-frame, and computing
+    Euler angles and gravitational wave frequencies. The C code includes an early
+    break when fgw_Hz <= 0.
+
+    IMPORTANT JAX LIMITATION:
+    JAX cannot truly skip computation in a loop due to JIT compilation. All
+    iterations execute their computations regardless. What we CAN do is:
+    1. Gate all state updates with should_continue flag
+    2. When fgw_Hz <= 0, set should_continue = False
+    3. All future iterations become no-ops (computed but discarded)
+
+    The "break" is emulated by stopping state updates, not by skipping iterations.
+    Mfmax_PN and i_max track the last valid point before the break condition.
+
+    Args:
+        p_wf: Waveform data class containing waveform parameters.
+        p_prec: Precession data class containing precession parameters.
+        lal_params: Parameter data class containing LAL parameters.
+
+    Returns:
+        Tuple of (f_gw, alpha_aux, cos_beta, Mfmax_PN, i_max) where:
+        - f_gw: Array of GW frequencies in Mf units (padded with zeros after break point)
+        - alpha_aux: Array of Euler angle alpha values (padded with zeros after break point)
+        - cos_beta: Array of cos(beta) values (padded with zeros after break point)
+        - Mfmax_PN: Maximum valid GW frequency (last value before fgw_Hz <= 0)
+        - i_max: Index of last valid point (where break occurs)
+    """
+    len_pn = p_prec.pn_arrays.v_pn.shape[0]
+
+    # Initialize arrays
+    f_gw = jnp.zeros(len_pn)
+    alpha_aux = jnp.zeros(len_pn)
+    cos_beta = jnp.zeros(len_pn)
+
+    # Initial state for scan
+    init_state = {
+        "f_gw": f_gw,
+        "alpha_aux": alpha_aux,
+        "cos_beta": cos_beta,
+        "m_fmax_pn": 0.0,
+        "i_max": 0,
+        "should_continue": True,
+        "counter": 0,
+    }
+
+    def scan_body(state, i):  # pylint: disable=too-many-locals
+        """Process one iteration of the loop, with early termination support.
+
+        In JAX, we cannot truly break early, but we can stop updating state after
+        a condition is met. This function:
+        1. Computes all values (unavoidable in JAX)
+        2. Only updates state arrays if should_continue is True AND frequency is valid
+        3. Sets should_continue to False when frequency becomes invalid (the "break point")
+
+        Returns:
+            Tuple of (new_state, None) - the None is the output (not used here)
+        """
+        # Check if we should continue processing (once False, stays False)
+        should_process = state["should_continue"]
+
+        # Extract current LN components
+        ln_hat_x_temp = p_prec.pn_arrays.ln_hat_x_pn[i]
+        ln_hat_y_temp = p_prec.pn_arrays.ln_hat_y_pn[i]
+        ln_hat_z_temp = p_prec.pn_arrays.ln_hat_z_pn[i]
+
+        # Apply rotations (computed regardless of should_process, but that's unavoidable in JAX)
+        ln_hat_x_temp, ln_hat_y_temp, ln_hat_z_temp = imr_phenom_x_rotate_z(
+            -p_prec.phi_j_sf, ln_hat_x_temp, ln_hat_y_temp, ln_hat_z_temp
+        )
+        ln_hat_x_temp, ln_hat_y_temp, ln_hat_z_temp = imr_phenom_x_rotate_y(
+            -p_prec.theta_j_sf, ln_hat_x_temp, ln_hat_y_temp, ln_hat_z_temp
+        )
+        ln_hat_x_temp, ln_hat_y_temp, ln_hat_z_temp = imr_phenom_x_rotate_z(
+            -p_prec.kappa, ln_hat_x_temp, ln_hat_y_temp, ln_hat_z_temp
+        )
+
+        # Compute frequencies
+        f_gw_hz = jnp.pow(p_prec.pn_arrays.v_pn[i], 3.0) / p_prec.pi_gm
+        f_gw_mf = xlal_sim_imr_phenom_x_utils_hz_to_mf(f_gw_hz, p_wf.m_tot)
+
+        # Compute angles
+        alpha_temp = jnp.arctan2(ln_hat_y_temp, ln_hat_x_temp)
+        cos_beta_temp = ln_hat_z_temp
+
+        # Check if frequency is valid (positive)
+        freq_valid = f_gw_hz > 0.0
+
+        # Update arrays ONLY if we should continue processing AND frequency is valid
+        # This is the key: should_process gates all updates
+        update_condition = should_process & freq_valid
+
+        new_f_gw = jnp.where(update_condition, state["f_gw"].at[i].set(f_gw_mf), state["f_gw"])
+        new_alpha_aux = jnp.where(update_condition, state["alpha_aux"].at[i].set(alpha_temp), state["alpha_aux"])
+        new_cos_beta = jnp.where(update_condition, state["cos_beta"].at[i].set(cos_beta_temp), state["cos_beta"])
+
+        # Update Mfmax_PN and i_max only if update condition is met
+        new_m_fmax_pn = jnp.where(update_condition, f_gw_mf, state["m_fmax_pn"])
+        new_i_max = jnp.where(update_condition, i, state["i_max"])
+
+        # CRITICAL: Set should_continue to False if we're currently processing AND frequency became invalid
+        # This stops all future updates (the "break" behavior)
+        # If should_process is already False, keep it False (once broken, always broken)
+        new_should_continue = should_process & freq_valid
+
+        new_state = {
+            "f_gw": new_f_gw,
+            "alpha_aux": new_alpha_aux,
+            "cos_beta": new_cos_beta,
+            "m_fmax_pn": new_m_fmax_pn,
+            "i_max": new_i_max,
+            "should_continue": new_should_continue,
+            "counter": state["counter"] + 1,
+        }
+
+        return new_state, None
+
+    # Use scan for early termination capability
+    final_state, _ = jax.lax.scan(scan_body, init_state, jnp.arange(len_pn))
+
+    # Note: Since JAX requires all iterations to complete, we use scan to process all
+    # indices but track should_continue to skip processing after the break condition.
+    # The first invalid frequency marks where the original C code would break.
+
+    m_fmax_pn = final_state["m_fmax_pn"]
+
+    fmax_inspiral = jax.lax.cond(p_prec.imr_phenom_xpnr_use_tuned_angles, m_fmax_pn, m_fmax_pn - p_wf.delta_mf)
+
+    fmax_inspiral = jax.lax.cond(
+        fmax_inspiral > p_wf.f_ring - p_wf.f_damp, lambda _: 1.020 * p_wf.f_meco, lambda x: x, operand=None
+    )
+
+    p_prec = p_prec.replace(ftrans_mrd=0.98 * fmax_inspiral, fmax_inspiral=fmax_inspiral)
+
+    # Interpolate alpha
+    alpha_unwrapped = xlal_sim_imr_phenom_x_unwrap_array(final_state["alpha_aux"])
+
+    #       REAL8Sequence *fgw =NULL ;
+    #       /* Setup sequences for angles*/
+    #       REAL8Sequence *alpha = NULL;
+    #       REAL8Sequence *alphaaux = NULL;
+    #       REAL8Sequence *cosbeta = NULL;
+
+    #       fgw=XLALCreateREAL8Sequence(lenPN);
+    #       alpha=XLALCreateREAL8Sequence(lenPN);
+    #       alphaaux=XLALCreateREAL8Sequence(lenPN);
+    #       cosbeta=XLALCreateREAL8Sequence(lenPN);
+
+    #       REAL8 fgw_Mf, fgw_Hz, Mfmax_PN=0.;
+    #       // i_max is used to discard possibly unphysical points in the calculation of the final spin
+    #       UINT8 i_max=0;
+    #       REAL8 LNhatx_temp,LNhaty_temp,LNhatz_temp;
+
+    #       for(UINT8 i=0; i < lenPN; i++){
+
+    #           LNhatx_temp = (pPrec->PNarrays->LNhatx_PN->data->data[i]);
+    #           LNhaty_temp = (pPrec->PNarrays->LNhaty_PN->data->data[i]);
+    #           LNhatz_temp = (pPrec->PNarrays->LNhatz_PN->data->data[i]);
+
+    #           IMRPhenomX_rotate_z(-pPrec->phiJ_Sf,  &LNhatx_temp, &LNhaty_temp, &LNhatz_temp);
+    #           IMRPhenomX_rotate_y(-pPrec->thetaJ_Sf, &LNhatx_temp, &LNhaty_temp, &LNhatz_temp);
+    #           IMRPhenomX_rotate_z(-pPrec->kappa,  &LNhatx_temp, &LNhaty_temp, &LNhatz_temp);
+
+    #           fgw_Hz= pow(pPrec->PNarrays->V_PN->data->data[i],3.)/pPrec->piGM;
+    #           fgw_Mf= XLALSimIMRPhenomXUtilsHztoMf(fgw_Hz,pWF->Mtot);
+
+    #           if(fgw_Hz>0.){
+
+    #           /* Compute Euler angles in the J frame */
+    #           alphaaux->data[i] = atan2(LNhaty_temp, LNhatx_temp);
+    #           cosbeta->data[i] = LNhatz_temp;
+    #           fgw->data[i] = fgw_Mf;
+    #           Mfmax_PN = fgw_Mf;
+    #           i_max = i;
+    #           }
+
+    #           else
+    #               break;
+
+    #       }
+
+    #     REAL8 fmax_inspiral;
+    #     if(pPrec->IMRPhenomXPNRUseTunedAngles)
+    #     fmax_inspiral = Mfmax_PN;
+    #     else
+    #     fmax_inspiral = Mfmax_PN-pWF->deltaMF;
+
+    #     if(fmax_inspiral > pWF->fRING-pWF->fDAMP) fmax_inspiral = 1.020 * pWF->fMECO;
+
+    #     pPrec->ftrans_MRD = 0.98*fmax_inspiral;
+    #     pPrec->fmax_inspiral= fmax_inspiral;
+
+    #     // Interpolate alpha
+    #     XLALSimIMRPhenomXUnwrapArray(alphaaux->data, alpha->data, lenPN);
+
+    #     pPrec->alpha_acc = gsl_interp_accel_alloc();
+    #     pPrec->alpha_spline = gsl_spline_alloc(gsl_interp_cspline, lenPN);
+
+    #     status = gsl_spline_init(pPrec->alpha_spline, fgw->data, alpha->data, lenPN);
+
+    #     if (status != GSL_SUCCESS)
+    #     {
+    #          XLALPrintError("Error in %s: error in computing gsl spline for alpha.\n",__func__);
+    #     }
+
+    #     // Interpolate cosbeta
+    #     pPrec->cosbeta_acc = gsl_interp_accel_alloc();
+    #     pPrec->cosbeta_spline = gsl_spline_alloc(gsl_interp_cspline, lenPN);
+    #     status =gsl_spline_init(pPrec->cosbeta_spline, fgw->data, cosbeta->data, lenPN);
+
+    #     if (status != GSL_SUCCESS)
+    #     {
+    #          XLALPrintError("Error in %s: error in computing gsl spline for cos(beta).\n",__func__);
+    #     }
+
+    #     REAL8 cosbetamax;
+
+    #     status = gsl_spline_eval_e(pPrec->cosbeta_spline, fmax_inspiral, pPrec->cosbeta_acc,&cosbetamax);
+    #     if(status != GSL_SUCCESS)
+    #     {
+    #         XLALPrintError("Error in %s: error in computing cosbeta.\n",__func__);
+    #     }
+
+    #     // estimate final spin using spins at the end of the PN integration
+
+    #     if(XLALSimInspiralWaveformParamsLookupPhenomXPFinalSpinMod(LALparams)==4){
+
+    #     REAL8 m1 = pWF->m1_SI / pWF->Mtot_SI;
+    #     REAL8 m2 = pWF->m2_SI / pWF->Mtot_SI;
+
+    #     vector Lnf  = {pPrec->PNarrays->LNhatx_PN->data->data[i_max],pPrec->PNarrays->LNhaty_PN->data->data[i_max],pPrec->PNarrays->LNhatz_PN->data->data[i_max]};
+    #     REAL8 Lnorm = sqrt(IMRPhenomX_vector_dot_product(Lnf,Lnf));
+    #     vector S1f  = {pPrec->PNarrays->S1x_PN->data->data[i_max],pPrec->PNarrays->S1y_PN->data->data[i_max],pPrec->PNarrays->S1z_PN->data->data[i_max]};
+    #     vector S2f  = {pPrec->PNarrays->S2x_PN->data->data[i_max],pPrec->PNarrays->S2y_PN->data->data[i_max],pPrec->PNarrays->S2z_PN->data->data[i_max]};
+
+    #     REAL8 dotS1L = IMRPhenomX_vector_dot_product(S1f,Lnf)/Lnorm;
+    #     REAL8 dotS2L  = IMRPhenomX_vector_dot_product(S2f,Lnf)/Lnorm;
+    #     vector S1_perp = IMRPhenomX_vector_diff(S1f,IMRPhenomX_vector_scalar(Lnf, dotS1L));
+    #     S1_perp = IMRPhenomX_vector_scalar(S1_perp,m1*m1);
+    #     vector S2_perp = IMRPhenomX_vector_diff(S2f,IMRPhenomX_vector_scalar(Lnf, dotS2L));
+    #     S2_perp = IMRPhenomX_vector_scalar(S2_perp,m2*m2);
+    #     vector Stot_perp = IMRPhenomX_vector_sum(S1_perp,S2_perp);
+    #     REAL8 S_perp_norm = sqrt(IMRPhenomX_vector_dot_product(Stot_perp,Stot_perp));
+    #     REAL8 chi_perp_norm = S_perp_norm *pow(m1 + m2,2)/pow(m1,2);
+
+    #     pWF->afinal= copysign(1.0, cosbetamax)* XLALSimIMRPhenomXPrecessingFinalSpin2017(pWF->eta,dotS1L,dotS2L,chi_perp_norm);
+
+    #     pWF->fRING     = evaluate_QNMfit_fring22(pWF->afinal) / (pWF->Mfinal);
+    #     pWF->fDAMP     = evaluate_QNMfit_fdamp22(pWF->afinal) / (pWF->Mfinal);
+    #     }
+
+    #     // initialize parameters for RD continuation
+    #     pPrec->alpha_params    = XLALMalloc(sizeof(PhenomXPalphaMRD));
+    #     pPrec->beta_params    = XLALMalloc(sizeof(PhenomXPbetaMRD));
+
+    #     if(pPrec->IMRPhenomXPrecVersion==320 || pPrec->IMRPhenomXPrecVersion==321 || pPrec->IMRPhenomXPrecVersion==330 ){
+
+    #     status = alphaMRD_coeff(*pPrec->alpha_spline, *pPrec->alpha_acc, pPrec->fmax_inspiral, pWF, pPrec->alpha_params);
+    #     if(status!=XLAL_SUCCESS) XLALPrintError("XLAL Error in %s: error in computing parameters for MRD continuation of Euler angles.\n",__func__);
+
+    #     status = betaMRD_coeff(*pPrec->cosbeta_spline, *pPrec->cosbeta_acc, pPrec->fmax_inspiral, pWF, pPrec);
+    #      if(status!=XLAL_SUCCESS) XLALPrintError("XLAL Error in %s: error in computing parameters for MRD continuation of Euler angles.\n",__func__);
+
+    #     }
+
+    #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->V_PN);
+    #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->S1x_PN);
+    #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->S1y_PN);
+    #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->S1z_PN);
+    #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->S2x_PN);
+    #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->S2y_PN);
+    #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->S2z_PN);
+    #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->LNhatx_PN);
+    #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->LNhaty_PN);
+    #     XLALDestroyREAL8TimeSeries(pPrec->PNarrays->LNhatz_PN);
+    #     XLALFree(pPrec->PNarrays);
+
+    #     XLALDestroyREAL8Sequence(fgw);
+    #     XLALDestroyREAL8Sequence(alphaaux);
+    #     XLALDestroyREAL8Sequence(cosbeta);
+    #     XLALDestroyREAL8Sequence(alpha);
+
+    #     if(status != GSL_SUCCESS){
+
+    #     gsl_spline_free(pPrec->alpha_spline);
+    #     gsl_spline_free(pPrec->cosbeta_spline);
+    #     gsl_interp_accel_free(pPrec->alpha_acc);
+    #     gsl_interp_accel_free(pPrec->cosbeta_acc);
+
+    #     }
+
+    #     return status;
+
+    #   }
+
+
+def imr_phenom_x_spin_taylor_angles_splines_all(  # pylint: disable=unused-argument,unused-variable
     f_min: float,
     f_max: float,
     p_wf: IMRPhenomXWaveformDataClass,
@@ -1343,6 +1648,15 @@ def imr_phenom_x_spin_taylor_angles_splines_all(
         p_prec: Precession data class to be initialized.
         lal_params: Parameter data class containing LAL parameters.
     """
+    f_ref = p_wf.f_ref
+
+    # Sanity checks
+    checkify.check(f_min > 0, "f_min must be positive.")
+    checkify.check(f_max > 0, "f_max must be positive.")
+    checkify.check(f_max > f_min, "f_max must be greater than f_min.")
+    checkify.check(f_ref >= f_min, "f_ref must be >= f_min.")
+
+    # Evaluate the splines for alpha and cosbeta.
 
 
 def imr_phenom_x_initialize_euler_angles(  # pylint: disable=unused-argument,unused-variable
@@ -1377,7 +1691,7 @@ def imr_phenom_x_initialize_euler_angles(  # pylint: disable=unused-argument,unu
         lambda: p_wf.f_ring + 4.0 * p_wf.f_damp,
         lambda: (
             jnp.maximum(p_wf.mf_max, p_wf.f_ring + 4.0 * p_wf.f_damp)
-            + xlalsim_imr_phenom_x_utils_hz_to_mf(buffer, p_wf.m_tot)
+            + xlal_sim_imr_phenom_x_utils_hz_to_mf(buffer, p_wf.m_tot)
         )
         * 2
         / p_prec.M_MIN,
@@ -1421,3 +1735,47 @@ def imr_phenom_x_initialize_euler_angles(  # pylint: disable=unused-argument,unu
     #   XLAL_CHECK(status == XLAL_SUCCESS, XLAL_EFUNC, "%s: could not compute gamma et the end of inspiral.",__func__);
 
     #   return status;
+
+
+def imr_phenom_x_rotate_z(angle: float, vx: float, vy: float, vz: float) -> tuple[float, float, float]:
+    """Rotate a vector around the z-axis by a given angle.
+
+    Args:
+        angle: Rotation angle in radians.
+        vx: x-component of the vector.
+        vy: y-component of the vector.
+        vz: z-component of the vector.
+
+    Returns:
+        A tuple containing the rotated vector components (vx', vy', vz').
+    """
+    cos_angle = jnp.cos(angle)
+    sin_angle = jnp.sin(angle)
+
+    vx_rotated = cos_angle * vx - sin_angle * vy
+    vy_rotated = sin_angle * vx + cos_angle * vy
+    vz_rotated = vz
+
+    return vx_rotated, vy_rotated, vz_rotated
+
+
+def imr_phenom_x_rotate_y(angle: float, vx: float, vy: float, vz: float) -> tuple[float, float, float]:
+    """Rotate a vector around the y-axis by a given angle.
+
+    Args:
+        angle: Rotation angle in radians.
+        vx: x-component of the vector.
+        vy: y-component of the vector.
+        vz: z-component of the vector.
+
+    Returns:
+        A tuple containing the rotated vector components (vx', vy', vz').
+    """
+    cos_angle = jnp.cos(angle)
+    sin_angle = jnp.sin(angle)
+
+    vx_rotated = cos_angle * vx + sin_angle * vz
+    vy_rotated = vy
+    vz_rotated = -sin_angle * vx + cos_angle * vz
+
+    return vx_rotated, vy_rotated, vz_rotated
