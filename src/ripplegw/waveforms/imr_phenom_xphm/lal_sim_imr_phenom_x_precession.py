@@ -11,6 +11,7 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass
     IMRPhenomXPrecessionDataClass,
     IMRPhenomXWaveformDataClass,
 )
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import xlalsim_imr_phenom_x_utils_hz_to_mf
 from ripplegw.waveforms.imr_phenom_xphm.parameter_dataclass import IMRPhenomXPHMParameterDataClass
 
 
@@ -1350,23 +1351,37 @@ def imr_phenom_x_initialize_euler_angles(  # pylint: disable=unused-argument,unu
 
     # If MB is on, we take advantage of the fact that we can compute angles on an array
 
-    # m_fmax_angles = jax.lax.cond(
-    #     threshold_pmb > 0.0,
-    #     lambda: p_wf.f_ring + 4.0 * p_wf.f_damp,
-    #     lambda: (
-    #         jnp.maximum(p_wf.mf_max, p_wf.f_ring + 4.0 * p_wf.f_damp)
-    #         + xlalsim_imr_phenom_x_utils_hz_to_mf(buffer, p_wf.m_tot)
-    #     )
-    #     * 2
-    #     / p_prec.M_MIN,
-    # )
+    m_fmax_angles = jax.lax.cond(
+        threshold_pmb > 0.0,
+        lambda: p_wf.f_ring + 4.0 * p_wf.f_damp,
+        lambda: (
+            jnp.maximum(p_wf.mf_max, p_wf.f_ring + 4.0 * p_wf.f_damp)
+            + xlalsim_imr_phenom_x_utils_hz_to_mf(buffer, p_wf.m_tot)
+        )
+        * 2
+        / p_prec.M_MIN,
+    )
 
-    #   // If MB is on, we take advantage of the fact that we can compute angles on an array
+    # If MB is on, we take advantage of the fact that we can compute angles on an array
 
     #   if(thresholdPMB>0.)
     #     pPrec->Mfmax_angles = pWF->fRING+4.*pWF->fDAMP;
     #   else
     #     pPrec->Mfmax_angles = (MAX(pWF->MfMax,pWF->fRING+4.*pWF->fDAMP)+XLALSimIMRPhenomXUtilsHztoMf(buffer,pWF->Mtot))*2./pPrec->M_MIN;
+
+    m_fmax_angles = jax.lax.cond(
+        threshold_pmb > 0.0,
+        lambda: p_wf.f_ring + 4.0 * p_wf.f_damp,
+        lambda: (
+            jnp.maximum(p_wf.mf_max, p_wf.f_ring + 4.0 * p_wf.f_damp)
+            + xlalsim_imr_phenom_x_utils_hz_to_mf(buffer, p_wf.m_tot)
+        )
+        * 2
+        / p_prec.M_MIN,
+    )
+
+    p_prec = p_prec.replace(Mfmax_angles=m_fmax_angles)
+
     #   REAL8 fmaxAngles = XLALSimIMRPhenomXUtilsMftoHz(pPrec->Mfmax_angles,pWF->Mtot);
 
     #   // we add a few bins to fmax to make sure we do not run into interpolation errors
