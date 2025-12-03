@@ -15,6 +15,7 @@ Bohe
 Cabero
 cexp
 Chatziioannou
+arraylike
 checkify
 chieff
 contrusction
@@ -91,6 +92,8 @@ precversion
 Qfrom
 RINGCP
 ringdowm
+ellipfinc
+mathrm
 ringdown
 ripplegw
 rtol
