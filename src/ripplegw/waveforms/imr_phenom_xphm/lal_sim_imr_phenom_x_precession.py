@@ -1327,6 +1327,21 @@ def imr_phenom_x_set_precession_var(
 # }
 
 
+def imr_phenom_x_interpolate_alpha_beta_spin_taylor(
+    p_wf: IMRPhenomXWaveformDataClass,
+    p_prec: IMRPhenomXPrecessionDataClass,
+    lal_params: IMRPhenomXPHMParameterDataClass,
+):
+    """
+    IMRPhenomX Interpolate alpha and beta using Spin Taylor method.
+
+    Args:
+        p_wf: Waveform data class containing waveform parameters.
+        p_prec: Precession data class containing precession parameters.
+        lal_params: Parameter data class containing LAL parameters.
+    """
+
+
 def imr_phenom_x_spin_taylor_angles_splines_all(
     f_min: float,
     f_max: float,
