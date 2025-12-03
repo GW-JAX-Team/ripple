@@ -6,6 +6,7 @@ import jax.numpy as jnp
 from jax import lax
 
 from ripplegw.constants import PI
+from ripplegw.typing import Array
 from ripplegw.waveforms.imr_phenom_xphm.lal_constants import LAL_MTSUN_SI
 
 
@@ -419,3 +420,75 @@ def xlal_sim_imr_phenom_x_utils_mf_to_hz(mf: float, m_tot_msun: float) -> float:
         Frequency in Hz.
     """
     return mf / (LAL_MTSUN_SI * m_tot_msun)
+
+
+def xlal_sim_imr_phenom_x_unwrap_array(data_in: Array) -> Array:
+    """Unwrap a phase array to remove 2π discontinuities.
+
+    This function removes 2π phase jumps in an array, producing a continuous
+    phase evolution. It replicates the C function XLALSimIMRPhenomXUnwrapArray
+    which accumulates phase jumps to create a monotonic unwrapped phase.
+
+    The algorithm works by:
+    1. Computing the phase difference between consecutive elements
+    2. Detecting and correcting jumps > π (wrapping points)
+    3. Accumulating corrected differences to produce unwrapped phase
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> phases = jnp.array([0.0, 1.5, 3.2, -2.8, -1.5])
+        >>> unwrapped = xlal_sim_imr_phenom_x_unwrap_array(phases)
+        # Removes 2π jumps to create continuous phase
+
+    Args:
+        data_in: Input phase array (in radians).
+
+    Returns:
+        Unwrapped phase array where 2π discontinuities have been removed.
+    """
+    # Handle edge case of empty/single element arrays
+    length = data_in.shape[0]
+
+    if length == 0:
+        return data_in
+    if length == 1:
+        return data_in
+
+    # Initialize output array with first element
+    data_out = jnp.zeros_like(data_in)
+    data_out = data_out.at[0].set(data_in[0])
+
+    # Use scan to accumulate unwrapped phase
+    def scan_body(accumulated_phase, i):
+        """Unwrap one phase element using accumulated phase from previous iteration.
+
+        Args:
+            accumulated_phase: The unwrapped phase value from iteration i-1
+            i: Current iteration index (1 to length-1)
+
+        Returns:
+            Tuple of (new_accumulated_phase, unwrapped_value)
+        """
+        # Compute phase difference from previous element
+        delta_phase = data_in[i] - data_in[i - 1]
+
+        # Wrap delta_phase to [-π, π] range
+        # This detects if there's a 2π jump
+        delta_wrapped = jnp.where(
+            delta_phase > PI,
+            delta_phase - 2 * PI,  # Wrapped down
+            jnp.where(delta_phase < -PI, delta_phase + 2 * PI, delta_phase),  # Wrapped up  # No wrapping needed
+        )
+
+        # Accumulate: new_phase = previous_phase + corrected_delta
+        new_phase = accumulated_phase + delta_wrapped
+
+        return new_phase, new_phase
+
+    # Scan from indices 1 to length, starting with data_in[0]
+    _, unwrapped_tail = lax.scan(scan_body, data_in[0], jnp.arange(1, length))
+
+    # Concatenate first element with rest of unwrapped array
+    data_out = jnp.concatenate([jnp.array([data_in[0]]), unwrapped_tail])
+
+    return data_out
