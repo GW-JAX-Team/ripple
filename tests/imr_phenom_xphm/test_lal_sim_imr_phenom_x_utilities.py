@@ -13,6 +13,7 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import (
     xlal_imr_phenom_xp_check_masses_and_spins,
     xlal_sim_imr_phenom_x_chi_eff,
     xlal_sim_imr_phenom_x_chi_pn_hat,
+    xlal_sim_imr_phenom_x_unwrap_array,
     xlal_sim_imr_phenom_x_utils_hz_to_mf,
     xlal_sim_imr_phenom_x_utils_mf_to_hz,
 )
@@ -656,6 +657,128 @@ class TestXlalSimImrPhenomXUtilsMftoHz:
             assert jnp.isclose(
                 float(result_jax), result_lal, rtol=1e-10
             ), f"Mismatch at mf={mf}, m_tot_msun={m_tot_msun}"
+
+
+class TestUnwrapArray:
+    """Test suite for xlal_sim_imr_phenom_x_unwrap_array function."""
+
+    def test_unwrap_array_already_continuous(self):
+        """Test that already-continuous phase array is unchanged."""
+        phases = jnp.array([0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0])
+        unwrapped = xlal_sim_imr_phenom_x_unwrap_array(phases)
+
+        assert jnp.allclose(unwrapped, phases, atol=1e-14)
+
+    def test_unwrap_array_single_wrap(self):
+        """Test unwrapping with a single 2π discontinuity."""
+        # After 3.0, jump to -3.0 (equivalent to 3.0 + 2π ~ 9.28, wraps to -3.0)
+        phases = jnp.array([0.0, 1.0, 2.0, 3.0, -3.0, -2.0])
+        unwrapped = xlal_sim_imr_phenom_x_unwrap_array(phases)
+
+        # The -3.0 should be unwrapped to ~3.28 (detected as +2π jump)
+        # Check that unwrapped is monotonic after first 3 elements
+        assert jnp.all(jnp.diff(unwrapped[:4]) > 0), "Phase should increase before wrap"
+        assert jnp.all(jnp.diff(unwrapped[3:]) > 0), "Phase should increase after unwrap"
+
+    def test_unwrap_array_oscillating_phase(self):
+        """Test unwrapping phase that oscillates around π."""
+        # Simulate phase oscillating: 0.1, 3.0, 0.1, 3.0
+        # Differences: 2.9, -2.9, 2.9
+        # 2.9 > π, so wraps to 2.9 - 2π ~ -3.38
+        # -2.9 < -π, so wraps to -2.9 + 2π ~ 3.38
+        phases = jnp.array([0.1, 3.0, 0.1, 3.0])
+        unwrapped = xlal_sim_imr_phenom_x_unwrap_array(phases)
+
+        # After unwrapping, should show smooth evolution, not oscillation
+        # Each element should be monotonic or at least not oscillate
+        assert unwrapped[0] == phases[0]
+
+        # Check differences are now continuous (no large jumps)
+        diffs = jnp.diff(unwrapped)
+        assert jnp.all(jnp.abs(diffs) < jnp.pi), "Unwrapped differences should be < π"
+
+    def test_unwrap_array_atan2_output(self):
+        """Test unwrapping typical atan2 output with wrapping."""
+        # Simulate output from atan2 in range [-π, π]
+        # Create angles that increase but wrap at ±π
+        phases = jnp.array(
+            [
+                -3.0,  # Near -π
+                -2.0,  # Decreasing toward -π/2
+                -1.0,  #
+                0.0,  # Crossing zero
+                1.0,  # Increasing
+                2.0,  # Near π
+                -3.0,  # Wrapped to -π side
+                -2.0,  # Continuing
+            ]
+        )
+        unwrapped = xlal_sim_imr_phenom_x_unwrap_array(phases)
+
+        # Should be strictly increasing or at least continuous
+        diffs = jnp.diff(unwrapped)
+        assert jnp.all(jnp.abs(diffs) < jnp.pi), "All differences should be < π"
+
+    def test_unwrap_array_empty(self):
+        """Test empty array."""
+        phases = jnp.array([])
+        unwrapped = xlal_sim_imr_phenom_x_unwrap_array(phases)
+
+        assert unwrapped.shape == (0,)
+
+    def test_unwrap_array_single_element(self):
+        """Test single element array."""
+        phases = jnp.array([1.5])
+        unwrapped = xlal_sim_imr_phenom_x_unwrap_array(phases)
+
+        assert jnp.allclose(unwrapped, phases)
+
+    def test_unwrap_array_two_elements(self):
+        """Test two element array."""
+        phases = jnp.array([0.1, 3.5])
+        unwrapped = xlal_sim_imr_phenom_x_unwrap_array(phases)
+
+        assert jnp.isclose(unwrapped[0], 0.1)
+        # 3.5 - 0.1 = 3.4, which is > π ≈ 3.14159, so wraps to 3.4 - 2π ≈ -2.88
+        delta_phase = 3.5 - 0.1
+        delta_wrapped = delta_phase - 2 * jnp.pi  # Since 3.4 > π
+        expected_second = 0.1 + delta_wrapped
+        assert jnp.isclose(unwrapped[1], expected_second)
+
+    def test_unwrap_array_large_jumps(self):
+        """Test with large phase jumps."""
+        # Large jumps that should all be wrapped to [-π, π]
+        phases = jnp.array([0.0, 5.0, 10.0, 15.0, 20.0])
+        unwrapped = xlal_sim_imr_phenom_x_unwrap_array(phases)
+
+        # After unwrapping, should be monotonic or continuous
+        diffs = jnp.diff(unwrapped)
+        assert jnp.all(jnp.abs(diffs) < jnp.pi), "Unwrapped differences should be < π"
+
+    def test_unwrap_array_jittable(self):
+        """Test that unwrap_array is JAX JIT-compilable."""
+        phases = jnp.array([0.1, 1.0, 2.0, 3.0, -2.0, -1.0])
+
+        jitted_unwrap = jax.jit(xlal_sim_imr_phenom_x_unwrap_array)
+        unwrapped_jit = jitted_unwrap(phases)
+        unwrapped_regular = xlal_sim_imr_phenom_x_unwrap_array(phases)
+
+        assert jnp.allclose(unwrapped_jit, unwrapped_regular)
+
+    def test_unwrap_array_differentiable(self):
+        """Test that unwrap_array is differentiable."""
+        phases = jnp.array([0.1, 1.0, 2.0, 3.0])
+
+        def loss_fn(x):
+            unwrapped = xlal_sim_imr_phenom_x_unwrap_array(x)
+            return jnp.sum(unwrapped**2)
+
+        grad_fn = jax.grad(loss_fn)
+        grads = grad_fn(phases)
+
+        # Should produce gradients without error
+        assert grads.shape == phases.shape
+        assert jnp.all(jnp.isfinite(grads))
 
 
 if __name__ == "__main__":
