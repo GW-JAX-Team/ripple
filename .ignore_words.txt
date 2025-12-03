@@ -19,6 +19,7 @@ Chatziioannou
 checkify
 chieff
 coeff
+conftest
 contrusction
 coprec
 coprecessing
