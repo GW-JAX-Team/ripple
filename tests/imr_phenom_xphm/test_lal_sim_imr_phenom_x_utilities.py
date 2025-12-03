@@ -13,10 +13,11 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import (
     xlal_imr_phenom_xp_check_masses_and_spins,
     xlal_sim_imr_phenom_x_chi_eff,
     xlal_sim_imr_phenom_x_chi_pn_hat,
+    xlal_sim_imr_phenom_x_utils_hz_to_mf,
 )
 
 try:
-    from lalsimulation import SimIMRPhenomXchiEff, SimIMRPhenomXchiPNHat
+    from lalsimulation import SimIMRPhenomXchiEff, SimIMRPhenomXchiPNHat, SimIMRPhenomXUtilsHztoMf
 
     HAS_LAL = True
 except ImportError:
@@ -447,6 +448,106 @@ class TestXlalSimImrPhenomXChiPNHat:
         result_lal = SimIMRPhenomXchiPNHat(eta, chi1l, chi2l)
 
         assert jnp.isclose(float(result_jax), result_lal, rtol=1e-6)
+
+
+class TestXlalSimImrPhenomXUtilsHztoMf:
+    """Test xlal_sim_imr_phenom_x_utils_hz_to_mf function."""
+
+    def test_basic_conversion(self):
+        """Test basic frequency conversion."""
+        f_hz = 100.0  # 100 Hz
+        m_tot_msun = 60.0  # 60 solar masses
+
+        result = xlal_sim_imr_phenom_x_utils_hz_to_mf(f_hz, m_tot_msun)
+
+        # Expected: f_hz * (LAL_MTSUN_SI * m_tot_msun)
+        # LAL_MTSUN_SI ≈ 4.925490947641267e-06
+        expected = f_hz * 4.925490947641267e-06 * m_tot_msun
+        assert jnp.isclose(float(result), expected, rtol=1e-10)
+
+    def test_zero_frequency(self):
+        """Test conversion with zero frequency."""
+        f_hz = 0.0
+        m_tot_msun = 50.0
+
+        result = xlal_sim_imr_phenom_x_utils_hz_to_mf(f_hz, m_tot_msun)
+        assert jnp.isclose(float(result), 0.0, atol=1e-15)
+
+    def test_zero_mass(self):
+        """Test conversion with zero total mass."""
+        f_hz = 50.0
+        m_tot_msun = 0.0
+
+        result = xlal_sim_imr_phenom_x_utils_hz_to_mf(f_hz, m_tot_msun)
+        assert jnp.isclose(float(result), 0.0, atol=1e-15)
+
+    def test_typical_gw_frequency(self):
+        """Test conversion with typical gravitational wave frequency."""
+        f_hz = 20.0  # 20 Hz, typical LIGO frequency
+        m_tot_msun = 100.0  # 100 solar masses
+
+        result = xlal_sim_imr_phenom_x_utils_hz_to_mf(f_hz, m_tot_msun)
+
+        # This should give a reasonable dimensionless frequency
+        # For 100 Msun total mass, Mf = f * (4.925e-6 * 100) ≈ f * 4.925e-4
+        # At 20 Hz: 20 * 4.925e-4 ≈ 0.00985
+        expected = f_hz * 4.925490947641267e-06 * m_tot_msun
+        assert jnp.isclose(float(result), expected, rtol=1e-10)
+        assert 0.005 < float(result) < 0.02  # Reasonable range check
+
+    def test_jit_compatible(self):
+        """Test that xlal_sim_imr_phenom_x_utils_hz_to_mf is JIT-compatible."""
+        jitted_func = jax.jit(xlal_sim_imr_phenom_x_utils_hz_to_mf)
+        f_hz = 35.0
+        m_tot_msun = 75.0
+
+        result = jitted_func(f_hz, m_tot_msun)
+        expected = xlal_sim_imr_phenom_x_utils_hz_to_mf(f_hz, m_tot_msun)
+        assert jnp.isclose(float(result), float(expected), rtol=1e-10)
+
+    @pytest.mark.skipif(not HAS_LAL, reason="lalsimulation not available")
+    def test_cross_validation_basic(self):
+        """Cross-validate xlal_sim_imr_phenom_x_utils_hz_to_mf against LAL."""
+        f_hz = 25.0
+        m_tot_msun = 80.0
+
+        result_jax = xlal_sim_imr_phenom_x_utils_hz_to_mf(f_hz, m_tot_msun)
+        result_lal = SimIMRPhenomXUtilsHztoMf(f_hz, m_tot_msun)
+
+        assert jnp.isclose(float(result_jax), result_lal, rtol=1e-10)
+
+    @pytest.mark.skipif(not HAS_LAL, reason="lalsimulation not available")
+    def test_cross_validation_range(self):
+        """Cross-validate across a range of frequencies and masses."""
+        frequencies = [10.0, 20.0, 50.0, 100.0, 200.0]
+        masses = [20.0, 50.0, 100.0, 150.0]
+
+        for f_hz in frequencies:
+            for m_tot_msun in masses:
+                result_jax = xlal_sim_imr_phenom_x_utils_hz_to_mf(f_hz, m_tot_msun)
+                result_lal = SimIMRPhenomXUtilsHztoMf(f_hz, m_tot_msun)
+
+                assert jnp.isclose(
+                    float(result_jax), result_lal, rtol=1e-10
+                ), f"Mismatch at f_hz={f_hz}, m_tot_msun={m_tot_msun}"
+
+    @pytest.mark.skipif(not HAS_LAL, reason="lalsimulation not available")
+    def test_cross_validation_edge_cases(self):
+        """Cross-validate edge cases against LAL."""
+        test_cases = [
+            (0.0, 50.0),  # Zero frequency
+            (100.0, 0.0),  # Zero mass
+            (1e-6, 1e6),  # Very small/large values
+            (1e6, 1e-6),  # Very large/small values
+        ]
+
+        for f_hz, m_tot_msun in test_cases:
+            result_jax = xlal_sim_imr_phenom_x_utils_hz_to_mf(f_hz, m_tot_msun)
+            result_lal = SimIMRPhenomXUtilsHztoMf(f_hz, m_tot_msun)
+
+            assert jnp.isclose(
+                float(result_jax), result_lal, rtol=1e-10
+            ), f"Mismatch at f_hz={f_hz}, m_tot_msun={m_tot_msun}"
 
 
 if __name__ == "__main__":
