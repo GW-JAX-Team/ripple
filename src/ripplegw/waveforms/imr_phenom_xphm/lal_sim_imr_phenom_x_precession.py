@@ -1327,6 +1327,24 @@ def imr_phenom_x_set_precession_var(
 # }
 
 
+def imr_phenom_x_spin_taylor_angles_splines_all(
+    f_min: float,
+    f_max: float,
+    p_wf: IMRPhenomXWaveformDataClass,
+    p_prec: IMRPhenomXPrecessionDataClass,
+    lal_params: IMRPhenomXPHMParameterDataClass,
+):
+    """Compute spin Taylor Euler angles splines for IMRPhenomXPHM waveform model.
+
+    Args:
+        f_min: Minimum frequency for angle computation.
+        f_max: Maximum frequency for angle computation.
+        p_wf: Waveform data class containing waveform parameters.
+        p_prec: Precession data class to be initialized.
+        lal_params: Parameter data class containing LAL parameters.
+    """
+
+
 def imr_phenom_x_initialize_euler_angles(  # pylint: disable=unused-argument,unused-variable
     p_wf: IMRPhenomXWaveformDataClass,
     p_prec: IMRPhenomXPrecessionDataClass,
