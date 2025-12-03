@@ -1335,10 +1335,33 @@ def imr_phenom_x_interpolate_alpha_beta_spin_taylor(  # pylint: disable=unused-a
     """
     IMRPhenomX Interpolate alpha and beta using Spin Taylor method.
 
+    This function replicates the C code behavior of looping through PN arrays,
+    rotating the orbital angular momentum direction to the J-frame, and computing
+    Euler angles and gravitational wave frequencies. The C code includes an early
+    break when fgw_Hz <= 0.
+
+    IMPORTANT JAX LIMITATION:
+    JAX cannot truly skip computation in a loop due to JIT compilation. All
+    iterations execute their computations regardless. What we CAN do is:
+    1. Gate all state updates with should_continue flag
+    2. When fgw_Hz <= 0, set should_continue = False
+    3. All future iterations become no-ops (computed but discarded)
+
+    The "break" is emulated by stopping state updates, not by skipping iterations.
+    Mfmax_PN and i_max track the last valid point before the break condition.
+
     Args:
         p_wf: Waveform data class containing waveform parameters.
         p_prec: Precession data class containing precession parameters.
         lal_params: Parameter data class containing LAL parameters.
+
+    Returns:
+        Tuple of (f_gw, alpha_aux, cos_beta, Mfmax_PN, i_max) where:
+        - f_gw: Array of GW frequencies in Mf units (padded with zeros after break point)
+        - alpha_aux: Array of Euler angle alpha values (padded with zeros after break point)
+        - cos_beta: Array of cos(beta) values (padded with zeros after break point)
+        - Mfmax_PN: Maximum valid GW frequency (last value before fgw_Hz <= 0)
+        - i_max: Index of last valid point (where break occurs)
     """
     len_pn = p_prec.pn_arrays.v_pn.shape[0]
 
@@ -1347,22 +1370,104 @@ def imr_phenom_x_interpolate_alpha_beta_spin_taylor(  # pylint: disable=unused-a
     alpha_aux = jnp.zeros(len_pn)
     cos_beta = jnp.zeros(len_pn)
 
-    # Initial state: Mfmax_PN and i_max track the last valid point
+    # Initial state for scan
     init_state = {
         "f_gw": f_gw,
         "alpha_aux": alpha_aux,
         "cos_beta": cos_beta,
-        "Mfmax_PN": 0.0,
+        "m_fmax_pn": 0.0,
         "i_max": 0,
-        "should_break": False,
+        "should_continue": True,
+        "counter": 0,
     }
 
-    def loop_body(i: int, state: dict):
+    def scan_body(state, i):  # pylint: disable=too-many-locals
+        """Process one iteration of the loop, with early termination support.
+
+        In JAX, we cannot truly break early, but we can stop updating state after
+        a condition is met. This function:
+        1. Computes all values (unavoidable in JAX)
+        2. Only updates state arrays if should_continue is True AND frequency is valid
+        3. Sets should_continue to False when frequency becomes invalid (the "break point")
+
+        Returns:
+            Tuple of (new_state, None) - the None is the output (not used here)
+        """
+        # Check if we should continue processing (once False, stays False)
+        should_process = state["should_continue"]
+
+        # Extract current LN components
         ln_hat_x_temp = p_prec.pn_arrays.ln_hat_x_pn[i]
         ln_hat_y_temp = p_prec.pn_arrays.ln_hat_y_pn[i]
         ln_hat_z_temp = p_prec.pn_arrays.ln_hat_z_pn[i]
 
-    final_state = jax.lax.fori_loop(0, len_pn, loop_body, init_state)
+        # Apply rotations (computed regardless of should_process, but that's unavoidable in JAX)
+        ln_hat_x_temp, ln_hat_y_temp, ln_hat_z_temp = imr_phenom_x_rotate_z(
+            -p_prec.phi_j_sf, ln_hat_x_temp, ln_hat_y_temp, ln_hat_z_temp
+        )
+        ln_hat_x_temp, ln_hat_y_temp, ln_hat_z_temp = imr_phenom_x_rotate_y(
+            -p_prec.theta_j_sf, ln_hat_x_temp, ln_hat_y_temp, ln_hat_z_temp
+        )
+        ln_hat_x_temp, ln_hat_y_temp, ln_hat_z_temp = imr_phenom_x_rotate_z(
+            -p_prec.kappa, ln_hat_x_temp, ln_hat_y_temp, ln_hat_z_temp
+        )
+
+        # Compute frequencies
+        f_gw_hz = jnp.pow(p_prec.pn_arrays.v_pn[i], 3.0) / p_prec.pi_gm
+        f_gw_mf = xlal_sim_imr_phenom_x_utils_hz_to_mf(f_gw_hz, p_wf.m_tot)
+
+        # Compute angles
+        alpha_temp = jnp.arctan2(ln_hat_y_temp, ln_hat_x_temp)
+        cos_beta_temp = ln_hat_z_temp
+
+        # Check if frequency is valid (positive)
+        freq_valid = f_gw_hz > 0.0
+
+        # Update arrays ONLY if we should continue processing AND frequency is valid
+        # This is the key: should_process gates all updates
+        update_condition = should_process & freq_valid
+
+        new_f_gw = jnp.where(update_condition, state["f_gw"].at[i].set(f_gw_mf), state["f_gw"])
+        new_alpha_aux = jnp.where(update_condition, state["alpha_aux"].at[i].set(alpha_temp), state["alpha_aux"])
+        new_cos_beta = jnp.where(update_condition, state["cos_beta"].at[i].set(cos_beta_temp), state["cos_beta"])
+
+        # Update Mfmax_PN and i_max only if update condition is met
+        new_m_fmax_pn = jnp.where(update_condition, f_gw_mf, state["m_fmax_pn"])
+        new_i_max = jnp.where(update_condition, i, state["i_max"])
+
+        # CRITICAL: Set should_continue to False if we're currently processing AND frequency became invalid
+        # This stops all future updates (the "break" behavior)
+        # If should_process is already False, keep it False (once broken, always broken)
+        new_should_continue = should_process & freq_valid
+
+        new_state = {
+            "f_gw": new_f_gw,
+            "alpha_aux": new_alpha_aux,
+            "cos_beta": new_cos_beta,
+            "m_fmax_pn": new_m_fmax_pn,
+            "i_max": new_i_max,
+            "should_continue": new_should_continue,
+            "counter": state["counter"] + 1,
+        }
+
+        return new_state, None
+
+    # Use scan for early termination capability
+    final_state, _ = jax.lax.scan(scan_body, init_state, jnp.arange(len_pn))
+
+    # Note: Since JAX requires all iterations to complete, we use scan to process all
+    # indices but track should_continue to skip processing after the break condition.
+    # The first invalid frequency marks where the original C code would break.
+
+    m_fmax_pn = final_state["m_fmax_pn"]
+
+    fmax_inspiral = jax.lax.cond(p_prec.imr_phenom_xpnr_use_tuned_angles, m_fmax_pn, m_fmax_pn - p_wf.delta_mf)
+
+    fmax_inspiral = jax.lax.cond(
+        fmax_inspiral > p_wf.f_ring - p_wf.f_damp, lambda _: 1.020 * p_wf.f_meco, lambda x: x, operand=None
+    )
+
+    p_prec = p_prec.replace(ftrans_mrd=0.98 * fmax_inspiral, fmax_inspiral=fmax_inspiral)
 
     #       REAL8Sequence *fgw =NULL ;
     #       /* Setup sequences for angles*/
