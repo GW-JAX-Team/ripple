@@ -17,16 +17,16 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
-[project.urls]
-Documentation = "https://ripple.readthedocs.io/en/latest/"
-"Bug Tracker" = "https://github.com/GW-JAX-Team/ripple"
-
 dependencies = [
     "jax>=0.5.0",
     "jaxlib>=0.5.0",
     "jaxtyping>=0.2.34",
     "numpy>=1,<2",
 ]
+
+[project.urls]
+Documentation = "https://ripple.readthedocs.io/en/latest/"
+"Bug Tracker" = "https://github.com/GW-JAX-Team/ripple"
 
 [project.optional-dependencies]
 docs = [
