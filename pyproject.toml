@@ -1,6 +1,83 @@
-[build-system]
-requires = [
-    "setuptools>=42",
-    "wheel"
+[project]
+name = "ripplegw"
+version = "0.0.9"
+description = "A small jax package for differentiable and fast gravitational wave data analysis."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "Thomas Edwards", email = "tedwards2412@gmail.com" },
 ]
-build-backend = "setuptools.build_meta"
+license = { file = "LICENSE" }
+keywords = ["gravitational waves", "jax"]
+classifiers = [
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "jax>=0.5.0",
+    "jaxlib>=0.5.0",
+    "jaxtyping>=0.2.34",
+    "numpy>=1,<2",
+]
+
+[project.urls]
+Documentation = "https://ripple.readthedocs.io/en/latest/"
+"Bug Tracker" = "https://github.com/GW-JAX-Team/ripple"
+
+[project.optional-dependencies]
+docs = [
+    "mkdocs-gen-files==0.5.0",
+    "mkdocs-jupyter==0.25.1",
+    "mkdocs-literate-nav==0.6.1",
+    "mkdocs-material==9.5.47",
+    "mkdocs==1.6.1",
+    "mkdocstrings[python]==0.27.0",
+    "pymdown-extensions==10.12",
+]
+cuda = [
+    "jax[cuda12]>=0.5.0",
+]
+
+[dependency-groups]
+dev = [
+    "ripplegw",
+    "pre-commit>=4.2.0",
+    "coverage>=7.7.0",
+    "coveralls>=4.0.1",
+    "pytest>=8.3.3",
+    "pytest-cov>=6.0.0",
+    "ruff>=0.12.2",
+    "tqdm>=4.66.0",
+    # "pyright>=1.1.402",  # Temporarily disabled - re-enable once type errors are fixed
+]
+
+[tool.uv.sources]
+ripplegw = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff.lint]
+ignore = [
+    "F722",  # Forward annotations evaluation (false positive with jaxtyping)
+    "E731",  # Lambda assignment
+]
+
+[tool.ruff.lint.extend-per-file-ignores]
+"notebooks/*" = ["E402"]
+
+[tool.pyright]
+include = ["src"]
+
+[tool.coverage.report]
+exclude_also = [
+    'def __repr__',
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "@(abc\\. )?abstractmethod",
+]

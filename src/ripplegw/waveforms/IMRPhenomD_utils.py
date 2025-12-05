@@ -4,7 +4,7 @@ import jax.numpy as jnp
 import jax
 
 from ..constants import gt
-from ..typing import Array
+from jaxtyping import Array
 
 from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
 
@@ -133,7 +133,6 @@ def get_transition_frequencies(
     return f1, f2, f3, f4, f_RD, f_damp
 
 
-@jax.jit
 def get_coeffs(theta: Array) -> Array:
     # Retrives the coefficients needed to produce the waveform
 

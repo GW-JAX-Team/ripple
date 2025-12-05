@@ -2,15 +2,19 @@ import jax
 import jax.numpy as jnp
 from ripplegw import Mc_eta_to_ms
 
-from ..constants import gt, MSUN
-import numpy as np
+from ..constants import gt
 from .IMRPhenomD import Phase as PhDPhase
 from .IMRPhenomD import Amp as PhDAmp
 from .IMRPhenomD_utils import get_coeffs
 
-from ..typing import Array
-from .IMRPhenomPv2_utils import *
-from .IMRPhenomD_utils import *
+from jaxtyping import Array
+from .IMRPhenomPv2_utils import (
+    WignerdCoefficients,
+    convert_spins,
+    ComputeNNLOanglecoeffs,
+    SpinWeightedY,
+    phP_get_transition_frequencies,
+)
 
 
 def PhenomPCoreTwistUp(
