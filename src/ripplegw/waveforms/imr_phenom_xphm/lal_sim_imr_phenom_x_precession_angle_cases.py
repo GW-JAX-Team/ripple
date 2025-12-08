@@ -74,7 +74,7 @@ def imr_phenom_x_initialize_msa_system(
     # {
     # XLAL_ERROR(XLAL_EINVAL,"Error: MSA system requires IMRPhenomXPrecVersion 220, 221, 222, 223 or 224.\n")
     # }
-    is_valid_version = jnp.logical_or.reduce(
+    is_valid_version = jnp.any(
         jnp.array(
             [
                 pflag == 220,
@@ -984,7 +984,7 @@ def imr_phenom_x_initialize_msa_system(
         )
 
     # Check if expansion_order is valid using JAX-compatible operations
-    is_valid_expansion_order = jnp.logical_or.reduce(
+    is_valid_expansion_order = jnp.any(
         jnp.array(
             [
                 expansion_order == -1,
@@ -1481,7 +1481,7 @@ def imr_phenom_x_return_msa_corrections_msa(
         (a_theta_l * (big_cphi + big_dphi)) + (2.0 * d0 * b_theta_l) * ((big_cphi / (sd - d2)) - (big_dphi / (sd + d2)))
     ) / psi_dot
     v_msa_y = jax.lax.select(
-        jnp.logical_or.reduce(jnp.array([pflag == 222, pflag == 223, pflag == 224])),
+        jnp.any(jnp.array([pflag == 222, pflag == 223, pflag == 224])),
         v_msa_y_222_223_224_value,
         v_msa_y_non_222_223_224_value,
     )
@@ -1730,7 +1730,7 @@ def imr_phenom_x_return_roots_msa(l_norm: float, j_norm: float, p_prec: IMRPheno
     #     | (s1_norm2 == 0)
     #     | (s2_norm2 == 0),
     spl2, s32, s_mi2 = jax.lax.cond(
-        jnp.logical_or.reduce(
+        jnp.any(
             jnp.array(
                 [
                     jnp.isnan(theta),
