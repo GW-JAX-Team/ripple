@@ -8,6 +8,12 @@ import jax
 import jax.lax
 import jax.numpy as jnp
 
+from ripplegw.constants import PI, C, G
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_inspiral_pn_coefficients import (
+    xlal_sim_inspiral_taylor_t2_timing_0pncoeff,
+    xlal_sim_inspiral_taylor_t2_timing_2pncoeff,
+    xlal_sim_inspiral_taylor_t2_timing_4pncoeff,
+)
 from ripplegw.waveforms.imr_phenom_xphm.parameter_dataclass import IMRPhenomXPHMParameterDataClass
 from ripplegw.waveforms.imr_phenom_xphm.sim_inspiral_eos import xlal_sim_inspiral_eos_q_from_lambda
 
@@ -54,29 +60,28 @@ def xlal_sim_inspiral_set_quad_mon_params_from_lambdas(
 
 
 def xlal_sim_inspiral_chirp_time_bound(fstart: float, m1: float, m2: float, s1: float, s2: float) -> float:
-    M = m1 + m2  # total mass
-    mu = m1 * m2 / M  # reduced mass
-    eta = mu / M  # symmetric mass ratio
+    big_m = m1 + m2  # total mass
+    mu = m1 * m2 / big_m  # reduced mass
+    eta = mu / big_m  # symmetric mass ratio
     # /* chi = (s1*m1 + s2*m2)/M <= max(|s1|,|s2|) */
 
-    chi = jax.lax.select( # fabs(fabs(s1) > fabs(s2) ? s1 : s2) #// over-estimate of chi
+    chi = jax.lax.select(  # fabs(fabs(s1) > fabs(s2) ? s1 : s2) #// over-estimate of chi
         jnp.fabs(s1) > jnp.fabs(s2),
         s1,
         s2,
     )
-    
+
     # /* note: for some reason these coefficients are named wrong...
     #  * "2PN" should be "1PN", "4PN" should be "2PN", etc. */
-    c0 = jnp.fabs(XLALSimInspiralTaylorT2Timing_0PNCoeff(M, eta))
-    c2 = XLALSimInspiralTaylorT2Timing_2PNCoeff(eta);
+    c0 = jnp.fabs(xlal_sim_inspiral_taylor_t2_timing_0pncoeff(big_m, eta))
+    c2 = xlal_sim_inspiral_taylor_t2_timing_2pncoeff(eta)
     # /* the 1.5pN spin term is in TaylorT2 is 8*beta/5 [Citation ??]
     #  * where beta = (113/12 + (25/4)(m2/m1))*(s1*m1^2/M^2) + 2 <-> 1
     #  * [Cutler & Flanagan, Physical Review D 49, 2658 (1994), Eq. (3.21)]
     #  * which can be written as (113/12)*chi - (19/6)(s1 + s2)
     #  * and we drop the negative contribution */
-    c3 = (226.0/15.0) * chi
+    c3 = (226.0 / 15.0) * chi
     # /* there is also a 1.5PN term with eta, but it is negative so do not include it */
-    c4 = XLALSimInspiralTaylorT2Timing_4PNCoeff(eta)
-    v = cbrt(LAL_PI * LAL_G_SI * M * fstart) / LAL_C_SI
+    c4 = xlal_sim_inspiral_taylor_t2_timing_4pncoeff(eta)
+    v = (PI * G * big_m * fstart) ** (1 / 3) / C
     return c0 * pow(v, -8) * (1.0 + (c2 + (c3 + c4 * v) * v) * v * v)
-
