@@ -379,8 +379,8 @@ def imr_phenom_x_set_precession_var(
     # ######## NOTE if precversionTag==3: ######## -> Spin-Taylor
 
     # /* update  precessing version to catch possible fallbacks of SpinTaylor angles */
-    # precversion_tag = (p_prec.imr_phenom_x_prec_version - (p_prec.imr_phenom_x_prec_version % 100)) / 100
-    # pflag = p_prec.imr_phenom_x_prec_version
+    precversion_tag = (p_prec.imr_phenom_x_prec_version - (p_prec.imr_phenom_x_prec_version % 100)) / 100
+    pflag = p_prec.imr_phenom_x_prec_version
 
 
 #   if(pflag != 101 && pflag != 102 && pflag != 103 && pflag != 104 &&
