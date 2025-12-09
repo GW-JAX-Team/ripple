@@ -19,6 +19,8 @@ arraylike
 Carlson
 checkify
 chieff
+chipar
+chiperp
 contrusction
 coprec
 coprecessing
@@ -43,6 +45,8 @@ fcmp
 fdamp
 fmax
 fmin
+fparr
+fperp
 Forteza
 freqs
 fring
@@ -57,6 +61,7 @@ inspiral
 interp
 Interpolants
 inveta
+invqq
 isco
 Jacobi
 JIT
@@ -124,6 +129,7 @@ wfstruct
 Xatan
 Xchi
 Xdot
+Xfperp
 XLAL
 xlalsim
 XLPN
@@ -190,3 +196,4 @@ exponentials
 precesing
 Ppolp
 Ppolc
+qfactor
