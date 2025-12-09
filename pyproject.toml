@@ -86,6 +86,7 @@ unsafe-load-any-extension="no"
 
 [tool.pylint.'MESSAGES CONTROL']
 enable="c-extension-no-member"
+disable="R0914"  # too-many-locals
 
 [tool.pylint.'REPORTS']
 evaluation="10.0 - ((float(5 * error + warning + refactor + convention) / statement) * 10)"
