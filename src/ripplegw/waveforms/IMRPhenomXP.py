@@ -91,22 +91,69 @@ def PhenomXPCoreTwistUp22(
     return hp, hc
 
 
-def gen_IMRPhenomXP_hphc(f: Array, 
+def _gen_IMRPhenomXP_hphc(f: Array, 
                           params: Array,  
                           prec_params,    
                           f_ref: float):
     """
+    The following function generates an IMRPhenomXP frequency-domain waveform.
+    It is the translation of IMRPhenomXPGenerateFD from LAL.
+    Calls gen_IMRPhenomXAS to generate the coprecessing waveform (In LAL the coprecessing waveform is generated within IMRPhenomXPGenerateFD)
     Returns:
     --------
       hp (array): Strain of the plus polarization
       hc (array): Strain of the cross polarization
     """
-    iota = params[7]
-    h0 = gen_IMRPhenomXAS(f, params, f_ref)
-
-    hp, hc = PhenomXPCoreTwistUp22(f, h0, params, prec_params)
     
-    hp = h0 * (1 / 2 * (1 + jnp.cos(iota) ** 2))  
-    hc = -1j * h0 * jnp.cos(iota)
+    Mc, _ = ms_to_Mc_eta([params['m1'], params['m2']])
+    iota = params['inclination']
+    params_list = [Mc, params['eta'], params['chi1_norm'], params['chi2_norm'], params['D'], params['tc'], params['phi0']]
+    ## line 2372 of https://lscsoft.docs.ligo.org/lalsuite/lalsimulation/_l_a_l_sim_i_m_r_phenom_x_8c_source.html
+    hcoprec = gen_IMRPhenomXAS(f, params_list, f_ref)
 
+    ## line 2403 of https://lscsoft.docs.ligo.org/lalsuite/lalsimulation/_l_a_l_sim_i_m_r_phenom_x_8c_source.html
+    hp, hc = PhenomXPCoreTwistUp22(f, hcoprec, params, prec_params)
+    
+    ## rotate waveform by 2 zeta. 
+    # line 2469 of https://lscsoft.docs.ligo.org/lalsuite/lalsimulation/_l_a_l_sim_i_m_r_phenom_x_8c_source.html
+    zeta = prec_params['zeta_polarization']
+    cond = jnp.abs(zeta) > 0.0
+
+    def no_rotation(args):
+        hp, hc, _ = args
+        return hp, hc
+
+    def do_rotation(args):
+        hp, hc, z = args
+        angle = 2.0 * z
+
+        cosPol = jnp.cos(angle)
+        sinPol = jnp.sin(angle)
+
+        new_hp = cosPol * hp + sinPol * hc
+        new_hc = cosPol * hc - sinPol * hp
+
+        return new_hp, new_hc
+
+    hp, hc = jax.lax.cond(
+        cond,
+        do_rotation,
+        no_rotation,
+        operand=(hp, hc, zeta)
+    )
+
+    return hp, hc
+
+def gen_IMRPhenomXP_hphc(f: Array, 
+                          params: Array,  
+                          f_ref: float):
+    
+    params_aux = {}
+    
+    ## line 1192 of https://lscsoft.docs.ligo.org/lalsuite/lalsimulation/_l_a_l_sim_i_m_r_phenom_x_8c_source.html
+    prec_params = IMRPhenomXGetAndSetPrecessionVariables(params, params_aux)
+    
+    ## line 1213
+    hp, hc = _gen_IMRPhenomXP_hphc(f, params, prec_params, f_ref)
+    
     return hp, hc
