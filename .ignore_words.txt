@@ -61,6 +61,7 @@ inspiral
 interp
 Interpolants
 inveta
+invqq
 isco
 Jacobi
 JIT

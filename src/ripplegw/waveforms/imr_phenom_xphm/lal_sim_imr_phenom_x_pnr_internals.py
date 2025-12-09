@@ -24,7 +24,7 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import (
 
 def imr_phenom_x_pnr_get_and_set_pnr_variables(
     p_wf: IMRPhenomXWaveformDataClass, p_prec: IMRPhenomXPrecessionDataClass
-):
+) -> IMRPhenomXPrecessionDataClass:
     """
     Docstring for imr_phenom_x_pnr_get_and_set_pnr_variables
 
@@ -94,8 +94,9 @@ def imr_phenom_x_pnr_get_and_set_pnr_variables(
 
     chiperp = jax.lax.cond(
         p_prec.imr_phenom_x_prec_version == 330,
-        prec_version_330_branch(),
-        other_prec_version_branch(),
+        lambda _: prec_version_330_branch(),
+        lambda _: other_prec_version_branch(),
+        operand=None,
     )
 
     antisymmetric_chis = jnp.sqrt(
@@ -168,3 +169,5 @@ def imr_phenom_x_pnr_get_and_set_pnr_variables(
         pnr_chi_window_upper=1.2,
         pnr_inspiral_scaling=pnr_inspiral_scaling,
     )
+
+    return p_prec
