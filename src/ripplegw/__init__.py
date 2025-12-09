@@ -9,13 +9,15 @@ and comparing waveforms.
 
 from math import pi
 from typing import Callable, Optional, Tuple
-import warnings
+import logging
 
 from jax import random
 import jax.numpy as jnp
 
 from .constants import C, G
 from jaxtyping import Array
+
+logger = logging.getLogger(__name__)
 
 
 def Mc_eta_to_ms(m):
@@ -355,10 +357,10 @@ def get_eff_pads(fs: Array) -> Tuple[Array, Array]:
     df = (fs[-1] - fs[0]) / (len(fs) - 1)
 
     if not jnp.allclose(jnp.diff(fs), df).all():
-        warnings.warn("frequency grid may not be evenly spaced")
+        logger.warning("frequency grid may not be evenly spaced")
 
     if fs[0] % df != 0 or fs[-1] % df != 0:
-        warnings.warn(
+        logger.warning(
             "The first and/or last elements of the frequency grid are not integer "
             "multiples of the grid spacing. The frequency grid and pads from this "
             "function will thus yield inaccurate results when used with fft/ifft."
