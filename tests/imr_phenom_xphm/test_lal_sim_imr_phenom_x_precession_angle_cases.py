@@ -171,7 +171,7 @@ class TestIninitializeMsaSystem:
         p_wf, p_prec = sample_structs
         err, result = imr_phenom_x_initialize_msa_system(p_wf, p_prec, 5)
         err.throw()
-        assert result is None
+        assert type(result) is IMRPhenomXPrecessionDataClass
 
     def test_initialize_msa_system_invalid_prec_version(self, sample_structs):
         """Invalid precession version triggers the expected check failure."""
@@ -200,7 +200,7 @@ class TestIninitializeMsaSystem:
 
         err, result = jit_fn(p_wf, p_prec, 5)
         err.throw()
-        assert result is None
+        assert type(result) is IMRPhenomXPrecessionDataClass
 
     def test_initialize_msa_system_jit_with_arrays(self, sample_structs):
         """Function is JIT compatible with batched waveform and precession structs."""
@@ -230,7 +230,7 @@ class TestIninitializeMsaSystem:
             err_single = jax.tree_util.tree_map(lambda x: x[i], err_batch)
             err_single.throw()
 
-        assert results_batch is None
+        assert type(results_batch) is IMRPhenomXPrecessionDataClass
 
     def test_initialize_msa_system_jit_with_different_orders(self, sample_structs):
         """Function with different expansion orders per batch element."""
@@ -261,8 +261,8 @@ class TestIninitializeMsaSystem:
         err_0.throw()
         err_1.throw()
 
-        assert result_0 is None
-        assert result_1 is None
+        assert type(result_0) is IMRPhenomXPrecessionDataClass
+        assert type(result_1) is IMRPhenomXPrecessionDataClass
 
 
 if __name__ == "__main__":

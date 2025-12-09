@@ -65,7 +65,7 @@ def imr_phenom_x_initialize_msa_system(
     p_wf: IMRPhenomXWaveformDataClass,
     p_prec: IMRPhenomXPrecessionDataClass,
     expansion_order: int,
-) -> None:
+) -> IMRPhenomXPrecessionDataClass:
     # /*
     # Sanity check on the precession version
     # */
@@ -1234,31 +1234,7 @@ def imr_phenom_x_initialize_msa_system(
         zeta_0=-zeta_0 - v_msa[1],
     )
 
-    # #if DEBUG == 1
-    # printf("v_0            = %.6f\n",p_prec->v_0)
-    # printf("c1             = %.6f\n\n",p_prec->c1)
-
-    # printf("eta            = %.6f\n",p_prec->eta)
-    # printf("eta2           = %.6f\n",p_prec->eta2)
-    # printf("eta3           = %.6f\n",p_prec->eta3)
-    # printf("eta4           = %.6f\n",p_prec->eta4)
-    # printf("ieta           = %.6f\n",p_prec->inveta)
-    # printf("ieta2          = %.6f\n",p_prec->inveta2)
-    # printf("ieta3          = %.6f\n\n",p_prec->inveta3)
-
-    # printf("SAv            = %.6f\n",p_prec->SAv)
-    # printf("SAv2           = %.6f\n\n",p_prec->SAv2)
-    # printf("invSAv2        = %.6f\n\n",p_prec->invSAv2)
-    # printf("invSAv         = %.6f\n\n",p_prec->invSAv)
-
-    # printf("J_0_norm       = %.6f\n",p_prec->J_0_norm)
-    # printf("L_0_norm       = %.6f\n\n",p_prec->L_0_norm)
-
-    # printf("phiz_0         = %.6f\n",p_prec->phiz_0)
-    # printf("zeta_0         = %.6f\n",p_prec->zeta_0)
-    # printf("phiz_0_MSA     = %.6f\n",phiz_0_MSA)
-    # printf("zeta_0_MSA     = %.6f\n\n",zeta_0_MSA)
-    # #endif
+    return p_prec
 
 
 def imr_phenom_x_return_zeta_msa(v: float, p_prec: IMRPhenomXPrecessionDataClass) -> float:
