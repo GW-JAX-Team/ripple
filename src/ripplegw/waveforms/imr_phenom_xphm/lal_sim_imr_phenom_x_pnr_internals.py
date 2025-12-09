@@ -20,6 +20,9 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import (
     xlal_sim_imr_phenom_x_chi_eff,
     xlal_sim_imr_phenom_x_final_spin_2017,
 )
+from ripplegw.waveforms.imr_phenom_xphm.parameter_dataclass import (
+    IMRPhenomXPHMParameterDataClass,
+)
 
 
 def imr_phenom_x_pnr_get_and_set_pnr_variables(
@@ -171,3 +174,24 @@ def imr_phenom_x_pnr_get_and_set_pnr_variables(
     )
 
     return p_prec
+
+
+def imr_phenom_x_pnr_get_and_set_co_prec_params(
+    p_wf: IMRPhenomXWaveformDataClass,
+    p_prec: IMRPhenomXPrecessionDataClass,
+    lal_params: IMRPhenomXPHMParameterDataClass,
+) -> None:
+    """
+    Docstring for imr_phenom_x_pnr_get_and_set_co_prec_params
+
+    :param pwf: Description
+    :type pwf: IMRPhenomXWaveformDataClass
+    :param p_prec: Description
+    :type p_prec: IMRPhenomXPrecessionDataClass
+    :param lal_params: Description
+    :type lal_params: IMRPhenomXPHMParameterDataClass
+    """
+
+    _ = p_wf
+    _ = p_prec
+    _ = lal_params
