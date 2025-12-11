@@ -16,6 +16,7 @@ from .IMRPhenomD_utils import (
 from ..typing import Array
 from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
 from .spherical_harmonics import *
+from ..gsl_ellint import ellipfinc, gsl_sf_elljac_e
 
 
 # helper functions for LALtoPhenomP:
@@ -387,8 +388,6 @@ def IMRPhenomX_Return_Roots_MSA(LNorm, JNorm, pPrec):
     theta = jnp.arccos(acosarg) / 3.0
     cos_theta = jnp.cos(theta)
     
-    print(f'{p=}, {sqrtarg=}, {theta=}, {B=}, {B2=}, {C=}')
-    
     vector_condition = jnp.logical_or(jnp.isnan(theta),
                                                    (jnp.isnan(sqrtarg)))
     scalar_condition = jnp.logical_or.reduce(jnp.array([(pPrec['dotS1Ln'] == 1.0),
@@ -429,8 +428,6 @@ def IMRPhenomX_Return_Roots_MSA(LNorm, JNorm, pPrec):
         roots_when_invalid(),
         roots_when_valid()
     )
-    
-    print(f'{roots_array=}')
 
     return roots_array
 
@@ -1278,19 +1275,19 @@ def IMRPhenomX_Initialize_MSA_System(pWF, pPrec, ExpansionOrder):
                                      tmpB_val > -1.0e-5)
 
         def case1():
-            return gsl_sf_ellint_F( ##(TODO)
+            return ellipfinc( 
                 jnp.arcsin(vol_sign_val * jnp.sqrt(1.0)),
                 mm_val
             ) - psi_v0_val
 
         def case2():
-            return gsl_sf_ellint_F(
+            return ellipfinc(
                 jnp.arcsin(vol_sign_val * jnp.sqrt(0.0)),
                 mm_val
             ) - psi_v0_val
 
         def case3():
-            return gsl_sf_ellint_F(
+            return ellipfinc(
                 jnp.arcsin(vol_sign_val * jnp.sqrt(tmpB_val)),
                 mm_val
             ) - psi_v0_val
@@ -1366,7 +1363,7 @@ def IMRPhenomX_SetPrecessingRemnantParams(pWF, pPrec, params):
     ## Toggle for enforced use of non-precessing spin as is required during tuning of PNR's coprecessing model
     ## High-level toggle for whether to apply deviations. APPLY_PNR_DEVIATIONS == 0 for the moment
     
-    af_parallel = XLALSimIMRPhenomXFinalSpin2017(pWF['eta'], pPrec['chi1z'], pPrec['chi2z'])  ## (TODO)
+    af_parallel = XLALSimIMRPhenomXFinalSpin2017(pWF['eta'], pPrec['chi1z'], pPrec['chi2z'])  
     M = pWF['M']
     Lfinal = M * M * af_parallel - pWF['m1_2'] * pPrec['chi1z'] - pWF['m2_2'] * pPrec['chi2z']
 
@@ -1610,18 +1607,6 @@ def Get_alphaepsilon_atfref(mprime, pPrec, pWF):
 ##########################
 ## NOT YET IMPLEMENTED ###
 ##########################
-
-def gsl_sf_ellint_F(x, y):
-    """
-    TODO: Not yet implemented
-    """
-    return x
-
-def gsl_sf_elljac_e(x, y):
-    """
-    TODO: Not yet implemented
-    """
-    return jnp.array(1.), jnp.array(2.), jnp.array(3.)
 
 def XLALSimInspiralWaveformParamsLookupPhenomXPTransPrecessionMethod(dict):
     """
