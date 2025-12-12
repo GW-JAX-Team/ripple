@@ -47,6 +47,8 @@ class IMRPhenomXPHMParameterDataClass:  # pylint: disable=too-many-instance-attr
     pnr_interp_tolerance: float = 0.01
     antisymmetric_waveform: int = 0
     mband_version: int = 0
+    imr_phenom_x_return_co_prec: int = 0
+    pnr_use_input_coprec_deviations: int = 0
 
     # IMRPhenomXHM parameters
     phenom_xhm_release_version: int = 122022
