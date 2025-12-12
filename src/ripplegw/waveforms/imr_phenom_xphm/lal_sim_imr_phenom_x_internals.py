@@ -2,13 +2,29 @@
 
 from __future__ import annotations
 
+import dataclasses
+
 import jax
 import jax.numpy as jnp
 from jax.experimental import checkify
 
 from ripplegw import ms_to_Mc_eta
 from ripplegw.constants import MRSUN, PI, gt
-from ripplegw.waveforms.imr_phenom_xphm.lal_constants import LAL_MSUN_SI
+from ripplegw.typing import Array
+from ripplegw.waveforms.imr_phenom_xphm.lal_constants import LAL_GAMMA, LAL_MSUN_SI
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_inspiral import (
+    imr_phenom_x_inspiral_phase_22_d13,
+    imr_phenom_x_inspiral_phase_22_d23,
+    imr_phenom_x_inspiral_phase_22_d43,
+    imr_phenom_x_inspiral_phase_22_d53,
+    imr_phenom_x_inspiral_phase_22_v3,
+)
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_intermediate import (
+    imr_phenom_x_intermediate_phase_22_d43,
+    imr_phenom_x_intermediate_phase_22_v2,
+    imr_phenom_x_intermediate_phase_22_v2m_rd_v4,
+    imr_phenom_x_intermediate_phase_22_v3m_rd_v4,
+)
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
     IMRPhenomXPhaseCoefficientsDataClass,
     IMRPhenomXUsefulPowersDataClass,
@@ -17,6 +33,13 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_qnm import (
     evaluate_QNMfit_fdamp22,
     evaluate_QNMfit_fring22,
+)
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_ringdown import (
+    imr_phenom_x_ringdown_phase_22_d12,
+    imr_phenom_x_ringdown_phase_22_d24,
+    imr_phenom_x_ringdown_phase_22_d34,
+    imr_phenom_x_ringdown_phase_22_d54,
+    imr_phenom_x_ringdown_phase_22_v4,
 )
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import (
     imr_phenom_x_internal_nudge,
@@ -38,7 +61,7 @@ from ripplegw.waveforms.IMRPhenomD_NRTidalv2 import _get_merger_frequency
 
 
 @checkify.checkify
-def imr_phenom_x_initialize_powers(number: float | jnp.ndarray) -> IMRPhenomXUsefulPowersDataClass:
+def imr_phenom_x_initialize_powers(number: float | Array) -> IMRPhenomXUsefulPowersDataClass:
     """Initialize various powers of the input number.
 
     Args:
@@ -742,106 +765,74 @@ def check_input_mode_array(lal_params: IMRPhenomXPHMParameterDataClass, max_l: i
     return check_without_mode_array()
 
 
+@checkify.checkify
 def imr_phenom_x_get_phase_coefficients(
     p_wf: IMRPhenomXWaveformDataClass, p_phase: IMRPhenomXPhaseCoefficientsDataClass
-) -> tuple[IMRPhenomXWaveformDataClass, IMRPhenomXPhaseCoefficientsDataClass]:
+) -> IMRPhenomXPhaseCoefficientsDataClass:
+    """
+    Populate IMRPhenomXPhaseCoefficientsDataClass
+    https://lscsoft.docs.ligo.org/lalsuite//lalsimulation/_l_a_l_sim_i_m_r_phenom_x__internals_8c.html#aca4208ae52d217747aa723953850765a
+    """
+
+    _, powers_of_lalpi = imr_phenom_x_initialize_powers(PI)
 
     # /* Get LALparams */
-    # LALDict *LALparams    = pWF->LALparams;
-    # const INT4 debug      = PHENOMXDEBUG;
+    # lal_params = p_wf.lal_params
 
     # /* GSL objects for solving system of equations via LU decomposition */
-    # gsl_vector *b, *x;
-    # gsl_matrix *A;
-    # gsl_permutation *p;
-    # int s;
-
-    # REAL8 deltax;
-    # REAL8 xmin;
-    # REAL8 fi;
-
-    # REAL8 gpoints4[4]     = {0.0, 1.0/4.0, 3.0/4.0, 1.0};
-    # REAL8 gpoints5[5]     = {0.0, 1.0/2 - 1.0/(2*sqrt(2.0)), 1.0/2.0, 1.0/2 + 1.0/(2.0*sqrt(2.0)), 1.0};
+    gpoints4 = jnp.array([0.0, 1.0 / 4.0, 3.0 / 4.0, 1.0])
+    gpoints5 = jnp.array(
+        [0.0, 1.0 / 2 - 1.0 / (2 * jnp.sqrt(2.0)), 1.0 / 2.0, 1.0 / 2 + 1.0 / (2.0 * jnp.sqrt(2.0)), 1.0]
+    )
 
     # // Matching regions
 
     # /* This is Eq. 5.11 in the paper */
-    # double fIMmatch = 0.6 * (0.5 * pWF->fRING + pWF->fISCO);
+    f_im_match = 0.6 * (0.5 * p_wf.f_ring + p_wf.f_isco)
 
     # /* This is the MECO frequency */
-    # double fINmatch = pWF->fMECO;
+    f_in_match = p_wf.f_meco
 
     # /* This is Eq. 5.10 in the paper */
-    # double deltaf   = (fIMmatch - fINmatch) * 0.03;
+    deltaf = (f_im_match - f_in_match) * 0.03
 
     # // Transition frequency is just below the MECO frequency and just above the RD fitting region
 
     # /* These are defined in Eq. 7.7 and the text just below, f_H = fPhaseMatchIM and f_L = fPhaseMatchIN */
-    # pPhase->fPhaseMatchIN  = fINmatch - 1.0*deltaf;
-    # pPhase->fPhaseMatchIM  = fIMmatch + 0.5*deltaf;
+    f_phase_match_in = f_in_match - 1.0 * deltaf
+    f_phase_match_im = f_im_match + 0.5 * deltaf
 
     # /* Defined in Eq. 7.4, this is f_L */
-    # pPhase->fPhaseInsMin  = 0.0026;
+    f_phase_ins_min = 0.0026
 
     # /* Defined in Eq. 7.4, this is f_H */
-    # pPhase->fPhaseInsMax  = 1.020 * pWF->fMECO;
+    f_phase_ins_max = 1.020 * p_wf.f_meco
 
     # /* Defined in Eq. 7.12, this is f_L */
-    # pPhase->fPhaseRDMin   = fIMmatch;
+    f_phase_rd_min = f_im_match
 
     # /* Defined in Eq. 7.12, this is f_L */
-    # pPhase->fPhaseRDMax   = pWF->fRING + 1.25*pWF->fDAMP;
-
-    # pPhase->phiNorm    		= -(3.0 * powers_of_lalpi.m_five_thirds) / (128.0);
+    f_phase_rd_max = p_wf.f_ring + 1.25 * p_wf.f_damp
+    # pPhase->phiNorm = -(3.0 * powers_of_lalpi.m_five_thirds) / (128.0)
+    phi_norm = -(3.0 * powers_of_lalpi.m_five_thirds) / (128.0)
 
     # /* For convenience, define some variables here */
-    # REAL8 chi1L           = pWF->chi1L;
-    # REAL8 chi2L           = pWF->chi2L;
+    chi1l = p_wf.chi1l
+    chi2l = p_wf.chi2l
 
-    # REAL8 chi1L2L         = chi1L * chi2L;
+    chi1l2l = chi1l * chi2l
 
-    # REAL8 chi1L2          = pWF->chi1L * pWF->chi1L;
-    # REAL8 chi1L3          = pWF->chi1L * chi1L2;
+    chi1l2 = p_wf.chi1l * p_wf.chi1l
+    chi1l3 = p_wf.chi1l * chi1l2
 
-    # REAL8 chi2L2          = pWF->chi2L * pWF->chi2L;
-    # REAL8 chi2L3          = pWF->chi2L * chi2L2;
+    chi2l2 = p_wf.chi2l * p_wf.chi2l
+    chi2l3 = p_wf.chi2l * chi2l2
 
-    # REAL8 eta             = pWF->eta;
-    # REAL8 eta2            = eta*eta;
-    # REAL8 eta3            = eta*eta2;
+    eta = p_wf.eta
+    eta2 = eta * eta
+    eta3 = eta * eta2
 
-    # REAL8 delta           = pWF->delta;
-
-    # /* Pre-initialize all phenomenological coefficients */
-    # pPhase->a0 = 0.0;
-    # pPhase->a1 = 0.0;
-    # pPhase->a2 = 0.0;
-    # pPhase->a3 = 0.0;
-    # pPhase->a4 = 0.0;
-
-    # pPhase->b0 = 0.0;
-    # pPhase->b1 = 0.0;
-    # pPhase->b2 = 0.0;
-    # pPhase->b3 = 0.0;
-    # pPhase->b4 = 0.0;
-
-    # pPhase->c0 = 0.0;
-    # pPhase->c1 = 0.0;
-    # pPhase->c2 = 0.0;
-    # pPhase->c3 = 0.0;
-    # pPhase->c4 = 0.0;
-    # pPhase->cL = 0.0;
-
-    # pPhase->c2PN_tidal   = 0.;
-    # pPhase->c3PN_tidal   = 0.;
-    # pPhase->c3p5PN_tidal = 0.;
-
-    # pPhase->sigma0 = 0.0;
-    # pPhase->sigma1 = 0.0;
-    # pPhase->sigma2 = 0.0;
-    # pPhase->sigma3 = 0.0;
-    # pPhase->sigma4 = 0.0;
-    # pPhase->sigma5 = 0.0;
+    delta = p_wf.delta
 
     # /*
     # 	The general strategy is to initialize a linear system of equations:
@@ -855,19 +846,19 @@ def imr_phenom_x_get_phase_coefficients(
     # 	We choose to do this using a standard LU decomposition.
     # */
 
-    # /* Generate list of collocation points */
-    # /*
+    # Generate list of collocation points
+    #
     # The Gauss-Chebyshev Points are given by:
     # GCPoints[n] = Table[Cos[i * pi/n] , {i, 0, n}]
 
     # SamplePoints[xmin,xmax,n] = {
-    # 	pWF->delta = xmax - xmin;
-    # 	gpoints = 0.5 * (1 + GCPoints[n-1]);
+    # 	pWF->delta = xmax - xmin
+    # 	gpoints = 0.5 * (1 + GCPoints[n-1])
 
     # 	return {xmin + pWF->delta * gpoints}
     # }
 
-    # gpoints4 = [1.0, 3.0/4, 1.0/4, 0.0];
+    # gpoints4 = [1.0, 3.0/4, 1.0/4, 0.0]
     # gpoints5 = [1.0, 1.0/2 + 1.0/(2.0*sqrt(2.0)), 1.0/2, 1.0/2 - 1.0/(2*sqrt(2.0)), 0.]
 
     # */
@@ -881,98 +872,84 @@ def imr_phenom_x_get_phase_coefficients(
 
     # Default is to use 5 collocation points.
     # */
-    # deltax = pPhase->fPhaseRDMax - pPhase->fPhaseRDMin;
-    # xmin   = pPhase->fPhaseRDMin;
-    # int i;
 
-    # double phaseRD; // This is used in intermediate phase reconstruction.
-
-    # if(debug)
-    # {
-    # 	printf("\n");
-    # 	printf("Solving system of equations for RD phase...\n");
-    # }
+    deltax = f_phase_rd_max - f_phase_rd_min
+    xmin = f_phase_rd_min
 
     # // Initialize collocation points
-    # for(i = 0; i < 5; i++)
-    # {
-    # 	pPhase->CollocationPointsPhaseRD[i] = gpoints5[i] * deltax + xmin;
-    # }
-    # // Collocation point 4 is set to the ringdown frequency ~ dip in Lorentzian
-    # pPhase->CollocationPointsPhaseRD[3] = pWF->fRING;
+    collocation_points_phase_rd = gpoints5 * deltax + xmin
 
-    # if(debug)
-    # {
-    # 	printf("Rigndown collocation points : \n");
-    # 	printf("F1 : %.6f\n",pPhase->CollocationPointsPhaseRD[0]);
-    # 	printf("F2 : %.6f\n",pPhase->CollocationPointsPhaseRD[1]);
-    # 	printf("F3 : %.6f\n",pPhase->CollocationPointsPhaseRD[2]);
-    # 	printf("F4 : %.6f\n",pPhase->CollocationPointsPhaseRD[3]);
-    # 	printf("F5 : %.6f\n",pPhase->CollocationPointsPhaseRD[4]);
-    # }
+    # // Collocation point 4 is set to the ringdown frequency ~ dip in Lorentzian
+    collocation_points_phase_rd = collocation_points_phase_rd.at[3].set(p_wf.f_ring)
 
     # switch(pWF->IMRPhenomXRingdownPhaseVersion)
     # {
     # 	case 105:
     # 	{
-    # 		pPhase->NCollocationPointsRD = 5;
-    # 		break;
+    # 		pPhase->NCollocationPointsRD = 5
+    # 		break
     # 	}
     # 	default:
     # 	{
-    # 		XLAL_ERROR(XLAL_EINVAL, "Error: IMRPhenomXRingdownPhaseVersion is not valid.\n");
+    # 		XLAL_ERROR(XLAL_EINVAL, "Error: IMRPhenomXRingdownPhaseVersion is not valid.\n")
     # 	}
     # }
 
-    # if(debug)
-    # {
-    # 	printf("NCollRD = %d\n",pPhase->NCollocationPointsRD);
-    # }
+    n_collocation_points_rd = jax.lax.select(p_wf.imr_phenom_x_ringdown_phase_version == 105, 5, 0)
+    checkify.check(
+        jnp.logical_and(p_wf.imr_phenom_x_ringdown_phase_version == 105, n_collocation_points_rd == 5),
+        "Error: NCollocationPointsRD must be 5.",
+    )
 
     # // Eq. 7.13 in arXiv:2001.11412
-    # double RDv4 = IMRPhenomX_Ringdown_Phase_22_v4(pWF->eta,pWF->STotR,pWF->dchi,pWF->delta,pWF->IMRPhenomXRingdownPhaseVersion);
+    rd_v4 = imr_phenom_x_ringdown_phase_22_v4(
+        p_wf.eta, p_wf.s_tot_r, p_wf.dchi, p_wf.delta, p_wf.imr_phenom_x_ringdown_phase_version
+    )
 
     # /* These are the calibrated collocation points, as per Eq. 7.13 */
-    # pPhase->CollocationValuesPhaseRD[0] = IMRPhenomX_Ringdown_Phase_22_d12(pWF->eta,pWF->STotR,pWF->dchi,pWF->delta,pWF->IMRPhenomXRingdownPhaseVersion);
-    # pPhase->CollocationValuesPhaseRD[1] = IMRPhenomX_Ringdown_Phase_22_d24(pWF->eta,pWF->STotR,pWF->dchi,pWF->delta,pWF->IMRPhenomXRingdownPhaseVersion);
-    # pPhase->CollocationValuesPhaseRD[2] = IMRPhenomX_Ringdown_Phase_22_d34( pWF->eta,pWF->STotR,pWF->dchi,pWF->delta,pWF->IMRPhenomXRingdownPhaseVersion);
-    # pPhase->CollocationValuesPhaseRD[3] = RDv4;
-    # pPhase->CollocationValuesPhaseRD[4] = IMRPhenomX_Ringdown_Phase_22_d54(pWF->eta,pWF->STotR,pWF->dchi,pWF->delta,pWF->IMRPhenomXRingdownPhaseVersion);
+    collocation_values_phase_rd = jnp.array(
+        [
+            imr_phenom_x_ringdown_phase_22_d12(
+                p_wf.eta, p_wf.s_tot_r, p_wf.dchi, p_wf.delta, p_wf.imr_phenom_x_ringdown_phase_version
+            ),
+            imr_phenom_x_ringdown_phase_22_d24(
+                p_wf.eta, p_wf.s_tot_r, p_wf.dchi, p_wf.delta, p_wf.imr_phenom_x_ringdown_phase_version
+            ),
+            imr_phenom_x_ringdown_phase_22_d34(
+                p_wf.eta, p_wf.s_tot_r, p_wf.dchi, p_wf.delta, p_wf.imr_phenom_x_ringdown_phase_version
+            ),
+            rd_v4,
+            imr_phenom_x_ringdown_phase_22_d54(
+                p_wf.eta, p_wf.s_tot_r, p_wf.dchi, p_wf.delta, p_wf.imr_phenom_x_ringdown_phase_version
+            ),
+        ]
+    )
 
     # /* v_j = d_{j4} + v4 */
-    # pPhase->CollocationValuesPhaseRD[4] = pPhase->CollocationValuesPhaseRD[4] + pPhase->CollocationValuesPhaseRD[3]; // v5 = d54  + v4
-    # pPhase->CollocationValuesPhaseRD[2] = pPhase->CollocationValuesPhaseRD[2] + pPhase->CollocationValuesPhaseRD[3]; // v3 = d34  + v4
-    # pPhase->CollocationValuesPhaseRD[1] = pPhase->CollocationValuesPhaseRD[1] + pPhase->CollocationValuesPhaseRD[3]; // v2 = d24  + v4
-    # pPhase->CollocationValuesPhaseRD[0] = pPhase->CollocationValuesPhaseRD[0] + pPhase->CollocationValuesPhaseRD[1]; // v1 = d12  + v2
+    # pPhase->CollocationValuesPhaseRD[4] = pPhase->CollocationValuesPhaseRD[4] + pPhase->CollocationValuesPhaseRD[3] #// v5 = d54  + v4
+    # pPhase->CollocationValuesPhaseRD[2] = pPhase->CollocationValuesPhaseRD[2] + pPhase->CollocationValuesPhaseRD[3] #// v3 = d34  + v4
+    # pPhase->CollocationValuesPhaseRD[1] = pPhase->CollocationValuesPhaseRD[1] + pPhase->CollocationValuesPhaseRD[3] #// v2 = d24  + v4
+    # pPhase->CollocationValuesPhaseRD[0] = pPhase->CollocationValuesPhaseRD[0] + pPhase->CollocationValuesPhaseRD[1] #// v1 = d12  + v2
 
-    # // Debugging information. Leave for convenience later on.
-    # if(debug)
-    # {
-    # 	printf("\n");
-    # 	printf("Ringdown Collocation Points: \n");
-    # 	printf("v1 : %.6f\n",pPhase->CollocationValuesPhaseRD[0]);
-    # 	printf("v2 : %.6f\n",pPhase->CollocationValuesPhaseRD[1]);
-    # 	printf("v3 : %.6f\n",pPhase->CollocationValuesPhaseRD[2]);
-    # 	printf("v4 : %.6f\n",pPhase->CollocationValuesPhaseRD[3]);
-    # 	printf("v5 : %.6f\n",pPhase->CollocationValuesPhaseRD[4]);
-    # 	printf("\n");
-    # }
+    # First update indices 4, 2, 1 by adding value at index 3
+    collocation_values_phase_rd = collocation_values_phase_rd.at[4].add(collocation_values_phase_rd[3])
+    collocation_values_phase_rd = collocation_values_phase_rd.at[2].add(collocation_values_phase_rd[3])
+    collocation_values_phase_rd = collocation_values_phase_rd.at[1].add(collocation_values_phase_rd[3])
+    # Then update index 0 by adding the updated value at index 1
+    collocation_values_phase_rd = collocation_values_phase_rd.at[0].add(collocation_values_phase_rd[1])
 
-    # phaseRD = pPhase->CollocationValuesPhaseRD[0];
+    phase_rd = collocation_values_phase_rd[0]
 
-    # p = gsl_permutation_alloc(pPhase->NCollocationPointsRD);
-    # b = gsl_vector_alloc(pPhase->NCollocationPointsRD);
-    # x = gsl_vector_alloc(pPhase->NCollocationPointsRD);
-    # A = gsl_matrix_alloc(pPhase->NCollocationPointsRD,pPhase->NCollocationPointsRD);
+    # p = gsl_permutation_alloc(pPhase->NCollocationPointsRD)
+    # b = gsl_vector_alloc(pPhase->NCollocationPointsRD)
+    # x = gsl_vector_alloc(pPhase->NCollocationPointsRD)
+    # A = gsl_matrix_alloc(pPhase->NCollocationPointsRD,pPhase->NCollocationPointsRD)
 
     # /*
     # Populate the b vector
     # */
-    # gsl_vector_set(b,0,pPhase->CollocationValuesPhaseRD[0]);
-    # gsl_vector_set(b,1,pPhase->CollocationValuesPhaseRD[1]);
-    # gsl_vector_set(b,2,pPhase->CollocationValuesPhaseRD[2]);
-    # gsl_vector_set(b,3,pPhase->CollocationValuesPhaseRD[3]);
-    # gsl_vector_set(b,4,pPhase->CollocationValuesPhaseRD[4]);
+
+    b = collocation_values_phase_rd.copy()
 
     # /*
     # 		Eq. 7.12 in arXiv:2001.11412
@@ -987,115 +964,27 @@ def imr_phenom_x_get_phase_coefficients(
     # 	First we populate the matrix A_{ij}
     # */
 
-    # /* Note that ff0 is always 1 */
-    # REAL8 ff, invff, ff0, ff1, ff2, ff3, ff4;
+    ff = collocation_points_phase_rd
+    invff = 1.0 / ff
+    ff1 = jnp.cbrt(invff)  # f^{-1/3}
+    ff2 = invff * invff  # // f^{-2}
+    ff3 = ff2 * ff2  # // f^{-4}
+    ff4 = -(p_wf.dphase0) / (p_wf.f_damp * p_wf.f_damp + (ff - p_wf.f_ring) * (ff - p_wf.f_ring))
 
-    # /* A_{0,i} */
-    # ff    = pPhase->CollocationPointsPhaseRD[0];
-    # invff = 1.0 / ff;
-    # ff1   = cbrt(invff);   // f^{-1/3}
-    # ff2   = invff * invff; // f^{-2}
-    # ff3   = ff2 * ff2;		 // f^{-4}
-    # ff4   = -(pWF->dphase0) / (pWF->fDAMP*pWF->fDAMP + (ff - pWF->fRING)*(ff - pWF->fRING));
-    # gsl_matrix_set(A,0,0,1.0); // Constant
-    # gsl_matrix_set(A,0,1,ff1); // f^(-1/3) term
-    # gsl_matrix_set(A,0,2,ff2); // f^(-2) term
-    # gsl_matrix_set(A,0,3,ff3); // f^(-4) term
-    # gsl_matrix_set(A,0,4,ff4); // Lorentzian term
-
-    # if(debug)
-    # {
-    # 	printf("For row 0: a0 + a1 %.6f + a2 %.6f + a4 %.6f + aRD %.6f\n",ff1,ff2,ff3,ff4);
-    # }
-
-    # /* A_{1,i} */
-    # ff    = pPhase->CollocationPointsPhaseRD[1];
-    # invff = 1.0 / ff;
-    # ff1   = cbrt(invff);
-    # ff2   = invff * invff;
-    # ff3   = ff2 * ff2;
-    # ff4   = -(pWF->dphase0) / (pWF->fDAMP*pWF->fDAMP + (ff - pWF->fRING)*(ff - pWF->fRING));
-    # gsl_matrix_set(A,1,0,1.0);
-    # gsl_matrix_set(A,1,1,ff1);
-    # gsl_matrix_set(A,1,2,ff2);
-    # gsl_matrix_set(A,1,3,ff3);
-    # gsl_matrix_set(A,1,4,ff4);
-
-    # /* A_{2,i} */
-    # ff    =  pPhase->CollocationPointsPhaseRD[2];
-    # invff = 1.0 / ff;
-    # ff1   = cbrt(invff);
-    # ff2   = invff * invff;
-    # ff3   = ff2 * ff2;
-    # ff4   = -(pWF->dphase0) / (pWF->fDAMP*pWF->fDAMP + (ff - pWF->fRING)*(ff - pWF->fRING));
-    # gsl_matrix_set(A,2,0,1.0);
-    # gsl_matrix_set(A,2,1,ff1);
-    # gsl_matrix_set(A,2,2,ff2);
-    # gsl_matrix_set(A,2,3,ff3);
-    # gsl_matrix_set(A,2,4,ff4);
-
-    # /* A_{3,i} */
-    # ff    = pPhase->CollocationPointsPhaseRD[3];
-    # invff = 1.0 / ff;
-    # ff1   = cbrt(invff);
-    # ff2   = invff * invff;
-    # ff3   = ff2 * ff2;
-    # ff4   = -(pWF->dphase0) / (pWF->fDAMP*pWF->fDAMP + (ff - pWF->fRING)*(ff - pWF->fRING));
-    # gsl_matrix_set(A,3,0,1.0);
-    # gsl_matrix_set(A,3,1,ff1);
-    # gsl_matrix_set(A,3,2,ff2);
-    # gsl_matrix_set(A,3,3,ff3);
-    # gsl_matrix_set(A,3,4,ff4);
-
-    # /* A_{4,i} */
-    # ff    = pPhase->CollocationPointsPhaseRD[4];
-    # invff = 1.0 / ff;
-    # ff1   = cbrt(invff);
-    # ff2   = invff * invff;
-    # ff3   = ff2 * ff2;
-    # ff4   = -(pWF->dphase0) / (pWF->fDAMP*pWF->fDAMP + (ff - pWF->fRING)*(ff - pWF->fRING));
-    # gsl_matrix_set(A,4,0,1.0);
-    # gsl_matrix_set(A,4,1,ff1);
-    # gsl_matrix_set(A,4,2,ff2);
-    # gsl_matrix_set(A,4,3,ff3);
-    # gsl_matrix_set(A,4,4,ff4);
+    a_matrix = jnp.array([ff, ff1, ff2, ff3, ff4]).T
 
     # /* We now solve the system A x = b via an LU decomposition */
-    # gsl_linalg_LU_decomp(A,p,&s);
-    # gsl_linalg_LU_solve(A,p,b,x);
+    x = jax.scipy.linalg.lu_solve(jax.scipy.linalg.lu_factor(a_matrix), b)
 
-    # pPhase->c0  = gsl_vector_get(x,0); // x[0]; 	// a0
-    # pPhase->c1  = gsl_vector_get(x,1); // x[1];		// a1
-    # pPhase->c2  = gsl_vector_get(x,2); // x[2]; 	// a2
-    # pPhase->c4  = gsl_vector_get(x,3); // x[3]; 	// a4
-    # pPhase->cRD = gsl_vector_get(x,4);
-    # pPhase->cL  = -(pWF->dphase0 * pPhase->cRD); // ~ x[4] // cL = - a_{RD} * dphase0
+    c0 = x[0]  # // x[0] 	// a0
+    c1 = x[1]  # // x[1]		// a1
+    c2 = x[2]  # // x[2] 	// a2
+    c4 = x[3]  # // x[3] 	// a4
+    c_rd = x[4]
+    c_l = -(p_wf.dphase0 * c_rd)  # // cL = - a_{RD} * dphase0
 
     # /* Apply NR tuning for precessing cases (500) */
-    # pPhase->cL = pPhase->cL + ( pWF->PNR_DEV_PARAMETER * pWF->NU4 );
-    # // pPhase->c0 = pPhase->c0 + ( pWF->PNR_DEV_PARAMETER * pWF->NU0 );
-
-    # if(debug)
-    # {
-    # 	printf("\n");
-    # 	printf("Ringdown Coefficients: \n");
-    # 	printf("c0  : %.6f\n",pPhase->c0);
-    # 	printf("c1  : %.6f\n",pPhase->c1);
-    # 	printf("c2  : %.6f\n",pPhase->c2);
-    # 	printf("c4  : %e\n",pPhase->c4);
-    # 	printf("cRD : %.6f\n",gsl_vector_get(x,4));
-    # 	printf("d0  : %.6f\n",pWF->dphase0);
-    # 	printf("cL  : %e\n",pPhase->cL);
-    # 	printf("\n");
-
-    # 	printf("Freeing arrays...\n");
-    # }
-
-    # /* Tidy up in preparation for next GSL solve ... */
-    # gsl_vector_free(b);
-    # gsl_vector_free(x);
-    # gsl_matrix_free(A);
-    # gsl_permutation_free(p);
+    c_l += p_wf.pnr_dev_parameter * p_wf.nu4
 
     # /*
     # Inspiral phase collocation points:
@@ -1110,371 +999,168 @@ def imr_phenom_x_get_phase_coefficients(
 
     # GC points as per Eq. 7.4 and 7.5, where f_L = pPhase->fPhaseInsMin and f_H = pPhase->fPhaseInsMax
     # */
-    # deltax      = pPhase->fPhaseInsMax - pPhase->fPhaseInsMin;
-    # xmin        = pPhase->fPhaseInsMin;
+    deltax = f_phase_ins_max - f_phase_ins_min
+    xmin = f_phase_ins_min
 
     # /*
     # 		Set number of pseudo-PN coefficients:
     # 			- If you add a new PN inspiral approximant, update with new version here.
     # */
-    # switch(pWF->IMRPhenomXInspiralPhaseVersion)
-    # {
-    # 	case 104:
-    # 	{
-    # 		pPhase->NPseudoPN = 4;
-    # 		pPhase->NCollocationPointsPhaseIns = 4;
-    # 		break;
-    # 	}
-    # 	case 105:
-    # 	{
-    # 		pPhase->NPseudoPN = 5;
-    # 		pPhase->NCollocationPointsPhaseIns = 5;
-    # 		break;
-    # 	}
-    # 	case 114:
-    # 	{
-    # 		pPhase->NPseudoPN = 4;
-    # 		pPhase->NCollocationPointsPhaseIns = 4;
-    # 		break;
-    # 	}
-    # 	case 115:
-    # 	{
-    # 		pPhase->NPseudoPN = 5;
-    # 		pPhase->NCollocationPointsPhaseIns = 5;
-    # 		break;
-    # 	}
-    # 	default:
-    # 	{
-    # 		XLAL_ERROR_REAL8(XLAL_EINVAL, "Error: IMRPhenomXInspiralPhaseVersion is not valid.\n");
-    # 	}
-    # }
 
-    # if(debug)
-    # {
-    # 	printf("\n");
-    # 	printf("NPseudoPN : %d\n",pPhase->NPseudoPN);
-    # 	printf("NColl : %d\n",pPhase->NCollocationPointsPhaseIns);
-    # 	printf("\n");
-    # }
+    valid_versions = jnp.array([104, 105, 114, 115])
+    check_inspiral_phase_version = jnp.isin(p_wf.imr_phenom_x_inspiral_phase_version, valid_versions)
+    checkify.check(check_inspiral_phase_version, "Error: IMRPhenomXInspiralPhaseVersion is not valid.")
 
-    # p = gsl_permutation_alloc(pPhase->NCollocationPointsPhaseIns);
-    # b = gsl_vector_alloc(pPhase->NCollocationPointsPhaseIns);
-    # x = gsl_vector_alloc(pPhase->NCollocationPointsPhaseIns);
-    # A = gsl_matrix_alloc(pPhase->NCollocationPointsPhaseIns,pPhase->NCollocationPointsPhaseIns);
+    # Version 104 and 114 use 4 pseudo-PN coefficients and 4 collocation points
+    # Version 105 and 115 use 5 pseudo-PN coefficients and 5 collocation points
+    is_version_4 = jnp.logical_or(
+        p_wf.imr_phenom_x_inspiral_phase_version == 104, p_wf.imr_phenom_x_inspiral_phase_version == 114
+    )
+    n_pseudo_pn = jax.lax.select(is_version_4, 4, 5)
+    n_collocation_points_phase_ins = jax.lax.select(is_version_4, 4, 5)
+
+    checkify.check(
+        jnp.logical_or(n_pseudo_pn == 4, n_pseudo_pn == 5),
+        "Error in imr_phenom_x_get_phase_coefficients: NPseudoPN requested is not valid. Number of pseudo PN coefficients must be 4 or 5.",
+    )
 
     # /*
     # If we are using 4 pseudo-PN coefficients, call the routines below.
     # The inspiral phase version is still passed to the individual functions.
     # */
-    # if(pPhase->NPseudoPN == 4)
-    # {
-    # 	// By default all models implemented use the following GC points.
-    # 	// If a new model is calibrated with different choice of collocation points, edit this.
-    # 	for(i = 0; i < pPhase->NCollocationPointsPhaseIns; i++)
-    # 	{
-    # 		fi = gpoints4[i] * deltax + xmin;
-    # 		pPhase->CollocationPointsPhaseIns[i] = fi;
-    # 	}
+    def n_pseudo_pn_4_branch(p_phase: IMRPhenomXPhaseCoefficientsDataClass) -> IMRPhenomXPhaseCoefficientsDataClass:
+        # // By default all models implemented use the following GC points.
+        # // If a new model is calibrated with different choice of collocation points, edit this.
+        collocation_points_phase_ins = gpoints4 * deltax + xmin
 
-    # 	// Calculate the value of the differences between the ith and 3rd collocation points at the GC nodes
-    # 	pPhase->CollocationValuesPhaseIns[0] = IMRPhenomX_Inspiral_Phase_22_d13(pWF->eta,pWF->chiPNHat,pWF->dchi,pWF->delta,pWF->IMRPhenomXInspiralPhaseVersion);
-    # 	pPhase->CollocationValuesPhaseIns[1] = IMRPhenomX_Inspiral_Phase_22_d23(pWF->eta,pWF->chiPNHat,pWF->dchi,pWF->delta,pWF->IMRPhenomXInspiralPhaseVersion);
-    # 	pPhase->CollocationValuesPhaseIns[2] = IMRPhenomX_Inspiral_Phase_22_v3( pWF->eta,pWF->chiPNHat,pWF->dchi,pWF->delta,pWF->IMRPhenomXInspiralPhaseVersion);
-    # 	pPhase->CollocationValuesPhaseIns[3] = IMRPhenomX_Inspiral_Phase_22_d43(pWF->eta,pWF->chiPNHat,pWF->dchi,pWF->delta,pWF->IMRPhenomXInspiralPhaseVersion);
+        # // Calculate the value of the differences between the ith and 3rd collocation points at the GC nodes
+        collocation_values_phase_ins = jnp.array(
+            [
+                imr_phenom_x_inspiral_phase_22_d13(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version),
+                imr_phenom_x_inspiral_phase_22_d23(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version),
+                imr_phenom_x_inspiral_phase_22_v3(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version),
+                imr_phenom_x_inspiral_phase_22_d43(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version),
+            ]
+        )
 
-    # 	// Calculate the value of the collocation points at GC nodes via: v_i = d_i3 + v3
-    # 	pPhase->CollocationValuesPhaseIns[0] = pPhase->CollocationValuesPhaseIns[0] + pPhase->CollocationValuesPhaseIns[2];
-    # 	pPhase->CollocationValuesPhaseIns[1] = pPhase->CollocationValuesPhaseIns[1] + pPhase->CollocationValuesPhaseIns[2];
-    # 	pPhase->CollocationValuesPhaseIns[3] = pPhase->CollocationValuesPhaseIns[3] + pPhase->CollocationValuesPhaseIns[2];
+        # // Calculate the value of the collocation points at GC nodes via: v_i = d_i3 + v3
+        collocation_values_phase_ins = collocation_values_phase_ins.at[0].add(collocation_values_phase_ins[2])
+        collocation_values_phase_ins = collocation_values_phase_ins.at[1].add(collocation_values_phase_ins[2])
+        collocation_values_phase_ins = collocation_values_phase_ins.at[3].add(collocation_values_phase_ins[2])
 
-    # 	if(debug)
-    # 	{
-    # 		printf("\n");
-    # 		printf("Inspiral Collocation Points and Values:\n");
-    # 		printf("F1 : %.6f\n",pPhase->CollocationPointsPhaseIns[0]);
-    # 		printf("F2 : %.6f\n",pPhase->CollocationPointsPhaseIns[1]);
-    # 		printf("F3 : %.6f\n",pPhase->CollocationPointsPhaseIns[2]);
-    # 		printf("F4 : %.6f\n",pPhase->CollocationPointsPhaseIns[3]);
-    # 		printf("\n");
-    # 		printf("V1 : %.6f\n",pPhase->CollocationValuesPhaseIns[0]);
-    # 		printf("V2 : %.6f\n",pPhase->CollocationValuesPhaseIns[1]);
-    # 		printf("V3 : %.6f\n",pPhase->CollocationValuesPhaseIns[2]);
-    # 		printf("V4 : %.6f\n",pPhase->CollocationValuesPhaseIns[3]);
-    # 		printf("\n");
-    # 	}
+        b = collocation_values_phase_ins.copy()
 
-    # 	gsl_vector_set(b,0,pPhase->CollocationValuesPhaseIns[0]);
-    # 	gsl_vector_set(b,1,pPhase->CollocationValuesPhaseIns[1]);
-    # 	gsl_vector_set(b,2,pPhase->CollocationValuesPhaseIns[2]);
-    # 	gsl_vector_set(b,3,pPhase->CollocationValuesPhaseIns[3]);
+        ff = collocation_points_phase_ins  # jax.lax.dynamic_slice(
+        #     collocation_points_phase_ins,
+        #     (0,),  # start index
+        #     (4,)   # slice size
+        # )
+        ff1 = jnp.cbrt(ff)
+        ff2 = ff1 * ff1
+        ff3 = ff
 
-    # 	/* A_{0,i} */
-    # 	ff  = pPhase->CollocationPointsPhaseIns[0];
-    # 	ff1 = cbrt(ff);
-    # 	ff2 = ff1 * ff1;
-    # 	ff3 = ff;
-    # 	ff0 = 1.0;
-    # 	gsl_matrix_set(A,0,0,1.0);
-    # 	gsl_matrix_set(A,0,1,ff1);
-    # 	gsl_matrix_set(A,0,2,ff2);
-    # 	gsl_matrix_set(A,0,3,ff3);
+        a_matrix = jnp.array([ff, ff1, ff2, ff3]).T
 
-    # 	/* A_{1,i} */
-    # 	ff  = pPhase->CollocationPointsPhaseIns[1];
-    # 	ff1 = cbrt(ff);
-    # 	ff2 = ff1 * ff1;
-    # 	ff3 = ff;
-    # 	ff0 = 1.0;
-    # 	gsl_matrix_set(A,1,0,1.0);
-    # 	gsl_matrix_set(A,1,1,ff1);
-    # 	gsl_matrix_set(A,1,2,ff2);
-    # 	gsl_matrix_set(A,1,3,ff3);
+        # /* We now solve the system A x = b via an LU decomposition */
+        x = jax.scipy.linalg.lu_solve(jax.scipy.linalg.lu_factor(a_matrix), b)
 
-    # 	/* A_{2,i} */
-    # 	ff  = pPhase->CollocationPointsPhaseIns[2];
-    # 	ff1 = cbrt(ff);
-    # 	ff2 = ff1 * ff1;
-    # 	ff3 = ff;
-    # 	ff0 = 1.0;
-    # 	gsl_matrix_set(A,2,0,1.0);
-    # 	gsl_matrix_set(A,2,1,ff1);
-    # 	gsl_matrix_set(A,2,2,ff2);
-    # 	gsl_matrix_set(A,2,3,ff3);
+        # /* Set inspiral phenomenological coefficients from solution to A x = b */
+        a0 = x[0]  # // x[0] // alpha_0
+        a1 = x[1]  # // x[1] // alpha_1
+        a2 = x[2]  # // x[2] // alpha_2
+        a3 = x[3]  # // x[3] // alpha_3
+        a4 = 0.0
 
-    # 	/* A_{3,i} */
-    # 	ff  = pPhase->CollocationPointsPhaseIns[3];
-    # 	ff1 = cbrt(ff);
-    # 	ff2 = ff1 * ff1;
-    # 	ff3 = ff;
-    # 	ff0 = 1.0;
-    # 	gsl_matrix_set(A,3,0,1.0);
-    # 	gsl_matrix_set(A,3,1,ff1);
-    # 	gsl_matrix_set(A,3,2,ff2);
-    # 	gsl_matrix_set(A,3,3,ff3);
+        # /*
+        #         PSEUDO PN TERMS WORK:
+        #             - 104 works.
+        #             - 105 not tested.
+        #             - 114 not tested.
+        #             - 115 not tested.
+        # */
 
-    # 	/* We now solve the system A x = b via an LU decomposition */
-    # 	gsl_linalg_LU_decomp(A,p,&s);
-    # 	gsl_linalg_LU_solve(A,p,b,x);
+        p_phase = dataclasses.replace(
+            p_phase,
+            collocation_points_phase_ins=jnp.pad(
+                collocation_points_phase_ins, (0, 1), constant_values=0.0
+            ),  # zero pad for jit compatibility
+            collocation_values_phase_ins=jnp.pad(
+                collocation_values_phase_ins, (0, 1), constant_values=0.0
+            ),  # zero pad for jit compatibility
+            a0=a0,
+            a1=a1,
+            a2=a2,
+            a3=a3,
+            a4=a4,
+        )
+        return p_phase
 
-    # 	/* Set inspiral phenomenological coefficients from solution to A x = b */
-    # 	pPhase->a0 = gsl_vector_get(x,0); // x[0]; // alpha_0
-    # 	pPhase->a1 = gsl_vector_get(x,1); // x[1]; // alpha_1
-    # 	pPhase->a2 = gsl_vector_get(x,2); // x[2]; // alpha_2
-    # 	pPhase->a3 = gsl_vector_get(x,3); // x[3]; // alpha_3
-    # 	pPhase->a4 = 0.0;
+    def n_pseudo_pn_5_branch(p_phase: IMRPhenomXPhaseCoefficientsDataClass) -> IMRPhenomXPhaseCoefficientsDataClass:
+        # // Using 5 pseudo-PN coefficients so set 5 collocation points
+        collocation_points_phase_ins = gpoints5 * deltax + xmin
 
-    # 	/*
-    # 			PSEUDO PN TERMS WORK:
-    # 				- 104 works.
-    # 				- 105 not tested.
-    # 				- 114 not tested.
-    # 				- 115 not tested.
-    # 	*/
-    # 	if(debug)
-    # 	{
-    # 		printf("\n");
-    # 		printf("3pPN\n");
-    # 		printf("Inspiral Pseudo-PN Coefficients:\n");
-    # 		printf("a0 : %.6f\n",pPhase->a0);
-    # 		printf("a1 : %.6f\n",pPhase->a1);
-    # 		printf("a2 : %.6f\n",pPhase->a2);
-    # 		printf("a3 : %.6f\n",pPhase->a3);
-    # 		printf("a4 : %.6f\n",pPhase->a4);
-    # 		printf("\n");
-    # 	}
+        collocation_values_phase_ins = jnp.array(
+            [
+                imr_phenom_x_inspiral_phase_22_d13(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version),
+                imr_phenom_x_inspiral_phase_22_d23(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version),
+                imr_phenom_x_inspiral_phase_22_v3(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version),
+                imr_phenom_x_inspiral_phase_22_d43(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version),
+                imr_phenom_x_inspiral_phase_22_d53(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version),
+            ]
+        )
 
-    # 	/* Tidy up in preparation for next GSL solve ... */
-    # 	gsl_vector_free(b);
-    # 	gsl_vector_free(x);
-    # 	gsl_matrix_free(A);
-    # 	gsl_permutation_free(p);
+        # /* v_j = d_j3 + v_3 */
+        collocation_values_phase_ins = collocation_values_phase_ins.at[0].add(collocation_values_phase_ins[2])
+        collocation_values_phase_ins = collocation_values_phase_ins.at[1].add(collocation_values_phase_ins[2])
+        collocation_values_phase_ins = collocation_values_phase_ins.at[3].add(collocation_values_phase_ins[2])
+        collocation_values_phase_ins = collocation_values_phase_ins.at[4].add(collocation_values_phase_ins[2])
 
-    # }
-    # else if(pPhase->NPseudoPN == 5)
-    # {
-    # 	// Using 5 pseudo-PN coefficients so set 5 collocation points
-    # 	for(i = 0; i < 5; i++)
-    # 	{
-    # 		fi = gpoints5[i] * deltax + xmin;
-    # 		pPhase->CollocationPointsPhaseIns[i] = fi;
-    # 	}
-    # 	pPhase->CollocationValuesPhaseIns[0] = IMRPhenomX_Inspiral_Phase_22_d13(pWF->eta,pWF->chiPNHat,pWF->dchi,pWF->delta,pWF->IMRPhenomXInspiralPhaseVersion);
-    # 	pPhase->CollocationValuesPhaseIns[1] = IMRPhenomX_Inspiral_Phase_22_d23(pWF->eta,pWF->chiPNHat,pWF->dchi,pWF->delta,pWF->IMRPhenomXInspiralPhaseVersion);
-    # 	pPhase->CollocationValuesPhaseIns[2] = IMRPhenomX_Inspiral_Phase_22_v3( pWF->eta,pWF->chiPNHat,pWF->dchi,pWF->delta,pWF->IMRPhenomXInspiralPhaseVersion);
-    # 	pPhase->CollocationValuesPhaseIns[3] = IMRPhenomX_Inspiral_Phase_22_d43(pWF->eta,pWF->chiPNHat,pWF->dchi,pWF->delta,pWF->IMRPhenomXInspiralPhaseVersion);
-    # 	pPhase->CollocationValuesPhaseIns[4] = IMRPhenomX_Inspiral_Phase_22_d53(pWF->eta,pWF->chiPNHat,pWF->dchi,pWF->delta,pWF->IMRPhenomXInspiralPhaseVersion);
+        b = collocation_values_phase_ins.copy()
 
-    # 	/* v_j = d_j3 + v_3 */
-    # 	pPhase->CollocationValuesPhaseIns[0] = pPhase->CollocationValuesPhaseIns[0] + pPhase->CollocationValuesPhaseIns[2];
-    # 	pPhase->CollocationValuesPhaseIns[1] = pPhase->CollocationValuesPhaseIns[1] + pPhase->CollocationValuesPhaseIns[2];
-    # 	pPhase->CollocationValuesPhaseIns[3] = pPhase->CollocationValuesPhaseIns[3] + pPhase->CollocationValuesPhaseIns[2];
-    # 	pPhase->CollocationValuesPhaseIns[4] = pPhase->CollocationValuesPhaseIns[4] + pPhase->CollocationValuesPhaseIns[2];
+        ff = collocation_points_phase_ins
+        ff1 = jnp.cbrt(ff)
+        ff2 = ff1 * ff1
+        ff3 = ff
+        ff4 = ff * ff1
 
-    # 	if(debug)
-    # 	{
-    # 		printf("\n");
-    # 		printf("Inspiral Collocation Points and Values:\n");
-    # 		printf("F1 : %.6f\n",pPhase->CollocationPointsPhaseIns[0]);
-    # 		printf("F2 : %.6f\n",pPhase->CollocationPointsPhaseIns[1]);
-    # 		printf("F3 : %.6f\n",pPhase->CollocationPointsPhaseIns[2]);
-    # 		printf("F4 : %.6f\n",pPhase->CollocationPointsPhaseIns[3]);
-    # 		printf("F5 : %.6f\n",pPhase->CollocationPointsPhaseIns[4]);
-    # 		printf("\n");
-    # 		printf("V1 : %.6f\n",pPhase->CollocationValuesPhaseIns[0]);
-    # 		printf("V2 : %.6f\n",pPhase->CollocationValuesPhaseIns[1]);
-    # 		printf("V3 : %.6f\n",pPhase->CollocationValuesPhaseIns[2]);
-    # 		printf("V4 : %.6f\n",pPhase->CollocationValuesPhaseIns[3]);
-    # 		printf("V5 : %.6f\n",pPhase->CollocationValuesPhaseIns[4]);
-    # 		printf("\n");
-    # 	}
+        a_matrix = jnp.array([ff, ff1, ff2, ff3, ff4]).T
 
-    # 	gsl_vector_set(b,0,pPhase->CollocationValuesPhaseIns[0]);
-    # 	gsl_vector_set(b,1,pPhase->CollocationValuesPhaseIns[1]);
-    # 	gsl_vector_set(b,2,pPhase->CollocationValuesPhaseIns[2]);
-    # 	gsl_vector_set(b,3,pPhase->CollocationValuesPhaseIns[3]);
-    # 	gsl_vector_set(b,4,pPhase->CollocationValuesPhaseIns[4]);
+        # /* We now solve the system A x = b via an LU decomposition */
+        x = jax.scipy.linalg.lu_solve(jax.scipy.linalg.lu_factor(a_matrix), b)
 
-    # 	/* A_{0,i} */
-    # 	ff  = pPhase->CollocationPointsPhaseIns[0];
-    # 	ff1 = cbrt(ff);
-    # 	ff2 = ff1 * ff1;
-    # 	ff3 = ff;
-    # 	ff4 = ff * ff1;
-    # 	gsl_matrix_set(A,0,0,1.0);
-    # 	gsl_matrix_set(A,0,1,ff1);
-    # 	gsl_matrix_set(A,0,2,ff2);
-    # 	gsl_matrix_set(A,0,3,ff3);
-    # 	gsl_matrix_set(A,0,4,ff4);
+        # /* Set inspiral phenomenological coefficients from solution to A x = b */
+        a0 = x[0]  # // x[0] // alpha_0
+        a1 = x[1]  # // x[1] // alpha_1
+        a2 = x[2]  # // x[2] // alpha_2
+        a3 = x[3]  # // x[3] // alpha_3
+        a4 = x[4]
 
-    # 	/* A_{1,i} */
-    # 	ff  = pPhase->CollocationPointsPhaseIns[1];
-    # 	ff1 = cbrt(ff);
-    # 	ff2 = ff1 * ff1;
-    # 	ff3 = ff;
-    # 	ff4 = ff * ff1;
-    # 	gsl_matrix_set(A,1,0,1.0);
-    # 	gsl_matrix_set(A,1,1,ff1);
-    # 	gsl_matrix_set(A,1,2,ff2);
-    # 	gsl_matrix_set(A,1,3,ff3);
-    # 	gsl_matrix_set(A,1,4,ff4);
+        p_phase = dataclasses.replace(
+            p_phase,
+            collocation_points_phase_ins=collocation_points_phase_ins,
+            collocation_values_phase_ins=collocation_values_phase_ins,
+            a0=a0,
+            a1=a1,
+            a2=a2,
+            a3=a3,
+            a4=a4,
+        )
+        return p_phase
 
-    # 	/* A_{2,i} */
-    # 	ff  = pPhase->CollocationPointsPhaseIns[2];
-    # 	ff1 = cbrt(ff);
-    # 	ff2 = ff1 * ff1;
-    # 	ff3 = ff;
-    # 	ff4 = ff * ff1;
-    # 	gsl_matrix_set(A,2,0,1.0);
-    # 	gsl_matrix_set(A,2,1,ff1);
-    # 	gsl_matrix_set(A,2,2,ff2);
-    # 	gsl_matrix_set(A,2,3,ff3);
-    # 	gsl_matrix_set(A,2,4,ff4);
+    p_phase = jax.lax.cond(
+        n_pseudo_pn == 4, lambda x: n_pseudo_pn_4_branch(x), lambda x: n_pseudo_pn_5_branch(x), operand=p_phase
+    )
 
-    # 	/* A_{3,i} */
-    # 	ff  = pPhase->CollocationPointsPhaseIns[3];
-    # 	ff1 = cbrt(ff);
-    # 	ff2 = ff1 * ff1;
-    # 	ff3 = ff;
-    # 	ff4 = ff * ff1;
-    # 	gsl_matrix_set(A,3,0,1.0);
-    # 	gsl_matrix_set(A,3,1,ff1);
-    # 	gsl_matrix_set(A,3,2,ff2);
-    # 	gsl_matrix_set(A,3,3,ff3);
-    # 	gsl_matrix_set(A,3,4,ff4);
+    # Note: When n_pseudo_pn == 4, the arrays are padded with a trailing zero.
+    # This padding doesn't affect the computation since the extra element is unused.
 
-    # 	/* A_{4,i} */
-    # 	ff  = pPhase->CollocationPointsPhaseIns[4];
-    # 	ff1 = cbrt(ff);
-    # 	ff2 = ff1 * ff1;
-    # 	ff3 = ff;
-    # 	ff4 = ff * ff1;
-    # 	gsl_matrix_set(A,4,0,1.0);
-    # 	gsl_matrix_set(A,4,1,ff1);
-    # 	gsl_matrix_set(A,4,2,ff2);
-    # 	gsl_matrix_set(A,4,3,ff3);
-    # 	gsl_matrix_set(A,4,4,ff4);
-
-    # 	/* We now solve the system A x = b via an LU decomposition */
-    # 	gsl_linalg_LU_decomp(A,p,&s);
-    # 	gsl_linalg_LU_solve(A,p,b,x);
-
-    # 	/* Set inspiral phenomenological coefficients from solution to A x = b */
-    # 	pPhase->a0 = gsl_vector_get(x,0); // x[0];
-    # 	pPhase->a1 = gsl_vector_get(x,1); // x[1];
-    # 	pPhase->a2 = gsl_vector_get(x,2); // x[2];
-    # 	pPhase->a3 = gsl_vector_get(x,3); // x[3];
-    # 	pPhase->a4 = gsl_vector_get(x,4); // x[4];
-
-    # 	if(debug)
-    # 	{
-    # 		printf("\n");
-    # 		printf("4pPN\n");
-    # 		printf("Inspiral Pseudo-PN Coefficients:\n");
-    # 		printf("a0 : %.6f\n",pPhase->a0);
-    # 		printf("a1 : %.6f\n",pPhase->a1);
-    # 		printf("a2 : %.6f\n",pPhase->a2);
-    # 		printf("a3 : %.6f\n",pPhase->a3);
-    # 		printf("a4 : %.6f\n",pPhase->a4);
-    # 		printf("\n");
-    # 	}
-
-    # 	/* Tidy up in preparation for next GSL solve ... */
-    # 	gsl_vector_free(b);
-    # 	gsl_vector_free(x);
-    # 	gsl_matrix_free(A);
-    # 	gsl_permutation_free(p);
-    # }
-    # else
-    # {
-    # 	XLALPrintError("Error in ComputeIMRPhenomXWaveformVariables: NPseudoPN requested is not valid.\n");
-    # }
-
-    # /* The pseudo-PN coefficients are normalized such that: (dphase0 / eta) * f^{8/3} * a_j */
-    # /* So we must re-scale these terms by an extra factor of f^{-8/3} in the PN phasing */
-    # pPhase->sigma1 = (-5.0/3.0) * pPhase->a0;
-    # pPhase->sigma2 = (-5.0/4.0) * pPhase->a1;
-    # pPhase->sigma3 = (-5.0/5.0) * pPhase->a2;
-    # pPhase->sigma4 = (-5.0/6.0) * pPhase->a3;
-    # pPhase->sigma5 = (-5.0/7.0) * pPhase->a4;
-
-    # /* Initialize TaylorF2 PN coefficients  */
-    # pPhase->dphi0  = 0.0;
-    # pPhase->dphi1  = 0.0;
-    # pPhase->dphi2  = 0.0;
-    # pPhase->dphi3  = 0.0;
-    # pPhase->dphi4  = 0.0;
-    # pPhase->dphi5  = 0.0;
-    # pPhase->dphi6  = 0.0;
-    # pPhase->dphi7  = 0.0;
-    # pPhase->dphi8  = 0.0;
-    # pPhase->dphi9  = 0.0;
-    # pPhase->dphi10 = 0.0;
-    # pPhase->dphi11 = 0.0;
-    # pPhase->dphi12 = 0.0;
-
-    # pPhase->dphi5L = 0.0;
-    # pPhase->dphi6L = 0.0;
-    # pPhase->dphi8L = 0.0;
-    # pPhase->dphi9L = 0.0;
-
-    # pPhase->phi0   = 0.0;
-    # pPhase->phi1   = 0.0;
-    # pPhase->phi2   = 0.0;
-    # pPhase->phi3   = 0.0;
-    # pPhase->phi4   = 0.0;
-    # pPhase->phi5   = 0.0;
-    # pPhase->phi6   = 0.0;
-    # pPhase->phi7   = 0.0;
-    # pPhase->phi8   = 0.0;
-    # pPhase->phi9   = 0.0;
-    # pPhase->phi10  = 0.0;
-    # pPhase->phi11  = 0.0;
-    # pPhase->phi12  = 0.0;
-
-    # pPhase->phi5L  = 0.0;
-    # pPhase->phi6L  = 0.0;
-    # pPhase->phi8L  = 0.0;
-    # pPhase->phi9L  = 0.0;
+    # The pseudo-PN coefficients are normalized such that: (dphase0 / eta) * f^{8/3} * a_j
+    # So we must re-scale these terms by an extra factor of f^{-8/3} in the PN phasing
+    sigma1 = (-5.0 / 3.0) * p_phase.a0
+    sigma2 = (-5.0 / 4.0) * p_phase.a1
+    sigma3 = (-5.0 / 5.0) * p_phase.a2
+    sigma4 = (-5.0 / 6.0) * p_phase.a3
+    sigma5 = (-5.0 / 7.0) * p_phase.a4
 
     # /* **** TaylorF2 PN Coefficients: Phase **** */
 
@@ -1498,245 +1184,298 @@ def imr_phenom_x_get_phase_coefficients(
     # 			- Messina et al, PRD, 97, 084016, (2018)
     # */
 
-    # /* Split into non-spinning and spin-dependent coefficients */
-    # UNUSED REAL8 phi0S = 0.0, phi1S = 0.0, phi2S = 0.0;
-    # REAL8 phi0NS  = 0.0,  phi1NS = 0.0,  phi2NS = 0.0;
-    # REAL8 phi3NS  = 0.0,  phi3S  = 0.0,  phi4NS = 0.0,  phi4S   = 0.0,  phi5NS  = 0.0,  phi5S  = 0.0;
-    # REAL8 phi5LNS = 0.0,  phi5LS = 0.0,  phi6NS = 0.0,  phi6S   = 0.0,  phi6LNS = 0.0,  phi6LS = 0.0;
-    # REAL8 phi7NS  = 0.0,  phi7S  = 0.0,  phi8NS = 0.0,  phi8S   = 0.0,  phi8LNS = 0.0;
-    # REAL8 phi8LS  = 0.0,  phi9NS = 0.0,  phi9S  = 0.0,  phi9LNS = 0.0,  phi9LS  = 0.0;
-
     # /* Analytically known PN coefficients */
     # /* Newtonian */
-    # phi0NS         = 1.0;
+    phi0_ns = 1.0
 
     # /* ~~ 0.5 PN ~~ */
-    # phi1NS         = 0.0;
+    phi1_ns = 0.0
 
     # /* ~~ 1.0 PN ~~ */
     # /* 1.0PN, Non-Spinning */
-    # phi2NS         = (3715/756. + (55*eta)/9.) * powers_of_lalpi.two_thirds;
-
+    phi2_ns = (3715 / 756.0 + (55 * eta) / 9.0) * powers_of_lalpi.two_thirds
     # /* ~~ 1.5 PN ~~ */
     # /* 1.5PN, Non-Spinning */
-    # phi3NS         = -16.0 * powers_of_lalpi.two;
+    phi3_ns = -16.0 * powers_of_lalpi.two
     # /* 1.5PN, Spin-Orbit */
-    # phi3S          = ( (113*(chi1L + chi2L + chi1L*delta - chi2L*delta) - 76*(chi1L + chi2L)*eta)/6. ) * powers_of_lalpi.itself;
-
-    # /* ~~ 2.0 PN ~~ */
-    # /* 2.0PN, Non-Spinning */
-    # phi4NS         = ( 15293365/508032. + (27145*eta)/504. + (3085*eta2)/72. ) * powers_of_lalpi.four_thirds;
+    phi3_s = (
+        (113 * (chi1l + chi2l + chi1l * delta - chi2l * delta) - 76 * (chi1l + chi2l) * eta) / 6.0
+    ) * powers_of_lalpi.itself
+    phi4_ns = (15293365 / 508032.0 + (27145 * eta) / 504.0 + (3085 * eta2) / 72.0) * powers_of_lalpi.four_thirds
     # /* 2.0PN, Spin-Spin */
-    # phi4S          = ( (-5*(81*chi1L2*(1 + delta - 2*eta) + 316*chi1L2L*eta - 81*chi2L2*(-1 + delta + 2*eta)))/16. ) * powers_of_lalpi.four_thirds;
+    phi4_s = (
+        (-5 * (81 * chi1l2 * (1 + delta - 2 * eta) + 316 * chi1l2l * eta - 81 * chi2l2 * (-1 + delta + 2 * eta))) / 16.0
+    ) * powers_of_lalpi.four_thirds
 
     # /* ~~ 2.5 PN ~~ */
-    # phi5NS         = 0.0;
-    # phi5S          = 0.0;
+    phi5_ns = 0.0
+    phi5_s = 0.0
 
     # /* ~~ 2.5 PN, Log Term ~~ */
     # /* 2.5PN, Non-Spinning */
-    # phi5LNS        = ( (5*(46374 - 6552*eta)*LAL_PI)/4536. ) * powers_of_lalpi.five_thirds;
+    phi5_lns = ((5 * (46374 - 6552 * eta) * powers_of_lalpi.itself) / 4536.0) * powers_of_lalpi.five_thirds
     # /* 2.5PN, Spin-Orbit */
-    # phi5LS         = ( (-732985*(chi1L + chi2L + chi1L*delta - chi2L*delta) - 560*(-1213*(chi1L + chi2L)
-    # 											+ 63*(chi1L - chi2L)*delta)*eta + 85680*(chi1L + chi2L)*eta2)/4536. ) * powers_of_lalpi.five_thirds;
+    phi5_ls = (
+        (
+            -732985 * (chi1l + chi2l + chi1l * delta - chi2l * delta)
+            - 560 * (-1213 * (chi1l + chi2l) + 63 * (chi1l - chi2l) * delta) * eta
+            + 85680 * (chi1l + chi2l) * eta2
+        )
+        / 4536.0
+    ) * powers_of_lalpi.five_thirds
 
     # /* ~~ 3.0 PN ~~ */
     # /* 3.0 PN, Non-Spinning */
-    # phi6NS         = ( 11583231236531/4.69421568e9 - (5*eta*(3147553127 + 588*eta*(-45633 + 102260*eta)))/3.048192e6 - (6848*LAL_GAMMA)/21.
-    # 					- (640*powers_of_lalpi.two)/3. + (2255*eta*powers_of_lalpi.two)/12. - (13696*log(2))/21. - (6848*powers_of_lalpi.log)/63. ) * powers_of_lalpi.two;
+    phi6_ns = (
+        11583231236531 / 4.69421568e9
+        - (5 * eta * (3147553127 + 588 * eta * (-45633 + 102260 * eta))) / 3.048192e6
+        - (6848 * LAL_GAMMA) / 21.0
+        - (640 * powers_of_lalpi.two) / 3.0
+        + (2255 * eta * powers_of_lalpi.two) / 12.0
+        - (13696 * jnp.log(2)) / 21.0
+        - (6848 * powers_of_lalpi.log) / 63.0
+    ) * powers_of_lalpi.two
     # /* 3.0 PN, Spin-Orbit */
-    # phi6S          = ( (5*(227*(chi1L + chi2L + chi1L*delta - chi2L*delta) - 156*(chi1L + chi2L)*eta)*LAL_PI)/3. ) * powers_of_lalpi.two;
+    phi6_s = (
+        (
+            5
+            * (227 * (chi1l + chi2l + chi1l * delta - chi2l * delta) - 156 * (chi1l + chi2l) * eta)
+            * powers_of_lalpi.itself
+        )
+        / 3.0
+    ) * powers_of_lalpi.two
     # /* 3.0 PN, Spin-Spin */
-    # phi6S         += ( (5*(20*chi1L2L*eta*(11763 + 12488*eta) + 7*chi2L2*(-15103*(-1 + delta) + 2*(-21683 + 6580*delta)*eta - 9808*eta2) -
-    # 						7*chi1L2*(-15103*(1 + delta) + 2*(21683 + 6580*delta)*eta + 9808*eta2)))/4032. ) * powers_of_lalpi.two;
+    phi6_s += (
+        (
+            5
+            * (
+                20 * chi1l2l * eta * (11763 + 12488 * eta)
+                + 7 * chi2l2 * (-15103 * (-1 + delta) + 2 * (-21683 + 6580 * delta) * eta - 9808 * eta2)
+                - 7 * chi1l2 * (-15103 * (1 + delta) + 2 * (21683 + 6580 * delta) * eta + 9808 * eta2)
+            )
+        )
+        / 4032.0
+    ) * powers_of_lalpi.two
 
     # /* ~~ 3.0 PN, Log Term ~~ */
-    # phi6LNS        = (-6848/63.) * powers_of_lalpi.two;
-    # phi6LS         = 0.0;
+    phi6_lns = (-6848 / 63.0) * powers_of_lalpi.two
+    phi6_ls = 0.0
 
     # /* ~~ 3.5 PN ~~ */
     # /* 3.5 PN, Non-Spinning */
-    # phi7NS         = ( (5*(15419335 + 168*(75703 - 29618*eta)*eta)*LAL_PI)/254016. ) * powers_of_lalpi.seven_thirds;
+    phi7_ns = (
+        (5 * (15419335 + 168 * (75703 - 29618 * eta) * eta) * powers_of_lalpi.itself) / 254016.0
+    ) * powers_of_lalpi.seven_thirds
     # /* 3.5 PN, Spin-Orbit */
-    # phi7S          = ( (5*(-5030016755*(chi1L + chi2L + chi1L*delta - chi2L*delta) + 4*(2113331119*(chi1L + chi2L) + 675484362*(chi1L - chi2L)*delta)*eta - 1008*(208433*(chi1L + chi2L) + 25011*(chi1L - chi2L)*delta)*eta2 + 90514368*(chi1L + chi2L)*eta3))/6.096384e6 ) * powers_of_lalpi.seven_thirds;
+    phi7_s = (
+        (
+            5
+            * (
+                -5030016755 * (chi1l + chi2l + chi1l * delta - chi2l * delta)
+                + 4 * (2113331119 * (chi1l + chi2l) + 675484362 * (chi1l - chi2l) * delta) * eta
+                - 1008 * (208433 * (chi1l + chi2l) + 25011 * (chi1l - chi2l) * delta) * eta2
+                + 90514368 * (chi1l + chi2l) * eta3
+            )
+        )
+        / 6.096384e6
+    ) * powers_of_lalpi.seven_thirds
     # /* 3.5 PN, Spin-Spin */
-    # phi7S         += ( -5*(57*chi1L2*(1 + delta - 2*eta) + 220*chi1L2L*eta - 57*chi2L2*(-1 + delta + 2*eta))*LAL_PI ) * powers_of_lalpi.seven_thirds;
+    phi7_s += (
+        -5
+        * (57 * chi1l2 * (1 + delta - 2 * eta) + 220 * chi1l2l * eta - 57 * chi2l2 * (-1 + delta + 2 * eta))
+        * powers_of_lalpi.itself
+    ) * powers_of_lalpi.seven_thirds
     # /* 3.5 PN, Cubic-in-Spin */
-    # phi7S         += ( (14585*(-(chi2L3*(-1 + delta)) + chi1L3*(1 + delta)) - 5*(chi2L3*(8819 - 2985*delta) + 8439*chi1L*chi2L2*(-1 + delta) - 8439*chi1L2*chi2L*(1 + delta) + chi1L3*(8819 + 2985*delta))*eta + 40*(chi1L + chi2L)*(17*chi1L2 - 14*chi1L2L + 17*chi2L2)*eta2)/48. ) * powers_of_lalpi.seven_thirds;
+    phi7_s += (
+        (
+            14585 * (-(chi2l3 * (-1 + delta)) + chi1l3 * (1 + delta))
+            - 5
+            * (
+                chi2l3 * (8819 - 2985 * delta)
+                + 8439 * chi1l * chi2l2 * (-1 + delta)
+                - 8439 * chi1l2 * chi2l * (1 + delta)
+                + chi1l3 * (8819 + 2985 * delta)
+            )
+            * eta
+            + 40 * (chi1l + chi2l) * (17 * chi1l2 - 14 * chi1l2l + 17 * chi2l2) * eta2
+        )
+        / 48.0
+    ) * powers_of_lalpi.seven_thirds
 
-    # 	/* ~~ 4.0 PN ~~ */
+    # /* ~~ 4.0 PN ~~ */
     # /* 4.0 PN, Non-Spinning */
-    # phi8NS         = 0.0;
+    phi8_ns = 0.0
     # /* 4.0 PN, Spin-Orbit */
-    # phi8S          = ( (-5*(1263141*(chi1L + chi2L + chi1L*delta - chi2L*delta) - 2*(794075*(chi1L + chi2L) + 178533*(chi1L - chi2L)*delta)*eta + 94344*(chi1L + chi2L)*eta2)*LAL_PI*(-1 + powers_of_lalpi.log))/9072. ) * powers_of_lalpi.eight_thirds;
+    phi8_s = (
+        (
+            -5
+            * (
+                1263141 * (chi1l + chi2l + chi1l * delta - chi2l * delta)
+                - 2 * (794075 * (chi1l + chi2l) + 178533 * (chi1l - chi2l) * delta) * eta
+                + 94344 * (chi1l + chi2l) * eta2
+            )
+            * powers_of_lalpi.itself
+            * (-1 + powers_of_lalpi.log)
+        )
+        / 9072.0
+    ) * powers_of_lalpi.eight_thirds
 
     # /* ~~ 4.0 PN, Log Term ~~ */
     # /* 4.0 PN, log term, Non-Spinning */
-    # phi8LNS        = 0.0;
+    phi8_lns = 0.0
     # /* 4.0 PN, log term, Spin-Orbit */
-    # phi8LS         = ((-5*(1263141*(chi1L + chi2L + chi1L*delta - chi2L*delta) - 2*(794075*(chi1L + chi2L) + 178533*(chi1L - chi2L)*delta)*eta
-    # 						+ 94344*(chi1L + chi2L)*eta2)*LAL_PI)/9072.) * powers_of_lalpi.eight_thirds;
+    phi8_ls = (
+        (
+            -5
+            * (
+                1263141 * (chi1l + chi2l + chi1l * delta - chi2l * delta)
+                - 2 * (794075 * (chi1l + chi2l) + 178533 * (chi1l - chi2l) * delta) * eta
+                + 94344 * (chi1l + chi2l) * eta2
+            )
+            * powers_of_lalpi.itself
+        )
+        / 9072.0
+    ) * powers_of_lalpi.eight_thirds
 
     # /* ~~ 4.5 PN ~~ */
-    # phi9NS         = 0.0;
-    # phi9S          = 0.0;
+    phi9_ns = 0.0
+    phi9_s = 0.0
 
-    # 	/* ~~ 4.5 PN, Log Term ~~ */
-    # phi9LNS        = 0.0;
-    # phi9LS         = 0.0;
+    # /* ~~ 4.5 PN, Log Term ~~ */
+    phi9_lns = 0.0
+    phi9_ls = 0.0
 
-    # /* This version of TaylorF2 contains an additional 4.5PN tail term and a LO-SS tail term at 3.5PN */
-    # if(pWF->IMRPhenomXInspiralPhaseVersion == 114 || pWF->IMRPhenomXInspiralPhaseVersion == 115)
-    # {
-    # 		/* 3.5PN, Leading Order Spin-Spin Tail Term */
-    # 		phi7S         += ( (5*(65*chi1L2*(1 + delta - 2*eta) + 252*chi1L2L*eta - 65*chi2L2*(-1 + delta + 2*eta))*LAL_PI)/4. ) * powers_of_lalpi.seven_thirds;
+    # This version of TaylorF2 contains an additional 4.5PN tail term and a LO-SS tail term at 3.5PN
+    def tail_term_branch(phi7_s, phi9_ns, phi9_lns):
+        # /* 3.5PN, Leading Order Spin-Spin Tail Term */
+        phi7_s += (
+            (
+                5
+                * (65 * chi1l2 * (1 + delta - 2 * eta) + 252 * chi1l2l * eta - 65 * chi2l2 * (-1 + delta + 2 * eta))
+                * powers_of_lalpi.itself
+            )
+            / 4.0
+        ) * powers_of_lalpi.seven_thirds
 
-    # 		/* 4.5PN, Tail Term */
-    # 		phi9NS        += ( (5*(-256 + 451*eta)*powers_of_lalpi.three)/6. + (LAL_PI*(105344279473163 + 700*eta*(-298583452147 + 96*eta*(99645337 + 14453257*eta)) -
-    # 																					12246091038720*LAL_GAMMA - 24492182077440*log(2.0)))/1.877686272e10 - (13696*LAL_PI*powers_of_lalpi.log)/63. ) * powers_of_lalpi.three;
+        # /* 4.5PN, Tail Term */
+        phi9_ns += (
+            (5 * (-256 + 451 * eta) * powers_of_lalpi.three) / 6.0
+            + (
+                powers_of_lalpi.itself
+                * (
+                    105344279473163
+                    + 700 * eta * (-298583452147 + 96 * eta * (99645337 + 14453257 * eta))
+                    - 12246091038720 * LAL_GAMMA
+                    - 24492182077440 * jnp.log(2.0)
+                )
+            )
+            / 1.877686272e10
+            - (13696 * powers_of_lalpi.itself * powers_of_lalpi.log) / 63.0
+        ) * powers_of_lalpi.three
 
-    # 		/* 4.5PN, Log Term */
-    # 		phi9LNS       += (  (-13696*LAL_PI)/63.0  ) * powers_of_lalpi.three;
-    # }
+        # /* 4.5PN, Log Term */
+        phi9_lns += ((-13696 * powers_of_lalpi.itself) / 63.0) * powers_of_lalpi.three
+
+        return phi7_s, phi9_ns, phi9_lns
+
+    phi7_s, phi9_ns, phi9_lns = jax.lax.cond(
+        jnp.logical_or(
+            p_wf.imr_phenom_x_inspiral_phase_version == 114, p_wf.imr_phenom_x_inspiral_phase_version == 115
+        ),
+        lambda args: tail_term_branch(*args),
+        lambda args: args,
+        operand=(phi7_s, phi9_ns, phi9_lns),
+    )
 
     # /* 0.0 PN */
-    # pPhase->phi0   = phi0NS;
+    phi0 = phi0_ns
 
     # /* 0.5 PN */
-    # pPhase->phi1   = phi1NS;
+    phi1 = phi1_ns
 
     # /* 1.0 PN */
-    # pPhase->phi2   = phi2NS;
+    phi2 = phi2_ns
 
     # /* 1.5 PN */
-    # pPhase->phi3   = phi3NS + phi3S;
+    phi3 = phi3_ns + phi3_s
 
     # /* 2.0 PN */
-    # pPhase->phi4   = phi4NS + phi4S;
+    phi4 = phi4_ns + phi4_s
 
     # /* 2.5 PN */
-    # pPhase->phi5   = phi5NS + phi5S;
+    phi5 = phi5_ns + phi5_s
 
     # /* 2.5 PN, Log Terms */
-    # pPhase->phi5L  = phi5LNS + phi5LS;
+    phi5l = phi5_lns + phi5_ls
 
     # /* 3.0 PN */
-    # pPhase->phi6   = phi6NS + phi6S;
+    phi6 = phi6_ns + phi6_s
 
     # /* 3.0 PN, Log Term */
-    # pPhase->phi6L  = phi6LNS + phi6LS;
+    phi6l = phi6_lns + phi6_ls
 
     # /* 3.5PN */
-    # pPhase->phi7   = phi7NS + phi7S;
+    phi7 = phi7_ns + phi7_s
 
     # /* 4.0PN */
-    # pPhase->phi8   = phi8NS + phi8S;
+    phi8 = phi8_ns + phi8_s
 
     # /* 4.0 PN, Log Terms */
-    # pPhase->phi8L  = phi8LNS + phi8LS;
+    phi8l = phi8_lns + phi8_ls
 
     # /* 4.5 PN */
-    # pPhase->phi9   = phi9NS + phi9S;
+    phi9 = phi9_ns + phi9_s
 
     # /* 4.5 PN, Log Terms */
-    # pPhase->phi9L  = phi9LNS + phi9LS;
+    phi9l = phi9_lns + phi9_ls
 
-    # if(debug)
-    # {
-    # 	printf("TaylorF2 PN Coefficients: \n");
-    # 	printf("phi0   : %.6f\n",pPhase->phi0);
-    # 	printf("phi1   : %.6f\n",pPhase->phi1);
-    # 	printf("phi2   : %.6f\n",pPhase->phi2);
-    # 	printf("phi3   : %.6f\n",pPhase->phi3);
-    # 	printf("phi4   : %.6f\n",pPhase->phi4);
-    # 	printf("phi5   : %.6f\n",pPhase->phi5);
-    # 	printf("phi6   : %.6f\n",pPhase->phi6);
-    # 	printf("phi7   : %.6f\n",pPhase->phi7);
-    # 	printf("phi8   : %.6f\n",pPhase->phi8);
-
-    # 	printf("phi5L  : %.6f\n",pPhase->phi5L);
-    # 	printf("phi6L  : %.6f\n",pPhase->phi6L);
-    # 	printf("phi8L  : %.6f\n",pPhase->phi8L);
-
-    # 	printf("phi8P  : %.6f\n",pPhase->sigma1);
-    # 	printf("phi9P  : %.6f\n",pPhase->sigma2);
-    # 	printf("phi10P : %.6f\n",pPhase->sigma3);
-    # 	printf("phi11P : %.6f\n",pPhase->sigma4);
-    # 	printf("phi12P : %.6f\n",pPhase->sigma5);
-    # }
-
-    # pPhase->phi_initial = - LAL_PI_4;
+    phi_initial = -PI / 4.0
 
     # /* **** TaylorF2 PN Coefficients: Normalized Phase Derivative **** */
-    # pPhase->dphi0  = pPhase->phi0;
-    # pPhase->dphi1  = 4.0 / 5.0 * pPhase->phi1;
-    # pPhase->dphi2  = 3.0 / 5.0 * pPhase->phi2;
-    # pPhase->dphi3  = 2.0 / 5.0 * pPhase->phi3;
-    # pPhase->dphi4  = 1.0 / 5.0 * pPhase->phi4;
-    # pPhase->dphi5  = -3.0 / 5.0 * pPhase->phi5L;
-    # pPhase->dphi6  = -1.0 / 5.0 * pPhase->phi6 - 3.0 / 5.0 * pPhase->phi6L;
-    # pPhase->dphi6L = -1.0 / 5.0 * pPhase->phi6L;
-    # pPhase->dphi7  = -2.0 / 5.0 * pPhase->phi7;
-    # pPhase->dphi8  = -3.0 / 5.0 * pPhase->phi8 - 3.0 / 5.0 * pPhase->phi8L;
-    # pPhase->dphi8L = -3.0 / 5.0 * pPhase->phi8L;
-    # pPhase->dphi9  = -4.0 / 5.0 * pPhase->phi9 - 3.0 / 5.0 * pPhase->phi9L;
-    # pPhase->dphi9L = -3.0 / 5.0 * pPhase->phi9L;
-
-    # if(debug)
-    # {
-    # 	printf("\nTaylorF2 PN Derivative Coefficients\n");
-    # 	printf("dphi0  : %.6f\n",pPhase->dphi0);
-    # 	printf("dphi1  : %.6f\n",pPhase->dphi1);
-    # 	printf("dphi2  : %.6f\n",pPhase->dphi2);
-    # 	printf("dphi3  : %.6f\n",pPhase->dphi3);
-    # 	printf("dphi4  : %.6f\n",pPhase->dphi4);
-    # 	printf("dphi5  : %.6f\n",pPhase->dphi5);
-    # 	printf("dphi6  : %.6f\n",pPhase->dphi6);
-    # 	printf("dphi7  : %.6f\n",pPhase->dphi7);
-    # 	printf("dphi8  : %.6f\n",pPhase->dphi8);
-    # 	printf("dphi9  : %.6f\n",pPhase->dphi9);
-    # 	printf("\n");
-    # 	printf("dphi6L : %.6f\n",pPhase->dphi6L);
-    # 	printf("dphi8L : %.6f\n",pPhase->dphi8L);
-    # 	printf("dphi9L : %.6f\n",pPhase->dphi9L);
-    # }
+    dphi0 = phi0
+    dphi1 = 4.0 / 5.0 * phi1
+    dphi2 = 3.0 / 5.0 * phi2
+    dphi3 = 2.0 / 5.0 * phi3
+    dphi4 = 1.0 / 5.0 * phi4
+    dphi5 = -3.0 / 5.0 * phi5l
+    dphi6 = -1.0 / 5.0 * phi6 - 3.0 / 5.0 * phi6l
+    dphi6l = -1.0 / 5.0 * phi6l
+    dphi7 = -2.0 / 5.0 * phi7
+    dphi8 = -3.0 / 5.0 * phi8 - 3.0 / 5.0 * phi8l
+    dphi8l = -3.0 / 5.0 * phi8l
+    dphi9 = -4.0 / 5.0 * phi9 - 3.0 / 5.0 * phi9l
+    dphi9l = -3.0 / 5.0 * phi9l
 
     # /*
     # 		Calculate phase at fmatchIN. This will be used as the collocation point for the intermediate fit.
     # 		In practice, the transition point is just below the MECO frequency.
     # */
-    # if(debug)
-    # {
-    # 	printf("\nTransition frequency for ins to int : %.6f\n",pPhase->fPhaseMatchIN);
-    # }
+    _, powers_of_fmatch_in = imr_phenom_x_initialize_powers(f_phase_match_in)
 
-    # IMRPhenomX_UsefulPowers powers_of_fmatchIN;
-    # IMRPhenomX_Initialize_Powers(&powers_of_fmatchIN,pPhase->fPhaseMatchIN);
-
-    # double phaseIN;
-    # phaseIN  = pPhase->dphi0; 																	// f^{0/3}
-    # phaseIN += pPhase->dphi1 	* powers_of_fmatchIN.one_third; 								// f^{1/3}
-    # phaseIN += pPhase->dphi2 	* powers_of_fmatchIN.two_thirds; 								// f^{2/3}
-    # phaseIN += pPhase->dphi3 	* powers_of_fmatchIN.itself; 									// f^{3/3}
-    # phaseIN += pPhase->dphi4 	* powers_of_fmatchIN.four_thirds; 								// f^{4/3}
-    # phaseIN += pPhase->dphi5 	* powers_of_fmatchIN.five_thirds; 								// f^{5/3}
-    # phaseIN += pPhase->dphi6  	* powers_of_fmatchIN.two;										// f^{6/3}
-    # phaseIN += pPhase->dphi6L 	* powers_of_fmatchIN.two * powers_of_fmatchIN.log;				// f^{6/3}, Log[f]
-    # phaseIN += pPhase->dphi7  	* powers_of_fmatchIN.seven_thirds;								// f^{7/3}
-    # phaseIN += pPhase->dphi8  	* powers_of_fmatchIN.eight_thirds;								// f^{8/3}
-    # phaseIN += pPhase->dphi8L 	* powers_of_fmatchIN.eight_thirds * powers_of_fmatchIN.log;		// f^{8/3}
-    # phaseIN += pPhase->dphi9  	* powers_of_fmatchIN.three;										// f^{9/3}
-    # phaseIN += pPhase->dphi9L 	* powers_of_fmatchIN.three * powers_of_fmatchIN.log;			// f^{9/3}
+    phase_in = dphi0  # f^{0/3}
+    phase_in += dphi1 * powers_of_fmatch_in.one_third  # f^{1/3}
+    phase_in += dphi2 * powers_of_fmatch_in.two_thirds  # f^{2/3}
+    phase_in += dphi3 * powers_of_fmatch_in.itself  # f^{3/3}
+    phase_in += dphi4 * powers_of_fmatch_in.four_thirds  # f^{4/3}
+    phase_in += dphi5 * powers_of_fmatch_in.five_thirds  # f^{5/3}
+    phase_in += dphi6 * powers_of_fmatch_in.two  # f^{6/3}
+    phase_in += dphi6 * powers_of_fmatch_in.two * powers_of_fmatch_in.log  # f^{6/3}, Log[f]
+    phase_in += dphi7 * powers_of_fmatch_in.seven_thirds  # f^{7/3}
+    phase_in += dphi8 * powers_of_fmatch_in.eight_thirds  # f^{8/3}
+    phase_in += dphi8 * powers_of_fmatch_in.eight_thirds * powers_of_fmatch_in.log  # f^{8/3}
+    phase_in += dphi9 * powers_of_fmatch_in.three  # f^{9/3}
+    phase_in += dphi9 * powers_of_fmatch_in.three * powers_of_fmatch_in.log  # f^{9/3}
 
     # // Add pseudo-PN Coefficient
-    # phaseIN += ( 		pPhase->a0 * powers_of_fmatchIN.eight_thirds
-    # 							+ pPhase->a1 * powers_of_fmatchIN.three
-    # 							+ pPhase->a2 * powers_of_fmatchIN.eight_thirds * powers_of_fmatchIN.two_thirds
-    # 							+ pPhase->a3 * powers_of_fmatchIN.eight_thirds * powers_of_fmatchIN.itself
-    # 							+ pPhase->a4 * powers_of_fmatchIN.eight_thirds * powers_of_fmatchIN.four_thirds
-    # 						);
+    phase_in += (
+        p_phase.a0 * powers_of_fmatch_in.eight_thirds
+        + p_phase.a1 * powers_of_fmatch_in.three
+        + p_phase.a2 * powers_of_fmatch_in.eight_thirds * powers_of_fmatch_in.two_thirds
+        + p_phase.a3 * powers_of_fmatch_in.eight_thirds * powers_of_fmatch_in.itself
+        + p_phase.a4 * powers_of_fmatch_in.eight_thirds * powers_of_fmatch_in.four_thirds
+    )
 
-    # phaseIN  = phaseIN * powers_of_fmatchIN.m_eight_thirds * pWF->dphase0;
+    phase_in = phase_in * powers_of_fmatch_in.m_eight_thirds * p_wf.dphase0
 
     # /*
     # Intermediate phase collocation points:
@@ -1749,527 +1488,600 @@ def imr_phenom_x_get_phase_coefficients(
 
     # See. Eq. 7.7 and 7.8 where f_H = pPhase->fPhaseMatchIM and f_L = pPhase->fPhaseMatchIN
     # */
-    # deltax      = pPhase->fPhaseMatchIM - pPhase->fPhaseMatchIN;
-    # xmin        = pPhase->fPhaseMatchIN;
+    deltax = f_phase_match_im - f_phase_match_in
+    xmin = f_phase_match_in
 
-    # switch(pWF->IMRPhenomXIntermediatePhaseVersion)
-    # {
-    # 	case 104:
-    # 	{
-    # 		// Fourth order polynomial ansatz
-    # 		pPhase->NCollocationPointsInt = 4;
-    # 		break;
-    # 	}
-    # 	case 105:
-    # 	{
-    # 		// Fifth order polynomial ansatz
-    # 		pPhase->NCollocationPointsInt = 5;
-    # 		break;
-    # 	}
-    # 	default:
-    # 	{
-    # 		XLAL_ERROR(XLAL_EINVAL, "Error: IMRPhenomXIntermediatePhaseVersion is not valid.\n");
-    # 	}
-    # }
+    is_valid = jnp.logical_or(
+        p_wf.imr_phenom_x_intermediate_phase_version == 104, p_wf.imr_phenom_x_intermediate_phase_version == 105
+    )
+    checkify.check(is_valid, "Error: IMRPhenomXIntermediatePhaseVersion is not valid.")
+    n_collocation_points_int = jax.lax.select(p_wf.imr_phenom_x_intermediate_phase_version == 104, 4, 5)
 
-    # if(debug)
-    # {
-    # printf("\nNColPointsInt : %d\n",pPhase->NCollocationPointsInt);
-    # }
+    # Canonical intermediate model using 4 collocation points
+    def branch_104(p_phase: IMRPhenomXPhaseCoefficientsDataClass) -> IMRPhenomXPhaseCoefficientsDataClass:
+        # // Using 4 collocation points in intermediate region
+        collocation_points_phase_int = gpoints4 * deltax + xmin
 
-    # p = gsl_permutation_alloc(pPhase->NCollocationPointsInt);
-    # b = gsl_vector_alloc(pPhase->NCollocationPointsInt);
-    # x = gsl_vector_alloc(pPhase->NCollocationPointsInt);
-    # A = gsl_matrix_alloc(pPhase->NCollocationPointsInt,pPhase->NCollocationPointsInt);
+        # v2IM - v4RD. Using v4RD helps condition the fits with v4RD being very a robust fit.
+        v2_im_m_rd_v4 = imr_phenom_x_intermediate_phase_22_v2m_rd_v4(
+            eta, p_wf.s_tot_r, p_wf.dchi, delta, p_wf.imr_phenom_x_intermediate_phase_version
+        )
 
-    # // Canonical intermediate model using 4 collocation points
+        # v3IM - v4RD. Using v4RD helps condition the fits with v4RD being very a robust fit.
+        v3_im_m_rd_v4 = imr_phenom_x_intermediate_phase_22_v3m_rd_v4(
+            eta, p_wf.s_tot_r, p_wf.dchi, delta, p_wf.imr_phenom_x_intermediate_phase_version
+        )
+
+        # Direct fit to the collocation point at F2. We will take a weighted average of the direct and conditioned fit.
+        v2_im = imr_phenom_x_intermediate_phase_22_v2(
+            eta, p_wf.s_tot_r, p_wf.dchi, delta, p_wf.imr_phenom_x_intermediate_phase_version
+        )
+
+        # /* Evaluate collocation points */
+        collocation_values_phase_int = jnp.array(
+            [
+                phase_in,
+                0.75 * (v2_im_m_rd_v4 + rd_v4) + 0.25 * v2_im,
+                v3_im_m_rd_v4 + rd_v4,
+                phase_rd,
+            ]
+        )
+
+        ff = collocation_points_phase_int  # jax.lax.dynamic_slice(
+        #     collocation_points_phase_int,
+        #     (0,),  # start index
+        #     (4,)   # slice size
+        # )
+        ff1 = p_wf.f_ring / ff
+        ff2 = ff1 * ff1
+        ff3 = ff1 * ff2
+        ff0 = (4 * c_l) / (4.0 * p_wf.f_damp * p_wf.f_damp + (ff - p_wf.f_ring) * (ff - p_wf.f_ring))
+
+        b = collocation_values_phase_int - ff0
+
+        a_matrix = jnp.array([jnp.ones(4), ff1, ff2, ff3]).T
+
+        # /* We now solve the system A x = b via an LU decomposition */
+        x = jax.scipy.linalg.lu_solve(jax.scipy.linalg.lu_factor(a_matrix), b)
+
+        # /* Set inspiral phenomenological coefficients from solution to A x = b */
+        b0 = x[0]  # Constant
+        b1 = x[1]  # f^{-1}
+        b2 = x[2] * p_wf.f_ring * p_wf.f_ring  # f^{-2}
+        # b3 = 0.0
+        b4 = x[3] * p_wf.f_ring * p_wf.f_ring * p_wf.f_ring * p_wf.f_ring  # f^{-4}
+
+        p_phase = dataclasses.replace(
+            p_phase,
+            collocation_points_phase_int=jnp.pad(
+                collocation_points_phase_int, (0, 1), constant_values=0.0
+            ),  # zero pad for jit compatibility
+            collocation_values_phase_int=jnp.pad(
+                collocation_values_phase_int, (0, 1), constant_values=0.0
+            ),  # zero pad for jit compatibility
+            b0=b0,
+            b1=b1,
+            b2=b2,
+            b4=b4,
+        )
+        return p_phase
+
+    # Canonical intermediate model using 5 collocation points
+    def branch_105(p_phase: IMRPhenomXPhaseCoefficientsDataClass) -> IMRPhenomXPhaseCoefficientsDataClass:
+        # // Using 5 collocation points in intermediate region
+        collocation_points_phase_int = gpoints5 * deltax + xmin
+
+        # /* Evaluate collocation points */
+        # /* The first and last collocation points for the intermediate region are set from the inspiral fit and ringdown respectively */
+        # // v2IM - v4RD. Using v4RD helps condition the fits with v4RD being very a robust fit.
+        v2_im_m_rd_v4 = imr_phenom_x_intermediate_phase_22_v2m_rd_v4(
+            eta, p_wf.s_tot_r, p_wf.dchi, delta, p_wf.imr_phenom_x_intermediate_phase_version
+        )
+
+        # v3IM - v4RD. Using v4RD helps condition the fits with v4RD being very a robust fit.
+        v3_im_m_rd_v4 = imr_phenom_x_intermediate_phase_22_v3m_rd_v4(
+            eta, p_wf.s_tot_r, p_wf.dchi, delta, p_wf.imr_phenom_x_intermediate_phase_version
+        )
+
+        # Direct fit to the collocation point at F2. We will take a weighted average of the direct and conditioned fit.
+        v2_im = imr_phenom_x_intermediate_phase_22_v2(
+            eta, p_wf.s_tot_r, p_wf.dchi, delta, p_wf.imr_phenom_x_intermediate_phase_version
+        )
+
+        # /* Evaluate collocation points */
+        collocation_values_phase_int = jnp.array(
+            [
+                phase_in,
+                0.75 * (v2_im_m_rd_v4 + rd_v4)
+                + 0.25 * v2_im,  # Take a weighted average for these points. Helps condition the fit.
+                v3_im_m_rd_v4 + rd_v4,
+                imr_phenom_x_intermediate_phase_22_d43(
+                    eta, p_wf.s_tot_r, p_wf.dchi, delta, p_wf.imr_phenom_x_intermediate_phase_version
+                )
+                + (v3_im_m_rd_v4 + rd_v4),
+                phase_rd,
+            ]
+        )
+
+        ff = collocation_points_phase_int
+        ff1 = p_wf.f_ring / ff
+        ff2 = ff1 * ff1
+        ff3 = ff1 * ff2
+        ff4 = ff2 * ff2
+        ff0 = (4 * c_l) / (4.0 * p_wf.f_damp * p_wf.f_damp + (ff - p_wf.f_ring) * (ff - p_wf.f_ring))
+
+        b = collocation_values_phase_int - ff0
+
+        a_matrix = jnp.array([jnp.ones(5), ff1, ff2, ff3, ff4]).T
+
+        # /* We now solve the system A x = b via an LU decomposition */
+        x = jax.scipy.linalg.lu_solve(jax.scipy.linalg.lu_factor(a_matrix), b)
+
+        b0 = x[0]  # Constant
+        b1 = x[1]  # f^{-1}
+        b2 = x[2] * p_wf.f_ring * p_wf.f_ring  # f^{-2}
+        b3 = x[3] * p_wf.f_ring * p_wf.f_ring * p_wf.f_ring  # f^{-3}
+        b4 = x[4] * p_wf.f_ring * p_wf.f_ring * p_wf.f_ring * p_wf.f_ring  # f^{-4}
+
+        p_phase = dataclasses.replace(
+            p_phase,
+            collocation_points_phase_int=collocation_points_phase_int,
+            collocation_values_phase_int=collocation_values_phase_int,
+            b0=b0,
+            b1=b1,
+            b2=b2,
+            b3=b3,
+            b4=b4,
+        )
+        return p_phase
+
+    p_phase = jax.lax.cond(
+        p_wf.imr_phenom_x_intermediate_phase_version == 104,
+        lambda x: branch_104(x),
+        lambda x: branch_105(x),
+        operand=p_phase,
+    )
+
+    # Note: When collocation_values_phase_int == 4, the arrays are padded with a trailing zero.
+    # This padding doesn't affect the computation since the extra element is unused.
+
+    ####################################################################
+    ############# Leaving out non-GR modifications for now #############
+    ####################################################################
+
+    # # /* Ringdown coefficients */
+    # nonGR_dc1   = XLALSimInspiralWaveformParamsLookupNonGRDC1(LALparams)
+    # nonGR_dc2   = XLALSimInspiralWaveformParamsLookupNonGRDC2(LALparams)
+    # nonGR_dc4   = XLALSimInspiralWaveformParamsLookupNonGRDC4(LALparams)
+    # nonGR_dcl   = XLALSimInspiralWaveformParamsLookupNonGRDCL(LALparams)
+
+    # # /* Intermediate coefficients */
+    # nonGR_db1   = XLALSimInspiralWaveformParamsLookupNonGRDB1(LALparams)
+    # nonGR_db2   = XLALSimInspiralWaveformParamsLookupNonGRDB2(LALparams)
+    # nonGR_db3   = XLALSimInspiralWaveformParamsLookupNonGRDB3(LALparams)
+    # nonGR_db4   = XLALSimInspiralWaveformParamsLookupNonGRDB4(LALparams)
+
+    # # /* Inspiral coefficients */
+    # dchi_minus2 = XLALSimInspiralWaveformParamsLookupNonGRDChiMinus2(LALparams)
+    # dchi_minus1 = XLALSimInspiralWaveformParamsLookupNonGRDChiMinus1(LALparams)
+    # dchi0       = XLALSimInspiralWaveformParamsLookupNonGRDChi0(LALparams)
+    # dchi1       = XLALSimInspiralWaveformParamsLookupNonGRDChi1(LALparams)
+    # dchi2       = XLALSimInspiralWaveformParamsLookupNonGRDChi2(LALparams)
+    # dchi3       = XLALSimInspiralWaveformParamsLookupNonGRDChi3(LALparams)
+    # dchi4       = XLALSimInspiralWaveformParamsLookupNonGRDChi4(LALparams)
+    # dchi5       = XLALSimInspiralWaveformParamsLookupNonGRDChi5(LALparams)
+    # dchi5L      = XLALSimInspiralWaveformParamsLookupNonGRDChi5L(LALparams)
+    # dchi6       = XLALSimInspiralWaveformParamsLookupNonGRDChi6(LALparams)
+    # dchi6L      = XLALSimInspiralWaveformParamsLookupNonGRDChi6L(LALparams)
+    # dchi7       = XLALSimInspiralWaveformParamsLookupNonGRDChi7(LALparams)
+
+    # # /* Can include these terms in the future as desired... */
+    # dchi8       = 0.0
+    # dchi8L      = 0.0
+    # dchi9       = 0.0
+    # dchi9L      = 0.0
+
+    # # /* ~~~~ RINGDOWN ~~~~ */
+    # pPhase->cLGR  = pPhase->cL // Store GR value for reference
+    # pPhase->c1   *= (1.0 + nonGR_dc1)
+    # pPhase->c2   *= (1.0 + nonGR_dc2)
+    # pPhase->c4   *= (1.0 + nonGR_dc4)
+    # pPhase->cL   *= (1.0 + nonGR_dcl)
+
+    # # /* Set pre-cached variables */
+    # pPhase->c4ov3   = pPhase->c4 / 3.0
+    # pPhase->cLovfda = pPhase->cL / pWF->fDAMP
+
+    # # /* Apply NR tuning for precessing cases (500) */
+    # pPhase->b1 = pPhase->b1  +  ( pWF->PNR_DEV_PARAMETER * pWF->ZETA2 )
+    # pPhase->b4 = pPhase->b4  +  ( pWF->PNR_DEV_PARAMETER * pWF->ZETA1 )
+
+    # # /* ~~~~ INTERMEDIATE ~~~~ */
     # if(pWF->IMRPhenomXIntermediatePhaseVersion == 104)
     # {
-    # 	// Using 4 collocation points in intermediate region
-    # 	for(i = 0; i < 4; i++)
-    # 	{
-    # 		fi = gpoints4[i] * deltax + xmin;
-
-    # 		pPhase->CollocationPointsPhaseInt[i] = fi;
-    # 	}
-
-    # 	// v2IM - v4RD. Using v4RD helps condition the fits with v4RD being very a robust fit.
-    # 	double v2IMmRDv4 = IMRPhenomX_Intermediate_Phase_22_v2mRDv4(pWF->eta,pWF->STotR,pWF->dchi,pWF->delta,pWF->IMRPhenomXIntermediatePhaseVersion);
-
-    # 	// v3IM - v4RD. Using v4RD helps condition the fits with v4RD being very a robust fit.
-    # 	double v3IMmRDv4 = IMRPhenomX_Intermediate_Phase_22_v3mRDv4(pWF->eta,pWF->STotR,pWF->dchi,pWF->delta,pWF->IMRPhenomXIntermediatePhaseVersion);
-
-    # 	// Direct fit to the collocation point at F2. We will take a weighted average of the direct and conditioned fit.
-    # 	double v2IM      = IMRPhenomX_Intermediate_Phase_22_v2(pWF->eta,pWF->STotR,pWF->dchi,pWF->delta,pWF->IMRPhenomXIntermediatePhaseVersion);
-
-    # 	/* Evaluate collocation points */
-    # 	pPhase->CollocationValuesPhaseInt[0] = phaseIN;
-
-    # 	// Take a weighted average for these points? Can help condition the fit.
-    # 	pPhase->CollocationValuesPhaseInt[1] = 0.75*(v2IMmRDv4 + RDv4) + 0.25*v2IM;
-
-    # 	// Use just v2 - v4RD to reconstruct the fit?
-    # 	//pPhase->CollocationValuesPhaseInt[1] = v2IMmRDv4 + RDv4);
-
-    # 	pPhase->CollocationValuesPhaseInt[2] = v3IMmRDv4 + RDv4;
-
-    # 	pPhase->CollocationValuesPhaseInt[3] = phaseRD;
-
-    # 	/* A_{0,i} */
-    # 	ff  = pPhase->CollocationPointsPhaseInt[0];
-    # 	ff1 = pWF->fRING / ff;
-    # 	ff2 = ff1 * ff1;
-    # 	ff3 = ff1 * ff2;
-    # 	ff0 = (4 * pPhase->cL) / (4.0*pWF->fDAMP*pWF->fDAMP + (ff - pWF->fRING)*(ff - pWF->fRING));
-    # 	gsl_matrix_set(A,0,0,1.0);
-    # 	gsl_matrix_set(A,0,1,ff1);
-    # 	gsl_matrix_set(A,0,2,ff2);
-    # 	gsl_matrix_set(A,0,3,ff3);
-    # 	gsl_vector_set(b,0,pPhase->CollocationValuesPhaseInt[0] - ff0);
-
-    # 	/* A_{1,i} */
-    # 	ff  = pPhase->CollocationPointsPhaseInt[1];
-    # 	ff1 = 1.0 / (ff / pWF->fRING);
-    # 	ff2 = ff1 * ff1;
-    # 	ff3 = ff1 * ff2;
-    # 	ff0 = (4 * pPhase->cL) / (4.0*pWF->fDAMP*pWF->fDAMP + (ff - pWF->fRING)*(ff - pWF->fRING));
-    # 	gsl_matrix_set(A,1,0,1);
-    # 	gsl_matrix_set(A,1,1,ff1);
-    # 	gsl_matrix_set(A,1,2,ff2);
-    # 	gsl_matrix_set(A,1,3,ff3);
-    # 	gsl_vector_set(b,1,pPhase->CollocationValuesPhaseInt[1] - ff0);
-
-    # 	/* A_{2,i} */
-    # 	ff  = pPhase->CollocationPointsPhaseInt[2];
-    # 	ff1 = 1.0 / (ff / pWF->fRING);
-    # 	ff2 = ff1 * ff1;
-    # 	ff3 = ff1 * ff2;
-    # 	ff0 = (4 * pPhase->cL) / (4.0*pWF->fDAMP*pWF->fDAMP + (ff - pWF->fRING)*(ff - pWF->fRING));
-    # 	gsl_matrix_set(A,2,0,1);
-    # 	gsl_matrix_set(A,2,1,ff1);
-    # 	gsl_matrix_set(A,2,2,ff2);
-    # 	gsl_matrix_set(A,2,3,ff3);
-    # 	gsl_vector_set(b,2,pPhase->CollocationValuesPhaseInt[2] - ff0);
-
-    # 	/* A_{3,i} */
-    # 	ff  = pPhase->CollocationPointsPhaseInt[3];
-    # 	ff1 = 1.0 / (ff / pWF->fRING);
-    # 	ff2 = ff1 * ff1;
-    # 	ff3 = ff1 * ff2;
-    # 	ff0 = (4 * pPhase->cL) / (4.0*pWF->fDAMP*pWF->fDAMP + (ff - pWF->fRING)*(ff - pWF->fRING));
-    # 	gsl_matrix_set(A,3,0,1);
-    # 	gsl_matrix_set(A,3,1,ff1);
-    # 	gsl_matrix_set(A,3,2,ff2);
-    # 	gsl_matrix_set(A,3,3,ff3);
-    # 	gsl_vector_set(b,3,pPhase->CollocationValuesPhaseInt[3] - ff0);
-
-    # 	/* We now solve the system A x = b via an LU decomposition */
-    # 	gsl_linalg_LU_decomp(A,p,&s);
-    # 	gsl_linalg_LU_solve(A,p,b,x);
-
-    # 	/* Set intermediate phenomenological coefficients from solution to A x = b */
-    # 	pPhase->b0 = gsl_vector_get(x,0);                                                        // x[0] // Constant
-    # 	pPhase->b1 = gsl_vector_get(x,1) * pWF->fRING;                                           // x[1] // f^{-1}
-    # 	pPhase->b2 = gsl_vector_get(x,2) * pWF->fRING * pWF->fRING;                              // x[2] // f^{-2}
-    # 	//pPhase->b3 = 0.0;
-    # 	pPhase->b4 = gsl_vector_get(x,3) * pWF->fRING * pWF->fRING * pWF->fRING * pWF->fRING;    // x[3] // f^{-4}
-
-    # 	/* Tidy up in preparation for next GSL solve ... */
-    # 	gsl_vector_free(b);
-    # 	gsl_vector_free(x);
-    # 	gsl_matrix_free(A);
-    # 	gsl_permutation_free(p);
-    # }
-    # // Canonical intermediate model using 5 collocation points
-    # else if(pWF->IMRPhenomXIntermediatePhaseVersion == 105)
-    # {
-    # 	// Using 5 collocation points in intermediate region
-    # 	for(i = 0; i < 5; i++)
-    # 	{
-    # 		fi = gpoints5[i] * deltax + xmin;
-
-    # 		pPhase->CollocationPointsPhaseInt[i] = fi;
-    # 	}
-
-    # 	/* Evaluate collocation points */
-
-    # 	/* The first and last collocation points for the intermediate region are set from the inspiral fit and ringdown respectively */
-    # 	pPhase->CollocationValuesPhaseInt[0] = phaseIN;
-    # 	pPhase->CollocationValuesPhaseInt[4] = phaseRD;
-
-    # 	// v2IM - v4RD. Using v4RD helps condition the fits with v4RD being very a robust fit.
-    # 	double v2IMmRDv4 = IMRPhenomX_Intermediate_Phase_22_v2mRDv4(pWF->eta,pWF->STotR,pWF->dchi,pWF->delta,pWF->IMRPhenomXIntermediatePhaseVersion);
-
-    # 	// v3IM - v4RD. Using v4RD helps condition the fits with v4RD being very a robust fit.
-    # 	double v3IMmRDv4 = IMRPhenomX_Intermediate_Phase_22_v3mRDv4(pWF->eta,pWF->STotR,pWF->dchi,pWF->delta,pWF->IMRPhenomXIntermediatePhaseVersion);
-
-    # 	// Direct fit to the collocation point at F2. We will take a weighted average of the direct and conditioned fit.
-    # 	double v2IM      = IMRPhenomX_Intermediate_Phase_22_v2(pWF->eta,pWF->STotR,pWF->dchi,pWF->delta,pWF->IMRPhenomXIntermediatePhaseVersion);
-
-    # 	// Take a weighted average for these points. Helps condition the fit.
-    # 	pPhase->CollocationValuesPhaseInt[1] = 0.75*(v2IMmRDv4 + RDv4) + 0.25*v2IM;
-
-    # 	pPhase->CollocationValuesPhaseInt[2] = v3IMmRDv4 + RDv4;
-    # 	pPhase->CollocationValuesPhaseInt[3] = IMRPhenomX_Intermediate_Phase_22_d43(pWF->eta,pWF->STotR,pWF->dchi,pWF->delta,pWF->IMRPhenomXIntermediatePhaseVersion);
-
-    # 	// Collocation points: v4 = d43 + v3
-    # 	pPhase->CollocationValuesPhaseInt[3] = pPhase->CollocationValuesPhaseInt[3] + pPhase->CollocationValuesPhaseInt[2];
-
-    # 	/* A_{0,i} */
-    # 	ff  = pPhase->CollocationPointsPhaseInt[0];
-    # 	ff1 = pWF->fRING / ff;
-    # 	ff2 = ff1 * ff1;
-    # 	ff3 = ff1 * ff2;
-    # 	ff4 = ff2 * ff2;
-    # 	ff0 = (4.0 * pPhase->cL) / ((2.0*pWF->fDAMP)*(2.0*pWF->fDAMP) + (ff - pWF->fRING)*(ff - pWF->fRING));
-    # 	gsl_matrix_set(A,0,0,1.0);
-    # 	gsl_matrix_set(A,0,1,ff1);
-    # 	gsl_matrix_set(A,0,2,ff2);
-    # 	gsl_matrix_set(A,0,3,ff3);
-    # 	gsl_matrix_set(A,0,4,ff4);
-    # 	gsl_vector_set(b,0,pPhase->CollocationValuesPhaseInt[0] - ff0);
-
-    # 	if(debug)
-    # 	{
-    # 	printf("For row 0: a0 + a1 %.6f + a2 %.6f + a3 %.6f + a4 %.6f = %.6f , ff0 = %.6f, ff = %.6f\n",ff1,ff2,ff3,ff4,pPhase->CollocationValuesPhaseInt[0] - ff0,ff0,ff);
-    # 	}
-
-    # 	/* A_{1,i} */
-    # 	ff  = pPhase->CollocationPointsPhaseInt[1];
-    # 	ff1 = pWF->fRING / ff;
-    # 	ff2 = ff1 * ff1;
-    # 	ff3 = ff1 * ff2;
-    # 	ff4 = ff2 * ff2;
-    # 	ff0 = (4 * pPhase->cL) / (4.0*pWF->fDAMP*pWF->fDAMP + (ff - pWF->fRING)*(ff - pWF->fRING));
-    # 	gsl_matrix_set(A,1,0,1.0);
-    # 	gsl_matrix_set(A,1,1,ff1);
-    # 	gsl_matrix_set(A,1,2,ff2);
-    # 	gsl_matrix_set(A,1,3,ff3);
-    # 	gsl_matrix_set(A,1,4,ff4);
-    # 	gsl_vector_set(b,1,pPhase->CollocationValuesPhaseInt[1] - ff0);
-
-    # 	if(debug)
-    # 	{
-    # 	printf("For row 1: a0 + a1 %.6f + a2 %.6f + a3 %.6f + a4 %.6f = %.6f\n",ff1,ff2,ff3,ff4,pPhase->CollocationValuesPhaseInt[1] - ff0);
-    # 	}
-
-    # 	/* A_{2,i} */
-    # 	ff  = pPhase->CollocationPointsPhaseInt[2];
-    # 	ff1 = pWF->fRING / ff;
-    # 	ff2 = ff1 * ff1;
-    # 	ff3 = ff1 * ff2;
-    # 	ff4 = ff2 * ff2;
-    # 	ff0 = (4 * pPhase->cL) / (4.0*pWF->fDAMP*pWF->fDAMP + (ff - pWF->fRING)*(ff - pWF->fRING));
-    # 	gsl_matrix_set(A,2,0,1.0);
-    # 	gsl_matrix_set(A,2,1,ff1);
-    # 	gsl_matrix_set(A,2,2,ff2);
-    # 	gsl_matrix_set(A,2,3,ff3);
-    # 	gsl_matrix_set(A,2,4,ff4);
-    # 	gsl_vector_set(b,2,pPhase->CollocationValuesPhaseInt[2] - ff0);
-
-    # 	if(debug)
-    # 	{
-    # 	printf("For row 2: a0 + a1 %.6f + a2 %.6f + a3 %.6f + a4 %.6f = %.6f\n",ff1,ff2,ff3,ff4,pPhase->CollocationValuesPhaseInt[2] - ff0);
-    # 	}
-
-    # 	/* A_{3,i} */
-    # 	ff  = pPhase->CollocationPointsPhaseInt[3];
-    # 	ff1 = pWF->fRING / ff;
-    # 	ff2 = ff1 * ff1;
-    # 	ff3 = ff1 * ff2;
-    # 	ff4 = ff2 * ff2;
-    # 	ff0 = (4 * pPhase->cL) / (4.0*pWF->fDAMP*pWF->fDAMP + (ff - pWF->fRING)*(ff - pWF->fRING));
-    # 	gsl_matrix_set(A,3,0,1.0);
-    # 	gsl_matrix_set(A,3,1,ff1);
-    # 	gsl_matrix_set(A,3,2,ff2);
-    # 	gsl_matrix_set(A,3,3,ff3);
-    # 	gsl_matrix_set(A,3,4,ff4);
-    # 	gsl_vector_set(b,3,pPhase->CollocationValuesPhaseInt[3] - ff0);
-
-    # 	if(debug)
-    # 	{
-    # 	printf("For row 3: a0 + a1 %.6f + a2 %.6f + a3 %.6f + a4 %.6f = %.6f\n",ff1,ff2,ff3,ff4,pPhase->CollocationValuesPhaseInt[3] - ff0);
-    # 	}
-
-    # 	/* A_{4,i} */
-    # 	ff  = pPhase->CollocationPointsPhaseInt[4];
-    # 	ff1 = pWF->fRING / ff;
-    # 	ff2 = ff1 * ff1;
-    # 	ff3 = ff1 * ff2;
-    # 	ff4 = ff2 * ff2;
-    # 	ff0 = (4 * pPhase->cL) / (4.0*pWF->fDAMP*pWF->fDAMP + (ff - pWF->fRING)*(ff - pWF->fRING));
-    # 	gsl_matrix_set(A,4,0,1.0);
-    # 	gsl_matrix_set(A,4,1,ff1);
-    # 	gsl_matrix_set(A,4,2,ff2);
-    # 	gsl_matrix_set(A,4,3,ff3);
-    # 	gsl_matrix_set(A,4,4,ff4);
-    # 	gsl_vector_set(b,4,pPhase->CollocationValuesPhaseInt[4] - ff0);
-
-    # 	if(debug)
-    # 	{
-    # 	printf("For row 4: a0 + a1 %.6f + a2 %.6f + a3 %.6f + a4 %.6f = %.6f\n",ff1,ff2,ff3,ff4,pPhase->CollocationValuesPhaseInt[4] - ff0);
-    # 	}
-
-    # 	/* We now solve the system A x = b via an LU decomposition */
-    # 	gsl_linalg_LU_decomp(A,p,&s);
-    # 	gsl_linalg_LU_solve(A,p,b,x);
-
-    # 	/* Set intermediate phenomenological coefficients from solution to A x = b */
-    # 	pPhase->b0 = gsl_vector_get(x,0);                                                      // x[0] // Const.
-    # 	pPhase->b1 = gsl_vector_get(x,1) * pWF->fRING;                                         // x[1] // f^{-1}
-    # 	pPhase->b2 = gsl_vector_get(x,2) * pWF->fRING * pWF->fRING;                            // x[2] // f^{-2}
-    # 	pPhase->b3 = gsl_vector_get(x,3) * pWF->fRING * pWF->fRING * pWF->fRING;               // x[3] // f^{-3}
-    # 	pPhase->b4 = gsl_vector_get(x,4) * pWF->fRING * pWF->fRING * pWF->fRING * pWF->fRING;  // x[4] // f^{-4}
-
-    # 	if(debug)
-    # 	{
-    # 	printf("\n");
-    # 	printf("Intermediate Collocation Points and Values:\n");
-    # 	printf("F1 : %.7f\n",pPhase->CollocationPointsPhaseInt[0]);
-    # 	printf("F2 : %.7f\n",pPhase->CollocationPointsPhaseInt[1]);
-    # 	printf("F3 : %.7f\n",pPhase->CollocationPointsPhaseInt[2]);
-    # 	printf("F4 : %.7f\n",pPhase->CollocationPointsPhaseInt[3]);
-    # 	printf("F5 : %.7f\n",pPhase->CollocationPointsPhaseInt[4]);
-    # 	printf("\n");
-    # 	printf("V's agree with Mathematica...\n");
-    # 	printf("V1 : %.7f\n",pPhase->CollocationValuesPhaseInt[0]);
-    # 	printf("V2 : %.7f\n",pPhase->CollocationValuesPhaseInt[1]);
-    # 	printf("V3 : %.7f\n",pPhase->CollocationValuesPhaseInt[2]);
-    # 	printf("V4 : %.7f\n",pPhase->CollocationValuesPhaseInt[3]);
-    # 	printf("V5 : %.7f\n",pPhase->CollocationValuesPhaseInt[4]);
-    # 	printf("\n");
-    # 	printf("g0 : %.7f\n",gsl_vector_get(x,0));
-    # 	printf("g1 : %.7f\n",gsl_vector_get(x,1));
-    # 	printf("g2 : %.7f\n",gsl_vector_get(x,2));
-    # 	printf("g3 : %.7f\n",gsl_vector_get(x,3));
-    # 	printf("g4 : %.7f\n",gsl_vector_get(x,4));
-    # 	printf("\n");
-    # 	printf("b0 : %.7f\n",pPhase->b0);
-    # 	printf("b1 : %.7f\n",pPhase->b1);
-    # 	printf("b2 : %.7f\n",pPhase->b2);
-    # 	printf("b3 : %.7f\n",pPhase->b3);
-    # 	printf("b4 : %.7f\n",pPhase->b4);
-    # 	printf("\n");
-    # 	}
-
-    # 	/* Tidy up */
-    # 	gsl_vector_free(b);
-    # 	gsl_vector_free(x);
-    # 	gsl_matrix_free(A);
-    # 	gsl_permutation_free(p);
-    # }
-    # else
-    # {
-    # 	XLALPrintError("Error in ComputeIMRPhenomXWaveformVariables: IMRPhenomXIntermediatePhaseVersion is not valid.\n");
-    # }
-
-    # /* Ringdown coefficients */
-    # REAL8 nonGR_dc1   = XLALSimInspiralWaveformParamsLookupNonGRDC1(LALparams);
-    # REAL8 nonGR_dc2   = XLALSimInspiralWaveformParamsLookupNonGRDC2(LALparams);
-    # REAL8 nonGR_dc4   = XLALSimInspiralWaveformParamsLookupNonGRDC4(LALparams);
-    # REAL8 nonGR_dcl   = XLALSimInspiralWaveformParamsLookupNonGRDCL(LALparams);
-
-    # /* Intermediate coefficients */
-    # REAL8 nonGR_db1   = XLALSimInspiralWaveformParamsLookupNonGRDB1(LALparams);
-    # REAL8 nonGR_db2   = XLALSimInspiralWaveformParamsLookupNonGRDB2(LALparams);
-    # REAL8 nonGR_db3   = XLALSimInspiralWaveformParamsLookupNonGRDB3(LALparams);
-    # REAL8 nonGR_db4   = XLALSimInspiralWaveformParamsLookupNonGRDB4(LALparams);
-
-    # /* Inspiral coefficients */
-    # REAL8 dchi_minus2 = XLALSimInspiralWaveformParamsLookupNonGRDChiMinus2(LALparams);
-    # REAL8 dchi_minus1 = XLALSimInspiralWaveformParamsLookupNonGRDChiMinus1(LALparams);
-    # REAL8 dchi0       = XLALSimInspiralWaveformParamsLookupNonGRDChi0(LALparams);
-    # REAL8 dchi1       = XLALSimInspiralWaveformParamsLookupNonGRDChi1(LALparams);
-    # REAL8 dchi2       = XLALSimInspiralWaveformParamsLookupNonGRDChi2(LALparams);
-    # REAL8 dchi3       = XLALSimInspiralWaveformParamsLookupNonGRDChi3(LALparams);
-    # REAL8 dchi4       = XLALSimInspiralWaveformParamsLookupNonGRDChi4(LALparams);
-    # REAL8 dchi5       = XLALSimInspiralWaveformParamsLookupNonGRDChi5(LALparams);
-    # REAL8 dchi5L      = XLALSimInspiralWaveformParamsLookupNonGRDChi5L(LALparams);
-    # REAL8 dchi6       = XLALSimInspiralWaveformParamsLookupNonGRDChi6(LALparams);
-    # REAL8 dchi6L      = XLALSimInspiralWaveformParamsLookupNonGRDChi6L(LALparams);
-    # REAL8 dchi7       = XLALSimInspiralWaveformParamsLookupNonGRDChi7(LALparams);
-
-    # /* Can include these terms in the future as desired... */
-    # REAL8 dchi8       = 0.0;
-    # REAL8 dchi8L      = 0.0;
-    # REAL8 dchi9       = 0.0;
-    # REAL8 dchi9L      = 0.0;
-
-    # /* ~~~~ RINGDOWN ~~~~ */
-    # pPhase->cLGR  = pPhase->cL; // Store GR value for reference
-    # pPhase->c1   *= (1.0 + nonGR_dc1);
-    # pPhase->c2   *= (1.0 + nonGR_dc2);
-    # pPhase->c4   *= (1.0 + nonGR_dc4);
-    # pPhase->cL   *= (1.0 + nonGR_dcl);
-
-    # /* Set pre-cached variables */
-    # pPhase->c4ov3   = pPhase->c4 / 3.0;
-    # pPhase->cLovfda = pPhase->cL / pWF->fDAMP;
-
-    # /* Apply NR tuning for precessing cases (500) */
-    # pPhase->b1 = pPhase->b1  +  ( pWF->PNR_DEV_PARAMETER * pWF->ZETA2 );
-    # pPhase->b4 = pPhase->b4  +  ( pWF->PNR_DEV_PARAMETER * pWF->ZETA1 );
-
-    # /* ~~~~ INTERMEDIATE ~~~~ */
-    # if(pWF->IMRPhenomXIntermediatePhaseVersion == 104)
-    # {
-    # 	pPhase->b1 *= (1.0 + nonGR_db1);
-    # 	pPhase->b2 *= (1.0 + nonGR_db2);
-    # 	pPhase->b4 *= (1.0 + nonGR_db4);
+    # 	pPhase->b1 *= (1.0 + nonGR_db1)
+    # 	pPhase->b2 *= (1.0 + nonGR_db2)
+    # 	pPhase->b4 *= (1.0 + nonGR_db4)
     # }
     # else if(pWF->IMRPhenomXIntermediatePhaseVersion == 105)
     # {
-    # 	pPhase->b1 *= (1.0 + nonGR_db1);
-    # 	pPhase->b2 *= (1.0 + nonGR_db2);
-    # 	pPhase->b3 *= (1.0 + nonGR_db3);
-    # 	pPhase->b4 *= (1.0 + nonGR_db4);
+    # 	pPhase->b1 *= (1.0 + nonGR_db1)
+    # 	pPhase->b2 *= (1.0 + nonGR_db2)
+    # 	pPhase->b3 *= (1.0 + nonGR_db3)
+    # 	pPhase->b4 *= (1.0 + nonGR_db4)
     # }
     # else
     # {
-    # 	XLALPrintError("Error in ComputeIMRPhenomXWaveformVariables: IMRPhenomXIntermediatePhaseVersion is not valid.\n");
+    # 	XLALPrintError("Error in ComputeIMRPhenomXWaveformVariables: IMRPhenomXIntermediatePhaseVersion is not valid.\n")
     # }
 
     # /* ~~~~ INSPIRAL ~~~~ */
     # /* Initialize -1PN coefficient*/
-    # pPhase->phi_minus2   = 0.0;
-    # pPhase->dphi_minus2  = 0.0;
+    # pPhase->phi_minus2   = 0.0
+    # pPhase->dphi_minus2  = 0.0
 
-    # pPhase->phi_minus1   = 0.0;
-    # pPhase->dphi_minus1  = 0.0;
+    # pPhase->phi_minus1   = 0.0
+    # pPhase->dphi_minus1  = 0.0
 
     # /*
     # 	If tgr_parameterization = 1, deform complete PN coefficient. This is an FTA-like parameterization.
     # 	If tgr_parameterization = 0, only deform non-spinning coefficient. This is the original TIGER-like implementation.
     # */
-    # int tgr_parameterization = 0;
-    # tgr_parameterization     = XLALSimInspiralWaveformParamsLookupNonGRParameterization(LALparams);
+    # int tgr_parameterization = 0
+    # tgr_parameterization     = XLALSimInspiralWaveformParamsLookupNonGRParameterization(LALparams)
 
     # if(tgr_parameterization == 1)
     # {
     # 		/* -1.0 PN: This vanishes in GR, so is parameterized as an absolute deviation */
-    # 		pPhase->phi_minus2 = dchi_minus2 / powers_of_lalpi.two_thirds;
+    # 		pPhase->phi_minus2 = dchi_minus2 / powers_of_lalpi.two_thirds
 
     # 		/* -0.5 PN: This vanishes in GR, so is parameterized as an absolute deviation */
-    # 		pPhase->phi_minus1 = dchi_minus1 / powers_of_lalpi.one_third;
+    # 		pPhase->phi_minus1 = dchi_minus1 / powers_of_lalpi.one_third
 
     # 		/* 0.0 PN */
-    # 		pPhase->phi0       = (phi0NS + phi0S)*(1.0 + dchi0);
+    # 		pPhase->phi0       = (phi0NS + phi0S)*(1.0 + dchi0)
 
     # 		/* 0.5 PN: This vanishes in GR, so is parameterized as an absolute deviation */
-    # 		pPhase->phi1       = dchi1 * powers_of_lalpi.one_third;
+    # 		pPhase->phi1       = dchi1 * powers_of_lalpi.one_third
 
     # 		/* 1.0 PN */
-    # 		pPhase->phi2       = (phi2NS + phi2S)*(1.0 + dchi2);
+    # 		pPhase->phi2       = (phi2NS + phi2S)*(1.0 + dchi2)
 
     # 		/* 1.5 PN */
-    # 		pPhase->phi3       = (phi3NS + phi3S)*(1.0 + dchi3);
+    # 		pPhase->phi3       = (phi3NS + phi3S)*(1.0 + dchi3)
 
     # 		/* 2.0 PN */
-    # 		pPhase->phi4       = (phi4NS + phi4S)*(1.0 + dchi4);
+    # 		pPhase->phi4       = (phi4NS + phi4S)*(1.0 + dchi4)
 
     # 		/* 2.5 PN */
-    # 		pPhase->phi5       = (phi5NS + phi5S)*(1.0 + dchi5);
+    # 		pPhase->phi5       = (phi5NS + phi5S)*(1.0 + dchi5)
 
     # 		/* 2.5 PN, Log Terms */
-    # 		pPhase->phi5L      = (phi5LNS + phi5LS)*(1.0 + dchi5L);
+    # 		pPhase->phi5L      = (phi5LNS + phi5LS)*(1.0 + dchi5L)
 
     # 		/* 3.0 PN */
-    # 		pPhase->phi6       = (phi6NS + phi6S)*(1.0 + dchi6);
+    # 		pPhase->phi6       = (phi6NS + phi6S)*(1.0 + dchi6)
 
     # 		/* 3.0 PN, Log Term */
-    # 		pPhase->phi6L      = (phi6LNS + phi6LS)*(1.0 + dchi6L);
+    # 		pPhase->phi6L      = (phi6LNS + phi6LS)*(1.0 + dchi6L)
 
     # 		/* 3.5PN */
-    # 		pPhase->phi7       = (phi7NS + phi7S)*(1.0 + dchi7);
+    # 		pPhase->phi7       = (phi7NS + phi7S)*(1.0 + dchi7)
 
     # 		/* 4.0PN */
-    # 		pPhase->phi8       = (phi8NS + phi8S)*(1.0 + dchi8);
+    # 		pPhase->phi8       = (phi8NS + phi8S)*(1.0 + dchi8)
 
     # 		/* 4.0 PN, Log Terms */
-    # 		pPhase->phi8L      = (phi8LNS + phi8LS)*(1.0 + dchi8L);
+    # 		pPhase->phi8L      = (phi8LNS + phi8LS)*(1.0 + dchi8L)
 
     # 		/* 4.0 PN */
-    # 		pPhase->phi9       = (phi9NS + phi9S)*(1.0 + dchi9);
+    # 		pPhase->phi9       = (phi9NS + phi9S)*(1.0 + dchi9)
 
     # 		/* 4.0 PN, Log Terms */
-    # 		pPhase->phi9L      = (phi9LNS + phi9LS)*(1.0 + dchi9L);
+    # 		pPhase->phi9L      = (phi9LNS + phi9LS)*(1.0 + dchi9L)
     # }
     # else if(tgr_parameterization == 0)
     # {
     # 		/* -1.0 PN: This vanishes in GR, so is parameterized as an absolute deviation */
-    # 		pPhase->phi_minus2 = dchi_minus2 / powers_of_lalpi.two_thirds;
+    # 		pPhase->phi_minus2 = dchi_minus2 / powers_of_lalpi.two_thirds
 
     # 		/* -0.5 PN: This vanishes in GR, so is parameterized as an absolute deviation */
-    # 		pPhase->phi_minus1 = dchi_minus1 / powers_of_lalpi.one_third;
+    # 		pPhase->phi_minus1 = dchi_minus1 / powers_of_lalpi.one_third
 
     # 		/* 0.0 PN */
-    # 		pPhase->phi0       = phi0NS*(1.0 + dchi0) + phi0S;
+    # 		pPhase->phi0       = phi0NS*(1.0 + dchi0) + phi0S
 
     # 		/* 0.5 PN: This vanishes in GR, so is parameterized as an absolute deviation */
-    # 		pPhase->phi1       = dchi1 * powers_of_lalpi.one_third;
+    # 		pPhase->phi1       = dchi1 * powers_of_lalpi.one_third
 
     # 		/* 1.0 PN */
-    # 		pPhase->phi2       = phi2NS*(1.0 + dchi2) + phi2S;
+    # 		pPhase->phi2       = phi2NS*(1.0 + dchi2) + phi2S
 
     # 		/* 1.5 PN */
-    # 		pPhase->phi3       = phi3NS*(1.0 + dchi3)+ phi3S;
+    # 		pPhase->phi3       = phi3NS*(1.0 + dchi3)+ phi3S
 
     # 		/* 2.0 PN */
-    # 		pPhase->phi4       = phi4NS*(1.0 + dchi4) + phi4S;
+    # 		pPhase->phi4       = phi4NS*(1.0 + dchi4) + phi4S
 
     # 		/* 2.5 PN */
-    # 		pPhase->phi5       = phi5NS*(1.0 + dchi5) + phi5S;
+    # 		pPhase->phi5       = phi5NS*(1.0 + dchi5) + phi5S
 
     # 		/* 2.5 PN, Log Terms */
-    # 		pPhase->phi5L      = phi5LNS*(1.0 + dchi5L) + phi5LS;
+    # 		pPhase->phi5L      = phi5LNS*(1.0 + dchi5L) + phi5LS
 
     # 		/* 3.0 PN */
-    # 		pPhase->phi6       = phi6NS*(1.0 + dchi6) + phi6S;
+    # 		pPhase->phi6       = phi6NS*(1.0 + dchi6) + phi6S
 
     # 		/* 3.0 PN, Log Term */
-    # 		pPhase->phi6L      = phi6LNS*(1.0 + dchi6L) + phi6LS;
+    # 		pPhase->phi6L      = phi6LNS*(1.0 + dchi6L) + phi6LS
 
     # 		/* 3.5PN */
-    # 		pPhase->phi7       = phi7NS*(1.0 + dchi7) + phi7S;
+    # 		pPhase->phi7       = phi7NS*(1.0 + dchi7) + phi7S
 
     # 		/* 4.0PN */
-    # 		pPhase->phi8       = phi8NS*(1.0 + dchi8) + phi8S;
+    # 		pPhase->phi8       = phi8NS*(1.0 + dchi8) + phi8S
 
     # 		/* 4.0 PN, Log Terms */
-    # 		pPhase->phi8L      = phi8LNS*(1.0 + dchi8L) + phi8LS;
+    # 		pPhase->phi8L      = phi8LNS*(1.0 + dchi8L) + phi8LS
 
     # 		/* 4.0 PN */
-    # 		pPhase->phi9       = phi9NS*(1.0 + dchi9) + phi9S;
+    # 		pPhase->phi9       = phi9NS*(1.0 + dchi9) + phi9S
 
     # 		/* 4.0 PN, Log Terms */
-    # 		pPhase->phi9L      = phi9LNS*(1.0 + dchi9L) + phi9LS;
+    # 		pPhase->phi9L      = phi9LNS*(1.0 + dchi9L) + phi9LS
     # }
     # else
     # {
-    # 		XLALPrintError("Error in IMRPhenomXGetPhaseCoefficients: TGR Parameterizataion is not valid.\n");
+    # 		XLALPrintError("Error in IMRPhenomXGetPhaseCoefficients: TGR Parameterizataion is not valid.\n")
     # }
 
     # /* Recalculate phase derivatives including TGR corrections */
-    # pPhase->dphi_minus2 = +(7.0 / 5.0) * pPhase->phi_minus2;
-    # pPhase->dphi_minus1 = +(6.0 / 5.0) * pPhase->phi_minus1;
-    # pPhase->dphi0       = +(5.0 / 5.0) * pPhase->phi0;
-    # pPhase->dphi1       = +(4.0 / 5.0) * pPhase->phi1;
-    # pPhase->dphi2       = +(3.0 / 5.0) * pPhase->phi2;
-    # pPhase->dphi3       = +(2.0 / 5.0) * pPhase->phi3;
-    # pPhase->dphi4       = +(1.0 / 5.0) * pPhase->phi4;
-    # pPhase->dphi5       = -(3.0 / 5.0) * pPhase->phi5L;
-    # pPhase->dphi6       = -(1.0 / 5.0) * pPhase->phi6 - (3.0 / 5.0) * pPhase->phi6L;
-    # pPhase->dphi6L      = -(1.0 / 5.0) * pPhase->phi6L;
-    # pPhase->dphi7       = -(2.0 / 5.0) * pPhase->phi7;
-    # pPhase->dphi8       = -(3.0 / 5.0) * pPhase->phi8 - (3.0 / 5.0) * pPhase->phi8L;
-    # pPhase->dphi8L      = -(3.0 / 5.0) * pPhase->phi8L;
-    # pPhase->dphi9       = -(4.0 / 5.0) * pPhase->phi9 - (3.0 / 5.0) * pPhase->phi9L;
-    # pPhase->dphi9L      = -(3.0 / 5.0) * pPhase->phi9L;
+    # pPhase->dphi_minus2 = +(7.0 / 5.0) * pPhase->phi_minus2
+    # pPhase->dphi_minus1 = +(6.0 / 5.0) * pPhase->phi_minus1
+    # pPhase->dphi0       = +(5.0 / 5.0) * pPhase->phi0
+    # pPhase->dphi1       = +(4.0 / 5.0) * pPhase->phi1
+    # pPhase->dphi2       = +(3.0 / 5.0) * pPhase->phi2
+    # pPhase->dphi3       = +(2.0 / 5.0) * pPhase->phi3
+    # pPhase->dphi4       = +(1.0 / 5.0) * pPhase->phi4
+    # pPhase->dphi5       = -(3.0 / 5.0) * pPhase->phi5L
+    # pPhase->dphi6       = -(1.0 / 5.0) * pPhase->phi6 - (3.0 / 5.0) * pPhase->phi6L
+    # pPhase->dphi6L      = -(1.0 / 5.0) * pPhase->phi6L
+    # pPhase->dphi7       = -(2.0 / 5.0) * pPhase->phi7
+    # pPhase->dphi8       = -(3.0 / 5.0) * pPhase->phi8 - (3.0 / 5.0) * pPhase->phi8L
+    # pPhase->dphi8L      = -(3.0 / 5.0) * pPhase->phi8L
+    # pPhase->dphi9       = -(4.0 / 5.0) * pPhase->phi9 - (3.0 / 5.0) * pPhase->phi9L
+    # pPhase->dphi9L      = -(3.0 / 5.0) * pPhase->phi9L
 
     # /* Initialize connection coefficients */
-    # pPhase->C1Int = 0;
-    # pPhase->C2Int = 0;
-    # pPhase->C1MRD = 0;
-    # pPhase->C2MRD = 0;
+    # pPhase->C1Int = 0
+    # pPhase->C2Int = 0
+    # pPhase->C1MRD = 0
+    # pPhase->C2MRD = 0
 
-    return p_wf, p_phase
+    p_phase = dataclasses.replace(
+        p_phase,
+        f_phase_match_in=f_phase_match_in,
+        f_phase_match_im=f_phase_match_im,
+        f_phase_ins_min=f_phase_ins_min,
+        f_phase_ins_max=f_phase_ins_max,
+        f_phase_rd_min=f_phase_rd_min,
+        f_phase_rd_max=f_phase_rd_max,
+        phi_norm=phi_norm,
+        collocation_points_phase_rd=collocation_points_phase_rd,
+        collocation_values_phase_rd=collocation_values_phase_rd,
+        n_collocation_points_rd=n_collocation_points_rd,
+        c0=c0,
+        c1=c1,
+        c2=c2,
+        c4=c4,
+        c_l=c_l,
+        c_rd=c_rd,
+        n_pseudo_pn=n_pseudo_pn,
+        n_collocation_points_phase_ins=n_collocation_points_phase_ins,
+        sigma1=sigma1,
+        sigma2=sigma2,
+        sigma3=sigma3,
+        sigma4=sigma4,
+        sigma5=sigma5,
+        dphi0=dphi0,
+        dphi1=dphi1,
+        dphi2=dphi2,
+        dphi3=dphi3,
+        dphi4=dphi4,
+        dphi5=dphi5,
+        dphi5l=0.0,
+        dphi6=dphi6,
+        dphi6l=dphi6l,
+        dphi7=dphi7,
+        dphi8=dphi8,
+        dphi8l=dphi8l,
+        dphi9=dphi9,
+        dphi9l=dphi9l,
+        phi0=phi0,
+        phi1=phi1,
+        phi2=phi2,
+        phi3=phi3,
+        phi4=phi4,
+        phi5=phi5,
+        phi5l=phi5l,
+        phi6=phi6,
+        phi6l=phi6l,
+        phi7=phi7,
+        phi8=phi8,
+        phi8l=phi8l,
+        phi9=phi9,
+        phi9l=phi9l,
+        phi_initial=phi_initial,
+        n_collocation_points_int=n_collocation_points_int,
+    )
+
+    return p_phase
+
+
+# def imr_phenom_x_phase_22_connection_coefficients(
+#     p_wf: IMRPhenomXWaveformDataClass, p_phase: IMRPhenomXPhaseCoefficientsDataClass
+# ):
+# f_ins = p_phase.f_phase_match_in
+# f_int = p_phase.f_phase_match_im
+
+# # /*
+# #         Assume an ansatz of the form:
+
+# #         phi_Inspiral (f) = phi_Intermediate (f) + C1 + C2 * f
+
+# #         where transition frequency is fIns
+
+# #         phi_Inspiral (fIns) = phi_Intermediate (fIns) + C1 + C2 * fIns
+# #         phi_Inspiral'(fIns) = phi_Intermediate'(fIns) + C2
+
+# #         Solving for C1 and C2
+
+# #         C2 = phi_Inspiral'(fIns) - phi_Intermediate'(fIns)
+# #         C1 = phi_Inspiral (fIns) - phi_Intermediate (fIns) - C2 * fIns
+
+# # */
+
+# powers_of_f_ins = imr_phenom_x_initialize_powers(f_ins)
+
+
+#     DPhiIns = IMRPhenomX_Inspiral_Phase_22_Ansatz(fIns,&powers_of_fIns,pPhase)
+#     DPhiInt = IMRPhenomX_Intermediate_Phase_22_Ansatz(fIns,&powers_of_fIns,pWF,pPhase)
+
+#     pPhase->C2Int  = DPhiIns - DPhiInt
+
+#     phiIN = IMRPhenomX_Inspiral_Phase_22_AnsatzInt(fIns,&powers_of_fIns,pPhase)
+#     phiIM = IMRPhenomX_Intermediate_Phase_22_AnsatzInt(fIns,&powers_of_fIns,pWF,pPhase)
+
+#     if(debug)
+#     {
+#     printf("\n")
+#     printf("dphiIM = %.6f and dphiIN = %.6f\n",DPhiInt,DPhiIns)
+#     printf("phiIN(fIns)  : %.7f\n",phiIN)
+#     printf("phiIM(fIns)  : %.7f\n",phiIM)
+#     printf("fIns         : %.7f\n",fIns)
+#     printf("C2           : %.7f\n",pPhase->C2Int)
+#     printf("\n")
+#     }
+
+#     pPhase->C1Int = phiIN - phiIM - (pPhase->C2Int * fIns)
+
+#     /*
+#             Assume an ansatz of the form:
+
+#             phi_Intermediate (f)    = phi_Ringdown (f) + C1 + C2 * f
+
+#             where transition frequency is fIM
+
+#             phi_Intermediate (fIM) = phi_Ringdown (fRD) + C1 + C2 * fIM
+#             phi_Intermediate'(fIM) = phi_Ringdown'(fRD) + C2
+
+#             Solving for C1 and C2
+
+#             C2 = phi_Inspiral'(fIM) - phi_Intermediate'(fIM)
+#             C1 = phi_Inspiral (fIM) - phi_Intermediate (fIM) - C2 * fIM
+
+#     */
+#     IMRPhenomX_UsefulPowers powers_of_fInt
+#     IMRPhenomX_Initialize_Powers(&powers_of_fInt,fInt)
+
+#     phiIMC         = IMRPhenomX_Intermediate_Phase_22_AnsatzInt(fInt,&powers_of_fInt,pWF,pPhase) + pPhase->C1Int + pPhase->C2Int*fInt
+#     phiRD          = IMRPhenomX_Ringdown_Phase_22_AnsatzInt(fInt,&powers_of_fInt,pWF,pPhase)
+#     DPhiIntC       = IMRPhenomX_Intermediate_Phase_22_Ansatz(fInt,&powers_of_fInt,pWF,pPhase) + pPhase->C2Int
+#     DPhiRD         = IMRPhenomX_Ringdown_Phase_22_Ansatz(fInt,&powers_of_fInt,pWF,pPhase)
+
+#     pPhase->C2MRD = DPhiIntC - DPhiRD
+#     pPhase->C1MRD = phiIMC - phiRD - pPhase->C2MRD*fInt
+
+#     if(debug)
+#     {
+#     printf("\n")
+#     printf("phiIMC(fInt) : %.7f\n",phiIMC)
+#     printf("phiRD(fInt)  : %.7f\n",phiRD)
+#     printf("fInt         : %.7f\n",fInt)
+#     printf("C2           : %.7f\n",pPhase->C2Int)
+#     printf("\n")
+#     }
+
+#     if(debug)
+#     {
+#     printf("dphiIM = %.6f and dphiRD = %.6f\n",DPhiIntC,DPhiRD)
+#     printf("\nContinuity Coefficients\n")
+#     printf("C1Int : %.6f\n",pPhase->C1Int)
+#     printf("C2Int : %.6f\n",pPhase->C2Int)
+#     printf("C1MRD : %.6f\n",pPhase->C1MRD)
+#     printf("C2MRD : %.6f\n",pPhase->C2MRD)
+#     }
+
+#     return
+
+
+# def imr_phenom_x_full_phase_22(
+#         phase: float,
+#         dphase: float,
+#         m_f: float,
+#         p_phase: IMRPhenomXPhaseCoefficientsDataClass,
+#         p_wf: IMRPhenomXWaveformDataClass
+# ):
+#     """
+#     Function to compute full model phase. This function is designed to be used in in initialization routines, and not for evaluating the phase at many frequencies.
+#     """
+
+#     # /*--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--*/
+#     # /*            Define useful powers               */
+#     # /*--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--*/
+
+#     # // Get useful powers of Mf
+#     powers_of_m_f = imr_phenom_x_initialize_powers(m_f)
+
+#     # /* Initialize a struct containing useful powers of Mf at fRef */
+#     powers_of_m_fref = imr_phenom_x_initialize_powers(p_wf.m_f_ref)
+
+#     # /*--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--*/
+#     # /*           Define needed constants             */
+#     # /*--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--*/
+
+#     # /* 1/eta is used to re-scale the pre-phase quantity */
+#     inveta    = (1.0 / p_wf.eta)
+
+#     # /* We keep this phase shift to ease comparison with
+#     # original phase routines */
+#     lina = 0
+
+#     # /* Get phase connection coefficients
+#     # and store them to pWF. This step is to make
+#     # sure that teh coefficients are up-to-date */
+#     IMRPhenomX_Phase_22_ConnectionCoefficients(pWF,pPhase)
+
+#     # /* Compute the timeshift that PhenomXAS uses to align waveforms
+#     # with the hybrids used to make their model */
+#     linb = IMRPhenomX_TimeShift_22(pPhase, pWF)
+
+#     # Calculate phase at reference frequency: phifRef = 2.0*phi0 + LAL_PI_4 + PhenomXPhase(fRef)
+#     phifRef = -(inveta * IMRPhenomX_Phase_22(pWF->MfRef, &powers_of_MfRef, pPhase, pWF) + linb*pWF->MfRef + lina) + 2.0*pWF->phi0 + LAL_PI_4
+
+#     # ~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+
+#     # Note that we do not store the value of phifRef to pWF as is done in
+#     # IMRPhenomXASGenerateFD. We choose to not do so in order to avoid
+#     # potential confusion (e.g. if this function is called within a
+#     # workflow that assumes the value defined in IMRPhenomXASGenerateFD).
+#     # Note that this concern may not be valid.
+#     # ~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+ */
+
+#     # /*--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--*/
+#     # /*        Compute the full model phase           */
+#     # /*--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--*/
+
+#     # /* Use previously made function to compute what we call
+#     # here the pre-phase, becuase it's not actually a phase! */
+#     pre_phase = IMRPhenomX_Phase_22(Mf,&powers_of_Mf,pPhase,pWF)
+
+#     # /* Given the pre-phase, we need to scale and shift according to the
+#     # XAS construction */
+#     *phase   = pre_phase * inveta
+#     *phase  += linb*Mf + lina + phifRef
+
+#     # /* Repeat the excercise above for the phase derivative:
+#     # "dphase" is (d/df)phase at Mf */
+#     pre_dphase = IMRPhenomX_dPhase_22(Mf,&powers_of_Mf,pPhase,pWF)
+#     *dphase  = pre_dphase * inveta
+#     *dphase += linb

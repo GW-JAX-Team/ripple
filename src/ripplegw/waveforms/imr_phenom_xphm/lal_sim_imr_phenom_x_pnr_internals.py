@@ -4,6 +4,7 @@ Docstring for ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_pnr_intern
 
 from __future__ import annotations
 
+import copy
 import dataclasses
 
 import jax
@@ -11,7 +12,11 @@ import jax.numpy as jnp
 from jax.experimental import checkify
 
 from ripplegw.constants import PI
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals import (
+    imr_phenom_x_get_phase_coefficients,
+)
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
+    IMRPhenomXPhaseCoefficientsDataClass,
     IMRPhenomXWaveformDataClass,
 )
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_precession_dataclass import (
@@ -398,23 +403,20 @@ def imr_phenom_x_pnr_set_phase_alignment_params(
     # when pWF is changed, so is pWF22AS. We do not want that, so the use of
     # malloc is essential.
     # */
-    # p_wf_22_as = copy.deepcopy(p_wf)
+    p_wf_22_as = copy.deepcopy(p_wf)
     # p_prec.p_wf_22_as = p_wf_22_as
 
     # /* Define alignment frequency in fM (aka Mf). This is the
     # frequency at which PNR coprecessing phase and phase
     # derivaive will be aligned with corresponding XAS and XHM
     # values.  */
-    # f_inspiral_align = 0.004
+    f_inspiral_align = 0.004
 
     # // NOTE that just below we compute the non-precessing phase parameters
     # // BEFORE any changes are made to pWF -- SO the pWF input must not
     # // contain any changes due to precession.
-    # pPhaseAS = XLALMalloc(sizeof(IMRPhenomXPhaseCoefficients))
-    # status   = IMRPhenomXGetPhaseCoefficients(pWF,pPhaseAS)
-    # // Check for error
-    # XLAL_CHECK(XLAL_SUCCESS == status, XLAL_EFUNC, "Error: IMRPhenomXGetPhaseCoefficients failed.\n")
-    # // Clean up
+    p_phase_as = IMRPhenomXPhaseCoefficientsDataClass()
+    p_phase_as = imr_phenom_x_get_phase_coefficients(p_wf, p_phase_as)
 
     # /*
     # Below we use IMRPhenomX_FullPhase_22 to somultaneously compute
@@ -443,5 +445,10 @@ def imr_phenom_x_pnr_set_phase_alignment_params(
     # // printf("##>> XAS_dphase_at_f_inspiral_align = %f\n",pWF->XAS_dphase_at_f_inspiral_align)
 
     # LALFree(pPhaseAS)
+    p_wf = dataclasses.replace(
+        p_wf,
+        f_inspiral_align=f_inspiral_align,
+        p_wf_22_as=p_wf_22_as,
+    )
 
     return p_wf, p_prec

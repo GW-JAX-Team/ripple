@@ -198,38 +198,38 @@ class IMRPhenomXWaveformDataClass:  # pylint: disable=too-many-instance-attribut
 class IMRPhenomXUsefulPowersDataClass:  # pylint: disable=too-many-instance-attributes
     """Dataclass to hold useful powers for IMRPhenomX computations."""
 
-    seven_sixths: float
-    one_sixth: float
-    ten_thirds: float
-    eight_thirds: float
-    seven_thirds: float
-    five_thirds: float
-    four_thirds: float
-    two_thirds: float
-    one_third: float
-    five: float
-    four: float
-    three: float
-    two: float
-    sqrt: float
-    itself: float
-    m_sqrt: float
-    m_one: float
-    m_two: float
-    m_three: float
-    m_four: float
-    m_five: float
-    m_six: float
-    m_one_third: float
-    m_two_thirds: float
-    m_four_thirds: float
-    m_five_thirds: float
-    m_seven_thirds: float
-    m_eight_thirds: float
-    m_ten_thirds: float
-    m_one_sixth: float
-    m_seven_sixths: float
-    log: float
+    seven_sixths: float | Array
+    one_sixth: float | Array
+    ten_thirds: float | Array
+    eight_thirds: float | Array
+    seven_thirds: float | Array
+    five_thirds: float | Array
+    four_thirds: float | Array
+    two_thirds: float | Array
+    one_third: float | Array
+    five: float | Array
+    four: float | Array
+    three: float | Array
+    two: float | Array
+    sqrt: float | Array
+    itself: float | Array
+    m_sqrt: float | Array
+    m_one: float | Array
+    m_two: float | Array
+    m_three: float | Array
+    m_four: float | Array
+    m_five: float | Array
+    m_six: float | Array
+    m_one_third: float | Array
+    m_two_thirds: float | Array
+    m_four_thirds: float | Array
+    m_five_thirds: float | Array
+    m_seven_thirds: float | Array
+    m_eight_thirds: float | Array
+    m_ten_thirds: float | Array
+    m_one_sixth: float | Array
+    m_seven_sixths: float | Array
+    log: float | Array
 
     # Debug flag
     debug: int = 0
@@ -349,12 +349,12 @@ class IMRPhenomXPhaseCoefficientsDataClass:  # pylint: disable=too
     # /* Flag to set how many collocation points the INT region uses 	*/
     n_collocation_points_int: int = 0
 
-    # /* Integer to tell us how many pseudo PN terms are used 											*/
+    # /* Integer to tell us how many pseudo PN terms are used */
     n_pseudo_pn: int = 0
     n_collocation_points_phase_ins: int = 0
 
     # /* The canonical ringdown phase is constructed from 5 collocation points 			*/
-    collocation_points_rd: Array | None = None
+    collocation_points_phase_rd: Array | None = None
     collocation_values_phase_rd: Array | None = None
     coefficients_phase_rd: Array | None = None
 
