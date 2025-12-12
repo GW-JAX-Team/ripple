@@ -4,8 +4,14 @@ from __future__ import annotations
 
 import dataclasses
 
+from ripplegw.typing import Array
 from ripplegw.waveforms.imr_phenom_xphm.dataclass_utils import _register_dataclass
 from ripplegw.waveforms.imr_phenom_xphm.parameter_dataclass import IMRPhenomXPHMParameterDataClass
+
+# /* Inherited from IMRPhenomD */
+N_MAX_COLLOCATION_POINTS_PHASE_RD = 5
+N_MAX_COLLOCATION_POINTS_PHASE_INT = 5
+N_MAX_COLLOCATION_POINTS_PHASE_INS = 6
 
 
 @_register_dataclass
@@ -192,38 +198,176 @@ class IMRPhenomXWaveformDataClass:  # pylint: disable=too-many-instance-attribut
 class IMRPhenomXUsefulPowersDataClass:  # pylint: disable=too-many-instance-attributes
     """Dataclass to hold useful powers for IMRPhenomX computations."""
 
-    seven_sixths: float
-    one_sixth: float
-    ten_thirds: float
-    eight_thirds: float
-    seven_thirds: float
-    five_thirds: float
-    four_thirds: float
-    two_thirds: float
-    one_third: float
-    five: float
-    four: float
-    three: float
-    two: float
-    sqrt: float
-    itself: float
-    m_sqrt: float
-    m_one: float
-    m_two: float
-    m_three: float
-    m_four: float
-    m_five: float
-    m_six: float
-    m_one_third: float
-    m_two_thirds: float
-    m_four_thirds: float
-    m_five_thirds: float
-    m_seven_thirds: float
-    m_eight_thirds: float
-    m_ten_thirds: float
-    m_one_sixth: float
-    m_seven_sixths: float
-    log: float
+    seven_sixths: float | Array
+    one_sixth: float | Array
+    ten_thirds: float | Array
+    eight_thirds: float | Array
+    seven_thirds: float | Array
+    five_thirds: float | Array
+    four_thirds: float | Array
+    two_thirds: float | Array
+    one_third: float | Array
+    five: float | Array
+    four: float | Array
+    three: float | Array
+    two: float | Array
+    sqrt: float | Array
+    itself: float | Array
+    m_sqrt: float | Array
+    m_one: float | Array
+    m_two: float | Array
+    m_three: float | Array
+    m_four: float | Array
+    m_five: float | Array
+    m_six: float | Array
+    m_one_third: float | Array
+    m_two_thirds: float | Array
+    m_four_thirds: float | Array
+    m_five_thirds: float | Array
+    m_seven_thirds: float | Array
+    m_eight_thirds: float | Array
+    m_ten_thirds: float | Array
+    m_one_sixth: float | Array
+    m_seven_sixths: float | Array
+    log: float | Array
 
     # Debug flag
     debug: int = 0
+
+
+@_register_dataclass
+@dataclasses.dataclass(frozen=True)
+class IMRPhenomXPhaseCoefficientsDataClass:  # pylint: disable=too
+    """Dataclass to hold phase coefficients for IMRPhenomX computations."""
+
+    # /* PHASE */
+    # /* Phase Transition Frequencies */
+    f_phase_ins_min: float = 0.0
+    f_phase_ins_max: float = 0.0
+    f_phase_int_min: float = 0.0
+    f_phase_int_max: float = 0.0
+    f_phase_rd_min: float = 0.0
+    f_phase_rd_max: float = 0.0
+
+    f_phase_match_in: float = 0.0
+    f_phase_match_im: float = 0.0
+
+    c1_int: float = 0.0
+    c2_int: float = 0.0
+    c1_m_rd: float = 0.0
+    c2_m_rd: float = 0.0
+
+    # /* These are the RD phenomenological coefficients 					*/
+    c0: float = 0.0
+    c1: float = 0.0
+    c2: float = 0.0
+    c3: float = 0.0
+    c4: float = 0.0
+    c_l: float = 0.0
+    c_rd: float = 0.0
+    c_lgr: float = 0.0
+
+    # /* These are the intermediate phenomenological coefficients */
+    b0: float = 0.0
+    b1: float = 0.0
+    b2: float = 0.0
+    b3: float = 0.0
+    b4: float = 0.0
+
+    # /* These are the inspiral phenomenological coefficients 		*/
+    a0: float = 0.0
+    a1: float = 0.0
+    a2: float = 0.0
+    a3: float = 0.0
+    a4: float = 0.0
+
+    # /* Coefficients enterting tidal phase */
+    c2_pn_tidal: float = 0.0
+    c3_pn_tidal: float = 0.0
+    c3p5_pn_tidal: float = 0.0
+
+    # /* Pre-cached variables */
+    c4ov3: float = 0.0
+    c_lovfda: float = 0.0
+    non_gr_dcl: float = 0.0
+
+    # /* TaylorF2 PN Coefficients */
+    phi_minus2: float = 0.0
+    phi_minus1: float = 0.0
+    phi0: float = 0.0
+    phi1: float = 0.0
+    phi2: float = 0.0
+    phi3: float = 0.0
+    phi4: float = 0.0
+    phi5: float = 0.0
+    phi6: float = 0.0
+    phi7: float = 0.0
+    phi8: float = 0.0
+    phi9: float = 0.0
+    phi10: float = 0.0
+    phi11: float = 0.0
+    phi12: float = 0.0
+    phi13: float = 0.0
+    phi5l: float = 0.0
+    phi6l: float = 0.0
+    phi8l: float = 0.0
+    phi9l: float = 0.0
+    phi_initial: float = 0.0
+    phi_norm: float = 0.0
+    dphi_minus2: float = 0.0
+    dphi_minus1: float = 0.0
+    dphi0: float = 0.0
+    dphi1: float = 0.0
+    dphi2: float = 0.0
+    dphi3: float = 0.0
+    dphi4: float = 0.0
+    dphi5: float = 0.0
+    dphi6: float = 0.0
+    dphi7: float = 0.0
+    dphi8: float = 0.0
+    dphi9: float = 0.0
+    dphi10: float = 0.0
+    dphi11: float = 0.0
+    dphi12: float = 0.0
+    dphi13: float = 0.0
+    dphi5l: float = 0.0
+    dphi6l: float = 0.0
+    dphi8l: float = 0.0
+    dphi9l: float = 0.0
+
+    # /* Pseudo-PN Coefficients */
+    sigma0: float = 0.0
+    sigma1: float = 0.0
+    sigma2: float = 0.0
+    sigma3: float = 0.0
+    sigma4: float = 0.0
+    sigma5: float = 0.0
+
+    # /* Flag to set how many collocation points the RD region uses 	*/
+    n_collocation_points_rd: int = 0
+
+    # /* Flag to set how many collocation points the INT region uses 	*/
+    n_collocation_points_int: int = 0
+
+    # /* Integer to tell us how many pseudo PN terms are used */
+    n_pseudo_pn: int = 0
+    n_collocation_points_phase_ins: int = 0
+
+    # /* The canonical ringdown phase is constructed from 5 collocation points 			*/
+    collocation_points_phase_rd: Array | None = None
+    collocation_values_phase_rd: Array | None = None
+    coefficients_phase_rd: Array | None = None
+
+    # /* The canonical intermediate phase is constructed from 4/5 collocation points  */
+    collocation_points_phase_int: Array | None = None
+    collocation_values_phase_int: Array | None = None
+    coefficients_phase_int: Array | None = None
+
+    # /*
+    #         For N pseudo-PN terms we need N+1 collocation points:
+    #         We have set N_MAX_COLLOCATION_POINTS_INS = 5 to allow
+    #         either 3 or 4 pseudo-PN coefficients to be used.
+    # */
+    collocation_points_phase_ins: Array | None = None
+    collocation_values_phase_ins: Array | None = None
+    coefficients_phase_ins: Array | None = None
