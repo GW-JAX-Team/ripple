@@ -18,12 +18,16 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_inspiral import (
     imr_phenom_x_inspiral_phase_22_d43,
     imr_phenom_x_inspiral_phase_22_d53,
     imr_phenom_x_inspiral_phase_22_v3,
+    imr_phenom_x_inspiral_phase_22_ansatz,
+    imr_phenom_x_inspiral_phase_22_ansatz_int,
 )
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_intermediate import (
     imr_phenom_x_intermediate_phase_22_d43,
     imr_phenom_x_intermediate_phase_22_v2,
     imr_phenom_x_intermediate_phase_22_v2m_rd_v4,
     imr_phenom_x_intermediate_phase_22_v3m_rd_v4,
+    imr_phenom_x_intermediate_phase_22_ansatz,
+    imr_phenom_x_intermediate_phase_22_ansatz_int,
 )
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
     IMRPhenomXPhaseCoefficientsDataClass,
@@ -40,6 +44,8 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_ringdown import (
     imr_phenom_x_ringdown_phase_22_d34,
     imr_phenom_x_ringdown_phase_22_d54,
     imr_phenom_x_ringdown_phase_22_v4,
+    imr_phenom_x_ringdown_phase_22_ansatz,
+    imr_phenom_x_ringdown_phase_22_ansatz_int,
 )
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import (
     imr_phenom_x_internal_nudge,
@@ -1918,170 +1924,139 @@ def imr_phenom_x_get_phase_coefficients(
     return p_phase
 
 
-# def imr_phenom_x_phase_22_connection_coefficients(
-#     p_wf: IMRPhenomXWaveformDataClass, p_phase: IMRPhenomXPhaseCoefficientsDataClass
-# ):
-# f_ins = p_phase.f_phase_match_in
-# f_int = p_phase.f_phase_match_im
+def imr_phenom_x_phase_22_connection_coefficients(
+    p_wf: IMRPhenomXWaveformDataClass, p_phase: IMRPhenomXPhaseCoefficientsDataClass
+):
+    f_ins = p_phase.f_phase_match_in
+    f_int = p_phase.f_phase_match_im
 
-# # /*
-# #         Assume an ansatz of the form:
+    # /*
+    #         Assume an ansatz of the form:
 
-# #         phi_Inspiral (f) = phi_Intermediate (f) + C1 + C2 * f
+    #         phi_Inspiral (f) = phi_Intermediate (f) + C1 + C2 * f
 
-# #         where transition frequency is fIns
+    #         where transition frequency is fIns
 
-# #         phi_Inspiral (fIns) = phi_Intermediate (fIns) + C1 + C2 * fIns
-# #         phi_Inspiral'(fIns) = phi_Intermediate'(fIns) + C2
+    #         phi_Inspiral (fIns) = phi_Intermediate (fIns) + C1 + C2 * fIns
+    #         phi_Inspiral'(fIns) = phi_Intermediate'(fIns) + C2
 
-# #         Solving for C1 and C2
+    #         Solving for C1 and C2
 
-# #         C2 = phi_Inspiral'(fIns) - phi_Intermediate'(fIns)
-# #         C1 = phi_Inspiral (fIns) - phi_Intermediate (fIns) - C2 * fIns
+    #         C2 = phi_Inspiral'(fIns) - phi_Intermediate'(fIns)
+    #         C1 = phi_Inspiral (fIns) - phi_Intermediate (fIns) - C2 * fIns
 
-# # */
+    # */
 
-# powers_of_f_ins = imr_phenom_x_initialize_powers(f_ins)
-
-
-#     DPhiIns = IMRPhenomX_Inspiral_Phase_22_Ansatz(fIns,&powers_of_fIns,pPhase)
-#     DPhiInt = IMRPhenomX_Intermediate_Phase_22_Ansatz(fIns,&powers_of_fIns,pWF,pPhase)
-
-#     pPhase->C2Int  = DPhiIns - DPhiInt
-
-#     phiIN = IMRPhenomX_Inspiral_Phase_22_AnsatzInt(fIns,&powers_of_fIns,pPhase)
-#     phiIM = IMRPhenomX_Intermediate_Phase_22_AnsatzInt(fIns,&powers_of_fIns,pWF,pPhase)
-
-#     if(debug)
-#     {
-#     printf("\n")
-#     printf("dphiIM = %.6f and dphiIN = %.6f\n",DPhiInt,DPhiIns)
-#     printf("phiIN(fIns)  : %.7f\n",phiIN)
-#     printf("phiIM(fIns)  : %.7f\n",phiIM)
-#     printf("fIns         : %.7f\n",fIns)
-#     printf("C2           : %.7f\n",pPhase->C2Int)
-#     printf("\n")
-#     }
-
-#     pPhase->C1Int = phiIN - phiIM - (pPhase->C2Int * fIns)
-
-#     /*
-#             Assume an ansatz of the form:
-
-#             phi_Intermediate (f)    = phi_Ringdown (f) + C1 + C2 * f
-
-#             where transition frequency is fIM
-
-#             phi_Intermediate (fIM) = phi_Ringdown (fRD) + C1 + C2 * fIM
-#             phi_Intermediate'(fIM) = phi_Ringdown'(fRD) + C2
-
-#             Solving for C1 and C2
-
-#             C2 = phi_Inspiral'(fIM) - phi_Intermediate'(fIM)
-#             C1 = phi_Inspiral (fIM) - phi_Intermediate (fIM) - C2 * fIM
-
-#     */
-#     IMRPhenomX_UsefulPowers powers_of_fInt
-#     IMRPhenomX_Initialize_Powers(&powers_of_fInt,fInt)
-
-#     phiIMC         = IMRPhenomX_Intermediate_Phase_22_AnsatzInt(fInt,&powers_of_fInt,pWF,pPhase) + pPhase->C1Int + pPhase->C2Int*fInt
-#     phiRD          = IMRPhenomX_Ringdown_Phase_22_AnsatzInt(fInt,&powers_of_fInt,pWF,pPhase)
-#     DPhiIntC       = IMRPhenomX_Intermediate_Phase_22_Ansatz(fInt,&powers_of_fInt,pWF,pPhase) + pPhase->C2Int
-#     DPhiRD         = IMRPhenomX_Ringdown_Phase_22_Ansatz(fInt,&powers_of_fInt,pWF,pPhase)
-
-#     pPhase->C2MRD = DPhiIntC - DPhiRD
-#     pPhase->C1MRD = phiIMC - phiRD - pPhase->C2MRD*fInt
-
-#     if(debug)
-#     {
-#     printf("\n")
-#     printf("phiIMC(fInt) : %.7f\n",phiIMC)
-#     printf("phiRD(fInt)  : %.7f\n",phiRD)
-#     printf("fInt         : %.7f\n",fInt)
-#     printf("C2           : %.7f\n",pPhase->C2Int)
-#     printf("\n")
-#     }
-
-#     if(debug)
-#     {
-#     printf("dphiIM = %.6f and dphiRD = %.6f\n",DPhiIntC,DPhiRD)
-#     printf("\nContinuity Coefficients\n")
-#     printf("C1Int : %.6f\n",pPhase->C1Int)
-#     printf("C2Int : %.6f\n",pPhase->C2Int)
-#     printf("C1MRD : %.6f\n",pPhase->C1MRD)
-#     printf("C2MRD : %.6f\n",pPhase->C2MRD)
-#     }
-
-#     return
+    powers_of_f_ins = imr_phenom_x_initialize_powers(f_ins)
 
 
-# def imr_phenom_x_full_phase_22(
-#         phase: float,
-#         dphase: float,
-#         m_f: float,
-#         p_phase: IMRPhenomXPhaseCoefficientsDataClass,
-#         p_wf: IMRPhenomXWaveformDataClass
-# ):
-#     """
-#     Function to compute full model phase. This function is designed to be used in in initialization routines, and not for evaluating the phase at many frequencies.
-#     """
+    DPhiIns = IMRPhenomX_Inspiral_Phase_22_Ansatz(fIns,&powers_of_fIns,pPhase)
+    DPhiInt = IMRPhenomX_Intermediate_Phase_22_Ansatz(fIns,&powers_of_fIns,pWF,pPhase)
 
-#     # /*--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--*/
-#     # /*            Define useful powers               */
-#     # /*--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--*/
+    pPhase->C2Int  = DPhiIns - DPhiInt
 
-#     # // Get useful powers of Mf
-#     powers_of_m_f = imr_phenom_x_initialize_powers(m_f)
+    phiIN = IMRPhenomX_Inspiral_Phase_22_AnsatzInt(fIns,&powers_of_fIns,pPhase)
+    phiIM = IMRPhenomX_Intermediate_Phase_22_AnsatzInt(fIns,&powers_of_fIns,pWF,pPhase)
 
-#     # /* Initialize a struct containing useful powers of Mf at fRef */
-#     powers_of_m_fref = imr_phenom_x_initialize_powers(p_wf.m_f_ref)
+    pPhase->C1Int = phiIN - phiIM - (pPhase->C2Int * fIns)
 
-#     # /*--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--*/
-#     # /*           Define needed constants             */
-#     # /*--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--*/
+    /*
+            Assume an ansatz of the form:
 
-#     # /* 1/eta is used to re-scale the pre-phase quantity */
-#     inveta    = (1.0 / p_wf.eta)
+            phi_Intermediate (f)    = phi_Ringdown (f) + C1 + C2 * f
 
-#     # /* We keep this phase shift to ease comparison with
-#     # original phase routines */
-#     lina = 0
+            where transition frequency is fIM
 
-#     # /* Get phase connection coefficients
-#     # and store them to pWF. This step is to make
-#     # sure that teh coefficients are up-to-date */
-#     IMRPhenomX_Phase_22_ConnectionCoefficients(pWF,pPhase)
+            phi_Intermediate (fIM) = phi_Ringdown (fRD) + C1 + C2 * fIM
+            phi_Intermediate'(fIM) = phi_Ringdown'(fRD) + C2
 
-#     # /* Compute the timeshift that PhenomXAS uses to align waveforms
-#     # with the hybrids used to make their model */
-#     linb = IMRPhenomX_TimeShift_22(pPhase, pWF)
+            Solving for C1 and C2
 
-#     # Calculate phase at reference frequency: phifRef = 2.0*phi0 + LAL_PI_4 + PhenomXPhase(fRef)
-#     phifRef = -(inveta * IMRPhenomX_Phase_22(pWF->MfRef, &powers_of_MfRef, pPhase, pWF) + linb*pWF->MfRef + lina) + 2.0*pWF->phi0 + LAL_PI_4
+            C2 = phi_Inspiral'(fIM) - phi_Intermediate'(fIM)
+            C1 = phi_Inspiral (fIM) - phi_Intermediate (fIM) - C2 * fIM
 
-#     # ~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+
-#     # Note that we do not store the value of phifRef to pWF as is done in
-#     # IMRPhenomXASGenerateFD. We choose to not do so in order to avoid
-#     # potential confusion (e.g. if this function is called within a
-#     # workflow that assumes the value defined in IMRPhenomXASGenerateFD).
-#     # Note that this concern may not be valid.
-#     # ~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+ */
+    */
+    IMRPhenomX_UsefulPowers powers_of_fInt
+    IMRPhenomX_Initialize_Powers(&powers_of_fInt,fInt)
 
-#     # /*--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--*/
-#     # /*        Compute the full model phase           */
-#     # /*--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--*/
+    phiIMC         = IMRPhenomX_Intermediate_Phase_22_AnsatzInt(fInt,&powers_of_fInt,pWF,pPhase) + pPhase->C1Int + pPhase->C2Int*fInt
+    phiRD          = IMRPhenomX_Ringdown_Phase_22_AnsatzInt(fInt,&powers_of_fInt,pWF,pPhase)
+    DPhiIntC       = IMRPhenomX_Intermediate_Phase_22_Ansatz(fInt,&powers_of_fInt,pWF,pPhase) + pPhase->C2Int
+    DPhiRD         = IMRPhenomX_Ringdown_Phase_22_Ansatz(fInt,&powers_of_fInt,pWF,pPhase)
 
-#     # /* Use previously made function to compute what we call
-#     # here the pre-phase, becuase it's not actually a phase! */
-#     pre_phase = IMRPhenomX_Phase_22(Mf,&powers_of_Mf,pPhase,pWF)
+    pPhase->C2MRD = DPhiIntC - DPhiRD
+    pPhase->C1MRD = phiIMC - phiRD - pPhase->C2MRD*fInt
 
-#     # /* Given the pre-phase, we need to scale and shift according to the
-#     # XAS construction */
-#     *phase   = pre_phase * inveta
-#     *phase  += linb*Mf + lina + phifRef
+    return
 
-#     # /* Repeat the excercise above for the phase derivative:
-#     # "dphase" is (d/df)phase at Mf */
-#     pre_dphase = IMRPhenomX_dPhase_22(Mf,&powers_of_Mf,pPhase,pWF)
-#     *dphase  = pre_dphase * inveta
-#     *dphase += linb
+
+def imr_phenom_x_full_phase_22(
+        phase: float,
+        dphase: float,
+        m_f: float,
+        p_phase: IMRPhenomXPhaseCoefficientsDataClass,
+        p_wf: IMRPhenomXWaveformDataClass
+):
+    """
+    Function to compute full model phase. This function is designed to be used in in initialization routines, and not for evaluating the phase at many frequencies.
+    """
+
+    # /*--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--*/
+    # /*            Define useful powers               */
+    # /*--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--*/
+
+    # // Get useful powers of Mf
+    powers_of_m_f = imr_phenom_x_initialize_powers(m_f)
+
+    # /* Initialize a struct containing useful powers of Mf at fRef */
+    powers_of_m_fref = imr_phenom_x_initialize_powers(p_wf.m_f_ref)
+
+    # /*--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--*/
+    # /*           Define needed constants             */
+    # /*--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--*/
+
+    # /* 1/eta is used to re-scale the pre-phase quantity */
+    inveta    = (1.0 / p_wf.eta)
+
+    # /* We keep this phase shift to ease comparison with
+    # original phase routines */
+    lina = 0
+
+    # /* Get phase connection coefficients
+    # and store them to pWF. This step is to make
+    # sure that teh coefficients are up-to-date */
+    IMRPhenomX_Phase_22_ConnectionCoefficients(pWF,pPhase)
+
+    # /* Compute the timeshift that PhenomXAS uses to align waveforms
+    # with the hybrids used to make their model */
+    linb = IMRPhenomX_TimeShift_22(pPhase, pWF)
+
+    # Calculate phase at reference frequency: phifRef = 2.0*phi0 + LAL_PI_4 + PhenomXPhase(fRef)
+    phifRef = -(inveta * IMRPhenomX_Phase_22(pWF->MfRef, &powers_of_MfRef, pPhase, pWF) + linb*pWF->MfRef + lina) + 2.0*pWF->phi0 + LAL_PI_4
+
+    # ~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+
+    # Note that we do not store the value of phifRef to pWF as is done in
+    # IMRPhenomXASGenerateFD. We choose to not do so in order to avoid
+    # potential confusion (e.g. if this function is called within a
+    # workflow that assumes the value defined in IMRPhenomXASGenerateFD).
+    # Note that this concern may not be valid.
+    # ~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+ */
+
+    # /*--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--*/
+    # /*        Compute the full model phase           */
+    # /*--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--*/
+
+    # /* Use previously made function to compute what we call
+    # here the pre-phase, becuase it's not actually a phase! */
+    pre_phase = IMRPhenomX_Phase_22(Mf,&powers_of_Mf,pPhase,pWF)
+
+    # /* Given the pre-phase, we need to scale and shift according to the
+    # XAS construction */
+    *phase   = pre_phase * inveta
+    *phase  += linb*Mf + lina + phifRef
+
+    # /* Repeat the excercise above for the phase derivative:
+    # "dphase" is (d/df)phase at Mf */
+    pre_dphase = IMRPhenomX_dPhase_22(Mf,&powers_of_Mf,pPhase,pWF)
+    *dphase  = pre_dphase * inveta
+    *dphase += linb

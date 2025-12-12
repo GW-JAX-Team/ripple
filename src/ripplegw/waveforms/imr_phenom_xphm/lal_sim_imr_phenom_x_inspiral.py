@@ -49,6 +49,62 @@ def imr_phenom_x_inspiral_phase_22_ansatz(
     return phase_in
 
 
+def imr_phenom_x_inspiral_phase_22_ansatz_int(
+        mf: float, powers_of_mf: IMRPhenomXUsefulPowersDataClass, p_phase: IMRPhenomXPhaseCoefficientsDataClass
+) -> float | Array:
+
+    # // Assemble PN phasing series
+    # // Sum up phasing contributions
+    phasing    = 0.0
+
+    # /* The PN Phasing series is normalised by: 3 / (128 * eta * pi^{5/3} ) */
+    #/* -2 */ 
+    phasing += p_phase.phi_minus2 / powers_of_mf.two_thirds                  # f^{-7/3}, v = -2 -1PN
+    #/* -1 */ 
+    phasing += p_phase.phi_minus1 / powers_of_mf.one_third                   # f^{-6/3}, v = -1 -0.5PN
+    #/* 0  */ 
+    phasing += p_phase.phi0                                                   # f^{-5/3}, v = 0  Newt.
+    #/* 1  */ 
+    phasing += p_phase.phi1  * powers_of_mf.one_third                        # f^{-4/3}, v = 1  0.5PN
+    #/* 2  */ 
+    phasing += p_phase.phi2  * powers_of_mf.two_thirds                       # f^{-3/3}, v = 2  1.0PN
+    # /* 3  */ 
+    phasing += p_phase.phi3  * mf                                             # f^{-2/3}, v = 3  1.5PN
+    # /* 4  */ 
+    phasing += p_phase.phi4  * powers_of_mf.four_thirds                      # f^{-1/3}, v = 4  2.0PN
+    # /* 5  */ 
+    phasing += p_phase.phi5  * powers_of_mf.five_thirds                      # f^{0},    v = 5  2.5PN phi_initial = - LAL_PI_4
+    #/* 5L */ 
+    phasing += p_phase.phi5l * powers_of_mf.five_thirds * powers_of_mf.log  # f^{0},    v = 5  2.5PN Log terms.
+    #/* 6  */ 
+    phasing += p_phase.phi6  * powers_of_mf.two                              # f^{+1/3} v = 6  3.0PN
+    #/* 6L */ 
+    phasing += p_phase.phi6l * powers_of_mf.two * powers_of_mf.log          # f^{+1/3} v = 6  3.0PN Log terms.
+    #/* 7  */ 
+    phasing += p_phase.phi7  * powers_of_mf.seven_thirds                     # f^{+2/3}: v = 7  3.5PN
+    #/* 8  */ 
+    phasing += p_phase.phi8  * powers_of_mf.eight_thirds                     # f^{+3/3} v = 8  4.0PN
+    #/* 8  */ 
+    phasing += p_phase.phi8l * powers_of_mf.eight_thirds * powers_of_mf.log  # f^{+3/3} v = 8  4.0PN Log terms.
+    #/* 9  */ 
+    phasing += p_phase.phi9  * powers_of_mf.three                            # f^{+4/3} v = 9  4.5PN
+    #/* 9  */ 
+    phasing += p_phase.phi9l * powers_of_mf.three * powers_of_mf.log        # f^{+4/3} v = 9  4.5PN
+    
+    # // Now add in the pseudo-PN Coefficients
+    phasing += (  p_phase.sigma1 * powers_of_mf.eight_thirds
+                + p_phase.sigma2 * powers_of_mf.three
+                + p_phase.sigma3 * powers_of_mf.one_third  * powers_of_mf.three
+                + p_phase.sigma4 * powers_of_mf.two_thirds * powers_of_mf.three
+                + p_phase.sigma5 * powers_of_mf.itself     * powers_of_mf.three
+            )
+
+    # This completes the TaylorF2 PN phasing series
+    phasing = phasing * p_phase.phi_norm * powers_of_mf.m_five_thirds
+
+    return phasing
+
+
 def imr_phenom_x_inspiral_phase_22_v3(eta: float, s: float, dchi: float, delta: float, insp_phase_flag: int) -> float:
     """
     Value of phase collocation point at v_3. See section VII.A of arXiv:2001.11412

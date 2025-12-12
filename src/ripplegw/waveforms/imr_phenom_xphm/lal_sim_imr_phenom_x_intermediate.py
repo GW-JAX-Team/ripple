@@ -3,7 +3,14 @@
 from __future__ import annotations
 
 import jax
+import jax.numpy as jnp
 from jax.experimental import checkify
+
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
+    IMRPhenomXPhaseCoefficientsDataClass,
+    IMRPhenomXUsefulPowersDataClass,
+    IMRPhenomXWaveformDataClass,
+)
 
 
 def imr_phenom_x_intermediate_phase_22_v2m_rd_v4(
@@ -274,3 +281,116 @@ def imr_phenom_x_intermediate_phase_22_d43(
     uneq_spin = dchi * delta * (-514.8494071830514 + 1493.3851099678195 * eta) * eta3
 
     return no_spin + eq_spin + uneq_spin
+
+
+def imr_phenom_x_intermediate_phase_22_ansatz(
+        ff: float,
+        powers_of_f: IMRPhenomXUsefulPowersDataClass,
+        p_wf: IMRPhenomXWaveformDataClass,
+        p_phase: IMRPhenomXPhaseCoefficientsDataClass,
+) -> float:
+    """
+    	See section VII. B of arXiv:2001.11412.
+        Phase derivative ansatz for intermediate region, Eq. 7.6 of arXiv:2001.11412.
+        This is the canonical intermediate ansatz:
+        a_0 + a_1 ft^(-1) + a_2 ft^(-2) + a_3 ft^(-3) + a4 ft^(-4) + (4 * a_RD) / ( (2 * f_fdamp)^2 + (f - f_ring)^2 )
+        ft = (f / f_ring)
+    """
+    invff1 = powers_of_f.m_one
+    invff2 = powers_of_f.m_two
+    invff3 = powers_of_f.m_three
+    invff4 = powers_of_f.m_four
+
+    fda    = p_wf.f_damp
+    frd    = p_wf.f_ring
+    # /* We pass the GR Lorentzian term to make sure that variations to the 
+    # GR coefficients in the ringdown decouple from the intermediate regime */
+    cL     = p_phase.c_lgr
+
+
+    int_phase_version = p_wf.imr_phenom_x_intermediate_phase_version
+
+    checkify.check(
+        jnp.logical_or(int_phase_version == 104, int_phase_version == 105),
+        "Error in IMRPhenomX_Intermediate_Phase_22_Ansatz: IMRPhenomXIntermediatePhaseVersion is not valid. Recommended flag is 104.",
+    )
+
+    def case_104(): # Canonical, 4 coefficients
+        # /* This is the Lorentzian term where cL = - a_{RD} dphase0 */
+        lorentzian_term = (4.0 * cL) / ( (4.0*fda*fda) + (ff - frd)*(ff - frd) )
+
+        # /* Return a polynomial embedded in the background from the merger */
+        phase_out = p_phase.b0 + p_phase.b1*invff1 + p_phase.b2*invff2 + p_phase.b4*invff4 + lorentzian_term
+
+        return phase_out
+    
+    def case_105(): # Canonical, 5 coefficients
+        # /* This is the Lorentzian term where cL = - a_{RD} dphase0 */
+        lorentzian_term = (4.0 * cL) / ( (4.0*fda*fda) + (ff - frd)*(ff - frd) )
+
+        # /* Return a polynomial embedded in the background from the merger */
+        phase_out = (p_phase.b0) + (p_phase.b1)*invff1 + (p_phase.b2)*invff2 + (p_phase.b3)*invff3 + (p_phase.b4)*invff4 + lorentzian_term
+
+        return phase_out
+        
+
+    return jax.lax.cond(
+        int_phase_version == 104,
+        lambda _: case_104(),
+        lambda _: case_105(),
+        operand=None,
+    )
+
+
+def imr_phenom_x_intermediate_phase_22_ansatz_int(
+        f: float,
+        powers_of_f: IMRPhenomXUsefulPowersDataClass,
+        p_wf: IMRPhenomXWaveformDataClass,
+        p_phase: IMRPhenomXPhaseCoefficientsDataClass,
+) -> float:
+    """
+    	See section VII. B of arXiv:2001.11412.
+        Integrated phase ansatz for intermediate region, Eq. 7.6 of arXiv:2001.11412.
+        Effective spin parameterization used = StotR
+    """
+  
+    invff1 = powers_of_f.m_one
+    invff2 = powers_of_f.m_two
+    invff3 = powers_of_f.m_three
+    logfv   = powers_of_f.log
+
+    frd = p_wf.f_ring
+    fda = p_wf.f_damp
+
+    b0  = p_phase.b0
+    b1  = p_phase.b1
+    b2  = p_phase.b2
+    b3  = p_phase.b3
+    b4  = p_phase.b4
+
+    # /* We pass the GR Lorentzian term to make sure that variations to the GR coefficients in the ringdown decouple from the intermediate regime */
+    cL  = p_phase.c_lgr
+
+    int_phase_version = p_wf.imr_phenom_x_intermediate_phase_version
+
+    checkify.check(
+        jnp.logical_or(int_phase_version == 104, int_phase_version == 105),
+        "Error in IMRPhenomX_Intermediate_Phase_22_AnsatzInt: IMRPhenomXIntermediatePhaseVersion is not valid. Recommended flag is 104.",
+    )
+
+    def case_104(): # Canonical, 4 coefficients
+        phase_out = b0*f + b1*logfv - b2*invff1 - (b4*invff3/3.0) + ( 2.0*cL*jax.numpy.arctan( (f - frd) / (2.0 * fda) ) ) / fda 
+
+        return phase_out
+    
+    def case_105(): # Canonical, 5 coefficients
+        phase_out = b0*f + b1*logfv - b2*invff1 - b3*invff2/2.0 - (b4*invff3/3.0) + ( 2.0 * cL * jax.numpy.arctan( (f - frd) / (2.0 * fda) ) ) / fda 
+
+        return phase_out
+
+    return jax.lax.cond(
+        int_phase_version == 104,
+        lambda _: case_104(),
+        lambda _: case_105(),
+        operand=None,
+    )
