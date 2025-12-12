@@ -425,7 +425,6 @@ def imr_phenom_x_pnr_set_phase_alignment_params(
 
     # /**********************************************************/
     # // Initialize holders for the phase and phase derivative
-    # double phase, dphase
     # // Define the values inside of IMRPhenomX_FullPhase_22
     # IMRPhenomX_FullPhase_22(&phase,&dphase,pWF->f_inspiral_align,pPhaseAS,pWF)
     # // Store the phase and phase derivative for later use

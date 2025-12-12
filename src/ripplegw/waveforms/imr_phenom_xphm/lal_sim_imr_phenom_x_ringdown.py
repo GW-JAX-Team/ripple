@@ -2,8 +2,16 @@
 
 from __future__ import annotations
 
+import jax.numpy as jnp
 from jax.experimental import checkify
 
+from ripplegw.typing import Array
+
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
+    IMRPhenomXPhaseCoefficientsDataClass,
+    IMRPhenomXUsefulPowersDataClass,
+    IMRPhenomXWaveformDataClass,
+)
 
 def imr_phenom_x_ringdown_phase_22_v4(eta: float, s: float, dchi: float, delta: float, rd_phase_flag: int) -> float:
     """IMRPhenomX_Ringdown_Phase_22_v4."""
@@ -214,3 +222,71 @@ def imr_phenom_x_ringdown_phase_22_d54(eta: float, s: float, dchi: float, delta:
     uneq_spin = 43.82713604567481 * dchi * delta * eta3
 
     return no_spin + eq_spin + uneq_spin
+
+
+def imr_phenom_x_ringdown_phase_22_ansatz(
+        ff: float,
+        powers_of_f: IMRPhenomXUsefulPowersDataClass,
+        p_wf: IMRPhenomXWaveformDataClass,
+        p_phase: IMRPhenomXPhaseCoefficientsDataClass,
+) -> float | Array:
+    """
+    Phenomenological ringdown phase derivative ansatz:
+    a_0 + a_1 f^(-1) + a_2 f^(-2) + a_3 f^(-3) + a_4 f^(-4) + ( aRD ) / ( (f_damp^2 + (f - f_ring)^2 ) )
+    where a_5 = - dphase0 * aRD
+    The canonical ringdown ansatz used here sets a_3 = 0.
+	See Eq. 7.11 of arXiv:2001.11412.
+    """
+  
+    rd_phase_flag = p_wf.imr_phenom_x_ringdown_phase_version
+
+    # //invf    = powers_of_f->m_one
+    invf2   = powers_of_f.m_two
+    invf4   = powers_of_f.m_four
+    invf1o3 = powers_of_f.m_one_third
+
+    frd     = p_wf.f_ring
+    fda     = p_wf.f_damp
+
+    # // c0 = a0, c1 = a1, c2 = a2, c3 = a4 are the polynomial Coefficients
+    # // c4 = a_L = -(dphase0 * a_RD) is the Lorentzian coefficient.
+
+    checkify.check(
+        rd_phase_flag == 105,
+        "Error in IMRPhenomX_Ringdown_Phase_22_Ansatz: IMRPhenomXRingdownPhaseVersion is not valid.",
+    )
+
+    return p_phase.c0 + p_phase.c1*invf1o3 + p_phase.c2*invf2 + p_phase.c4*invf4 + ( p_phase.c_l / (fda*fda + (ff - frd)*(ff - frd)) ) 
+
+    
+def imr_phenom_x_ringdown_phase_22_ansatz_int(
+        ff: float,
+        powers_of_f: IMRPhenomXUsefulPowersDataClass,
+        p_wf: IMRPhenomXWaveformDataClass,
+        p_phase: IMRPhenomXPhaseCoefficientsDataClass,
+) -> float | Array:
+    """
+    Phenomenological ringdown phase ansatz (i.e. integral of phase derivative ansatz). See. Eq. 7.11 of arxiv:2001.11412.
+    """
+    rd_phase_flag = p_wf.imr_phenom_x_ringdown_phase_version
+
+    invf     = powers_of_f.m_one
+    invf3    = powers_of_f.m_three
+    # //logf     = powers_of_f->log
+    f2o3     = powers_of_f.two_thirds
+
+    frd      = p_wf.f_ring
+    fda      = p_wf.f_damp
+
+    c0       = p_phase.c0
+    c1       = p_phase.c1
+    c2       = p_phase.c2
+    c4ov3    = p_phase.c4ov3
+    c_lovfda  = p_phase.c_lovfda
+
+    checkify.check(
+        rd_phase_flag == 105,
+        "Error in IMRPhenomX_Ringdown_Phase_22_AnsatzInt: IMRPhenomXRingdownPhaseVersion is not valid.",
+    )
+
+    return c0*ff + 1.5*c1*f2o3 - c2*invf - c4ov3*invf3 + (c_lovfda * jnp.arctan( (ff - frd )/fda ) )
