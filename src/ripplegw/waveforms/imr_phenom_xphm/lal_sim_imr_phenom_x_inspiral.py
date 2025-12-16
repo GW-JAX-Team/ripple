@@ -6,6 +6,7 @@ import jax
 import jax.numpy as jnp
 from jax.experimental import checkify
 
+from ripplegw.constants import PI
 from ripplegw.typing import Array
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
     IMRPhenomXPhaseCoefficientsDataClass,
@@ -14,7 +15,7 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass
 
 
 def imr_phenom_x_inspiral_phase_22_ansatz(
-    mf: float, powers_of_mf: IMRPhenomXUsefulPowersDataClass, p_phase: IMRPhenomXPhaseCoefficientsDataClass
+    mf: float | Array, powers_of_mf: IMRPhenomXUsefulPowersDataClass, p_phase: IMRPhenomXPhaseCoefficientsDataClass
 ) -> float | Array:
     """Docstring because I want pre commit to shut it"""
 
@@ -44,7 +45,7 @@ def imr_phenom_x_inspiral_phase_22_ansatz(
         + p_phase.a4 * powers_of_mf.eight_thirds * powers_of_mf.four_thirds
     )
 
-    phase_in *= powers_of_mf.m_eight_thirds * (5.0 / (128.0 * powers_of_mf.five_thirds))
+    phase_in *= powers_of_mf.m_eight_thirds * (5.0 / (128.0 * PI ** (5.0 / 3.0)))
 
     return phase_in
 
@@ -52,6 +53,10 @@ def imr_phenom_x_inspiral_phase_22_ansatz(
 def imr_phenom_x_inspiral_phase_22_ansatz_int(
     mf: float | Array, powers_of_mf: IMRPhenomXUsefulPowersDataClass, p_phase: IMRPhenomXPhaseCoefficientsDataClass
 ) -> float | Array:
+    """
+    Ansatz for the inspiral phase.
+    The TaylorF2 coefficients are defined elsewhere.
+    """
 
     # // Assemble PN phasing series
     # // Sum up phasing contributions
@@ -101,7 +106,7 @@ def imr_phenom_x_inspiral_phase_22_ansatz_int(
     )
 
     # This completes the TaylorF2 PN phasing series
-    phasing = phasing * p_phase.phi_norm * powers_of_mf.m_five_thirds
+    phasing *= p_phase.phi_norm * powers_of_mf.m_five_thirds
 
     return phasing
 
