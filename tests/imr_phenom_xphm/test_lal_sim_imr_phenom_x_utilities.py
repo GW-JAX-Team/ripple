@@ -13,6 +13,8 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import (
     xlal_imr_phenom_xp_check_masses_and_spins,
     xlal_sim_imr_phenom_x_chi_eff,
     xlal_sim_imr_phenom_x_chi_pn_hat,
+    xlal_sim_imr_phenom_x_linb,
+    xlal_sim_imr_phenom_x_psi4_to_strain,
     xlal_sim_imr_phenom_x_utils_hz_to_mf,
     xlal_sim_imr_phenom_x_utils_mf_to_hz,
 )
@@ -21,6 +23,8 @@ try:
     from lalsimulation import (
         SimIMRPhenomXchiEff,
         SimIMRPhenomXchiPNHat,
+        SimIMRPhenomXLinb,
+        SimIMRPhenomXPsi4ToStrain,
         SimIMRPhenomXUtilsHztoMf,
         SimIMRPhenomXUtilsMftoHz,
     )
@@ -656,6 +660,58 @@ class TestXlalSimImrPhenomXUtilsMftoHz:
             assert jnp.isclose(
                 float(result_jax), result_lal, rtol=1e-10
             ), f"Mismatch at mf={mf}, m_tot_msun={m_tot_msun}"
+
+
+class TestXLALSimIMRPhenomXPsi4ToStrain:
+    def test_jit_compatible(self):
+        """Test that xlal_sim_imr_phenom_x_psi4_to_strain is JIT-compatible."""
+        jitted_func = jax.jit(xlal_sim_imr_phenom_x_psi4_to_strain)
+        eta = 0.25
+        s = 0.3
+        dchi = 0.1
+
+        result = jitted_func(eta, s, dchi)
+        expected = xlal_sim_imr_phenom_x_psi4_to_strain(eta, s, dchi)
+        assert jnp.allclose(result, expected, rtol=1e-6)
+
+    @pytest.mark.skipif(not HAS_LAL, reason="lalsimulation not available")
+    def test_cross_validation_basic(self):
+        """Cross-validate xlal_sim_imr_phenom_x_psi4_to_strain against LAL."""
+        eta = 0.25
+        s = 0.4
+        dchi = 0.2
+
+        result_jax = xlal_sim_imr_phenom_x_psi4_to_strain(eta, s, dchi)
+        result_lal = SimIMRPhenomXPsi4ToStrain(eta, s, dchi)
+
+        assert jnp.allclose(result_jax, result_lal, rtol=1e-6)
+
+
+class TestXLALSimIMRPhenomXLinb:
+    def test_jit_compatible(self):
+        """Test that xlal_sim_imr_phenom_x_linb is JIT-compatible."""
+        jitted_func = jax.jit(xlal_sim_imr_phenom_x_linb)
+        eta = 0.25
+        s = 0.3
+        dchi = 0.1
+        delta = jnp.sqrt(1.0 - 4.0 * eta)
+
+        result = jitted_func(eta, s, dchi, delta)
+        expected = xlal_sim_imr_phenom_x_linb(eta, s, dchi, delta)
+        assert jnp.allclose(result, expected, rtol=1e-6)
+
+    @pytest.mark.skipif(not HAS_LAL, reason="lalsimulation not available")
+    def test_cross_validation_basic(self):
+        """Cross-validate xlal_sim_imr_phenom_x_linb against LAL."""
+        eta = 0.25
+        s = 0.4
+        dchi = 0.2
+        delta = np.sqrt(1.0 - 4.0 * eta)
+
+        result_jax = xlal_sim_imr_phenom_x_linb(eta, s, dchi, delta)
+        result_lal = SimIMRPhenomXLinb(eta, s, dchi, delta)
+
+        assert jnp.allclose(result_jax, result_lal, rtol=1e-6)
 
 
 if __name__ == "__main__":

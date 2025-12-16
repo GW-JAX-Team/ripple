@@ -934,11 +934,6 @@ def imr_phenom_x_get_phase_coefficients(
     )
 
     # /* v_j = d_{j4} + v4 */
-    # pPhase->CollocationValuesPhaseRD[4] = pPhase->CollocationValuesPhaseRD[4] + pPhase->CollocationValuesPhaseRD[3] #// v5 = d54  + v4
-    # pPhase->CollocationValuesPhaseRD[2] = pPhase->CollocationValuesPhaseRD[2] + pPhase->CollocationValuesPhaseRD[3] #// v3 = d34  + v4
-    # pPhase->CollocationValuesPhaseRD[1] = pPhase->CollocationValuesPhaseRD[1] + pPhase->CollocationValuesPhaseRD[3] #// v2 = d24  + v4
-    # pPhase->CollocationValuesPhaseRD[0] = pPhase->CollocationValuesPhaseRD[0] + pPhase->CollocationValuesPhaseRD[1] #// v1 = d12  + v2
-
     # First update indices 4, 2, 1 by adding value at index 3
     collocation_values_phase_rd = collocation_values_phase_rd.at[4].add(collocation_values_phase_rd[3])
     collocation_values_phase_rd = collocation_values_phase_rd.at[2].add(collocation_values_phase_rd[3])
@@ -960,11 +955,12 @@ def imr_phenom_x_get_phase_coefficients(
     b = collocation_values_phase_rd.copy()
 
     # /*
-    # 		Eq. 7.12 in arXiv:2001.11412
+    # Eq. 7.12 in arXiv:2001.11412
 
-    # 		ansatzRD(f) = a_0 + a_1 f^(-1/3) + a_2 f^(-2) + a_3 f^(-3) + a_4 f^(-4) + ( aRD ) / ( (f_damp^2 + (f - f_ring)^2 ) )
+    # ansatzRD(f) = a_0 + a_1 f^(-1/3) + a_2 f^(-2) + a_3 f^(-3) + a_4 f^(-4)
+    # + ( aRD ) / ( (f_damp^2 + (f - f_ring)^2 ) )
 
-    # 		Canonical ansatz sets a_3 to 0.
+    # Canonical ansatz sets a_3 to 0.
     # */
 
     # /*
@@ -994,7 +990,6 @@ def imr_phenom_x_get_phase_coefficients(
     # /* Apply NR tuning for precessing cases (500) */
     c_l += p_wf.pnr_dev_parameter * p_wf.nu4
 
-    # /*
     # Inspiral phase collocation points:
     # Here we only use the first N+1 points in the array where N = the
     # number of pseudo PN terms. E.g. for 4 pseudo-PN terms, we will
@@ -1005,8 +1000,9 @@ def imr_phenom_x_get_phase_coefficients(
 
     # Default is to use 4 pseudo-PN coefficients and hence 4 collocation points.
 
-    # GC points as per Eq. 7.4 and 7.5, where f_L = pPhase->fPhaseInsMin and f_H = pPhase->fPhaseInsMax
-    # */
+    # GC points as per Eq. 7.4 and 7.5,
+    # where f_L = pPhase->fPhaseInsMin and f_H = pPhase->fPhaseInsMax
+
     deltax = f_phase_ins_max - f_phase_ins_min
     xmin = f_phase_ins_min
 
@@ -1029,7 +1025,8 @@ def imr_phenom_x_get_phase_coefficients(
 
     checkify.check(
         jnp.logical_or(n_pseudo_pn == 4, n_pseudo_pn == 5),
-        "Error in imr_phenom_x_get_phase_coefficients: NPseudoPN requested is not valid. Number of pseudo PN coefficients must be 4 or 5.",
+        "Error in imr_phenom_x_get_phase_coefficients: "
+        "NPseudoPN requested is not valid. Number of pseudo PN coefficients must be 4 or 5.",
     )
 
     # /*
@@ -1169,9 +1166,7 @@ def imr_phenom_x_get_phase_coefficients(
         )
         return p_phase
 
-    p_phase = jax.lax.cond(
-        n_pseudo_pn == 4, lambda x: n_pseudo_pn_4_branch(x), lambda x: n_pseudo_pn_5_branch(x), operand=p_phase
-    )
+    p_phase = jax.lax.cond(n_pseudo_pn == 4, n_pseudo_pn_4_branch, n_pseudo_pn_5_branch, operand=p_phase)
 
     # Note: When n_pseudo_pn == 4, the arrays are padded with a trailing zero.
     # This padding doesn't affect the computation since the extra element is unused.
@@ -1655,8 +1650,8 @@ def imr_phenom_x_get_phase_coefficients(
 
     p_phase = jax.lax.cond(
         p_wf.imr_phenom_x_intermediate_phase_version == 104,
-        lambda x: branch_104(x),
-        lambda x: branch_105(x),
+        branch_104,
+        branch_105,
         operand=p_phase,
     )
 
@@ -1707,8 +1702,8 @@ def imr_phenom_x_get_phase_coefficients(
     # pPhase->cL   *= (1.0 + nonGR_dcl)
 
     # # /* Set pre-cached variables */
-    # pPhase->c4ov3   = pPhase->c4 / 3.0
-    # pPhase->cLovfda = pPhase->cL / pWF->fDAMP
+    c4ov3 = c4 / 3.0
+    c_lovfda = c_l / p_wf.f_damp
 
     # # /* Apply NR tuning for precessing cases (500) */
     # pPhase->b1 = pPhase->b1  +  ( pWF->PNR_DEV_PARAMETER * pWF->ZETA2 )
@@ -1894,6 +1889,8 @@ def imr_phenom_x_get_phase_coefficients(
         c4=c4,
         c_l=c_l,
         c_rd=c_rd,
+        c4ov3=c4ov3,
+        c_lovfda=c_lovfda,
         n_pseudo_pn=n_pseudo_pn,
         n_collocation_points_phase_ins=n_collocation_points_phase_ins,
         sigma1=sigma1,
