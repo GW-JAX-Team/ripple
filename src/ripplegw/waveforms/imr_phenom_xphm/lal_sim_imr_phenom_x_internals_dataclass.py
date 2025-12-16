@@ -192,6 +192,10 @@ class IMRPhenomXWaveformDataClass:  # pylint: disable=too-many-instance-attribut
 
     imr_phenom_xpnr_force_xhm_alignment: int
 
+    def copy(self, **kwargs) -> IMRPhenomXWaveformDataClass:
+        """Create a copy of the dataclass with updated fields."""
+        return dataclasses.replace(self, **kwargs)
+
 
 @_register_dataclass
 @dataclasses.dataclass(frozen=True)

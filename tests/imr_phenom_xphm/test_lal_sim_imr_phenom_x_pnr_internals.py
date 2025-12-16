@@ -5,19 +5,31 @@ from __future__ import annotations
 import copy
 import dataclasses
 
+import jax
 import jax.numpy as jnp
 import pytest
 from data_class_sample_data import WAVEFORM_DATA_CLASS_SAMPLE
 
+from ripplegw.constants import MSUN
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals import (
+    imr_phenom_x_initialize_powers,
+    imr_phenom_x_set_waveform_variables,
+)
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
     IMRPhenomXWaveformDataClass,
 )
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_pnr_internals import (
     imr_phenom_x_pnr_get_and_set_pnr_variables,
+    imr_phenom_x_pnr_set_phase_alignment_params,
 )
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_precession_dataclass import (
     IMRPhenomXPrecessionDataClass,
 )
+from ripplegw.waveforms.imr_phenom_xphm.parameter_dataclass import (
+    IMRPhenomXPHMParameterDataClass,
+)
+
+jax.config.update("jax_enable_x64", True)
 
 
 def _build_waveform_struct() -> IMRPhenomXWaveformDataClass:
@@ -324,6 +336,107 @@ class TestImrPhenomXPNRGetAndSetPNRVariables:
 
         assert isinstance(p_prec, IMRPhenomXPrecessionDataClass)
         assert p_prec.chi_single_spin >= 0.0
+
+
+class TestIMRPhenomXPNRSetPhaseAlignmentParams:
+    """Test imr_phenom_x_pnr_set_phase_alignment_params function."""
+
+    @pytest.fixture
+    def sample_structs(self) -> tuple[IMRPhenomXWaveformDataClass, IMRPhenomXPrecessionDataClass]:
+        """Fixture providing matched waveform and precession structs."""
+
+        m1 = 20.0
+        m2 = 5.0
+        chi1l_in = 0.3
+        chi2l_in = -0.25
+        delta_f = 0.1
+        f_ref = 20.0
+        phi0 = 0.0
+        f_min = 10.0
+        f_max = 1024.0
+        distance = 500.0
+        inclination = 0.0
+
+        _, powers_of_pi = imr_phenom_x_initialize_powers(jnp.pi)
+        _, p_wf = imr_phenom_x_set_waveform_variables(
+            m1_si=m1 * MSUN,
+            m2_si=m2 * MSUN,
+            chi1l_in=chi1l_in,
+            chi2l_in=chi2l_in,
+            delta_f=delta_f,
+            f_ref=f_ref,
+            phi0=phi0,
+            f_min=f_min,
+            f_max=f_max,
+            distance=distance,
+            inclination=inclination,
+            lal_params=IMRPhenomXPHMParameterDataClass(),
+            powers_of_lalpi=powers_of_pi,
+        )
+        p_prec = _build_precession_struct(p_wf)
+        return p_wf, p_prec
+
+    def test_basic_output_structure(self, sample_structs):
+        """Test that the function returns updated waveform and precession structs."""
+        p_wf, p_prec = sample_structs
+        p_wf_out, p_prec_out = imr_phenom_x_pnr_set_phase_alignment_params(p_wf, p_prec)
+
+        assert isinstance(p_wf_out, IMRPhenomXWaveformDataClass)
+        assert isinstance(p_prec_out, IMRPhenomXPrecessionDataClass)
+        assert hasattr(p_wf_out, "xas_phase_at_f_inspiral_align")
+        assert hasattr(p_wf_out, "xas_dphase_at_f_inspiral_align")
+        assert isinstance(p_prec_out.p_wf_22_as, IMRPhenomXWaveformDataClass)
+        p_wf = dataclasses.replace(p_wf, m1_si=30.0 * MSUN)
+        assert p_wf.m1_si != p_prec_out.p_wf_22_as.m1_si
+        p_wf_out = dataclasses.replace(p_wf_out, m1_si=40.0 * MSUN)
+        assert p_wf_out.m1_si != p_prec_out.p_wf_22_as.m1_si
+
+    def test_jax_jit_compatibility(self, sample_structs):
+        """Test that the function is compatible with JAX JIT compilation."""
+        import jax
+
+        jitted_func = jax.jit(imr_phenom_x_pnr_set_phase_alignment_params)
+
+        # Should not raise an error
+        p_wf, p_prec = sample_structs
+        p_wf_out, p_prec_out = jitted_func(p_wf, p_prec)
+
+        assert isinstance(p_wf_out, IMRPhenomXWaveformDataClass)
+        assert isinstance(p_prec_out, IMRPhenomXPrecessionDataClass)
+        assert p_wf_out.xas_phase_at_f_inspiral_align != 0.0
+        assert p_wf_out.xas_dphase_at_f_inspiral_align != 0.0
+
+    def test_vmap_compatibility(self, sample_structs):
+        """Test that the function is compatible with JAX vmap."""
+        import jax
+
+        vmap_func = jax.vmap(imr_phenom_x_pnr_set_phase_alignment_params, in_axes=(0, 0))
+
+        # Create batched inputs - need to batch ALL fields that will be accessed
+        p_wf, p_prec = sample_structs
+
+        # Create two copies with different m1 values
+        p_wf_1 = p_wf
+        p_wf_2 = dataclasses.replace(p_wf, m1=p_wf.m1 + 5.0)
+
+        p_prec_1 = p_prec
+        p_prec_2 = dataclasses.replace(p_prec, eta=p_prec.eta * 0.9)
+
+        # Use tree_map to batch all fields
+        import jax.tree_util as jtu
+
+        p_wf_batch = jtu.tree_map(lambda x1, x2: jnp.stack([x1, x2]), p_wf_1, p_wf_2)
+        p_prec_batch = jtu.tree_map(lambda x1, x2: jnp.stack([x1, x2]), p_prec_1, p_prec_2)
+
+        # Should not raise an error
+        p_wf_out_batch, p_prec_out_batch = vmap_func(p_wf_batch, p_prec_batch)
+
+        assert isinstance(p_wf_out_batch, IMRPhenomXWaveformDataClass)
+        assert isinstance(p_prec_out_batch, IMRPhenomXPrecessionDataClass)
+
+        # Check that output has batch dimension
+        assert p_wf_out_batch.xas_phase_at_f_inspiral_align.shape == (2,)
+        assert p_wf_out_batch.xas_dphase_at_f_inspiral_align.shape == (2,)
 
 
 if __name__ == "__main__":

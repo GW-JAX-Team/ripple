@@ -419,3 +419,63 @@ def xlal_sim_imr_phenom_x_utils_mf_to_hz(mf: float, m_tot_msun: float) -> float:
         Frequency in Hz.
     """
     return mf / (LAL_MTSUN_SI * m_tot_msun)
+
+
+def xlal_sim_imr_phenom_x_psi4_to_strain(eta: float, s: float, dchi: float) -> float:
+    """
+    This is a fit of the time-difference between t_peak of strain and t_peak of psi4
+    needed to align in time our waveforms, which are calibrated to psi4
+    """
+    eta2 = pow(eta, 2)
+    eta3 = pow(eta, 3)
+    eta4 = pow(eta, 4)
+    s2 = s * s
+    s3 = s2 * s
+    s4 = s3 * s
+
+    no_spin = (
+        13.39320482758057
+        - 175.42481512989315 * eta
+        + 2097.425116152503 * eta2
+        - 9862.84178637907 * eta3
+        + 16026.897939722587 * eta4
+    )
+    eq_spin = (
+        (4.7895602776763 - 163.04871764530466 * eta + 609.5575850476959 * eta2) * s
+        + (1.3934428041390161 - 97.51812681228478 * eta + 376.9200932531847 * eta2) * s2
+        + (15.649521097877374 + 137.33317057388916 * eta - 755.9566456906406 * eta2) * s3
+        + (13.097315867845788 + 149.30405703643288 * eta - 764.5242164872267 * eta2) * s4
+    )
+    uneq_spin = 105.37711654943146 * dchi * jnp.sqrt(1.0 - 4.0 * eta) * eta2
+
+    return no_spin + eq_spin + uneq_spin
+
+
+def xlal_sim_imr_phenom_x_linb(eta: float, s: float, dchi: float, delta: float) -> float:
+
+    eta2 = eta * eta
+    eta3 = eta2 * eta
+    eta4 = eta3 * eta
+    eta5 = eta3 * eta2
+    eta6 = eta4 * eta2
+    s2 = s * s
+    s3 = s2 * s
+    s4 = s3 * s
+    no_spin = (
+        3155.1635543201924
+        + 1257.9949740608242 * eta
+        - 32243.28428870599 * eta2
+        + 347213.65466875216 * eta3
+        - 1.9223851649491738e6 * eta4
+        + 5.3035911346921865e6 * eta5
+        - 5.789128656876938e6 * eta6
+    )
+    eq_spin = (
+        (-24.181508118588667 + 115.49264174560281 * eta - 380.19778216022763 * eta2) * s
+        + (24.72585609641552 - 328.3762360751952 * eta + 725.6024119989094 * eta2) * s2
+        + (23.404604124552 - 646.3410199799737 * eta + 1941.8836639529036 * eta2) * s3
+        + (-12.814828278938885 - 325.92980012408367 * eta + 1320.102640190539 * eta2) * s4
+    )
+    uneq_spin = -148.17317525117338 * dchi * delta * eta2
+
+    return no_spin + eq_spin + uneq_spin

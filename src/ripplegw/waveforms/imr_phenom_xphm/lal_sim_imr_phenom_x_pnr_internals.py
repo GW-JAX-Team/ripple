@@ -4,7 +4,6 @@ Docstring for ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_pnr_intern
 
 from __future__ import annotations
 
-import copy
 import dataclasses
 
 import jax
@@ -13,6 +12,7 @@ from jax.experimental import checkify
 
 from ripplegw.constants import PI
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals import (
+    imr_phenom_x_full_phase_22,
     imr_phenom_x_get_phase_coefficients,
 )
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
@@ -383,13 +383,12 @@ def imr_phenom_x_pnr_get_and_set_co_prec_params(
     # //
     # pWF->NU0 = 0
 
-    return (p_wf, p_prec)
+    return p_wf, p_prec
 
 
 def imr_phenom_x_pnr_set_phase_alignment_params(
     p_wf: IMRPhenomXWaveformDataClass,
     p_prec: IMRPhenomXPrecessionDataClass,
-    lal_params: IMRPhenomXPHMParameterDataClass,
 ) -> tuple[IMRPhenomXWaveformDataClass, IMRPhenomXPrecessionDataClass]:
 
     # /*
@@ -403,7 +402,8 @@ def imr_phenom_x_pnr_set_phase_alignment_params(
     # when pWF is changed, so is pWF22AS. We do not want that, so the use of
     # malloc is essential.
     # */
-    p_wf_22_as = copy.deepcopy(p_wf)
+    p_wf_22_as = p_wf.copy()
+
     # p_prec.p_wf_22_as = p_wf_22_as
 
     # /* Define alignment frequency in fM (aka Mf). This is the
@@ -416,7 +416,7 @@ def imr_phenom_x_pnr_set_phase_alignment_params(
     # // BEFORE any changes are made to pWF -- SO the pWF input must not
     # // contain any changes due to precession.
     p_phase_as = IMRPhenomXPhaseCoefficientsDataClass()
-    p_phase_as = imr_phenom_x_get_phase_coefficients(p_wf, p_phase_as)
+    _, p_phase_as = imr_phenom_x_get_phase_coefficients(p_wf, p_phase_as)
 
     # /*
     # Below we use IMRPhenomX_FullPhase_22 to somultaneously compute
@@ -425,9 +425,9 @@ def imr_phenom_x_pnr_set_phase_alignment_params(
 
     # /**********************************************************/
     # // Initialize holders for the phase and phase derivative
-    # double phase, dphase
     # // Define the values inside of IMRPhenomX_FullPhase_22
-    # IMRPhenomX_FullPhase_22(&phase,&dphase,pWF->f_inspiral_align,pPhaseAS,pWF)
+    p_phase_as, phase, dphase = imr_phenom_x_full_phase_22(f_inspiral_align, p_phase_as, p_wf)
+
     # // Store the phase and phase derivative for later use
     # pWF->XAS_phase_at_f_inspiral_align = phase
     # pWF->XAS_dphase_at_f_inspiral_align = dphase//full_dphase_value
@@ -440,15 +440,14 @@ def imr_phenom_x_pnr_set_phase_alignment_params(
     # is facilitated by IMRPhenomX_PNR_EnforceXASPhaseAlignment below.
     # */
 
-    # // // Printing for development
-    # // printf("##>> XAS_phase_at_f_inspiral_align = %f\n",pWF->XAS_phase_at_f_inspiral_align)
-    # // printf("##>> XAS_dphase_at_f_inspiral_align = %f\n",pWF->XAS_dphase_at_f_inspiral_align)
-
-    # LALFree(pPhaseAS)
     p_wf = dataclasses.replace(
         p_wf,
         f_inspiral_align=f_inspiral_align,
-        p_wf_22_as=p_wf_22_as,
+        xas_phase_at_f_inspiral_align=phase,
+        xas_dphase_at_f_inspiral_align=dphase,  # full_dphase_value
     )
+    p_prec = dataclasses.replace(p_prec, p_wf_22_as=p_wf_22_as)
+
+    del p_phase_as  # clean up extra phase dataclass
 
     return p_wf, p_prec
