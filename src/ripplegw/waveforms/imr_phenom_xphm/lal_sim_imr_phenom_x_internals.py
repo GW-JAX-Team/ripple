@@ -13,21 +13,21 @@ from ripplegw.constants import MRSUN, PI, gt
 from ripplegw.typing import Array
 from ripplegw.waveforms.imr_phenom_xphm.lal_constants import LAL_GAMMA, LAL_MSUN_SI
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_inspiral import (
+    imr_phenom_x_inspiral_phase_22_ansatz,
+    imr_phenom_x_inspiral_phase_22_ansatz_int,
     imr_phenom_x_inspiral_phase_22_d13,
     imr_phenom_x_inspiral_phase_22_d23,
     imr_phenom_x_inspiral_phase_22_d43,
     imr_phenom_x_inspiral_phase_22_d53,
     imr_phenom_x_inspiral_phase_22_v3,
-    imr_phenom_x_inspiral_phase_22_ansatz,
-    imr_phenom_x_inspiral_phase_22_ansatz_int,
 )
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_intermediate import (
+    imr_phenom_x_intermediate_phase_22_ansatz,
+    imr_phenom_x_intermediate_phase_22_ansatz_int,
     imr_phenom_x_intermediate_phase_22_d43,
     imr_phenom_x_intermediate_phase_22_v2,
     imr_phenom_x_intermediate_phase_22_v2m_rd_v4,
     imr_phenom_x_intermediate_phase_22_v3m_rd_v4,
-    imr_phenom_x_intermediate_phase_22_ansatz,
-    imr_phenom_x_intermediate_phase_22_ansatz_int,
 )
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
     IMRPhenomXPhaseCoefficientsDataClass,
@@ -39,13 +39,13 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_qnm import (
     evaluate_QNMfit_fring22,
 )
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_ringdown import (
+    imr_phenom_x_ringdown_phase_22_ansatz,
+    imr_phenom_x_ringdown_phase_22_ansatz_int,
     imr_phenom_x_ringdown_phase_22_d12,
     imr_phenom_x_ringdown_phase_22_d24,
     imr_phenom_x_ringdown_phase_22_d34,
     imr_phenom_x_ringdown_phase_22_d54,
     imr_phenom_x_ringdown_phase_22_v4,
-    imr_phenom_x_ringdown_phase_22_ansatz,
-    imr_phenom_x_ringdown_phase_22_ansatz_int,
 )
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import (
     imr_phenom_x_internal_nudge,
@@ -56,6 +56,8 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import (
     xlal_sim_imr_phenom_x_f_meco,
     xlal_sim_imr_phenom_x_final_mass_2017,
     xlal_sim_imr_phenom_x_final_spin_2017,
+    xlal_sim_imr_phenom_x_linb,
+    xlal_sim_imr_phenom_x_psi4_to_strain,
     xlal_sim_imr_phenom_x_stot_r,
 )
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_inspiral_waveform_flags import (
@@ -910,24 +912,24 @@ def imr_phenom_x_get_phase_coefficients(
     # // Eq. 7.13 in arXiv:2001.11412
     rd_v4 = imr_phenom_x_ringdown_phase_22_v4(
         p_wf.eta, p_wf.s_tot_r, p_wf.dchi, p_wf.delta, p_wf.imr_phenom_x_ringdown_phase_version
-    )
+    )[1]
 
     # /* These are the calibrated collocation points, as per Eq. 7.13 */
     collocation_values_phase_rd = jnp.array(
         [
             imr_phenom_x_ringdown_phase_22_d12(
                 p_wf.eta, p_wf.s_tot_r, p_wf.dchi, p_wf.delta, p_wf.imr_phenom_x_ringdown_phase_version
-            ),
+            )[1],
             imr_phenom_x_ringdown_phase_22_d24(
                 p_wf.eta, p_wf.s_tot_r, p_wf.dchi, p_wf.delta, p_wf.imr_phenom_x_ringdown_phase_version
-            ),
+            )[1],
             imr_phenom_x_ringdown_phase_22_d34(
                 p_wf.eta, p_wf.s_tot_r, p_wf.dchi, p_wf.delta, p_wf.imr_phenom_x_ringdown_phase_version
-            ),
+            )[1],
             rd_v4,
             imr_phenom_x_ringdown_phase_22_d54(
                 p_wf.eta, p_wf.s_tot_r, p_wf.dchi, p_wf.delta, p_wf.imr_phenom_x_ringdown_phase_version
-            ),
+            )[1],
         ]
     )
 
@@ -1042,10 +1044,18 @@ def imr_phenom_x_get_phase_coefficients(
         # // Calculate the value of the differences between the ith and 3rd collocation points at the GC nodes
         collocation_values_phase_ins = jnp.array(
             [
-                imr_phenom_x_inspiral_phase_22_d13(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version),
-                imr_phenom_x_inspiral_phase_22_d23(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version),
-                imr_phenom_x_inspiral_phase_22_v3(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version),
-                imr_phenom_x_inspiral_phase_22_d43(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version),
+                imr_phenom_x_inspiral_phase_22_d13(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version)[
+                    1
+                ],
+                imr_phenom_x_inspiral_phase_22_d23(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version)[
+                    1
+                ],
+                imr_phenom_x_inspiral_phase_22_v3(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version)[
+                    1
+                ],
+                imr_phenom_x_inspiral_phase_22_d43(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version)[
+                    1
+                ],
             ]
         )
 
@@ -1056,16 +1066,12 @@ def imr_phenom_x_get_phase_coefficients(
 
         b = collocation_values_phase_ins.copy()
 
-        ff = collocation_points_phase_ins  # jax.lax.dynamic_slice(
-        #     collocation_points_phase_ins,
-        #     (0,),  # start index
-        #     (4,)   # slice size
-        # )
+        ff = collocation_points_phase_ins
         ff1 = jnp.cbrt(ff)
         ff2 = ff1 * ff1
         ff3 = ff
 
-        a_matrix = jnp.array([ff, ff1, ff2, ff3]).T
+        a_matrix = jnp.array([jnp.ones_like(ff), ff1, ff2, ff3]).T
 
         # /* We now solve the system A x = b via an LU decomposition */
         x = jax.scipy.linalg.lu_solve(jax.scipy.linalg.lu_factor(a_matrix), b)
@@ -1107,11 +1113,21 @@ def imr_phenom_x_get_phase_coefficients(
 
         collocation_values_phase_ins = jnp.array(
             [
-                imr_phenom_x_inspiral_phase_22_d13(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version),
-                imr_phenom_x_inspiral_phase_22_d23(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version),
-                imr_phenom_x_inspiral_phase_22_v3(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version),
-                imr_phenom_x_inspiral_phase_22_d43(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version),
-                imr_phenom_x_inspiral_phase_22_d53(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version),
+                imr_phenom_x_inspiral_phase_22_d13(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version)[
+                    1
+                ],
+                imr_phenom_x_inspiral_phase_22_d23(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version)[
+                    1
+                ],
+                imr_phenom_x_inspiral_phase_22_v3(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version)[
+                    1
+                ],
+                imr_phenom_x_inspiral_phase_22_d43(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version)[
+                    1
+                ],
+                imr_phenom_x_inspiral_phase_22_d53(eta, chi1l, chi2l, delta, p_wf.imr_phenom_x_inspiral_phase_version)[
+                    1
+                ],
             ]
         )
 
@@ -1129,7 +1145,7 @@ def imr_phenom_x_get_phase_coefficients(
         ff3 = ff
         ff4 = ff * ff1
 
-        a_matrix = jnp.array([ff, ff1, ff2, ff3, ff4]).T
+        a_matrix = jnp.array([jnp.ones_like(ff), ff1, ff2, ff3, ff4]).T
 
         # /* We now solve the system A x = b via an LU decomposition */
         x = jax.scipy.linalg.lu_solve(jax.scipy.linalg.lu_factor(a_matrix), b)
@@ -1509,17 +1525,17 @@ def imr_phenom_x_get_phase_coefficients(
         collocation_points_phase_int = gpoints4 * deltax + xmin
 
         # v2IM - v4RD. Using v4RD helps condition the fits with v4RD being very a robust fit.
-        v2_im_m_rd_v4 = imr_phenom_x_intermediate_phase_22_v2m_rd_v4(
+        _, v2_im_m_rd_v4 = imr_phenom_x_intermediate_phase_22_v2m_rd_v4(
             eta, p_wf.s_tot_r, p_wf.dchi, delta, p_wf.imr_phenom_x_intermediate_phase_version
         )
 
         # v3IM - v4RD. Using v4RD helps condition the fits with v4RD being very a robust fit.
-        v3_im_m_rd_v4 = imr_phenom_x_intermediate_phase_22_v3m_rd_v4(
+        _, v3_im_m_rd_v4 = imr_phenom_x_intermediate_phase_22_v3m_rd_v4(
             eta, p_wf.s_tot_r, p_wf.dchi, delta, p_wf.imr_phenom_x_intermediate_phase_version
         )
 
         # Direct fit to the collocation point at F2. We will take a weighted average of the direct and conditioned fit.
-        v2_im = imr_phenom_x_intermediate_phase_22_v2(
+        _, v2_im = imr_phenom_x_intermediate_phase_22_v2(
             eta, p_wf.s_tot_r, p_wf.dchi, delta, p_wf.imr_phenom_x_intermediate_phase_version
         )
 
@@ -1533,11 +1549,7 @@ def imr_phenom_x_get_phase_coefficients(
             ]
         )
 
-        ff = collocation_points_phase_int  # jax.lax.dynamic_slice(
-        #     collocation_points_phase_int,
-        #     (0,),  # start index
-        #     (4,)   # slice size
-        # )
+        ff = collocation_points_phase_int
         ff1 = p_wf.f_ring / ff
         ff2 = ff1 * ff1
         ff3 = ff1 * ff2
@@ -1545,7 +1557,7 @@ def imr_phenom_x_get_phase_coefficients(
 
         b = collocation_values_phase_int - ff0
 
-        a_matrix = jnp.array([jnp.ones(4), ff1, ff2, ff3]).T
+        a_matrix = jnp.array([jnp.ones_like(ff), ff1, ff2, ff3]).T
 
         # /* We now solve the system A x = b via an LU decomposition */
         x = jax.scipy.linalg.lu_solve(jax.scipy.linalg.lu_factor(a_matrix), b)
@@ -1580,17 +1592,17 @@ def imr_phenom_x_get_phase_coefficients(
         # /* Evaluate collocation points */
         # /* The first and last collocation points for the intermediate region are set from the inspiral fit and ringdown respectively */
         # // v2IM - v4RD. Using v4RD helps condition the fits with v4RD being very a robust fit.
-        v2_im_m_rd_v4 = imr_phenom_x_intermediate_phase_22_v2m_rd_v4(
+        _, v2_im_m_rd_v4 = imr_phenom_x_intermediate_phase_22_v2m_rd_v4(
             eta, p_wf.s_tot_r, p_wf.dchi, delta, p_wf.imr_phenom_x_intermediate_phase_version
         )
 
         # v3IM - v4RD. Using v4RD helps condition the fits with v4RD being very a robust fit.
-        v3_im_m_rd_v4 = imr_phenom_x_intermediate_phase_22_v3m_rd_v4(
+        _, v3_im_m_rd_v4 = imr_phenom_x_intermediate_phase_22_v3m_rd_v4(
             eta, p_wf.s_tot_r, p_wf.dchi, delta, p_wf.imr_phenom_x_intermediate_phase_version
         )
 
         # Direct fit to the collocation point at F2. We will take a weighted average of the direct and conditioned fit.
-        v2_im = imr_phenom_x_intermediate_phase_22_v2(
+        _, v2_im = imr_phenom_x_intermediate_phase_22_v2(
             eta, p_wf.s_tot_r, p_wf.dchi, delta, p_wf.imr_phenom_x_intermediate_phase_version
         )
 
@@ -1603,7 +1615,7 @@ def imr_phenom_x_get_phase_coefficients(
                 v3_im_m_rd_v4 + rd_v4,
                 imr_phenom_x_intermediate_phase_22_d43(
                     eta, p_wf.s_tot_r, p_wf.dchi, delta, p_wf.imr_phenom_x_intermediate_phase_version
-                )
+                )[1]
                 + (v3_im_m_rd_v4 + rd_v4),
                 phase_rd,
             ]
@@ -1618,7 +1630,7 @@ def imr_phenom_x_get_phase_coefficients(
 
         b = collocation_values_phase_int - ff0
 
-        a_matrix = jnp.array([jnp.ones(5), ff1, ff2, ff3, ff4]).T
+        a_matrix = jnp.array([jnp.ones_like(ff), ff1, ff2, ff3, ff4]).T
 
         # /* We now solve the system A x = b via an LU decomposition */
         x = jax.scipy.linalg.lu_solve(jax.scipy.linalg.lu_factor(a_matrix), b)
@@ -1926,7 +1938,7 @@ def imr_phenom_x_get_phase_coefficients(
 
 def imr_phenom_x_phase_22_connection_coefficients(
     p_wf: IMRPhenomXWaveformDataClass, p_phase: IMRPhenomXPhaseCoefficientsDataClass
-):
+) -> IMRPhenomXPhaseCoefficientsDataClass:
     f_ins = p_phase.f_phase_match_in
     f_int = p_phase.f_phase_match_im
 
@@ -1947,56 +1959,64 @@ def imr_phenom_x_phase_22_connection_coefficients(
 
     # */
 
-    powers_of_f_ins = imr_phenom_x_initialize_powers(f_ins)
+    _, powers_of_f_ins = imr_phenom_x_initialize_powers(f_ins)
 
+    dphi_ins = imr_phenom_x_inspiral_phase_22_ansatz(f_ins, powers_of_f_ins, p_phase)
+    _, dphi_int = imr_phenom_x_intermediate_phase_22_ansatz(f_ins, powers_of_f_ins, p_wf, p_phase)
+    # NOTE: we could use autodiff for the two functions here.
+    # To be consitent with LAL, I'm keeping it like this. This holds for all non-ansatz_int functions
 
-    DPhiIns = IMRPhenomX_Inspiral_Phase_22_Ansatz(fIns,&powers_of_fIns,pPhase)
-    DPhiInt = IMRPhenomX_Intermediate_Phase_22_Ansatz(fIns,&powers_of_fIns,pWF,pPhase)
+    c2_int = dphi_ins - dphi_int
 
-    pPhase->C2Int  = DPhiIns - DPhiInt
+    phi_in = imr_phenom_x_inspiral_phase_22_ansatz_int(f_ins, powers_of_f_ins, p_phase)
+    _, phi_im = imr_phenom_x_intermediate_phase_22_ansatz_int(f_ins, powers_of_f_ins, p_wf, p_phase)
 
-    phiIN = IMRPhenomX_Inspiral_Phase_22_AnsatzInt(fIns,&powers_of_fIns,pPhase)
-    phiIM = IMRPhenomX_Intermediate_Phase_22_AnsatzInt(fIns,&powers_of_fIns,pWF,pPhase)
+    c1_int = phi_in - phi_im - (c2_int * f_ins)
 
-    pPhase->C1Int = phiIN - phiIM - (pPhase->C2Int * fIns)
+    # /*
+    #         Assume an ansatz of the form:
 
-    /*
-            Assume an ansatz of the form:
+    #         phi_Intermediate (f)    = phi_Ringdown (f) + C1 + C2 * f
 
-            phi_Intermediate (f)    = phi_Ringdown (f) + C1 + C2 * f
+    #         where transition frequency is fIM
 
-            where transition frequency is fIM
+    #         phi_Intermediate (fIM) = phi_Ringdown (fRD) + C1 + C2 * fIM
+    #         phi_Intermediate'(fIM) = phi_Ringdown'(fRD) + C2
 
-            phi_Intermediate (fIM) = phi_Ringdown (fRD) + C1 + C2 * fIM
-            phi_Intermediate'(fIM) = phi_Ringdown'(fRD) + C2
+    #         Solving for C1 and C2
 
-            Solving for C1 and C2
+    #         C2 = phi_Inspiral'(fIM) - phi_Intermediate'(fIM)
+    #         C1 = phi_Inspiral (fIM) - phi_Intermediate (fIM) - C2 * fIM
 
-            C2 = phi_Inspiral'(fIM) - phi_Intermediate'(fIM)
-            C1 = phi_Inspiral (fIM) - phi_Intermediate (fIM) - C2 * fIM
+    # */
+    _, powers_of_f_int = imr_phenom_x_initialize_powers(f_int)
 
-    */
-    IMRPhenomX_UsefulPowers powers_of_fInt
-    IMRPhenomX_Initialize_Powers(&powers_of_fInt,fInt)
+    phi_imc = (
+        imr_phenom_x_intermediate_phase_22_ansatz_int(f_int, powers_of_f_int, p_wf, p_phase)[1]
+        + c1_int
+        + c2_int * f_int
+    )
+    _, phi_rd = imr_phenom_x_ringdown_phase_22_ansatz_int(f_int, powers_of_f_int, p_wf, p_phase)
+    dphi_intc = imr_phenom_x_intermediate_phase_22_ansatz(f_int, powers_of_f_int, p_wf, p_phase)[1] + c2_int
+    _, dphi_rd = imr_phenom_x_ringdown_phase_22_ansatz(f_int, powers_of_f_int, p_wf, p_phase)
 
-    phiIMC         = IMRPhenomX_Intermediate_Phase_22_AnsatzInt(fInt,&powers_of_fInt,pWF,pPhase) + pPhase->C1Int + pPhase->C2Int*fInt
-    phiRD          = IMRPhenomX_Ringdown_Phase_22_AnsatzInt(fInt,&powers_of_fInt,pWF,pPhase)
-    DPhiIntC       = IMRPhenomX_Intermediate_Phase_22_Ansatz(fInt,&powers_of_fInt,pWF,pPhase) + pPhase->C2Int
-    DPhiRD         = IMRPhenomX_Ringdown_Phase_22_Ansatz(fInt,&powers_of_fInt,pWF,pPhase)
+    c2_m_rd = dphi_intc - dphi_rd
+    c1_m_rd = phi_imc - phi_rd - c2_m_rd * f_int
 
-    pPhase->C2MRD = DPhiIntC - DPhiRD
-    pPhase->C1MRD = phiIMC - phiRD - pPhase->C2MRD*fInt
+    p_phase = dataclasses.replace(
+        p_phase,
+        c1_int=c1_int,
+        c2_int=c2_int,
+        c1_m_rd=c1_m_rd,
+        c2_m_rd=c2_m_rd,
+    )
 
-    return
+    return p_phase
 
 
 def imr_phenom_x_full_phase_22(
-        phase: float,
-        dphase: float,
-        m_f: float,
-        p_phase: IMRPhenomXPhaseCoefficientsDataClass,
-        p_wf: IMRPhenomXWaveformDataClass
-):
+    m_f: float | Array, p_phase: IMRPhenomXPhaseCoefficientsDataClass, p_wf: IMRPhenomXWaveformDataClass
+) -> tuple[IMRPhenomXPhaseCoefficientsDataClass, Array, Array]:
     """
     Function to compute full model phase. This function is designed to be used in in initialization routines, and not for evaluating the phase at many frequencies.
     """
@@ -2006,33 +2026,37 @@ def imr_phenom_x_full_phase_22(
     # /*--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--*/
 
     # // Get useful powers of Mf
-    powers_of_m_f = imr_phenom_x_initialize_powers(m_f)
+    _, powers_of_m_f = imr_phenom_x_initialize_powers(m_f)
 
     # /* Initialize a struct containing useful powers of Mf at fRef */
-    powers_of_m_fref = imr_phenom_x_initialize_powers(p_wf.m_f_ref)
+    _, powers_of_m_fref = imr_phenom_x_initialize_powers(p_wf.m_f_ref)
 
     # /*--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--*/
     # /*           Define needed constants             */
     # /*--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--(*)--*/
 
     # /* 1/eta is used to re-scale the pre-phase quantity */
-    inveta    = (1.0 / p_wf.eta)
+    inveta = 1.0 / p_wf.eta
 
     # /* We keep this phase shift to ease comparison with
     # original phase routines */
-    lina = 0
+    lina = 0.0
 
     # /* Get phase connection coefficients
     # and store them to pWF. This step is to make
     # sure that teh coefficients are up-to-date */
-    IMRPhenomX_Phase_22_ConnectionCoefficients(pWF,pPhase)
+    p_phase = imr_phenom_x_phase_22_connection_coefficients(p_wf, p_phase)
 
     # /* Compute the timeshift that PhenomXAS uses to align waveforms
     # with the hybrids used to make their model */
-    linb = IMRPhenomX_TimeShift_22(pPhase, pWF)
+    linb = imr_phenom_x_time_shift_22(p_phase, p_wf)
 
     # Calculate phase at reference frequency: phifRef = 2.0*phi0 + LAL_PI_4 + PhenomXPhase(fRef)
-    phifRef = -(inveta * IMRPhenomX_Phase_22(pWF->MfRef, &powers_of_MfRef, pPhase, pWF) + linb*pWF->MfRef + lina) + 2.0*pWF->phi0 + LAL_PI_4
+    phif_ref = (
+        -(inveta * imr_phenom_x_phase_22(p_wf.m_f_ref, powers_of_m_fref, p_phase, p_wf) + linb * p_wf.m_f_ref + lina)
+        + 2.0 * p_wf.phi0
+        + PI
+    )
 
     # ~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+~~+
     # Note that we do not store the value of phifRef to pWF as is done in
@@ -2048,15 +2072,114 @@ def imr_phenom_x_full_phase_22(
 
     # /* Use previously made function to compute what we call
     # here the pre-phase, becuase it's not actually a phase! */
-    pre_phase = IMRPhenomX_Phase_22(Mf,&powers_of_Mf,pPhase,pWF)
+    pre_phase = imr_phenom_x_phase_22(m_f, powers_of_m_f, p_phase, p_wf)
 
     # /* Given the pre-phase, we need to scale and shift according to the
     # XAS construction */
-    *phase   = pre_phase * inveta
-    *phase  += linb*Mf + lina + phifRef
+    phase = pre_phase * inveta
+    phase += linb * m_f + lina + phif_ref
 
     # /* Repeat the excercise above for the phase derivative:
     # "dphase" is (d/df)phase at Mf */
-    pre_dphase = IMRPhenomX_dPhase_22(Mf,&powers_of_Mf,pPhase,pWF)
-    *dphase  = pre_dphase * inveta
-    *dphase += linb
+    pre_dphase = jax.grad(imr_phenom_x_phase_22)(m_f, powers_of_m_f, p_phase, p_wf)
+    dphase = pre_dphase * inveta
+    dphase += linb
+
+    return p_phase, phase, dphase
+
+
+def imr_phenom_x_time_shift_22(
+    p_phase: IMRPhenomXPhaseCoefficientsDataClass, p_wf: IMRPhenomXWaveformDataClass
+) -> float:
+
+    # // here we align the model to the hybrids, for which psi4 peaks 500M before the end of the waveform
+    # // linb is a parameter-space fit of dphi22(fring22-fdamp22), evaluated on the calibration dataset
+    linb = xlal_sim_imr_phenom_x_linb(p_wf.eta, p_wf.s_tot_r, p_wf.dchi, p_wf.delta)
+    fref_fit = p_wf.f_ring - p_wf.f_damp
+    _, powers_of_fref_fit = imr_phenom_x_initialize_powers(fref_fit)
+    dphi22_ref = 1.0 / (p_wf.eta) * jax.grad(imr_phenom_x_phase_22)(fref_fit, powers_of_fref_fit, p_phase, p_wf)
+
+    # // here we correct the time-alignment of the waveform by first aligning the peak of psi4, and then adding a correction to align the peak of strain instead
+    psi4tostrain = xlal_sim_imr_phenom_x_psi4_to_strain(p_wf.eta, p_wf.s_tot_r, p_wf.dchi)
+    tshift = linb - dphi22_ref - 2.0 * PI * (500 + psi4tostrain)
+
+    # // Apply PNR deviation (500)
+    tshift = tshift + (p_wf.pnr_dev_parameter * p_wf.nu0)
+
+    # //phX phase will read phi22=1/eta*IMRPhenomX_Phase_22+tshift f, modulo a residual phase-shift
+    return tshift
+
+
+def imr_phenom_x_phase_22(
+    ff: float | Array,
+    powers_of_f: IMRPhenomXUsefulPowersDataClass,
+    p_phase: IMRPhenomXPhaseCoefficientsDataClass,
+    p_wf: IMRPhenomXWaveformDataClass,
+) -> float | Array:
+    """
+    This function computes the IMRPhenomX phase given a phase coefficients struct pPhase.
+    """
+
+    def inspiral_branch(
+        args: tuple[
+            float | Array,
+            IMRPhenomXUsefulPowersDataClass,
+            IMRPhenomXWaveformDataClass,
+            IMRPhenomXPhaseCoefficientsDataClass,
+        ],
+    ) -> float | Array:
+        ff, powers_of_f, _, p_phase = args
+        return imr_phenom_x_inspiral_phase_22_ansatz_int(ff, powers_of_f, p_phase)
+
+    def intermediate_branch(
+        args: tuple[
+            float | Array,
+            IMRPhenomXUsefulPowersDataClass,
+            IMRPhenomXWaveformDataClass,
+            IMRPhenomXPhaseCoefficientsDataClass,
+        ],
+    ) -> float | Array:
+        ff, powers_of_f, p_wf, p_phase = args
+        return (
+            imr_phenom_x_intermediate_phase_22_ansatz_int(ff, powers_of_f, p_wf, p_phase)[1]
+            + p_phase.c1_int
+            + (p_phase.c2_int * ff)
+        )
+
+    def ringdown_branch(
+        args: tuple[
+            float | Array,
+            IMRPhenomXUsefulPowersDataClass,
+            IMRPhenomXWaveformDataClass,
+            IMRPhenomXPhaseCoefficientsDataClass,
+        ],
+    ) -> float | Array:
+        ff, powers_of_f, p_wf, p_phase = args
+        return (
+            imr_phenom_x_ringdown_phase_22_ansatz_int(ff, powers_of_f, p_wf, p_phase)[1]
+            + p_phase.c1_m_rd
+            + (p_phase.c2_m_rd * ff)
+        )
+
+    def not_inspiral_branch(
+        args: tuple[
+            float | Array,
+            IMRPhenomXUsefulPowersDataClass,
+            IMRPhenomXWaveformDataClass,
+            IMRPhenomXPhaseCoefficientsDataClass,
+        ],
+    ) -> float | Array:
+        ff, powers_of_f, p_wf, p_phase = args
+        return jax.lax.cond(
+            ff > p_phase.f_phase_match_im,
+            ringdown_branch,  # Ringdown region, f > fPhaseIntMax
+            intermediate_branch,  # Intermediate region, fPhaseInsMax < f < fPhaseIntMax
+            operand=(ff, powers_of_f, p_wf, p_phase),
+        )
+
+    return jax.lax.cond(
+        ff < p_phase.f_phase_match_in,
+        inspiral_branch,  # Inspiral region, f < fPhaseInsMax
+        not_inspiral_branch,
+        operand=(ff, powers_of_f, p_wf, p_phase),
+    )
