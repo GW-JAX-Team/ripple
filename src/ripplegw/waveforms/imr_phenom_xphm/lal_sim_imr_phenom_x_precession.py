@@ -1748,3 +1748,16 @@ def imr_phenom_x_vector_dot_product(v1: Array, v2: Array) -> float:
         The dot product of v1 and v2.
     """
     return jnp.dot(v1, v2)
+
+
+def imr_phenom_x_vector_scalar(v1: Array, a: float) -> Array:
+    """Compute the scalar multiplication of a vector.
+
+    Args:
+        v1: Input vector as an array.
+        a: Scalar value to multiply with the vector.
+
+    Returns:
+        The resulting vector after scalar multiplication.
+    """
+    return v1 * a
