@@ -4,13 +4,13 @@ Various constants, all in SI units.
 
 EulerGamma = 0.577215664901532860606512090082402431
 
-MSUN = 1.988409902147041637325262574352366540e30  # kg
+MSUN = 1.9884098706980507e30  # kg (LAL_MSUN_SI)
 """Solar mass"""
 
-MRSUN = 1.476625038050124729627979840144936351e3
+MRSUN = 1476.6250380501247  # m (LAL_MRSUN_SI)
 """Geometrized nominal solar mass, m"""
 
-G = 6.67430e-11  # m^3 / kg / s^2
+G = 6.6743e-11  # m^3 / kg / s^2 (LAL_G_SI)
 """Newton's gravitational constant"""
 
 C = 299792458.0  # m / s
