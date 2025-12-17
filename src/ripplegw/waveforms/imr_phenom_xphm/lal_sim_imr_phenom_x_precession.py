@@ -1521,16 +1521,9 @@ def imr_phenom_x_interpolate_alpha_beta_spin_taylor(  # pylint: disable=unused-a
         s1_perp = imr_phenom_x_vector_scalar(s1_perp, m1 * m1)
         s2_perp = imr_phenom_x_vector_diff(s2_f, imr_phenom_x_vector_scalar(l_nf, dot_s2_l))
         s2_perp = imr_phenom_x_vector_scalar(s2_perp, m2 * m2)
-
-    #     if(XLALSimInspiralWaveformParamsLookupPhenomXPFinalSpinMod(LALparams)==4){
-
-    #     REAL8 m1 = pWF->m1_SI / pWF->Mtot_SI;
-    #     REAL8 m2 = pWF->m2_SI / pWF->Mtot_SI;
-
-    #     vector Lnf  = {pPrec->PNarrays->LNhatx_PN->data->data[i_max],pPrec->PNarrays->LNhaty_PN->data->data[i_max],pPrec->PNarrays->LNhatz_PN->data->data[i_max]};
-    #     REAL8 Lnorm = sqrt(IMRPhenomX_vector_dot_product(Lnf,Lnf));
-    #     vector S1f  = {pPrec->PNarrays->S1x_PN->data->data[i_max],pPrec->PNarrays->S1y_PN->data->data[i_max],pPrec->PNarrays->S1z_PN->data->data[i_max]};
-    #     vector S2f  = {pPrec->PNarrays->S2x_PN->data->data[i_max],pPrec->PNarrays->S2y_PN->data->data[i_max],pPrec->PNarrays->S2z_PN->data->data[i_max]};
+        s_tot_perp = imr_phenom_x_vector_sum(s1_perp, s2_perp)
+        s_perp_norm = jnp.sqrt(imr_phenom_x_vector_dot_product(s_tot_perp, s_tot_perp))
+        chi_perp_norm = s_perp_norm * jnp.power(m1 + m2, 2) / jnp.power(m1, 2)
 
     #     REAL8 dotS1L = IMRPhenomX_vector_dot_product(S1f,Lnf)/Lnorm;
     #     REAL8 dotS2L  = IMRPhenomX_vector_dot_product(S2f,Lnf)/Lnorm;
