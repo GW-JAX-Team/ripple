@@ -1497,6 +1497,9 @@ def imr_phenom_x_interpolate_alpha_beta_spin_taylor(  # pylint: disable=unused-a
                 p_prec.pn_arrays.ln_hat_z_pn[final_state["i_max"]],
             ]
         )
+
+        l_norm = jnp.sqrt(imr_phenom_x_vector_dot_product(l_nf, l_nf))
+
         s1_f = jnp.array(
             [
                 p_prec.pn_arrays.s1x_pn[final_state["i_max"]],
@@ -1511,6 +1514,8 @@ def imr_phenom_x_interpolate_alpha_beta_spin_taylor(  # pylint: disable=unused-a
                 p_prec.pn_arrays.s2z_pn[final_state["i_max"]],
             ]
         )
+        dot_s1_l = imr_phenom_x_vector_dot_product(s1_f, l_nf) / l_norm
+        dot_s2_l = imr_phenom_x_vector_dot_product(s2_f, l_nf) / l_norm
 
     #     if(XLALSimInspiralWaveformParamsLookupPhenomXPFinalSpinMod(LALparams)==4){
 
