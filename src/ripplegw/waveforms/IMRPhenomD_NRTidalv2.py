@@ -4,8 +4,8 @@ This file implements the NRTidalv2 corrections that can be applied to any BBH ba
 
 import jax
 import jax.numpy as jnp
-from ..constants import gt, m_per_Mpc, PI, TWO_PI, MRSUN
-from ..typing import Array
+from ..constants import MTSUN, MPC, PI, TWO_PI, MRSUN
+from jaxtyping import Array
 from ripplegw import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from .IMRPhenom_tidal_utils import get_quadparam_octparam, get_kappa
 from ripplegw.waveforms.IMRPhenomD import Phase, Amp, get_IIb_raw_phase
@@ -95,7 +95,7 @@ def get_amp0_lal(M: float, distance: float):
     Returns:
         float: amp0 from LAL.
     """
-    amp0 = 2.0 * jnp.sqrt(5.0 / (64.0 * PI)) * M * MRSUN * M * gt / distance
+    amp0 = 2.0 * jnp.sqrt(5.0 / (64.0 * PI)) * M * MRSUN * M * MTSUN / distance
     return amp0
 
 
@@ -118,7 +118,7 @@ def get_tidal_amplitude(x: Array, theta: Array, kappa: float, distance: float = 
     M = m1 + m2
 
     # Convert distance to meters
-    distance *= m_per_Mpc
+    distance *= MPC
 
     # Pade approximant
     n1 = 4.157407407407407
@@ -157,8 +157,8 @@ def get_tidal_phase(x: Array, theta: Array, kappa: float) -> Array:
 
     # Compute auxiliary quantities
     m1, m2, _, _, _, _ = theta
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     # eta = m1_s * m2_s / (M_s**2.0)
 
@@ -215,8 +215,8 @@ def get_spin_phase_correction(x: Array, theta: Array) -> Array:
 
     # Compute auxiliary quantities
     m1, m2, chi1, chi2, lambda1, lambda2 = theta
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
 
@@ -299,8 +299,8 @@ def _get_merger_frequency(theta: Array, kappa: float = None):
     # Compute auxiliary quantities
     m1, m2, _, _, _, _ = theta
     M = m1 + m2
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
     q = m1_s / m2_s
 
     if kappa is None:
@@ -323,7 +323,7 @@ def _get_merger_frequency(theta: Array, kappa: float = None):
     Momega_merger = Q_0 * (num / den)
 
     # Convert from angular frequency to frequency (divide by 2*pi) and then convert from dimensionless frequency to Hz
-    fHz_merger = Momega_merger / (M * gt) / (TWO_PI)
+    fHz_merger = Momega_merger / (M * MTSUN) / (TWO_PI)
 
     return fHz_merger
 
@@ -353,8 +353,8 @@ def _gen_IMRPhenomD_NRTidalv2(
 
     # Compute x: see NRTidalv2 paper for definition
     m1, m2, _, _, _, _ = theta_intrinsic
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     x = (PI * M_s * f) ** (2.0 / 3.0)
 
@@ -425,7 +425,7 @@ def gen_IMRPhenomD_NRTidalv2(
     # Generate the BBH part:
     bbh_theta_intrinsic = jnp.array([m1, m2, chi1, chi2])
     coeffs = get_coeffs(bbh_theta_intrinsic)
-    M_s = (bbh_theta_intrinsic[0] + bbh_theta_intrinsic[1]) * gt
+    M_s = (bbh_theta_intrinsic[0] + bbh_theta_intrinsic[1]) * MTSUN
 
     # Shift phase so that peak amplitude matches t = 0
     transition_freqs = get_transition_frequencies(

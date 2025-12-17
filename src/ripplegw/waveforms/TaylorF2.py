@@ -3,8 +3,8 @@ This file implements the TaylorF2 waveform, as described in the LALSuite library
 """
 
 import jax.numpy as jnp
-from ..constants import EulerGamma, gt, m_per_Mpc, PI, MRSUN
-from ..typing import Array
+from ..constants import EulerGamma, MTSUN, MPC, PI, MRSUN
+from jaxtyping import Array
 from ripplegw import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from .IMRPhenom_tidal_utils import get_quadparam_octparam
 
@@ -168,8 +168,8 @@ def get_PNPhasing_F2(
     M = m1 + m2
     m1M = m1 / M
     m2M = m2 / M
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
 
@@ -366,10 +366,10 @@ def _gen_TaylorF2(
 
     m1, m2, chi1, chi2, lambda1, lambda2 = theta_intrinsic
     dist_mpc, tc, phi_ref = theta_extrinsic
-    m1_s = m1 * gt
-    m2_s = m2 * gt
-    M = m1 + m2
-    M_s = (m1 + m2) * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
+    # M = m1 + m2
+    M_s = (m1 + m2) * MTSUN
     eta = m1_s * m2_s / (M_s**2.0)
     piM = PI * M_s
 
@@ -406,8 +406,8 @@ def _gen_TaylorF2(
     FTaN = get_flux_0PNCoeff(eta)
     dETaN = 2.0 * get_energy_0PNCoeff(eta)
 
-    r = dist_mpc * m_per_Mpc
-    amp0 = -4.0 * m1 * m2 / r * MRSUN * gt * jnp.sqrt(PI / 12.0)
+    r = dist_mpc * MPC
+    amp0 = -4.0 * m1 * m2 / r * MRSUN * MTSUN * jnp.sqrt(PI / 12.0)
 
     ref_phasing = 0.0
     if f_ref != 0:

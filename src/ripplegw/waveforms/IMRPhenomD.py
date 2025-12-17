@@ -1,5 +1,3 @@
-# from math import pi
-
 import jax
 import jax.numpy as jnp
 from .IMRPhenomD_utils import (
@@ -13,8 +11,8 @@ from .IMRPhenomD_utils import (
 )
 
 from .IMRPhenomD_QNMdata import fM_CUT
-from ..constants import EulerGamma, gt, m_per_Mpc, C, PI
-from ..typing import Array
+from ..constants import EulerGamma, MTSUN, MPC, C, PI
+from jaxtyping import Array
 from ripplegw import Mc_eta_to_ms
 
 
@@ -25,8 +23,8 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     # First lets calculate some of the vairables that will be used below
     # Mass variables
     m1, m2, chi1, chi2 = theta
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
 
@@ -164,8 +162,8 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
 
 def get_IIa_raw_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     m1, m2, _, _ = theta
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
 
@@ -178,8 +176,8 @@ def get_IIa_raw_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
 
 def get_IIb_raw_phase(fM_s: Array, theta: Array, coeffs: Array, f_RD, f_damp) -> Array:
     m1, m2, _, _ = theta
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
 
@@ -207,8 +205,8 @@ def get_inspiral_Amp(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     # Below is taken from https://git.ligo.org/lscsoft/lalsuite/-/blob/master/lalsimulation/lib/LALSimIMRPhenomD_internals.c
     # Lines 302 --> 351
     m1, m2, chi1, chi2 = theta
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
     eta2 = eta * eta
@@ -330,8 +328,8 @@ def get_IIa_Amp(
     fM_s: Array, theta: Array, coeffs: Array, f1, f3, f_RD, f_damp
 ) -> Array:
     m1, m2, _, _ = theta
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
 
     # Central frequency point
@@ -362,8 +360,8 @@ def get_IIa_Amp(
 
 def get_IIb_Amp(fM_s: Array, theta: Array, coeffs: Array, f_RD, f_damp) -> Array:
     m1, m2, _, _ = theta
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     gamma1 = coeffs[4]
     gamma2 = coeffs[5]
@@ -394,8 +392,8 @@ def Phase(f: Array, theta: Array, coeffs: Array, transition_freqs: Array) -> Arr
     # First lets calculate some of the vairables that will be used below
     # Mass variables
     m1, m2, _, _ = theta
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
 
     # Next we need to calculate the transition frequencies
@@ -475,8 +473,8 @@ def Amp(
     # First lets calculate some of the vairables that will be used below
     # Mass variables
     m1, m2, _, _ = theta
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
 
@@ -510,7 +508,7 @@ def Amp(
     )  # This second factor is from lalsuite
 
     # Need to add in an overall scaling of M_s^2 to make the units correct
-    dist_s = (D * m_per_Mpc) / C
+    dist_s = (D * MPC) / C
     return Amp0 * Amp * (M_s**2.0) / dist_s
 
 
@@ -522,7 +520,7 @@ def _gen_IMRPhenomD(
     coeffs: Array,
     f_ref: float,
 ):
-    M_s = (theta_intrinsic[0] + theta_intrinsic[1]) * gt
+    M_s = (theta_intrinsic[0] + theta_intrinsic[1]) * MTSUN
 
     # Shift phase so that peak amplitude matches t = 0
     transition_freqs = get_transition_frequencies(theta_intrinsic, coeffs[5], coeffs[6])

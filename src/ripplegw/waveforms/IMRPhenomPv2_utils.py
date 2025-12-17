@@ -3,7 +3,7 @@ import jax.numpy as jnp
 from ripplegw import Mc_eta_to_ms
 
 from typing import Tuple
-from ..constants import gt, MSUN
+from ..constants import MTSUN
 import numpy as np
 from .IMRPhenomD import Phase as PhDPhase
 from .IMRPhenomD import Amp as PhDAmp
@@ -83,7 +83,7 @@ def convert_spins(
     den = A2 * m2_2  # warning: this assumes m2 > m1
     chip = num / den
 
-    m_sec = M * gt
+    m_sec = M * MTSUN
     piM = jnp.pi * m_sec
     v_ref = (piM * f_ref) ** (1 / 3)
     L0 = M * M * L2PNR(v_ref, eta)
@@ -375,8 +375,8 @@ def FinalSpin_inplane(m1, m2, chi1_l, chi2_l, chip):
 def phP_get_fRD_fdamp(m1, m2, chi1_l, chi2_l, chip):
     # m1 > m2 should hold here
     finspin = FinalSpin_inplane(m1, m2, chi1_l, chi2_l, chip)
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta_s = m1_s * m2_s / (M_s**2.0)
     Erad = EradRational0815(eta_s, chi1_l, chi2_l)
@@ -399,11 +399,11 @@ def phP_get_transition_frequencies(
     f_RD, f_damp = phP_get_fRD_fdamp(m1, m2, chi1, chi2, chip)
 
     # Phase transition frequencies
-    f1 = 0.018 / (M * gt)
+    f1 = 0.018 / (M * MTSUN)
     f2 = 0.5 * f_RD
 
     # Amplitude transition frequencies
-    f3 = 0.014 / (M * gt)
+    f3 = 0.014 / (M * MTSUN)
     f4_gammaneg_gtr_1 = lambda f_RD_, f_damp_, gamma3_, gamma2_: jnp.abs(
         f_RD_ + (-f_damp_ * gamma3_) / gamma2_
     )

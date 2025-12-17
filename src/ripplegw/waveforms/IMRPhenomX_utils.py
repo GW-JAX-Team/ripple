@@ -3,8 +3,7 @@ from typing import Tuple
 import jax.numpy as jnp
 import jax
 
-from ..constants import gt, PI
-from ..typing import Array
+from ..constants import MTSUN, PI
 
 # Dimensionless cutoff frequency for PhenomXAS
 fM_CUT = 0.3
@@ -13,8 +12,8 @@ fM_CUT = 0.3
 def get_cutoff_fMs(m1, m2, chi1, chi2):
     # This function returns a variety of frequencies needed for computing IMRPhenomXAS
     # In particular, we have fRD, fdamp, fMECO, FISCO
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta_s = m1_s * m2_s / (M_s**2.0)
     # m1Sq = m1_s * m1_s
