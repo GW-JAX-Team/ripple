@@ -229,7 +229,9 @@ def xlal_sim_imr_phenom_x_final_mass_2017(eta: float, chi1_l: float, chi2_l: flo
 # /**
 #  * Final Dimensionless Spin,  X Jimenez-Forteza et al, PRD, 95, 064024, (2017), arXiv:1611.00332
 #  */
-def xlal_sim_imr_phenom_x_final_spin_2017(eta, chi1_l, chi2_l) -> float:  # pylint: disable=too-many-locals
+def xlal_sim_imr_phenom_x_final_spin_2017(  # pylint: disable=too-many-locals
+    eta: float, chi1_l: float, chi2_l: float
+) -> float:
     """Compute the final dimensionless spin of the merged object.
 
     Args:
