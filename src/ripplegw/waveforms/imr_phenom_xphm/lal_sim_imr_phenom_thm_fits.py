@@ -50,3 +50,36 @@ def evaluate_qnm_fit_fring22(final_dimless_spin: float) -> float:
         - 0.6036964688511505 * x4
         + 0.0873798215084077 * x6
     )
+
+
+def evaluate_qnm_fit_fdamp22(final_dimless_spin: float) -> float:
+    """
+    Evaluate the QNM fit for the (2,2) mode damping frequency.
+
+    Args:
+        final_dimless_spin: Dimensionless spin of the final black hole.
+
+    Returns:
+        Damping frequency for the (2,2) mode.
+    """
+    checkify.check(jnp.fabs(final_dimless_spin) <= 1.0, "Final dimensionless spin must be in [-1, 1]")
+    x2 = final_dimless_spin * final_dimless_spin
+    x3 = x2 * final_dimless_spin
+    x4 = x2 * x2
+    x5 = x3 * x2
+    x6 = x3 * x3
+    return (
+        0.014158792290965177
+        - 0.036989395871554566 * final_dimless_spin
+        + 0.026822526296575368 * x2
+        + 0.0008490933750566702 * x3
+        - 0.004843996907020524 * x4
+        - 0.00014745235759327472 * x5
+        + 0.0001504546201236794 * x6
+    ) / (
+        1
+        - 2.5900842798681376 * final_dimless_spin
+        + 1.8952576220623967 * x2
+        - 0.31416610693042507 * x4
+        + 0.009002719412204133 * x6
+    )
