@@ -25,6 +25,7 @@ dependencies = [
     "jax",
     "jaxlib",
     "numpy>=1,<2",
+    "interpax",
 ]
 keywords = [
     "gravitational waves",
