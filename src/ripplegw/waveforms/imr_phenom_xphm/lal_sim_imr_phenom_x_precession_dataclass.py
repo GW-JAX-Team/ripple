@@ -45,9 +45,10 @@ class IMRPhenomXPrecessionDataClass:  # pylint: disable=too-many-instance-attrib
     """Dataclass to hold precession parameters for IMRPhenomX waveform generation."""
 
     # # Flag to define the version of IMRPhenomXP called
-    imr_phenom_x_prec_version: int = 0  # Flag to set version of Euler angles used.
-    # Toggle to return coprecessing model without any twisting up
+    imr_phenom_x_prec_version: int = 0
+    """Flag to set version of Euler angles used."""
     imr_phenom_x_return_co_prec: int = 0
+    """Toggle to return coprecessing model without any twisting up"""
     # /* Parameters that define deviation of the tuned coprecessing mode PhenomXCP from PhenomX */
     # MU2;   # MR Amplitude
     # MU3;   # MR Amplitude
@@ -57,101 +58,220 @@ class IMRPhenomXPrecessionDataClass:  # pylint: disable=too-many-instance-attrib
     # NU6;   # MR Phase
     # ZETA2; # INT Phase
 
-    # Debug flag
     debug_prec: int = 0
+    """Debug flag"""
 
     # Mass and spin weightings
-    big_a1: float = 0.0  # Mass weighted pre-factor, see Eq. 3.2 of Schmidt et al, arXiv:1408.1810
-    big_a2: float = 0.0  # Mass weighted pre-factor, see Eq. 3.2 of Schmidt et al, arXiv:1408.1810
-    a_sp_1: float = 0.0  # \f$A1 * S_{1 \perp}\f$, see Eq. 3.3 of Schmidt et al, arXiv:1408.1810
-    a_sp_2: float = 0.0  # \f$A2 * S_{2 \perp}\f$, see Eq. 3.3 of Schmidt et al, arXiv:1408.1810
-    chi1_perp: float = 0.0  # \f$ \chi_{1 \perp} \f$
-    chi2_perp: float = 0.0  # \f$ \chi_{2 \perp} \f$
-    s1_perp: float = 0.0  # \f$ S_{1 \perp} \f$
-    s2_perp: float = 0.0  # \f$ S_{2 \perp} \f$
-    s_l: float = 0.0  # \f$ \chi_{1 L} m^1_2 + \chi_{2 L} m^2_2 \f$
-    s_perp: float = 0.0  # \f$ \chi_{p} m^1_2 \f$
-    s_tot_perp: float = 0.0  # \f$ S_{1 \perp} + S_{2 \perp} \f$
+    big_a1: float = 0.0
+    """Mass weighted pre-factor, see Eq. 3.2 of Schmidt et al, arXiv:1408.1810"""
+    big_a2: float = 0.0
+    """Mass weighted pre-factor, see Eq. 3.2 of Schmidt et al, arXiv:1408.1810"""
+    a_sp_1: float = 0.0
+    """:math:`A1 * S_{1 \\perp}`, see Eq. 3.3 of Schmidt et al, arXiv:1408.1810"""
+    a_sp_2: float = 0.0
+    """:math:`A2 * S_{2 \\perp}`, see Eq. 3.3 of Schmidt et al, arXiv:1408.1810"""
+    chi1_perp: float = 0.0
+    """
+    .. math::
+
+        \\chi_{1 \\perp}
+    """
+    chi2_perp: float = 0.0
+    """
+    .. math::
+
+        \\chi_{2 \\perp}
+    """
+    s1_perp: float = 0.0
+    """
+    .. math::
+
+        S_{1 \\perp}
+    """
+    s2_perp: float = 0.0
+    """
+    .. math::
+
+        S_{2 \\perp}
+    """
+    s_l: float = 0.0
+    """
+    .. math::
+
+        \\chi_{1 L} m^1_2 + \\chi_{2 L} m^2_2
+    """
+    s_perp: float = 0.0
+    """
+    .. math::
+
+        \\chi_{p} m^1_2
+    """
+    s_tot_perp: float = 0.0
+    """
+    .. math::
+
+        S_{1 \\perp} + S_{2 \\perp}
+    """
     chi_perp: float = 0.0
-    chi_tot_perp: float = 0.0  # \f$ S_{1 \perp} + S_{2 \perp} \f$
+    chi_tot_perp: float = 0.0
+    """
+    .. math::
+
+        S_{1 \\perp} + S_{2 \\perp}
+    """
 
     # Effective precessing spin parameter: Schmidt et al, Phys. Rev. D 91, 024043 (2015), arXiv:1408.1810
-    chi_p: float = 0.0  # \f$ \chi_{p} = S_p / (A_1 \chi^2_1) \f$, Eq. 3.4 of Schmidt et al, arXiv:1408.1810
+    chi_p: float = 0.0
+    """:math:`\\chi_{p} = S_p / (A_1 \\chi^2_1)`, Eq. 3.4 of Schmidt et al, arXiv:1408.1810"""
 
     # Dimensionless aligned spin components on companion 1 and 2 respectively
-    chi1_l: float = 0.0  # \f$ \chi_{1L} = \chi_{1} \cdot \hat{L} \f$
-    chi2_l: float = 0.0  # \f$ \chi_{2L} = \chi_{2} \cdot \hat{L} \f$
+    chi1_l: float = 0.0
+    """
+    .. math::
+
+        \\chi_{1L} = \\chi_{1} \\cdot \\hat{L}
+    """
+    chi2_l: float = 0.0
+    """
+    .. math::
+
+        \\chi_{2L} = \\chi_{2} \\cdot \\hat{L}
+    """
     # Angle between J0 and line of sight (z-direction)
-    theta_jn: float = 0.0  # Angle between J0 and line of sight (z-direction)
+    theta_jn: float = 0.0
+    """Angle between J0 and line of sight (z-direction)"""
 
     # The initial phase that we pass to the underlying aligned spin IMR waveform model
-    phi0_aligned: float = 0.0  # Initial phase to feed the underlying aligned-spin model
+    phi0_aligned: float = 0.0
+    """Initial phase to feed the underlying aligned-spin model"""
 
     # Angle to rotate the polarization
-    zeta_polarization: float = 0.0  # Angle to rotate the polarizations
+    zeta_polarization: float = 0.0
+    """Angle to rotate the polarizations"""
 
     # Post-Newtonian Euler angles
-    alpha0: float = 0.0  # Coefficient of \f$\alpha\f$
-    alpha1: float = 0.0  # Coefficient of \f$\alpha\f$
-    alpha2: float = 0.0  # Coefficient of \f$\alpha\f$
-    alpha3: float = 0.0  # Coefficient of \f$\alpha\f$
-    alpha4_l: float = 0.0  # Coefficient of \f$\alpha\f$
-    alpha5: float = 0.0  # Coefficient of \f$\alpha\f$
-    alpha6: float = 0.0  # Coefficient of \f$\alpha\f$
-    alpha_nnlo: float = 0.0  # Post Newtonian \f$\alpha\f$ at NNLO.
-    alpha_offset: float = 0.0  # Offset for \f$\alpha\f$
-    epsilon0: float = 0.0  # Coefficient of \f$\epsilon \f$
-    epsilon1: float = 0.0  # Coefficient of \f$\epsilon \f$
-    epsilon2: float = 0.0  # Coefficient of \f$\epsilon \f$
-    epsilon3: float = 0.0  # Coefficient of \f$\epsilon \f$
-    epsilon4_l: float = 0.0  # Coefficient of \f$\epsilon \f$
-    epsilon5: float = 0.0  # Coefficient of \f$\epsilon \f$
-    epsilon6: float = 0.0  # Coefficient of \f$\epsilon \f$
-    epsilon_nnlo: float = 0.0  # Post Newtonian \f$\epsilon \f$ at NNLO.
-    epsilon_offset: float = 0.0  # Offset for \f$\epsilon \f$
+    alpha0: float = 0.0
+    """Coefficient of :math:`\alpha`"""
+    alpha1: float = 0.0
+    """Coefficient of :math:`\alpha`"""
+    alpha2: float = 0.0
+    """Coefficient of :math:`\alpha`"""
+    alpha3: float = 0.0
+    """Coefficient of :math:`\alpha`"""
+    alpha4_l: float = 0.0
+    """Coefficient of :math:`\alpha`"""
+    alpha5: float = 0.0
+    """Coefficient of :math:`\alpha`"""
+    alpha6: float = 0.0
+    """Coefficient of :math:`\alpha`"""
+    alpha_nnlo: float = 0.0
+    """Post Newtonian :math:`\alpha` at NNLO."""
+    alpha_offset: float = 0.0
+    """Offset for :math:`\alpha`"""
+    epsilon0: float = 0.0
+    """Coefficient of :math:`\\epsilon`"""
+    epsilon1: float = 0.0
+    """Coefficient of :math:`\\epsilon`"""
+    epsilon2: float = 0.0
+    """Coefficient of :math:`\\epsilon`"""
+    epsilon3: float = 0.0
+    """Coefficient of :math:`\\epsilon`"""
+    epsilon4_l: float = 0.0
+    """Coefficient of :math:`\\epsilon`"""
+    epsilon5: float = 0.0
+    """Coefficient of :math:`\\epsilon`"""
+    epsilon6: float = 0.0
+    """Coefficient of :math:`\\epsilon`"""
+    epsilon_nnlo: float = 0.0
+    """Post Newtonian :math:`\\epsilon` at NNLO."""
+    epsilon_offset: float = 0.0
+    """Offset for :math:`\\epsilon`"""
     # Alpha and epsilon offset for mprime !=2. alpha_offset corresponds to mprime=2
-    alpha_offset_1: float = 0.0  # \f$\alpha\f$ offset passed to \f$m = 1\f$ modes.
-    alpha_offset_3: float = 0.0  # \f$\alpha\f$ offset passed to \f$m = 3\f$ modes.
-    alpha_offset_4: float = 0.0  # \f$\alpha\f$ offset passed to \f$m = 4\f$ modes.
-    epsilon_offset_1: float = 0.0  # \f$\epsilon\f$ offset passed to \f$m = 1\f$ modes.
-    epsilon_offset_3: float = 0.0  # \f$\epsilon\f$ offset passed to \f$m = 3\f$ modes.
-    epsilon_offset_4: float = 0.0  # \f$\epsilon\f$ offset passed to \f$m = 4\f$ modes.
+    alpha_offset_1: float = 0.0
+    """:math:`\alpha` offset passed to :math:`m = 1` modes."""
+    alpha_offset_3: float = 0.0
+    """:math:`\alpha` offset passed to :math:`m = 3` modes."""
+    alpha_offset_4: float = 0.0
+    """:math:`\alpha` offset passed to :math:`m = 4` modes."""
+    epsilon_offset_1: float = 0.0
+    """:math:`\\epsilon` offset passed to :math:`m = 1` modes."""
+    epsilon_offset_3: float = 0.0
+    """:math:`\\epsilon` offset passed to :math:`m = 3` modes."""
+    epsilon_offset_4: float = 0.0
+    """:math:`\\epsilon` offset passed to :math:`m = 4` modes."""
 
     # Complex exponential of the Euler angles
-    cexp_i_alpha: complex = 0j  # \f$e^{i \alpha}\f$
-    cexp_i_epsilon: complex = 0j  # \f$e^{i \epsilon}\f$
+    cexp_i_alpha: complex = 0j
+    """
+    .. math::
+
+        e^{i \alpha}
+    """
+    cexp_i_epsilon: complex = 0j
+    """\f$e^{i \\epsilon}\f$"""
     cexp_i_betah: complex = 0j
 
     # Multibanding applied to Euler angles
-    m_band_prec_version: int = 0  # Flag to control multibanding for Euler angles.
+    m_band_prec_version: int = 0
+    """Flag to control multibanding for Euler angles."""
 
     # Source Frame Variables
-    j0x_sf: float = 0.0  # \f$ J_{0,x}\f$ in L frame.
-    j0y_sf: float = 0.0  # \f$ J_{0,y}\f$ in L frame.
-    j0z_sf: float = 0.0  # \f$ J_{0,z}\f$ in L frame.
-    j0: float = 0.0  # \f$ J_{0}\f$ in L frame.
-    theta_j_sf: float = 0.0  # Angle between \f$J_0\f$ and \f$ L_{\rm{N}} \f$ (z-direction)
-    phi_j_sf: float = 0.0  # Azimuthal angle of \f$J_0\f$ in the L frame
-    nx_sf: float = 0.0  # Line-of-sight vector component \f$ N_{x}\f$ in L frame.
-    ny_sf: float = 0.0  # Line-of-sight vector component \f$ N_{y}\f$ in L frame.
-    nz_sf: float = 0.0  # Line-of-sight vector component \f$ N_{z}\f$ in L frame.
-    xx_sf: float = 0.0  # Component of triad basis vector X in L frame.
-    xy_sf: float = 0.0  # Component of triad basis vector X in L frame.
+    j0x_sf: float = 0.0
+    """:math:`J_{0,x}` in L frame."""
+    j0y_sf: float = 0.0
+    """:math:`J_{0,y}` in L frame."""
+    j0z_sf: float = 0.0
+    """:math:`J_{0,z}` in L frame."""
+    j0: float = 0.0
+    """:math:`J_{0}` in L frame."""
+    theta_j_sf: float = 0.0
+    """Angle between :math:`J_0` and :math:`L_{\rm{N}}` (z-direction)"""
+    phi_j_sf: float = 0.0
+    """Azimuthal angle of :math:`J_0` in the L frame"""
+    nx_sf: float = 0.0
+    """Line-of-sight vector component :math:`N_{x}` in L frame."""
+    ny_sf: float = 0.0
+    """Line-of-sight vector component :math:`N_{y}` in L frame."""
+    nz_sf: float = 0.0
+    """Line-of-sight vector component :math:`N_{z}` in L frame."""
+    xx_sf: float = 0.0
+    """Component of triad basis vector X in L frame."""
+    xy_sf: float = 0.0
+    """Component of triad basis vector X in L frame."""
     xz_sf: float = 0.0  # Component of triad basis vector X in L frame.
     kappa: float = 0.0  # Eq. C12 of arXiv:XXXX.YYYY
 
     # J-frame variables
-    nx_jf: float = 0.0  # Line-of-sight vector component \f$ N_{x}\f$ in J frame.
-    ny_jf: float = 0.0  # Line-of-sight vector component \f$ N_{x}\f$ in J frame.
-    nz_jf: float = 0.0  # Line-of-sight vector component \f$ N_{x}\f$ in LJ frame.
-    p_arun_x_jf: float = 0.0  # Component of triad basis vector P in J frame, arXiv:0810.5336.
-    p_arun_y_jf: float = 0.0  # Component of triad basis vector P in J frame, arXiv:0810.5336.
-    p_arun_z_jf: float = 0.0  # Component of triad basis vector P in J frame, arXiv:0810.5336.
-    q_arun_x_jf: float = 0.0  # Component of triad basis vector Q in J frame, arXiv:0810.5336.
-    q_arun_y_jf: float = 0.0  # Component of triad basis vector Q in J frame, arXiv:0810.5336.
-    q_arun_z_jf: float = 0.0  # Component of triad basis vector Q in J frame, arXiv:0810.5336.
-    x_dot_p_arun: float = 0.0  # \f$ X \cdot P \f$
-    x_dot_q_arun: float = 0.0  # \f$ X \cdot Q \f$
+    nx_jf: float = 0.0
+    """Line-of-sight vector component :math:`N_{x}` in J frame."""
+    ny_jf: float = 0.0
+    """Line-of-sight vector component :math:`N_{x}` in J frame."""
+    nz_jf: float = 0.0
+    """Line-of-sight vector component :math:`N_{x}` in LJ frame."""
+    p_arun_x_jf: float = 0.0
+    """Component of triad basis vector P in J frame, arXiv:0810.5336."""
+    p_arun_y_jf: float = 0.0
+    """Component of triad basis vector P in J frame, arXiv:0810.5336."""
+    p_arun_z_jf: float = 0.0
+    """Component of triad basis vector P in J frame, arXiv:0810.5336."""
+    q_arun_x_jf: float = 0.0
+    """Component of triad basis vector Q in J frame, arXiv:0810.5336."""
+    q_arun_y_jf: float = 0.0
+    """Component of triad basis vector Q in J frame, arXiv:0810.5336."""
+    q_arun_z_jf: float = 0.0
+    """Component of triad basis vector Q in J frame, arXiv:0810.5336."""
+    x_dot_p_arun: float = 0.0
+    """
+    .. math::
+
+        X \\cdot P
+    """
+    x_dot_q_arun: float = 0.0
+    """
+    .. math::
+
+        X \\cdot Q
+    """
 
     # Orbital angular momentum
     l0: float = 0.0
@@ -223,65 +343,147 @@ class IMRPhenomXPrecessionDataClass:  # pylint: disable=too-many-instance-attrib
     l_hat_cos_theta: float = 0.0
 
     # Cartesian Dimensionful Spins
-    s1x: float = 0.0  # \f$ S_{1,x} \f$ in L frame
-    s1y: float = 0.0  # \f$ S_{1,y} \f$ in L frame
-    s1z: float = 0.0  # \f$ S_{1,z} \f$ in L frame
-    s2x: float = 0.0  # \f$ S_{2,x} \f$ in L frame
-    s2y: float = 0.0  # \f$ S_{2,y} \f$ in L frame
-    s2z: float = 0.0  # \f$ S_{2,z} \f$ in L frame
+    s1x: float = 0.0
+    """:math:`S_{1,x}` in L frame"""
+    s1y: float = 0.0
+    """:math:`S_{1,y}` in L frame"""
+    s1z: float = 0.0
+    """:math:`S_{1,z}` in L frame"""
+    s2x: float = 0.0
+    """:math:`S_{2,x}` in L frame"""
+    s2y: float = 0.0
+    """:math:`S_{2,y}` in L frame"""
+    s2z: float = 0.0
+    """:math:`S_{2,z}` in L frame"""
 
     # Spherical Polar Dimensionful Spins
-    s1_norm: float = 0.0  # \f$ \left| S_{1} \right| \f$
-    s1_theta: float = 0.0  # Spherical polar component \f$ S_{1,\theta} \f$ in L frame
-    s1_phi: float = 0.0  # Spherical polar component \f$ S_{1,\phi} \f$ in L frame
-    s1_cos_theta: float = 0.0  # Spherical polar component \f$ \cos S_{1,\theta} \f$ in L frame
+    s1_norm: float = 0.0
+    """
+    .. math::
 
-    s2_norm: float = 0.0  # \f$ \left| S_{2} \right| \f$
-    s2_theta: float = 0.0  # Spherical polar component \f$ S_{2,\theta} \f$ in L frame
-    s2_phi: float = 0.0  # Spherical polar component \f$ S_{2,\phi} \f$ in L frame
-    s2_cos_theta: float = 0.0  # Spherical polar component \f$ \cos S_{2,\theta} \f$ in L frame
+        \\left| S_{1} \right|
+    """
+    s1_theta: float = 0.0
+    """Spherical polar component :math:`S_{1,\theta}` in L frame"""
+    s1_phi: float = 0.0
+    """Spherical polar component :math:`S_{1,\\phi}` in L frame"""
+    s1_cos_theta: float = 0.0
+    """Spherical polar component :math:`\\cos S_{1,\theta}` in L frame"""
+
+    s2_norm: float = 0.0
+    """\f$ \\left| S_{2} \right| \f$"""
+    s2_theta: float = 0.0
+    """Spherical polar component :math:`S_{2,\theta}` in L frame"""
+    s2_phi: float = 0.0
+    """Spherical polar component :math:`S_{2,\\phi}` in L frame"""
+    s2_cos_theta: float = 0.0
+    """Spherical polar component :math:`\\cos S_{2,\theta}` in L frame"""
 
     # Cartesian Dimensionless Spin Variables
-    chi1x: float = 0.0  # \f$ \chi_{1,x} \f$ in L frame
-    chi1y: float = 0.0  # \f$ \chi_{1,y} \f$ in L frame
-    chi1z: float = 0.0  # \f$ \chi_{1,z} \f$ in L frame
+    chi1x: float = 0.0
+    """:math:`\\chi_{1,x}` in L frame"""
+    chi1y: float = 0.0
+    """:math:`\\chi_{1,y}` in L frame"""
+    chi1z: float = 0.0
+    """:math:`\\chi_{1,z}` in L frame"""
 
-    chi2x: float = 0.0  # \f$ \chi_{2,x} \f$ in L frame
-    chi2y: float = 0.0  # \f$ \chi_{2,y} \f$ in L frame
-    chi2z: float = 0.0  # \f$ \chi_{2,z} \f$ in L frame
+    chi2x: float = 0.0
+    """:math:`\\chi_{2,x}` in L frame"""
+    chi2y: float = 0.0
+    """:math:`\\chi_{2,y}` in L frame"""
+    chi2z: float = 0.0
+    """:math:`\f$ \\chi_{2,z}` in L frame"""
 
     # Spherical Polar Dimensionless Spins
-    chi1_theta: float = 0.0  # Spherical polar component \f$ \chi_{1,\theta} \f$ in L frame
-    chi1_phi: float = 0.0  # Spherical polar component \f$ \chi_{1,\phi} \f$ in L frame
-    chi1_norm: float = 0.0  # \f$ \left| \chi_{1} \right| \f$
-    chi1_cos_theta: float = 0.0  # Spherical polar component \f$ \cos \chi_{1,\theta} \f$ in L frame
+    chi1_theta: float = 0.0
+    """Spherical polar component :math:`\\chi_{1,\theta}` in L frame"""
+    chi1_phi: float = 0.0
+    """Spherical polar component :math:`\\chi_{1,\\phi}` in L frame"""
+    chi1_norm: float = 0.0
+    """
+    .. math::
 
-    chi2_theta: float = 0.0  # Spherical polar component \f$ \chi_{2,\theta} \f$ in L frame
-    chi2_phi: float = 0.0  # Spherical polar component \f$ \chi_{2,\phi} \f$ in L frame
-    chi2_norm: float = 0.0  # \f$ \left| \chi_{2} \right| \f$
-    chi2_cos_theta: float = 0.0  # Spherical polar component \f$ \cos \chi_{2,\theta} \f$ in L frame
+        \\left| \\chi_{1} \right|
+    """
+    chi1_cos_theta: float = 0.0
+    """Spherical polar component :math:`\\cos \\chi_{1,\theta}` in L frame"""
 
-    expansion_order: int = 0  # Flag to control expansion order of MSA system of equations.
+    chi2_theta: float = 0.0
+    """Spherical polar component :math:`\\chi_{2,\theta}` in L frame"""
+    chi2_phi: float = 0.0
+    """Spherical polar component :math:`\\chi_{2,\\phi}` in L frame"""
+    chi2_norm: float = 0.0
+    """
+    .. math::
+
+        \\left| \\chi_{2} \right|
+    """
+    chi2_cos_theta: float = 0.0
+    """Spherical polar component :math:`\\cos \\chi_{2,\theta}` in L frame"""
+
+    expansion_order: int = 0
+    """Flag to control expansion order of MSA system of equations."""
 
     two_pi_gm: float = 0.0
     pi_gm: float = 0.0
 
-    l_norm_n: float = 0.0  # Norm of Newtonian orbital angular momentum \f$ \left| L_N \right| \f$
-    l_norm_3pn: float = 0.0  # Norm of orbital angular momentum at 3PN \f$ \left| L_{3 \rm{PN}} \right| \f$
-    j_norm_n: float = (
-        0.0  # Norm of total angular momentum using Newtonian orbital angular momentum \f$ \left| J_{N} \right| \f$
-    )
-    j_norm_3pn: float = 0.0  # Norm of total angular momentum at 3PN \f$ \left| J_{3 \rm{PN}} \right| \f$
+    l_norm_n: float = 0.0
+    """Norm of Newtonian orbital angular momentum :main:`\\left| L_N \right|`"""
+    l_norm_3pn: float = 0.0
+    """Norm of orbital angular momentum at 3PN :math:`\\left| L_{3 \rm{PN}} \right|`"""
+    j_norm_n: float = 0.0
+    """Norm of total angular momentum using Newtonian orbital angular momentum :math:`\\left| J_{N} \right|`"""
+    j_norm_3pn: float = 0.0
+    """
+    .. math::
 
-    dot_s1_l: float = 0.0  # \f$ S_1 \cdot \hat{L} \f$
-    dot_s1_ln: float = 0.0  # \f$ \hat{S}_1 \cdot \hat{L} \f$
-    dot_s2_l: float = 0.0  # \f$ S_2 \cdot \hat{L} \f$
-    dot_s2_ln: float = 0.0  # \f$ \hat{S}_1 \cdot \hat{L} \f$
-    dot_s1_s2: float = 0.0  # \f$ S_1 \cdot S_2 \f$
-    # \f$ S_{\rm{eff}} = (1 + q^{-1}) S_1 \cdot \hat{L} + (1 + q) S_2 \cdot \hat{L} \f$,
-    # Eq. 7 of arXiv:1703.03967. Note convention for q. */
+        Norm of total angular momentum at 3PN \f$ \\left| J_{3 \rm{PN}} \right|
+    """
+
+    dot_s1_l: float = 0.0
+    """
+    .. math::
+
+        S_1 \\cdot \\hat{L}
+    """
+    dot_s1_ln: float = 0.0
+    """
+    .. math::
+
+        \\hat{S}_1 \\cdot \\hat{L}
+    """
+    dot_s2_l: float = 0.0
+    """
+    .. math::
+
+        S_2 \\cdot \\hat{L}
+    """
+    dot_s2_ln: float = 0.0
+    """
+    .. math::
+
+        \\hat{S}_1 \\cdot \\hat{L}
+    """
+    dot_s1_s2: float = 0.0
+    """
+    .. math::
+
+        S_1 \\cdot S_2
+    """
     s_eff: float = 0.0
-    s_eff2: float = 0.0  # \f$ S_{\rm{eff}}^2 \f$ */
+    """
+    .. math::
+
+        S_{\rm{eff}} = (1 + q^{-1}) S_1 \\cdot \\hat{L} + (1 + q) S_2 \\cdot \\hat{L}
+
+    Eq. 7 of arXiv:1703.03967. Note convention for q.
+    """
+    s_eff2: float = 0.0
+    """
+    .. math::
+
+        S_{\rm{eff}}^2
+    """
 
     # vector S1_0; /**< Initial value for \f$ S_{1} \f$ */
     # vector S2_0; /**< Initial value for \f$ S_{2} \f$ */
@@ -297,7 +499,12 @@ class IMRPhenomXPrecessionDataClass:  # pylint: disable=too-many-instance-attrib
     l_0_norm: float = 0.0
     l_0_norm_2: float = 0.0
 
-    delta_m_over_m: float = 0.0  # \f$ (m_1 - m_2) / (m_1 + m_2) \f$ */
+    delta_m_over_m: float = 0.0
+    """
+    .. math::
+
+        (m_1 - m_2) / (m_1 + m_2)
+    """
 
     # //phiz_0, phiz_1, phiz_2, phiz_3, phiz_4, phiz_5
     phiz_0_coeff: float = 0.0
@@ -338,48 +545,83 @@ class IMRPhenomXPrecessionDataClass:  # pylint: disable=too-many-instance-attrib
     omega_zeta5: float = 0.0
 
     # MSA-SUA Euler Angles
-    phiz: float = 0.0  # Azimuthal angle of L around J
-    zeta: float = 0.0  # Angle to describe L w.r.t. J
-    cos_theta_l: float = 0.0  # Cosine of polar angle between L and J
+    phiz: float = 0.0
+    """Azimuthal angle of L around J"""
+    zeta: float = 0.0
+    """Angle to describe L w.r.t. J"""
+    cos_theta_l: float = 0.0
+    """Cosine of polar angle between L and J"""
 
     # First order MSA corrections
-    zeta_0_msa: float = 0.0  # First MSA correction \f$ \zeta_0 \f$, Eq. F19 of arXiv:1703.03967
-    phiz_0_msa: float = 0.0  # First MSA correction \f$ \phi_{z,0} \f$, Eq. 67 of arXiv:1703.03967
+    zeta_0_msa: float = 0.0
+    """First MSA correction :math:`\\zeta_0`, Eq. F19 of arXiv:1703.03967"""
+    phiz_0_msa: float = 0.0
+    """First MSA correction :math:`\\phi_{z,0}`, Eq. 67 of arXiv:1703.03967"""
 
     # Initial values
-    zeta_0: float = 0.0  # Initial value of \f$ \zeta \f$
-    phiz_0: float = 0.0  # Initial value of \f$ \phi_{z,0} \f$
+    zeta_0: float = 0.0
+    """Initial value of :math:`\\zeta`"""
+    phiz_0: float = 0.0
+    """Initial value of :math:`\\phi_{z,0}`"""
 
     # Orbital velocity, v and v^2
-    v: float = 0.0  # Orbital velocity, \f$ v \f$
-    v2: float = 0.0  # Orbital velocity squared, \f$ v^2 \f$
+    v: float = 0.0
+    """Orbital velocity, :math:`v`"""
+    v2: float = 0.0
+    """Orbital velocity squared, :math:`v^2`"""
     # Reference orbital velocity, v and v^2
-    v_0: float = 0.0  # Orbital velocity at reference frequency, \f$ v_{\rm{ref}} \f$
-    v_0_2: float = 0.0  # Orbital velocity at reference frequency squared, \f$ v_{\rm{ref}}^2 \f$
+    v_0: float = 0.0
+    """Orbital velocity at reference frequency, :math:`v_{\rm{ref}}`"""
+    v_0_2: float = 0.0
+    """Orbital velocity at reference frequency squared, :math:`v_{\rm{ref}}^2`"""
 
-    delta: float = 0.0  # Eq. C3 of arXiv:1703.03967
+    delta: float = 0.0
+    """Eq. C3 of arXiv:1703.03967"""
 
     big_d2: float = 0.0
     big_d3: float = 0.0
 
     # Precession averaged total spin, Eq. 45
-    s_av: float = 0.0  # \f$ S_{\rm{av}} \f$ as defined in Eq. 45 of arXiv:1703.03967
-    s_av2: float = 0.0  # \f$ S_{\rm{av}}^2 \f$
-    inv_s_av2: float = 0.0  # \f$ 1 / S_{\rm{av}}^2 \f$
-    inv_s_av: float = 0.0  # \f$ 1 / S_{\rm{av}} \f$
+    s_av: float = 0.0
+    """:math:`S_{\rm{av}}` as defined in Eq. 45 of arXiv:1703.03967"""
+    s_av2: float = 0.0
+    """
+    .. math::
+
+        \f$ S_{\rm{av}}^2
+    """
+    inv_s_av2: float = 0.0
+    """
+    .. math::
+
+        1 / S_{\rm{av}}^2
+    """
+    inv_s_av: float = 0.0
+    """
+    .. math::
+
+        1 / S_{\rm{av}}
+    """
     # Eq. C1, C2 for Eq. 51
-    psi1: float = 0.0  # \f$ \psi_1 \f$ as defined in Eq. C1 of arXiv:1703.03967
-    psi2: float = 0.0  # \f$ \psi_2 \f$ as defined in Eq. C2 of arXiv:1703.03967
+    psi1: float = 0.0
+    """:math:`\\psi_1` as defined in Eq. C1 of arXiv:1703.03967"""
+    psi2: float = 0.0
+    """:math:`\\psi_2` as defined in Eq. C2 of arXiv:1703.03967"""
 
     # Integration constant in Eq. 51
-    psi0: float = 0.0  # \f$ \psi_0 \f$ as per Eq. 51 of arXiv:1703.03967
+    psi0: float = 0.0
+    """:math:`\\psi_0` as per Eq. 51 of arXiv:1703.03967"""
 
     # Eq. 51 and Eq. 24
-    psi: float = 0.0  # \f$ \psi \f$ as defined by Eq. 51 of arXiv:1703.03967
-    psi_dot: float = 0.0  # \f$ \dot{\psi} \f$ as per Eq. 50 of arXiv:1703.03967
+    psi: float = 0.0
+    """:math:`\\psi` as defined by Eq. 51 of arXiv:1703.03967"""
+    psi_dot: float = 0.0
+    """:math:`\\dot{\\psi}` as per Eq. 50 of arXiv:1703.03967"""
 
-    c_phi: float = 0.0  # \f$ C_{\phi} \f$ as defined by Eq. B14 of arXiv:1703.03967
-    d_phi: float = 0.0  # \f$ C_{\phi} \f$ as defined by Eq. B15 of arXiv:1703.03967
+    c_phi: float = 0.0
+    """:math:`C_{\\phi}` as defined by Eq. B14 of arXiv:1703.03967"""
+    d_phi: float = 0.0
+    """:math:`C_{\\phi}` as defined by Eq. B15 of arXiv:1703.03967"""
     # phiz_0_MSA_Cphi_term, phiz_0_MSA_Dphi_term;
 
     # PN Coefficients in Appendix A of Chatziioannou et al, PRD, 88, 063011, (2013)
@@ -429,36 +671,82 @@ class IMRPhenomXPrecessionDataClass:  # pylint: disable=too-many-instance-attrib
     s2_norm_2: float = 0.0
 
     # Precession averaged spin couplings in A9 - A14
-    # Precession averaged coupling \f$ \langle S_1 \cdot \hat{L} \rangle_{\rm{pr}} \f$,
-    # Eq. A9 of arXiv:1703.03967
     s1_l_pav: float = 0.0
-    # Precession averaged coupling \f$ \langle S_2 \cdot \hat{L} \rangle_{\rm{pr}} \f$,
-    # Eq. A10 of arXiv:1703.03967
+    """
+    Precession averaged coupling :math:`\\langle S_1 \\cdot \\hat{L} \rangle_{\rm{pr}}`,
+    Eq. A9 of arXiv:1703.03967
+    """
     s2_l_pav: float = 0.0
-    # Precession averaged coupling \f$ \langle S_1 \cdot S_2 \rangle_{\rm{pr}} \f$,
-    # Eq. A11 of arXiv:1703.03967
+    """
+    Precession averaged coupling :math:`\\langle S_2 \\cdot \\hat{L} \rangle_{\rm{pr}}`,
+    Eq. A10 of arXiv:1703.03967
+    """
     s1_s2_pav: float = 0.0
-    # Precession averaged coupling \f$ \langle (S_1 \cdot \hat{L})^2 \rangle_{\rm{pr}} \f$,
-    # Eq. A12 of arXiv:1703.03967
+    """
+    Precession averaged coupling :math:`\\langle S_1 \\cdot S_2 \rangle_{\rm{pr}}`,
+    Eq. A11 of arXiv:1703.03967
+    """
     s1_l_sq_pav: float = 0.0
-    # Precession averaged coupling \f$ \langle (S_2 \cdot \hat{L})^2 \rangle_{\rm{pr}} \f$,
-    # Eq. A13 of arXiv:1703.03967
+    """
+    Precession averaged coupling :math:`\\langle (S_1 \\cdot \\hat{L})^2 \rangle_{\rm{pr}}`,
+    Eq. A12 of arXiv:1703.03967
+    """
     s2_l_sq_pav: float = 0.0
-    # Precession averaged coupling \f$ \langle (S_1 \cdot \hat{L}) (S_2 \cdot \hat{L}) \rangle_{\rm{pr}} \f$,
-    # Eq. A14 of arXiv:1703.03967 |
+    """
+    Precession averaged coupling :math:`\\langle (S_2 \\cdot \\hat{L})^2 \rangle_{\rm{pr}}`,
+    Eq. A13 of arXiv:1703.03967
+    """
     s1_l_s2_l_pav: float = 0.0
+    """
+    Precession averaged coupling :math:`\\langle (S_1 \\cdot \\hat{L}) (S_2 \\cdot \\hat{L}) \rangle_{\rm{pr}}`,
+    Eq. A14 of arXiv:1703.03967
+    """
     # Total spin in Eq. 23 of Chatziioannou et al PRD, 95, 104004, (2017)
     s_norm: float = 0.0
     s_norm_2: float = 0.0
 
-    s_pl2: float = 0.0  # Largest root of polynomial \f$ S^2_+ \f$, Eq. 22 of arXiv:1703.03967
-    s_mi2: float = 0.0  # Smallest root of polynomial \f$ S^2_- \f$, Eq. 22 of arXiv:1703.03967
-    s32: float = 0.0  # Third root of polynomial \f$ S^2_3 \f$, Eq. 22 of arXiv:1703.03967
-    s_pl: float = 0.0  # \f$ S_+ \f$
-    s_mi: float = 0.0  # \f$ S_- \f$
-    s3: float = 0.0  # \f$ S_3 \f$
-    s_pl2_m_s_mi2: float = 0.0  # \f$ S^2_+ - S^2_- \f$
-    s_pl2_p_s_mi2: float = 0.0  # \f$ S^2_+ + S^2_- \f$
+    s_pl2: float = 0.0
+    """
+    Largest root of polynomial :math:`S^2_+ \f`, Eq. 22 of arXiv:1703.03967
+    """
+    s_mi2: float = 0.0
+    """
+    Smallest root of polynomial :math:`S^2_-`, Eq. 22 of arXiv:1703.03967
+    """
+    s32: float = 0.0
+    """
+    Third root of polynomial :math:`S^2_3`, Eq. 22 of arXiv:1703.03967
+    """
+    s_pl: float = 0.0
+    """
+    .. math::
+
+        S_+
+    """
+    s_mi: float = 0.0
+    """
+    .. math::
+
+        S_-
+    """
+    s3: float = 0.0
+    """
+    .. math::
+
+        S_3
+    """
+    s_pl2_m_s_mi2: float = 0.0
+    """
+    .. math::
+
+        S^2_+ - S^2_-
+    """
+    s_pl2_p_s_mi2: float = 0.0
+    """
+    .. math::
+
+        S^2_+ + S^2_-
+    """
 
     a_coeff: float = 0.0
     b_coeff: float = 0.0
@@ -489,6 +777,7 @@ class IMRPhenomXPrecessionDataClass:  # pylint: disable=too-many-instance-attrib
 
     # // Variables to interpolate SpinTaylor angles, up to fmax_angles
     alpha_spline: CubicSpline | None = None
+    """Cubic spline interpolation of :math:`\\alpha` vs frequency"""
     # gsl_spline *cosbeta_spline;
     # gsl_spline *gamma_spline;
 
@@ -497,17 +786,16 @@ class IMRPhenomXPrecessionDataClass:  # pylint: disable=too-many-instance-attrib
     # gsl_interp_accel *gamma_acc;
 
     m_fmax_angles: float = 0.0
-    alpha_ref: float = 0.0  # Record value of alpha at f_ref
-    gamma_ref: float = 0.0  # Record value of gamma at f_ref
-    alpha_ftrans: float = (
-        0.0  # Record value of alpha at end of inspiral, used in IMRPhenomXPHMTwistUp and IMRPhenomXPHMTwistUpOneMode
-    )
-    cosbeta_ftrans: float = (
-        0.0  # Record value of cosbeta at end of inspiral, used in IMRPhenomXPHMTwistUp and IMRPhenomXPHMTwistUpOneMode
-    )
-    gamma_ftrans: float = (
-        0.0  # Record value of gamma at end of inspiral, used in IMRPhenomXPHMTwistUp and IMRPhenomXPHMTwistUpOneMode
-    )
+    alpha_ref: float = 0.0
+    """Record value of alpha at :math:`f_\\textrm{ref}`"""
+    gamma_ref: float = 0.0
+    """Record value of gamma at :math:`f_\\textrm{ref}`"""
+    alpha_ftrans: float = 0.0
+    """Record value of alpha at end of inspiral, used in IMRPhenomXPHMTwistUp and IMRPhenomXPHMTwistUpOneMode"""
+    cosbeta_ftrans: float = 0.0
+    """Record value of cosbeta at end of inspiral, used in IMRPhenomXPHMTwistUp and IMRPhenomXPHMTwistUpOneMode"""
+    gamma_ftrans: float = 0.0
+    """Record value of gamma at end of inspiral, used in IMRPhenomXPHMTwistUp and IMRPhenomXPHMTwistUpOneMode"""
     gamma_in: float = 0.0  # Record last value of gamma, used in IMRPhenomXPHMTwistUp and IMRPhenomXPHMTwistUpOneMode
     # PhenomXPalphaMRD *alpha_params; # Parameters needed for analytical MRD continuation of alpha
     # PhenomXPbetaMRD *beta_params; # Parameters needed for analytical MRD continuation of cosbeta
@@ -519,45 +807,59 @@ class IMRPhenomXPrecessionDataClass:  # pylint: disable=too-many-instance-attrib
     m_max: float = 0.0
     l_max_pnr: float = 0.0
     pn_arrays: PhenomXPInspiralArrays | None = None
-    # Buffer region for integration of SpinTaylor equations:
-    # added so that interpolated angles cover the frequency range requested by user
     integration_buffer: float = 0.0
-    # Minimum frequency covered by the integration of PN spin-precessing equations for SpinTaylor models
+    """
+    Buffer region for integration of SpinTaylor equations:
+    added so that interpolated angles cover the frequency range requested by user
+    """
     fmin_integration: float = 0.0
-    # Minimum frequency covered by the integration of PN spin-precessing equations for SpinTaylor models
+    """Minimum frequency covered by the integration of PN spin-precessing equations for SpinTaylor models"""
     m_fmin_integration: float = 0.0
+    """Minimum frequency covered by the integration of PN spin-precessing equations for SpinTaylor models"""
 
-    msa_error: float = 0.0  # Flag to track errors in initialization of MSA system.
+    msa_error: float = 0.0
+    """Flag to track errors in initialization of MSA system."""
 
     # /* PNR-specific additions for single-spin mapping */
-    # Magnitude of effective single spin used for tapering two-spin angles, Eq. 18 of arXiv:2107.08876
     chi_single_spin: float = 0.0
-    cos_theta_single_spin: float = 0.0  # Polar angle of effective single spin, Eq. 19 or arXiv:2107.08876
-    # Polar angle of approximate final spin, see technical document FIXME: add reference
+    """Magnitude of effective single spin used for tapering two-spin angles, Eq. 18 of arXiv:2107.08876"""
+    cos_theta_single_spin: float = 0.0
+    """Polar angle of effective single spin, Eq. 19 or arXiv:2107.08876"""
     cos_theta_final_single_spin: float = 0.0
+    """Polar angle of approximate final spin, see technical document FIXME: add reference"""
 
     chi_max_spin: float = 0.0
     cos_theta_max_spin: float = 0.0
 
-    chi1x_evolved: float = 0.0  # x-component of spin on primary at end of SpinTaylor evolution
-    chi1y_evolved: float = 0.0  # y-component of spin on primary at end of SpinTaylor evolution
-    chi1z_evolved: float = 0.0  # z-component of spin on primary at end of SpinTaylor evolution
-    chi2x_evolved: float = 0.0  # x-component of spin on secondary at end of SpinTaylor evolution
-    chi2y_evolved: float = 0.0  # y-component of spin on secondary at end of SpinTaylor evolution
-    chi2z_evolved: float = 0.0  # z-component of spin on secondary at end of SpinTaylor evolution
+    chi1x_evolved: float = 0.0
+    """x-component of spin on primary at end of SpinTaylor evolution"""
+    chi1y_evolved: float = 0.0
+    """y-component of spin on primary at end of SpinTaylor evolution"""
+    chi1z_evolved: float = 0.0
+    """z-component of spin on primary at end of SpinTaylor evolution"""
+    chi2x_evolved: float = 0.0
+    """x-component of spin on secondary at end of SpinTaylor evolution"""
+    chi2y_evolved: float = 0.0
+    """y-component of spin on secondary at end of SpinTaylor evolution"""
+    chi2z_evolved: float = 0.0
+    """z-component of spin on secondary at end of SpinTaylor evolution"""
 
-    chi_single_spin_antisymmetric: float = (
-        0.0  # magnitude of effective single spin of a two spin system for the antisymmetric waveform
-    )
-    theta_antisymmetric: float = 0.0  # Polar angle effective single spin for antisymmetric waveform
+    chi_single_spin_antisymmetric: float = 0.0
+    """Magnitude of effective single spin of a two spin system for the antisymmetric waveform"""
+    theta_antisymmetric: float = 0.0
+    """Polar angle effective single spin for antisymmetric waveform"""
 
-    pnr_hm_m_f_low: float = 0.0  # Mf_alpha_lower stored from alphaParams struct, 2 A4 / 7 from arXiv:2107.08876
-    pnr_hm_m_f_high: float = 0.0  # Mf_beta_lower stored from betaParams struct, Eq. 58 from arXiv:2107.08876
-    pnr_q_window_lower: float = 0.0  # Boundary values for PNR angle transition window
+    pnr_hm_m_f_low: float = 0.0
+    """Mf_alpha_lower stored from alphaParams struct, 2 A4 / 7 from arXiv:2107.08876"""
+    pnr_hm_m_f_high: float = 0.0
+    """Mf_beta_lower stored from betaParams struct, Eq. 58 from arXiv:2107.08876"""
+    pnr_q_window_lower: float = 0.0
+    """Boundary values for PNR angle transition window"""
     pnr_q_window_upper: float = 0.0
     pnr_chi_window_lower: float = 0.0
     pnr_chi_window_upper: float = 0.0
-    pnr_inspiral_scaling: int = 0  # Enforce inpsiral scaling for HM angles outside of calibration window
+    pnr_inspiral_scaling: int = 0
+    """Enforce inpsiral scaling for HM angles outside of calibration window"""
 
     # /* Store PNR-specific waveform flags for turning on and off tuning */
     imr_phenom_xpnr_use_tuned_angles: int = 0
@@ -567,27 +869,27 @@ class IMRPhenomXPrecessionDataClass:  # pylint: disable=too-many-instance-attrib
     imr_phenom_xpnr_force_xhm_alignment: int = 0
     apply_pnr_deviations: int = 0
 
-    # /* A copy of the XAS 22 object */
     p_wf_22_as: IMRPhenomXWaveformDataClass | None = None
+    """A copy of the XAS 22 object"""
     imr_phenom_xpnr_interp_tolerance: float = 0.0
 
-    # /* Store anti-symmetric waveform flag for turning on and off */
     imr_phenom_x_antisymmetric_waveform: int = 0
+    """Store anti-symmetric waveform flag for turning on and off"""
 
-    # /* polarization symmetry property, refer to XXXX.YYYYY for details */
     polarization_symmetry: float = 0.0
+    """Polarization symmetry property, refer to XXXX.YYYYY for details"""
 
     # /* variables to store PNR angles for use in existing XP and XPHM twist-up functions */
     alpha_pnr: float = 0.0
     beta_pnr: float = 0.0
     gamma_pnr: float = 0.0
 
-    # /* flag to use MR beta or analytic continuation with PNR angles */
     use_mr_beta: int = 0
+    """Flag to use MR beta or analytic continuation with PNR angles"""
 
     mf_alpha_lower: float = 0.0
 
-    # /* flag to toggle conditional precession multibanding */
     conditional_prec_mband: int = 0
+    """Flag to toggle conditional precession multibanding"""
 
     lal_params: IMRPhenomXPHMParameterDataClass | None = None

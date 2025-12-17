@@ -116,6 +116,7 @@ seglen
 Siemonsen
 Sperp
 stot
+textrm
 Tidalv
 treedef
 twopi
