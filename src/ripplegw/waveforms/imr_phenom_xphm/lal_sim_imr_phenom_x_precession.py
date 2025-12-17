@@ -4,6 +4,7 @@ import dataclasses
 
 import jax
 import jax.numpy as jnp
+from interpax import CubicSpline
 from jax.experimental import checkify
 
 from ripplegw.constants import PI, C, G
@@ -1471,95 +1472,44 @@ def imr_phenom_x_interpolate_alpha_beta_spin_taylor(  # pylint: disable=unused-a
     p_prec = p_prec.replace(ftrans_mrd=0.98 * fmax_inspiral, fmax_inspiral=fmax_inspiral)
 
     # Interpolate alpha
-    alpha_unwrapped = xlal_sim_imr_phenom_x_unwrap_array(final_state["alpha_aux"])
+    alpha = xlal_sim_imr_phenom_x_unwrap_array(final_state["alpha_aux"])
 
-    #       REAL8Sequence *fgw =NULL ;
-    #       /* Setup sequences for angles*/
-    #       REAL8Sequence *alpha = NULL;
-    #       REAL8Sequence *alphaaux = NULL;
-    #       REAL8Sequence *cosbeta = NULL;
+    alpha_spline = CubicSpline(x=final_state["f_gw"], y=alpha)
 
-    #       fgw=XLALCreateREAL8Sequence(lenPN);
-    #       alpha=XLALCreateREAL8Sequence(lenPN);
-    #       alphaaux=XLALCreateREAL8Sequence(lenPN);
-    #       cosbeta=XLALCreateREAL8Sequence(lenPN);
+    p_prec = p_prec.replace(alpha_spline=alpha_spline)
 
-    #       REAL8 fgw_Mf, fgw_Hz, Mfmax_PN=0.;
-    #       // i_max is used to discard possibly unphysical points in the calculation of the final spin
-    #       UINT8 i_max=0;
-    #       REAL8 LNhatx_temp,LNhaty_temp,LNhatz_temp;
+    # Interpolate cosbeta
+    cosbeta_spline = CubicSpline(x=final_state["f_gw"], y=final_state["cos_beta"])
 
-    #       for(UINT8 i=0; i < lenPN; i++){
+    p_prec = p_prec.replace(cosbeta_spline=cosbeta_spline)
 
-    #           LNhatx_temp = (pPrec->PNarrays->LNhatx_PN->data->data[i]);
-    #           LNhaty_temp = (pPrec->PNarrays->LNhaty_PN->data->data[i]);
-    #           LNhatz_temp = (pPrec->PNarrays->LNhatz_PN->data->data[i]);
+    cosbetamax = p_prec.cosbeta_spline(fmax_inspiral)
 
-    #           IMRPhenomX_rotate_z(-pPrec->phiJ_Sf,  &LNhatx_temp, &LNhaty_temp, &LNhatz_temp);
-    #           IMRPhenomX_rotate_y(-pPrec->thetaJ_Sf, &LNhatx_temp, &LNhaty_temp, &LNhatz_temp);
-    #           IMRPhenomX_rotate_z(-pPrec->kappa,  &LNhatx_temp, &LNhaty_temp, &LNhatz_temp);
+    if lal_params.final_spin_mode == 4:
+        m1 = p_wf.m1_si / p_wf.m_tot_si
+        m2 = p_wf.m2_si / p_wf.m_tot_si
 
-    #           fgw_Hz= pow(pPrec->PNarrays->V_PN->data->data[i],3.)/pPrec->piGM;
-    #           fgw_Mf= XLALSimIMRPhenomXUtilsHztoMf(fgw_Hz,pWF->Mtot);
-
-    #           if(fgw_Hz>0.){
-
-    #           /* Compute Euler angles in the J frame */
-    #           alphaaux->data[i] = atan2(LNhaty_temp, LNhatx_temp);
-    #           cosbeta->data[i] = LNhatz_temp;
-    #           fgw->data[i] = fgw_Mf;
-    #           Mfmax_PN = fgw_Mf;
-    #           i_max = i;
-    #           }
-
-    #           else
-    #               break;
-
-    #       }
-
-    #     REAL8 fmax_inspiral;
-    #     if(pPrec->IMRPhenomXPNRUseTunedAngles)
-    #     fmax_inspiral = Mfmax_PN;
-    #     else
-    #     fmax_inspiral = Mfmax_PN-pWF->deltaMF;
-
-    #     if(fmax_inspiral > pWF->fRING-pWF->fDAMP) fmax_inspiral = 1.020 * pWF->fMECO;
-
-    #     pPrec->ftrans_MRD = 0.98*fmax_inspiral;
-    #     pPrec->fmax_inspiral= fmax_inspiral;
-
-    #     // Interpolate alpha
-    #     XLALSimIMRPhenomXUnwrapArray(alphaaux->data, alpha->data, lenPN);
-
-    #     pPrec->alpha_acc = gsl_interp_accel_alloc();
-    #     pPrec->alpha_spline = gsl_spline_alloc(gsl_interp_cspline, lenPN);
-
-    #     status = gsl_spline_init(pPrec->alpha_spline, fgw->data, alpha->data, lenPN);
-
-    #     if (status != GSL_SUCCESS)
-    #     {
-    #          XLALPrintError("Error in %s: error in computing gsl spline for alpha.\n",__func__);
-    #     }
-
-    #     // Interpolate cosbeta
-    #     pPrec->cosbeta_acc = gsl_interp_accel_alloc();
-    #     pPrec->cosbeta_spline = gsl_spline_alloc(gsl_interp_cspline, lenPN);
-    #     status =gsl_spline_init(pPrec->cosbeta_spline, fgw->data, cosbeta->data, lenPN);
-
-    #     if (status != GSL_SUCCESS)
-    #     {
-    #          XLALPrintError("Error in %s: error in computing gsl spline for cos(beta).\n",__func__);
-    #     }
-
-    #     REAL8 cosbetamax;
-
-    #     status = gsl_spline_eval_e(pPrec->cosbeta_spline, fmax_inspiral, pPrec->cosbeta_acc,&cosbetamax);
-    #     if(status != GSL_SUCCESS)
-    #     {
-    #         XLALPrintError("Error in %s: error in computing cosbeta.\n",__func__);
-    #     }
-
-    #     // estimate final spin using spins at the end of the PN integration
+        l_nf = jnp.array(
+            [
+                p_prec.pn_arrays.ln_hat_x_pn[final_state["i_max"]],
+                p_prec.pn_arrays.ln_hat_y_pn[final_state["i_max"]],
+                p_prec.pn_arrays.ln_hat_z_pn[final_state["i_max"]],
+            ]
+        )
+        s1_f = jnp.array(
+            [
+                p_prec.pn_arrays.s1x_pn[final_state["i_max"]],
+                p_prec.pn_arrays.s1y_pn[final_state["i_max"]],
+                p_prec.pn_arrays.s1z_pn[final_state["i_max"]],
+            ]
+        )
+        s2_f = jnp.array(
+            [
+                p_prec.pn_arrays.s2x_pn[final_state["i_max"]],
+                p_prec.pn_arrays.s2y_pn[final_state["i_max"]],
+                p_prec.pn_arrays.s2z_pn[final_state["i_max"]],
+            ]
+        )
 
     #     if(XLALSimInspiralWaveformParamsLookupPhenomXPFinalSpinMod(LALparams)==4){
 
