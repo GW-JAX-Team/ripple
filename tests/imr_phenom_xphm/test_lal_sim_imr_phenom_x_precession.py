@@ -8,6 +8,7 @@ import jax.numpy as jnp
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_precession import (
     imr_phenom_x_rotate_y,
     imr_phenom_x_rotate_z,
+    imr_phenom_x_vector_diff,
     imr_phenom_x_vector_dot_product,
     imr_phenom_x_vector_scalar,
 )
@@ -776,3 +777,122 @@ class TestVectorScalar:
         gradient = grad_func(2.0)
         expected = 6.0  # sum([1, 2, 3]) = 6
         assert jnp.isclose(gradient, expected)
+
+
+class TestVectorDiff:
+    """Test suite for imr_phenom_x_vector_diff function."""
+
+    def test_vector_diff_basic(self):
+        """Test basic vector subtraction."""
+        v1 = jnp.array([5.0, 7.0, 2.0])
+        v2 = jnp.array([1.0, 3.0, 4.0])
+
+        result = imr_phenom_x_vector_diff(v1, v2)
+        expected = jnp.array([4.0, 4.0, -2.0])  # [5-1, 7-3, 2-4]
+
+        assert jnp.allclose(result, expected, atol=1e-14)
+
+    def test_vector_diff_zero_vectors(self):
+        """Test subtraction with zero vectors."""
+        v1 = jnp.array([1.0, 2.0, 3.0])
+        v2 = jnp.array([0.0, 0.0, 0.0])
+
+        result = imr_phenom_x_vector_diff(v1, v2)
+        assert jnp.allclose(result, v1, atol=1e-14)
+
+        result = imr_phenom_x_vector_diff(v2, v1)
+        expected = jnp.array([-1.0, -2.0, -3.0])
+        assert jnp.allclose(result, expected, atol=1e-14)
+
+    def test_vector_diff_identical_vectors(self):
+        """Test subtraction of identical vectors."""
+        v1 = jnp.array([1.0, 2.0, 3.0])
+        v2 = jnp.array([1.0, 2.0, 3.0])
+
+        result = imr_phenom_x_vector_diff(v1, v2)
+        expected = jnp.array([0.0, 0.0, 0.0])
+
+        assert jnp.allclose(result, expected, atol=1e-14)
+
+    def test_vector_diff_negative_components(self):
+        """Test subtraction with negative vector components."""
+        v1 = jnp.array([-1.0, 2.0, -3.0])
+        v2 = jnp.array([4.0, -5.0, 6.0])
+
+        result = imr_phenom_x_vector_diff(v1, v2)
+        expected = jnp.array([-5.0, 7.0, -9.0])  # [-1-4, 2-(-5), -3-6]
+
+        assert jnp.allclose(result, expected, atol=1e-14)
+
+    def test_vector_diff_commutative_property(self):
+        """Test that v1 - v2 = -(v2 - v1)."""
+        v1 = jnp.array([1.0, 2.0, 3.0])
+        v2 = jnp.array([4.0, 5.0, 6.0])
+
+        result1 = imr_phenom_x_vector_diff(v1, v2)
+        result2 = imr_phenom_x_vector_diff(v2, v1)
+
+        # result2 should be the negative of result1
+        assert jnp.allclose(result1, -result2, atol=1e-14)
+
+    def test_vector_diff_jittable(self):
+        """Test that imr_phenom_x_vector_diff is JAX jittable."""
+        v1 = jnp.array([5.0, 7.0, 2.0])
+        v2 = jnp.array([1.0, 3.0, 4.0])
+
+        # Create a jitted version of the function
+        jitted_diff = jax.jit(imr_phenom_x_vector_diff)
+
+        # Test that it compiles and runs
+        result = jitted_diff(v1, v2)
+        expected = jnp.array([4.0, 4.0, -2.0])
+
+        assert jnp.allclose(result, expected, atol=1e-14)
+
+    def test_vector_diff_jittable_with_arrays(self):
+        """Test that imr_phenom_x_vector_diff works with JAX arrays when jitted."""
+        # Create arrays of vectors
+        v1_array = jnp.array([[5.0, 7.0, 2.0], [8.0, 9.0, 10.0]])
+        v2_array = jnp.array([[1.0, 3.0, 4.0], [2.0, 3.0, 5.0]])
+
+        # Create a jitted function that processes each difference
+        @jax.jit
+        def batch_diff(v1_array, v2_array):
+            results = jax.vmap(imr_phenom_x_vector_diff)(v1_array, v2_array)
+            return results
+
+        results = batch_diff(v1_array, v2_array)
+
+        # Verify results
+        expected1 = jnp.array([4.0, 4.0, -2.0])  # [5-1, 7-3, 2-4]
+        expected2 = jnp.array([6.0, 6.0, 5.0])  # [8-2, 9-3, 10-5]
+
+        assert jnp.allclose(results[0], expected1, atol=1e-14)
+        assert jnp.allclose(results[1], expected2, atol=1e-14)
+
+    def test_vector_diff_jit_gradient(self):
+        """Test that gradient computation works with jitted function."""
+
+        # Create a loss function based on the vector difference
+        def diff_func(v1, v2):
+            diff = imr_phenom_x_vector_diff(v1, v2)
+            return jnp.sum(diff**2)
+
+        # Compute gradient with respect to first vector
+        v1 = jnp.array([1.0, 2.0, 3.0])
+        v2 = jnp.array([4.0, 5.0, 6.0])
+
+        grad_fn = jax.jit(jax.grad(diff_func, argnums=0))
+        grad_v1 = grad_fn(v1, v2)
+
+        # Gradient of sum((v1-v2)^2) w.r.t. v1 should be 2*(v1-v2)
+        expected_grad_v1 = 2.0 * (v1 - v2)
+        assert jnp.allclose(grad_v1, expected_grad_v1, atol=1e-14)
+
+        # Compute gradient with respect to second vector
+        grad_fn_v2 = jax.jit(jax.grad(diff_func, argnums=1))
+        grad_v2 = grad_fn_v2(v1, v2)
+
+        # Gradient of sum((v1-v2)^2) w.r.t. v2 should be -2*(v1-v2)
+        expected_grad_v2 = -2.0 * (v1 - v2)
+        assert jnp.allclose(grad_v2, expected_grad_v2, atol=1e-14)
