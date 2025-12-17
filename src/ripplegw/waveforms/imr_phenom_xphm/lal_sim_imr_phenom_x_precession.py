@@ -8,6 +8,7 @@ from interpax import CubicSpline
 from jax.experimental import checkify
 
 from ripplegw.constants import PI, C, G
+from ripplegw.typing import Array
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
     IMRPhenomXWaveformDataClass,
 )
@@ -1729,3 +1730,16 @@ def imr_phenom_x_rotate_y(angle: float, vx: float, vy: float, vz: float) -> tupl
     vz_rotated = -sin_angle * vx + cos_angle * vz
 
     return vx_rotated, vy_rotated, vz_rotated
+
+
+def imr_phenom_x_vector_dot_product(v1: Array, v2: Array) -> float:
+    """Compute the dot product of two 3D vectors.
+
+    Args:
+        v1: First vector as a 3-element array.
+        v2: Second vector as a 3-element array.
+
+    Returns:
+        The dot product of v1 and v2.
+    """
+    return jnp.dot(v1, v2)
