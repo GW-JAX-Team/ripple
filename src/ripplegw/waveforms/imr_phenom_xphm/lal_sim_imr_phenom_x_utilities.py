@@ -275,6 +275,50 @@ def xlal_sim_imr_phenom_x_final_spin_2017(eta, chi1_l, chi2_l) -> float:  # pyli
     return no_spin + eq_spin + uneq_spin
 
 
+def xlal_sim_imr_phenom_x_precessing_final_spin_2017(
+    eta: float, chi1_l: float, chi2_l: float, chi_in_plane: float
+) -> float:
+    """Compute the final dimensionless spin for precessing binaries.
+
+    Args:
+        eta: Symmetric mass ratio.
+        chi1_l: Aligned spin component of the first body.
+        chi2_l: Aligned spin component of the second body.
+        chi_in_plane: Effective precession spin parameter.
+
+    Returns:
+        Final dimensionless spin of the merged object.
+    """
+    m1 = 0.5 * (1.0 + jnp.sqrt(1.0 - 4.0 * eta))
+    m2 = 0.5 * (1.0 - jnp.sqrt(1.0 - 4.0 * eta))
+    big_m = m1 + m2
+
+    eta = lax.cond(
+        eta > 0.25,
+        lambda eta_val: imr_phenom_x_internal_nudge(eta_val, 0.25, 1e-6),
+        lambda eta_val: eta_val,
+        operand=eta,
+    )
+
+    def q_factor_af_parallel_true_branch(_):
+        q_factor = m1 / big_m
+        af_parallel = xlal_sim_imr_phenom_x_final_spin_2017(eta=eta, chi1_l=chi1_l, chi2_l=chi2_l)
+        return q_factor, af_parallel
+
+    def q_factor_af_parallel_false_branch(_):
+        q_factor = m2 / big_m
+        af_parallel = xlal_sim_imr_phenom_x_final_spin_2017(eta=eta, chi1_l=chi2_l, chi2_l=chi1_l)
+        return q_factor, af_parallel
+
+    q_factor, af_parallel = lax.cond(
+        m1 >= m2, q_factor_af_parallel_true_branch, q_factor_af_parallel_false_branch, operand=None
+    )
+
+    s_perp = chi_in_plane * q_factor * q_factor
+    af = jnp.copysign(1.0, af_parallel) * jnp.sqrt(s_perp * s_perp + af_parallel * af_parallel)
+    return af
+
+
 def xlal_sim_imr_phenom_x_f_meco(eta: float, chi1_l: float, chi2_l: float) -> float:
     """Compute the MECO frequency.
 
