@@ -778,7 +778,8 @@ class IMRPhenomXPrecessionDataClass:  # pylint: disable=too-many-instance-attrib
     # // Variables to interpolate SpinTaylor angles, up to fmax_angles
     alpha_spline: CubicSpline | None = None
     """Cubic spline interpolation of :math:`\\alpha` vs frequency"""
-    # gsl_spline *cosbeta_spline;
+    cosbeta_spline: CubicSpline | None = None
+    """Cubic spline interpolation of :math:`\\cos \\beta` vs frequency"""
     # gsl_spline *gamma_spline;
 
     # gsl_interp_accel *alpha_acc;
