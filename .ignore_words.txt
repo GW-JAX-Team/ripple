@@ -125,6 +125,7 @@ unflatten
 unflattening
 unphysical
 vmap
+vmapped
 waveframe
 wfstruct
 Xatan
