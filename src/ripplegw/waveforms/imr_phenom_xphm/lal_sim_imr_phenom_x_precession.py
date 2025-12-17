@@ -9,6 +9,7 @@ from jax.experimental import checkify
 
 from ripplegw.constants import PI, C, G
 from ripplegw.typing import Array
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_thm_fits import evaluate_qnm_fit_fring22
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
     IMRPhenomXWaveformDataClass,
 )
@@ -1531,6 +1532,8 @@ def imr_phenom_x_interpolate_alpha_beta_spin_taylor(  # pylint: disable=unused-a
         )
 
         p_wf = p_wf.replace(a_final=a_final)
+
+        f_ring = evaluate_qnm_fit_fring22(p_wf.a_final) / (p_wf.m_final)
 
     #     REAL8 dotS1L = IMRPhenomX_vector_dot_product(S1f,Lnf)/Lnorm;
     #     REAL8 dotS2L  = IMRPhenomX_vector_dot_product(S2f,Lnf)/Lnorm;
