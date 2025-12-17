@@ -9,6 +9,7 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_precession import (
     imr_phenom_x_rotate_y,
     imr_phenom_x_rotate_z,
     imr_phenom_x_vector_dot_product,
+    imr_phenom_x_vector_scalar,
 )
 
 
@@ -712,3 +713,66 @@ class TestVectorDotProduct:
 
         # Gradient of dot product w.r.t. v2 should be v1
         assert jnp.allclose(grad_v2, v1, atol=1e-14)
+
+
+class TestVectorScalar:
+    """Test imr_phenom_x_vector_scalar function."""
+
+    def test_vector_scalar_basic(self):
+        """Test basic scalar multiplication."""
+        v1 = jnp.array([1.0, 2.0, 3.0])
+        a = 2.0
+        result = imr_phenom_x_vector_scalar(v1, a)
+        expected = jnp.array([2.0, 4.0, 6.0])
+        assert jnp.allclose(result, expected)
+
+    def test_vector_scalar_zero_scalar(self):
+        """Test multiplication by zero."""
+        v1 = jnp.array([1.0, 2.0, 3.0])
+        a = 0.0
+        result = imr_phenom_x_vector_scalar(v1, a)
+        expected = jnp.array([0.0, 0.0, 0.0])
+        assert jnp.allclose(result, expected)
+
+    def test_vector_scalar_negative_scalar(self):
+        """Test multiplication by negative scalar."""
+        v1 = jnp.array([1.0, -2.0, 3.0])
+        a = -1.5
+        result = imr_phenom_x_vector_scalar(v1, a)
+        expected = jnp.array([-1.5, 3.0, -4.5])
+        assert jnp.allclose(result, expected)
+
+    def test_vector_scalar_jit_compatible(self):
+        """Test that function is JIT-compatible."""
+
+        @jax.jit
+        def jitted_scalar(v1, a):
+            return imr_phenom_x_vector_scalar(v1, a)
+
+        v1 = jnp.array([1.0, 2.0, 3.0])
+        a = 3.0
+        result = jitted_scalar(v1, a)
+        expected = jnp.array([3.0, 6.0, 9.0])
+        assert jnp.allclose(result, expected)
+
+    def test_vector_scalar_vmap_compatible(self):
+        """Test that function works with vmap."""
+        vmapped_scalar = jax.vmap(imr_phenom_x_vector_scalar, in_axes=(0, 0))
+
+        v1_batch = jnp.array([[1.0, 2.0], [3.0, 4.0]])
+        a_batch = jnp.array([2.0, 3.0])
+        result = vmapped_scalar(v1_batch, a_batch)
+        expected = jnp.array([[2.0, 4.0], [9.0, 12.0]])
+        assert jnp.allclose(result, expected)
+
+    def test_vector_scalar_gradient(self):
+        """Test that gradients work correctly."""
+
+        def scalar_func(a):
+            v1 = jnp.array([1.0, 2.0, 3.0])
+            return jnp.sum(imr_phenom_x_vector_scalar(v1, a))
+
+        grad_func = jax.grad(scalar_func)
+        gradient = grad_func(2.0)
+        expected = 6.0  # sum([1, 2, 3]) = 6
+        assert jnp.isclose(gradient, expected)
