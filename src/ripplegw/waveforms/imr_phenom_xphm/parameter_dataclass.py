@@ -66,6 +66,9 @@ class IMRPhenomXPHMParameterDataClass:  # pylint: disable=too-many-instance-attr
     threshold_mband: float = 0.001
     amp_interpol_mb: int = 1
 
+    # IMRPhenomX parameters.
+    final_spin_mod: int = 4
+
     def copy(self, **kwargs) -> IMRPhenomXPHMParameterDataClass:
         """Create a new instance of the dataclass, optionally replacing some fields."""
         return dataclasses.replace(self, **kwargs)
@@ -122,7 +125,8 @@ class IMRPhenomXPHMParameterDataClass:  # pylint: disable=too-many-instance-attr
 # DEFINE_INSERT_FUNC(PhenomXPNRUseTunedAngles, INT4, "PNRUseTunedAngles", 0)
 # DEFINE_INSERT_FUNC(PhenomXPNRUseTunedCoprec, INT4, "PNRUseTunedCoprec", 0)
 # DEFINE_INSERT_FUNC(PhenomXPNRUseTunedCoprec33, INT4, "PNRUseTunedCoprec33", 0)
-# // Option to only be used when actively tuning PNR Coprec relative to XHM wherein the non-precessing final spin is used
+# // Option to only be used when actively tuning PNR Coprec relative to XHM
+# wherein the non-precessing final spin is used
 # DEFINE_INSERT_FUNC(PhenomXPNRUseInputCoprecDeviations, INT4, "PNRUseInputCoprecDeviations", 0)
 # // Dev option for forcing 22 phase derivative inspiral values to align with XHM at a low ref frequency
 # DEFINE_INSERT_FUNC(PhenomXPNRForceXHMAlignment, INT4, "PNRForceXHMAlignment", 0)

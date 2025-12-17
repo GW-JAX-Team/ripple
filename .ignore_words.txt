@@ -134,6 +134,7 @@ XLAL
 xlalsim
 XLPN
 XPHM
+XPHMM
 xpnr
 yphi
 ytheta
