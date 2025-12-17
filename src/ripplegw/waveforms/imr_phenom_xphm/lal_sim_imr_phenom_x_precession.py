@@ -1517,6 +1517,11 @@ def imr_phenom_x_interpolate_alpha_beta_spin_taylor(  # pylint: disable=unused-a
         dot_s1_l = imr_phenom_x_vector_dot_product(s1_f, l_nf) / l_norm
         dot_s2_l = imr_phenom_x_vector_dot_product(s2_f, l_nf) / l_norm
 
+        s1_perp = imr_phenom_x_vector_diff(s1_f, imr_phenom_x_vector_scalar(l_nf, dot_s1_l))
+        s1_perp = imr_phenom_x_vector_scalar(s1_perp, m1 * m1)
+        s2_perp = imr_phenom_x_vector_diff(s2_f, imr_phenom_x_vector_scalar(l_nf, dot_s2_l))
+        s2_perp = imr_phenom_x_vector_scalar(s2_perp, m2 * m2)
+
     #     if(XLALSimInspiralWaveformParamsLookupPhenomXPFinalSpinMod(LALparams)==4){
 
     #     REAL8 m1 = pWF->m1_SI / pWF->Mtot_SI;
@@ -1774,3 +1779,16 @@ def imr_phenom_x_vector_diff(v1: Array, v2: Array) -> Array:
         The resulting vector after subtraction (v1 - v2).
     """
     return v1 - v2
+
+
+def imr_phenom_x_vector_sum(v1: Array, v2: Array) -> Array:
+    """Compute the sum of two vectors.
+
+    Args:
+        v1: First vector as an array.
+        v2: Second vector as an array.
+
+    Returns:
+        The resulting vector after addition (v1 + v2).
+    """
+    return v1 + v2
