@@ -35,6 +35,7 @@ deformabilities
 deformability
 deltaf
 dimensionful
+dimless
 dphase
 Dphi
 EFUNC
@@ -107,6 +108,7 @@ phif
 prec
 precversion
 Qfrom
+qnm
 RINGCP
 ringdowm
 ringdown
@@ -116,6 +118,7 @@ seglen
 Siemonsen
 Sperp
 stot
+Teukolsky
 textrm
 Tidalv
 treedef
@@ -131,6 +134,7 @@ wfstruct
 Xatan
 Xchi
 Xdot
+Xisco
 XLAL
 xlalsim
 XLPN
