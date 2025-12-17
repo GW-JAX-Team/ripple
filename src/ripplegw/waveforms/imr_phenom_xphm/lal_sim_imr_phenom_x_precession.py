@@ -1761,3 +1761,16 @@ def imr_phenom_x_vector_scalar(v1: Array, a: float) -> Array:
         The resulting vector after scalar multiplication.
     """
     return v1 * a
+
+
+def imr_phenom_x_vector_diff(v1: Array, v2: Array) -> Array:
+    """Compute the difference between two vectors.
+
+    Args:
+        v1: First vector as an array.
+        v2: Second vector as an array.
+
+    Returns:
+        The resulting vector after subtraction (v1 - v2).
+    """
+    return v1 - v2
