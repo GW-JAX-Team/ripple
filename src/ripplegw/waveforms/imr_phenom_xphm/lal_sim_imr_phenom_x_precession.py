@@ -14,6 +14,7 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass
 )
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_precession_dataclass import IMRPhenomXPrecessionDataClass
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import (
+    xlal_sim_imr_phenom_x_precessing_final_spin_2017,
     xlal_sim_imr_phenom_x_unwrap_array,
     xlal_sim_imr_phenom_x_utils_hz_to_mf,
     xlal_sim_imr_phenom_x_utils_mf_to_hz,
@@ -1524,6 +1525,12 @@ def imr_phenom_x_interpolate_alpha_beta_spin_taylor(  # pylint: disable=unused-a
         s_tot_perp = imr_phenom_x_vector_sum(s1_perp, s2_perp)
         s_perp_norm = jnp.sqrt(imr_phenom_x_vector_dot_product(s_tot_perp, s_tot_perp))
         chi_perp_norm = s_perp_norm * jnp.power(m1 + m2, 2) / jnp.power(m1, 2)
+
+        a_final = jnp.copy(1.0, cosbetamax) * xlal_sim_imr_phenom_x_precessing_final_spin_2017(
+            eta=p_wf.eta, chi1_l=dot_s1_l, chi2_l=dot_s2_l, chi_in_plane=chi_perp_norm
+        )
+
+        p_wf = p_wf.replace(a_final=a_final)
 
     #     REAL8 dotS1L = IMRPhenomX_vector_dot_product(S1f,Lnf)/Lnorm;
     #     REAL8 dotS2L  = IMRPhenomX_vector_dot_product(S2f,Lnf)/Lnorm;
