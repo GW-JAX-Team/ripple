@@ -1322,8 +1322,8 @@ def _gen_IMRPhenomXAS(
     f_ref: float,
 ):
     m1, m2, chi1, chi2 = theta_intrinsic
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
 
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)

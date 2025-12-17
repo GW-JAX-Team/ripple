@@ -1,5 +1,3 @@
-# from math import pi
-
 import jax
 import jax.numpy as jnp
 from .IMRPhenomD_utils import (
