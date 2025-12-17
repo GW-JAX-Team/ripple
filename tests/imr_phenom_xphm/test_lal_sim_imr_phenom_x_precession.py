@@ -11,6 +11,7 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_precession import (
     imr_phenom_x_vector_diff,
     imr_phenom_x_vector_dot_product,
     imr_phenom_x_vector_scalar,
+    imr_phenom_x_vector_sum,
 )
 
 
@@ -895,4 +896,135 @@ class TestVectorDiff:
 
         # Gradient of sum((v1-v2)^2) w.r.t. v2 should be -2*(v1-v2)
         expected_grad_v2 = -2.0 * (v1 - v2)
+        assert jnp.allclose(grad_v2, expected_grad_v2, atol=1e-14)
+
+
+class TestVectorSum:
+    """Test suite for imr_phenom_x_vector_sum function."""
+
+    def test_vector_sum_basic(self):
+        """Test basic vector addition."""
+        v1 = jnp.array([1.0, 2.0, 3.0])
+        v2 = jnp.array([4.0, 5.0, 6.0])
+
+        result = imr_phenom_x_vector_sum(v1, v2)
+        expected = jnp.array([5.0, 7.0, 9.0])  # [1+4, 2+5, 3+6]
+
+        assert jnp.allclose(result, expected, atol=1e-14)
+
+    def test_vector_sum_zero_vectors(self):
+        """Test addition with zero vectors."""
+        v1 = jnp.array([1.0, 2.0, 3.0])
+        v2 = jnp.array([0.0, 0.0, 0.0])
+
+        result = imr_phenom_x_vector_sum(v1, v2)
+        assert jnp.allclose(result, v1, atol=1e-14)
+
+        result = imr_phenom_x_vector_sum(v2, v1)
+        assert jnp.allclose(result, v1, atol=1e-14)
+
+    def test_vector_sum_identical_vectors(self):
+        """Test addition of identical vectors."""
+        v1 = jnp.array([1.0, 2.0, 3.0])
+        v2 = jnp.array([1.0, 2.0, 3.0])
+
+        result = imr_phenom_x_vector_sum(v1, v2)
+        expected = jnp.array([2.0, 4.0, 6.0])
+
+        assert jnp.allclose(result, expected, atol=1e-14)
+
+    def test_vector_sum_negative_components(self):
+        """Test addition with negative vector components."""
+        v1 = jnp.array([-1.0, 2.0, -3.0])
+        v2 = jnp.array([4.0, -5.0, 6.0])
+
+        result = imr_phenom_x_vector_sum(v1, v2)
+        expected = jnp.array([3.0, -3.0, 3.0])  # [-1+4, 2+(-5), -3+6]
+
+        assert jnp.allclose(result, expected, atol=1e-14)
+
+    def test_vector_sum_commutative(self):
+        """Test that vector addition is commutative."""
+        v1 = jnp.array([1.0, 2.0, 3.0])
+        v2 = jnp.array([4.0, 5.0, 6.0])
+
+        result1 = imr_phenom_x_vector_sum(v1, v2)
+        result2 = imr_phenom_x_vector_sum(v2, v1)
+
+        assert jnp.allclose(result1, result2, atol=1e-14)
+
+    def test_vector_sum_associative(self):
+        """Test that vector addition is associative."""
+        v1 = jnp.array([1.0, 2.0, 3.0])
+        v2 = jnp.array([4.0, 5.0, 6.0])
+        v3 = jnp.array([7.0, 8.0, 9.0])
+
+        # (v1 + v2) + v3
+        result1 = imr_phenom_x_vector_sum(imr_phenom_x_vector_sum(v1, v2), v3)
+
+        # v1 + (v2 + v3)
+        result2 = imr_phenom_x_vector_sum(v1, imr_phenom_x_vector_sum(v2, v3))
+
+        assert jnp.allclose(result1, result2, atol=1e-14)
+
+    def test_vector_sum_jittable(self):
+        """Test that imr_phenom_x_vector_sum is JAX jittable."""
+        v1 = jnp.array([1.0, 2.0, 3.0])
+        v2 = jnp.array([4.0, 5.0, 6.0])
+
+        # Create a jitted version of the function
+        jitted_sum = jax.jit(imr_phenom_x_vector_sum)
+
+        # Test that it compiles and runs
+        result = jitted_sum(v1, v2)
+        expected = jnp.array([5.0, 7.0, 9.0])
+
+        assert jnp.allclose(result, expected, atol=1e-14)
+
+    def test_vector_sum_jittable_with_arrays(self):
+        """Test that imr_phenom_x_vector_sum works with JAX arrays when jitted."""
+        # Create arrays of vectors
+        v1_array = jnp.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+        v2_array = jnp.array([[7.0, 8.0, 9.0], [10.0, 11.0, 12.0]])
+
+        # Create a jitted function that processes each sum
+        @jax.jit
+        def batch_sum(v1_array, v2_array):
+            results = jax.vmap(imr_phenom_x_vector_sum)(v1_array, v2_array)
+            return results
+
+        results = batch_sum(v1_array, v2_array)
+
+        # Verify results
+        expected1 = jnp.array([8.0, 10.0, 12.0])  # [1+7, 2+8, 3+9]
+        expected2 = jnp.array([14.0, 16.0, 18.0])  # [4+10, 5+11, 6+12]
+
+        assert jnp.allclose(results[0], expected1, atol=1e-14)
+        assert jnp.allclose(results[1], expected2, atol=1e-14)
+
+    def test_vector_sum_jit_gradient(self):
+        """Test that gradient computation works with jitted function."""
+
+        # Create a loss function based on the vector sum
+        def sum_func(v1, v2):
+            sum_vec = imr_phenom_x_vector_sum(v1, v2)
+            return jnp.sum(sum_vec**2)
+
+        # Compute gradient with respect to first vector
+        v1 = jnp.array([1.0, 2.0, 3.0])
+        v2 = jnp.array([4.0, 5.0, 6.0])
+
+        grad_fn = jax.jit(jax.grad(sum_func, argnums=0))
+        grad_v1 = grad_fn(v1, v2)
+
+        # Gradient of sum((v1+v2)^2) w.r.t. v1 should be 2*(v1+v2)
+        expected_grad_v1 = 2.0 * (v1 + v2)
+        assert jnp.allclose(grad_v1, expected_grad_v1, atol=1e-14)
+
+        # Compute gradient with respect to second vector
+        grad_fn_v2 = jax.jit(jax.grad(sum_func, argnums=1))
+        grad_v2 = grad_fn_v2(v1, v2)
+
+        # Gradient of sum((v1+v2)^2) w.r.t. v2 should be 2*(v1+v2)
+        expected_grad_v2 = 2.0 * (v1 + v2)
         assert jnp.allclose(grad_v2, expected_grad_v2, atol=1e-14)
