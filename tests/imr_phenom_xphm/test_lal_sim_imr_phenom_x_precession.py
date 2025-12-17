@@ -8,6 +8,7 @@ import jax.numpy as jnp
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_precession import (
     imr_phenom_x_rotate_y,
     imr_phenom_x_rotate_z,
+    imr_phenom_x_vector_dot_product,
 )
 
 
@@ -579,3 +580,135 @@ class TestRotateY:
         loss_value = jitted_loss(angle, vx, vy, vz)
         expected_loss = vx**2 + vy**2 + vz**2  # Rotation preserves magnitude
         assert jnp.allclose(loss_value, expected_loss, atol=1e-14)
+
+
+class TestVectorDotProduct:
+    """Test suite for imr_phenom_x_vector_dot_product function."""
+
+    def test_vector_dot_product_basic(self):
+        """Test basic dot product calculation."""
+        v1 = jnp.array([1.0, 2.0, 3.0])
+        v2 = jnp.array([4.0, 5.0, 6.0])
+
+        result = imr_phenom_x_vector_dot_product(v1, v2)
+        expected = 1.0 * 4.0 + 2.0 * 5.0 + 3.0 * 6.0  # 4 + 10 + 18 = 32
+
+        assert jnp.allclose(result, expected, atol=1e-14)
+
+    def test_vector_dot_product_zero_vectors(self):
+        """Test dot product with zero vectors."""
+        v1 = jnp.array([0.0, 0.0, 0.0])
+        v2 = jnp.array([1.0, 2.0, 3.0])
+
+        result = imr_phenom_x_vector_dot_product(v1, v2)
+        assert jnp.allclose(result, 0.0, atol=1e-14)
+
+        result = imr_phenom_x_vector_dot_product(v2, v1)
+        assert jnp.allclose(result, 0.0, atol=1e-14)
+
+    def test_vector_dot_product_orthogonal(self):
+        """Test dot product of orthogonal vectors."""
+        # x and y axes are orthogonal
+        v1 = jnp.array([1.0, 0.0, 0.0])
+        v2 = jnp.array([0.0, 1.0, 0.0])
+
+        result = imr_phenom_x_vector_dot_product(v1, v2)
+        assert jnp.allclose(result, 0.0, atol=1e-14)
+
+        # x and z axes are orthogonal
+        v3 = jnp.array([0.0, 0.0, 1.0])
+        result = imr_phenom_x_vector_dot_product(v1, v3)
+        assert jnp.allclose(result, 0.0, atol=1e-14)
+
+    def test_vector_dot_product_unit_vectors(self):
+        """Test dot product of unit vectors."""
+        v1 = jnp.array([1.0, 0.0, 0.0])
+        v2 = jnp.array([1.0, 0.0, 0.0])
+
+        result = imr_phenom_x_vector_dot_product(v1, v2)
+        assert jnp.allclose(result, 1.0, atol=1e-14)
+
+        # 45-degree angle
+        v3 = jnp.array([1.0, 1.0, 0.0])
+        v3_norm = v3 / jnp.sqrt(jnp.sum(v3**2))
+        result = imr_phenom_x_vector_dot_product(v3_norm, v3_norm)
+        assert jnp.allclose(result, 1.0, atol=1e-14)
+
+    def test_vector_dot_product_negative_components(self):
+        """Test dot product with negative vector components."""
+        v1 = jnp.array([-1.0, 2.0, -3.0])
+        v2 = jnp.array([4.0, -5.0, 6.0])
+
+        result = imr_phenom_x_vector_dot_product(v1, v2)
+        expected = (-1.0 * 4.0) + (2.0 * -5.0) + (-3.0 * 6.0)  # -4 -10 -18 = -32
+
+        assert jnp.allclose(result, expected, atol=1e-14)
+
+    def test_vector_dot_product_commutative(self):
+        """Test that dot product is commutative."""
+        v1 = jnp.array([1.0, 2.0, 3.0])
+        v2 = jnp.array([4.0, 5.0, 6.0])
+
+        result1 = imr_phenom_x_vector_dot_product(v1, v2)
+        result2 = imr_phenom_x_vector_dot_product(v2, v1)
+
+        assert jnp.allclose(result1, result2, atol=1e-14)
+
+    def test_vector_dot_product_jittable(self):
+        """Test that imr_phenom_x_vector_dot_product is JAX jittable."""
+        v1 = jnp.array([1.0, 2.0, 3.0])
+        v2 = jnp.array([4.0, 5.0, 6.0])
+
+        # Create a jitted version of the function
+        jitted_dot = jax.jit(imr_phenom_x_vector_dot_product)
+
+        # Test that it compiles and runs
+        result = jitted_dot(v1, v2)
+        expected = 1.0 * 4.0 + 2.0 * 5.0 + 3.0 * 6.0
+
+        assert jnp.allclose(result, expected, atol=1e-14)
+
+    def test_vector_dot_product_jittable_with_arrays(self):
+        """Test that imr_phenom_x_vector_dot_product works with JAX arrays when jitted."""
+        # Create arrays of vectors
+        v1_array = jnp.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+        v2_array = jnp.array([[7.0, 8.0, 9.0], [10.0, 11.0, 12.0]])
+
+        # Create a jitted function that processes each dot product
+        @jax.jit
+        def batch_dot(v1_array, v2_array):
+            results = jax.vmap(imr_phenom_x_vector_dot_product)(v1_array, v2_array)
+            return results
+
+        results = batch_dot(v1_array, v2_array)
+
+        # Verify results
+        expected1 = 1.0 * 7.0 + 2.0 * 8.0 + 3.0 * 9.0  # 7 + 16 + 27 = 50
+        expected2 = 4.0 * 10.0 + 5.0 * 11.0 + 6.0 * 12.0  # 40 + 55 + 72 = 167
+
+        assert jnp.allclose(results[0], expected1, atol=1e-14)
+        assert jnp.allclose(results[1], expected2, atol=1e-14)
+
+    def test_vector_dot_product_jit_gradient(self):
+        """Test that gradient computation works with jitted function."""
+
+        # Create a loss function based on the dot product
+        def loss_fn(v1, v2):
+            return imr_phenom_x_vector_dot_product(v1, v2)
+
+        # Compute gradient with respect to first vector
+        v1 = jnp.array([1.0, 2.0, 3.0])
+        v2 = jnp.array([4.0, 5.0, 6.0])
+
+        grad_fn = jax.jit(jax.grad(loss_fn, argnums=0))
+        grad_v1 = grad_fn(v1, v2)
+
+        # Gradient of dot product w.r.t. v1 should be v2
+        assert jnp.allclose(grad_v1, v2, atol=1e-14)
+
+        # Compute gradient with respect to second vector
+        grad_fn_v2 = jax.jit(jax.grad(loss_fn, argnums=1))
+        grad_v2 = grad_fn_v2(v1, v2)
+
+        # Gradient of dot product w.r.t. v2 should be v1
+        assert jnp.allclose(grad_v2, v1, atol=1e-14)
