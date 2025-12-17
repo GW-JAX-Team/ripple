@@ -13,6 +13,8 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import (
     xlal_imr_phenom_xp_check_masses_and_spins,
     xlal_sim_imr_phenom_x_chi_eff,
     xlal_sim_imr_phenom_x_chi_pn_hat,
+    xlal_sim_imr_phenom_x_final_spin_2017,
+    xlal_sim_imr_phenom_x_precessing_final_spin_2017,
     xlal_sim_imr_phenom_x_unwrap_array,
     xlal_sim_imr_phenom_x_utils_hz_to_mf,
     xlal_sim_imr_phenom_x_utils_mf_to_hz,
@@ -22,6 +24,7 @@ try:
     from lalsimulation import (
         SimIMRPhenomXchiEff,
         SimIMRPhenomXchiPNHat,
+        SimIMRPhenomXPrecessingFinalSpin2017,
         SimIMRPhenomXUtilsHztoMf,
         SimIMRPhenomXUtilsMftoHz,
     )
@@ -453,6 +456,109 @@ class TestXlalSimImrPhenomXChiPNHat:
 
         result_jax = xlal_sim_imr_phenom_x_chi_pn_hat(eta, chi1l, chi2l)
         result_lal = SimIMRPhenomXchiPNHat(eta, chi1l, chi2l)
+
+        assert jnp.isclose(float(result_jax), result_lal, rtol=1e-6)
+
+
+class TestXlalSimImrPhenomXPrecessingFinalSpin2017:
+    """Test xlal_sim_imr_phenom_x_precessing_final_spin_2017 function."""
+
+    def test_precessing_final_spin_equal_mass_zero_in_plane(self):
+        """Test precessing final spin for equal mass with zero in-plane spin."""
+        eta = 0.25
+        chi1_l = 0.4
+        chi2_l = 0.3
+        chi_in_plane = 0.0
+
+        result = xlal_sim_imr_phenom_x_precessing_final_spin_2017(eta, chi1_l, chi2_l, chi_in_plane)
+        # Should reduce to aligned case when chi_in_plane = 0
+        aligned_result = xlal_sim_imr_phenom_x_final_spin_2017(eta, chi1_l, chi2_l)
+        assert jnp.isclose(float(result), float(aligned_result), rtol=1e-6)
+
+    def test_precessing_final_spin_unequal_mass(self):
+        """Test precessing final spin for unequal mass ratio."""
+        eta = 75.0 / 400.0  # m1=15, m2=5
+        chi1_l = -0.5
+        chi2_l = 0.2
+        chi_in_plane = 0.1
+
+        result = xlal_sim_imr_phenom_x_precessing_final_spin_2017(eta, chi1_l, chi2_l, chi_in_plane)
+        # Result should be a finite float
+        assert jnp.isfinite(result)
+
+    def test_precessing_final_spin_extremal_spins(self):
+        """Test precessing final spin with near-extremal spins."""
+        eta = 0.25
+        chi1_l = 0.99
+        chi2_l = -0.99
+        chi_in_plane = 0.5
+
+        result = xlal_sim_imr_phenom_x_precessing_final_spin_2017(eta, chi1_l, chi2_l, chi_in_plane)
+        # Result should be finite and within [-1, 1] bounds
+        assert jnp.isfinite(result)
+        assert -1.0 <= float(result) <= 1.0
+
+    def test_precessing_final_spin_jit_compatible(self):
+        """Test that xlal_sim_imr_phenom_x_precessing_final_spin_2017 is JIT-compatible."""
+        jitted_func = jax.jit(xlal_sim_imr_phenom_x_precessing_final_spin_2017)
+        eta = 0.25
+        chi1_l = 0.5
+        chi2_l = 0.3
+        chi_in_plane = 0.1
+
+        result = jitted_func(eta, chi1_l, chi2_l, chi_in_plane)
+        expected = xlal_sim_imr_phenom_x_precessing_final_spin_2017(eta, chi1_l, chi2_l, chi_in_plane)
+        assert jnp.isclose(float(result), float(expected), rtol=1e-6)
+
+    @pytest.mark.skipif(not HAS_LAL, reason="lalsimulation not available")
+    def test_precessing_final_spin_cross_validation_equal_mass(self):
+        """Cross-validate precessing final spin against LAL for equal mass case."""
+        eta = 0.25
+        chi1_l = 0.4
+        chi2_l = 0.3
+        chi_in_plane = 0.1
+
+        result_jax = xlal_sim_imr_phenom_x_precessing_final_spin_2017(eta, chi1_l, chi2_l, chi_in_plane)
+        result_lal = SimIMRPhenomXPrecessingFinalSpin2017(eta, chi1_l, chi2_l, chi_in_plane)
+
+        assert jnp.isclose(float(result_jax), result_lal, rtol=1e-6)
+
+    @pytest.mark.skipif(not HAS_LAL, reason="lalsimulation not available")
+    def test_precessing_final_spin_cross_validation_unequal_mass(self):
+        """Cross-validate precessing final spin against LAL for unequal mass case."""
+        eta = 75.0 / 400.0  # m1=15, m2=5
+        chi1_l = -0.5
+        chi2_l = 0.2
+        chi_in_plane = 0.05
+
+        result_jax = xlal_sim_imr_phenom_x_precessing_final_spin_2017(eta, chi1_l, chi2_l, chi_in_plane)
+        result_lal = SimIMRPhenomXPrecessingFinalSpin2017(eta, chi1_l, chi2_l, chi_in_plane)
+
+        assert jnp.isclose(float(result_jax), result_lal, rtol=1e-6)
+
+    @pytest.mark.skipif(not HAS_LAL, reason="lalsimulation not available")
+    def test_precessing_final_spin_cross_validation_zero_spins(self):
+        """Cross-validate precessing final spin against LAL with zero spins."""
+        eta = 0.1875
+        chi1_l = 0.0
+        chi2_l = 0.0
+        chi_in_plane = 0.0
+
+        result_jax = xlal_sim_imr_phenom_x_precessing_final_spin_2017(eta, chi1_l, chi2_l, chi_in_plane)
+        result_lal = SimIMRPhenomXPrecessingFinalSpin2017(eta, chi1_l, chi2_l, chi_in_plane)
+
+        assert jnp.isclose(float(result_jax), result_lal, rtol=1e-6)
+
+    @pytest.mark.skipif(not HAS_LAL, reason="lalsimulation not available")
+    def test_precessing_final_spin_cross_validation_extremal_spins(self):
+        """Cross-validate precessing final spin against LAL with near-extremal spins."""
+        eta = 0.25
+        chi1_l = 0.99
+        chi2_l = -0.99
+        chi_in_plane = 0.5
+
+        result_jax = xlal_sim_imr_phenom_x_precessing_final_spin_2017(eta, chi1_l, chi2_l, chi_in_plane)
+        result_lal = SimIMRPhenomXPrecessingFinalSpin2017(eta, chi1_l, chi2_l, chi_in_plane)
 
         assert jnp.isclose(float(result_jax), result_lal, rtol=1e-6)
 
