@@ -54,7 +54,8 @@ repos:
         additional_dependencies: [
           .,
           jax,
-          pytest
+          pytest,
+          interpax
         ]
 
   - repo: https://github.com/asottile/pyupgrade

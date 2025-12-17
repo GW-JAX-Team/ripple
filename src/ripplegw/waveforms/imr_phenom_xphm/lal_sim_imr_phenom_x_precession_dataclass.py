@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import dataclasses
 
+from interpax import CubicSpline
+
 from ripplegw.typing import Array
 from ripplegw.waveforms.imr_phenom_xphm.dataclass_utils import _register_dataclass
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import IMRPhenomXWaveformDataClass
@@ -486,7 +488,7 @@ class IMRPhenomXPrecessionDataClass:  # pylint: disable=too-many-instance-attrib
     constants_l: Array | None = None
 
     # // Variables to interpolate SpinTaylor angles, up to fmax_angles
-    # gsl_spline *alpha_spline;
+    alpha_spline: CubicSpline | None = None
     # gsl_spline *cosbeta_spline;
     # gsl_spline *gamma_spline;
 
