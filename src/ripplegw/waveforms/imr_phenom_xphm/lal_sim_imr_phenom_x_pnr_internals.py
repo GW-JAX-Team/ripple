@@ -4,6 +4,7 @@ Docstring for ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_pnr_intern
 
 from __future__ import annotations
 
+import copy
 import dataclasses
 
 import jax
@@ -11,6 +12,7 @@ import jax.numpy as jnp
 from jax.experimental import checkify
 
 from ripplegw.constants import PI
+from ripplegw.typing import Array
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals import (
     imr_phenom_x_full_phase_22,
     imr_phenom_x_get_phase_coefficients,
@@ -18,6 +20,16 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals import (
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
     IMRPhenomXPhaseCoefficientsDataClass,
     IMRPhenomXWaveformDataClass,
+)
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_pnr_deviations import (
+    xlal_sim_imr_phenom_xcp_mu1_l2m2,
+    xlal_sim_imr_phenom_xcp_mu2_l2m2,
+    xlal_sim_imr_phenom_xcp_mu3_l2m2,
+    xlal_sim_imr_phenom_xcp_nu4_l2m2,
+    xlal_sim_imr_phenom_xcp_nu5_l2m2,
+    xlal_sim_imr_phenom_xcp_nu6_l2m2,
+    xlal_sim_imr_phenom_xcp_zeta1_l2m2,
+    xlal_sim_imr_phenom_xcp_zeta2_l2m2,
 )
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_precession_dataclass import (
     IMRPhenomXPrecessionDataClass,
@@ -201,19 +213,19 @@ def imr_phenom_x_pnr_get_and_set_co_prec_params(
 
     # status = 0
 
-    # // Get toggle for outputting coprecesing model from LAL dictionary
-    # imr_phenom_x_return_co_prec = lal_params.imr_phenom_x_return_co_prec
+    # // Get toggle for outputting coprecessing model from LAL dictionary
+    imr_phenom_x_return_co_prec = lal_params.imr_phenom_x_return_co_prec
 
     # // Get toggle for PNR coprecessing tuning
-    pnr_use_tuned_coprec = lal_params.pnr_use_tuned_coprec
+    imr_phenom_xpnr_use_tuned_coprec = lal_params.pnr_use_tuned_coprec
     # imr_phenom_x_use_tuned_coprec = pnr_use_tuned_coprec
     # imr_phenom_x_pnr_use_tuned_coprec = pnr_use_tuned_coprec
     # // Same as above but for 33
-    imr_phenom_x_pnr_use_tuned_coprec33 = lal_params.pnr_use_tuned_coprec33 * pnr_use_tuned_coprec
+    imr_phenom_xpnr_use_tuned_coprec33 = lal_params.pnr_use_tuned_coprec33 * imr_phenom_xpnr_use_tuned_coprec
 
     # // Throw error if preferred value of PNRUseTunedCoprec33 is not found
     # Is this an experimental feature in LAL?
-    checkify.check(imr_phenom_x_pnr_use_tuned_coprec33 != 0, "Error: Coprecessing tuning for l=|m|=3 must be off.\n")
+    checkify.check(imr_phenom_xpnr_use_tuned_coprec33 == 0, "Error: Coprecessing tuning for l=|m|=3 must be off.")
 
     # // Get toggle for enforced use of non-precessing spin as is required during tuning of PNR's coprecessing model
     pnr_use_input_coprec_deviations = lal_params.pnr_use_input_coprec_deviations
@@ -222,66 +234,62 @@ def imr_phenom_x_pnr_get_and_set_co_prec_params(
     pnr_force_xhm_alignment = lal_params.pnr_force_xhm_alignment
 
     # Throw error if preferred value of PNRForceXHMAlignment is not found
-    checkify.check(pnr_force_xhm_alignment != 0, "Error: PNRForceXHMAlignment must be off.")
+    checkify.check(pnr_force_xhm_alignment == 0, "Error: PNRForceXHMAlignment must be off.")
 
     # /*-~-~-~-~-~-~-~-~-~-~-~-~-~*
     # Validate PNR usage options
     # *-~-~-~-~-~-~-~-~-~-~-~-~-~*/
-    simultaneous_deviations_and_tuned_check = (pnr_use_input_coprec_deviations == 1) & (pnr_use_tuned_coprec == 1)
+    simultaneous_deviations_and_tuned_check = jnp.logical_and(
+        pnr_use_input_coprec_deviations == 1, imr_phenom_xpnr_use_tuned_coprec == 1
+    )
     checkify.check(
-        not simultaneous_deviations_and_tuned_check,
-        "Error: PNRUseTunedCoprec and PNRUseInputCoprecDeviations must not be enabled simultaneously.\n",
+        jnp.logical_not(simultaneous_deviations_and_tuned_check),
+        "Error: PNRUseTunedCoprec and PNRUseInputCoprecDeviations must not be enabled simultaneously.",
     )
 
     # // Define high-level toggle for whether to apply deviations. NOTE that this is imposed at the definition of PNR_DEV_PARAMETER, rather than in a series of IF-ELSE conditions.
-    # apply_pnr_deviations = pnr_use_tuned_coprec or pnr_use_input_coprec_deviations
+    apply_pnr_deviations = jnp.logical_or(imr_phenom_xpnr_use_tuned_coprec, pnr_use_input_coprec_deviations)
 
     # // If applying PNR deviations, then we want to be able to refer to some non-PNR waveform properties. For that, we must compute the struct for when PNR is off (and specifically, XAS is wanted).
-    # if ( APPLY_PNR_DEVIATIONS && PNRForceXHMAlignment ) {
-
-    # # /*<-.<-.<-.<-.<-.<-.<-.<-.<-.<-.<-.<-.<-.<-.<-.<-.<-.<-.<-.<-.<-.<-.<-.<-.<-.<-.
-    # # Compute and store the value of the XAS phase derivative at pPrec->f_inspiral_align
-    # #     - Note that this routine also copies the current state of pWF to pPrec for use in PNR+XPHM, where we will similarly want to enforce phase alignment with XHM during inspiral.
-    # # ->.->.->.->.->.->.->.->.->.->.->.->.->.->.->.->.->.->.->.->.->.->.->.->.->.->.*/
-    # IMRPhenomX_PNR_SetPhaseAlignmentParams(pWF,pPrec)
-
-    # }
-
-    # jax.lax.cond(
-    #     jnp.logical_and(
-    #         apply_pnr_deviations,
-    #         imr_phenom_x_return_co_prec == 0,
-    #     ),
-
-    # )
+    # Ensure p_prec.p_wf_22_as is initialized to match pytree structure in both branches
+    p_prec = dataclasses.replace(
+        p_prec,
+        p_wf_22_as=copy.deepcopy(
+            p_wf
+        ),  # This keeps the same pytree structure for JAX, but is never used in the false case below
+    )
+    p_wf, p_prec = jax.lax.cond(
+        jnp.logical_and(
+            apply_pnr_deviations,
+            pnr_force_xhm_alignment,
+        ),
+        lambda args: imr_phenom_x_pnr_set_phase_alignment_params(*args),
+        lambda args: args,
+        operand=(p_wf, p_prec),
+    )
 
     # /*-~---~---~---~---~---~---~---~---~---~---~---~---~--*/
     # /*  Define single spin parameters for fit evaluation  */
     # /*-~---~---~---~---~---~---~---~---~---~---~---~---~--*/
 
-    # //
-    # REAL8 a1 = pPrec->chi_singleSpin
-    # pWF->a1 = a1
-    # REAL8 cos_theta = pPrec->costheta_singleSpin
+    a1 = p_prec.chi_single_spin
+    cos_theta = p_prec.cos_theta_single_spin
 
-    # //
-    # double theta_LS = acos( cos_theta )
-    # pWF->theta_LS = theta_LS
+    theta_ls = jnp.arccos(cos_theta)
 
-    # // Use external function to compute window of tuning deviations. The value of the window will only differ from unity if PNRUseTunedCoprec is equipotent to True. NOTE that correct evaluation of this function requires that e,g, pWF->a1 and pWF->theta_LS be defined above.
-    # double pnr_window = 0.0 /* Making the defualt to be zero here, meaning that by default tunings will be off regardless of physical case, or other option flags.*/
-    # if (PNRUseTunedCoprec) {
-    # // Store for output in related XLAL function
-    # pnr_window = IMRPhenomX_PNR_CoprecWindow(pWF)
-    # }
-    # pWF->pnr_window = pnr_window
+    # // Use external function to compute window of tuning deviations. The value of the window will only differ from unity if PNRUseTunedCoprec is equipotent to True.
+    # NOTE that correct evaluation of this function requires that e,g, pWF->a1 and pWF->theta_LS be defined above.
+    pnr_window = jax.lax.cond(
+        imr_phenom_xpnr_use_tuned_coprec,
+        imr_phenom_x_coprec_window,
+        lambda _: 0.0,  # Making the default to be zero here, meaning that by default tunings will be off regardless of physical case, or other option flags.
+        operand=p_wf,
+    )
 
     # /* Store XCP deviation parameter: NOTE that we only want to apply the window if PNR is being used, not e.g. if we are calibrating the related coprecessing model */
-    # pWF->PNR_DEV_PARAMETER = a1 * sin( pWF->theta_LS ) * APPLY_PNR_DEVIATIONS
-    # if ( PNRUseTunedCoprec ){
-    # pWF->PNR_DEV_PARAMETER = pnr_window * (pWF->PNR_DEV_PARAMETER)
-    # // NOTE that PNR_DEV_PARAMETER for l=m=3 is derived from (and directly proportional to) the one defined just above.
-    # }
+    pnr_dev_parameter = a1 * jnp.sin(theta_ls) * apply_pnr_deviations
+    pnr_dev_parameter *= jax.lax.select(imr_phenom_xpnr_use_tuned_coprec, pnr_window, 1.0)
+    # NOTE that PNR_DEV_PARAMETER for l=m=3 is derived from (and directly proportional to) the one defined just above.
 
     # /* Store deviations to be used in PhenomXCP (PNRUseInputCoprecDeviations) */
     # // Get them from the laldict (also used as a way to get default values)
@@ -291,113 +299,188 @@ def imr_phenom_x_pnr_get_and_set_co_prec_params(
     #     - we could toggle the code chunk with PNRUseInputCoprecDeviations, but doing so would be non-orthogonal to the comment above about default values.
     #     - In any case, the user must set PNRUseInputCoprecDeviations=True, AND manually set the deviations using the LALDict interface.
     # */
-    # pWF->MU1   = XLALSimInspiralWaveformParamsLookupPhenomXCPMU1(lalParams)
-    # pWF->MU2   = XLALSimInspiralWaveformParamsLookupPhenomXCPMU2(lalParams)
-    # pWF->MU3   = XLALSimInspiralWaveformParamsLookupPhenomXCPMU3(lalParams)
-    # pWF->MU4   = XLALSimInspiralWaveformParamsLookupPhenomXCPMU4(lalParams)
-    # pWF->NU0   = XLALSimInspiralWaveformParamsLookupPhenomXCPNU0(lalParams)
-    # pWF->NU4   = XLALSimInspiralWaveformParamsLookupPhenomXCPNU4(lalParams)
-    # pWF->NU5   = XLALSimInspiralWaveformParamsLookupPhenomXCPNU5(lalParams)
-    # pWF->NU6   = XLALSimInspiralWaveformParamsLookupPhenomXCPNU6(lalParams)
-    # pWF->ZETA1 = XLALSimInspiralWaveformParamsLookupPhenomXCPZETA1(lalParams)
-    # pWF->ZETA2 = XLALSimInspiralWaveformParamsLookupPhenomXCPZETA2(lalParams)
+    mu1 = lal_params.xcp_mu1
+    mu2 = lal_params.xcp_mu2
+    mu3 = lal_params.xcp_mu3
+    mu4 = lal_params.xcp_mu4
+    nu0 = lal_params.xcp_nu0
+    nu4 = lal_params.xcp_nu4
+    nu5 = lal_params.xcp_nu5
+    nu6 = lal_params.xcp_nu6
+    zeta1 = lal_params.xcp_zeta1
+    zeta2 = lal_params.xcp_zeta2
 
-    # //
-    # #if DEBUG == 1
-    # printf("** >>>>>>>>>>>> PhenomXCP Model domain >>>>>>>>>>> **\n")
-    # printf("theta : %f\n",theta_LS*180.0/LAL_PI)
-    # printf("eta   : %f\n",pWF->eta)
-    # printf("a1    : %f\n",a1)
-    # printf("** >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> **\n\n")
-    # #endif
+    def co_prec_branch(args):
+        _ = args
+        coprec_a1 = a1
 
-    # //
-    # if( PNRUseTunedCoprec )
-    # {
+        def branch_330(coprec_a1):
+            # Flatten mass-ratio dependence to limit extrapolation artifacts outside of calibration region
+            coprec_eta = jax.lax.select(
+                p_wf.eta >= 0.09876,
+                p_wf.eta,
+                0.09876 - (0.09876 - p_wf.eta) * 0.1641,
+            )
 
-    # /* ------------------------------------------------------ >>
-    #     Get them from the stored model fits that define PhenomXCP
-    #     within PhenomXPNR. NOTE that most but not all
-    #     modifications take place in LALSimIMRPhenomX_internals.c.
-    #     For example, fRING and fDAMP are modified in this file.
-    #     NOTE that each tuned parameter requires pWF->PNR_DEV_PARAMETER
-    #     to be unchanged from the value used during tuning e.g. a1*sin(theta)
-    # << ------------------------------------------------------ */
+            # Flatten spin dependence to limit extrapolation artifacts outside of calibration region
+            coprec_a1 = jax.lax.select(
+                coprec_a1 <= 0.8,
+                coprec_a1,
+                0.8 + (coprec_a1 - 0.8) / 12.0,
+            )
+            coprec_a1 = jax.lax.select(
+                coprec_a1 >= 0.2,
+                coprec_a1,
+                0.2,
+            )
+            return coprec_eta, coprec_a1
 
-    # double coprec_eta
-    # double coprec_a1 = pWF->a1
-    # if (pPrec->IMRPhenomXPrecVersion==330){
-    #     // Flatten mass-ratio dependence to limit extrapolation artifacts outside of calibration region
-    #     coprec_eta = ( pWF->eta >= 0.09876 ) ? pWF->eta : 0.09876 - ( 0.09876 - pWF->eta ) * 0.1641
+        def other_branch(coprec_a1):
+            # Flatten mass-ratio dependence to limit extrapolation artifacts outside of calibration region
+            coprec_eta = jax.lax.select(
+                p_wf.eta >= 0.09876,
+                p_wf.eta,
+                0.09876,
+            )
 
-    #     // Flatten spin dependence to limit extrapolation artifacts outside of calibration region
-    #     coprec_a1  = ( coprec_a1  <= 0.8 ) ? coprec_a1  : 0.8 + (coprec_a1 - 0.8) / 12.0
-    #     coprec_a1  = ( coprec_a1  >= 0.2 ) ? coprec_a1  : 0.2
-    # }
-    # else{
-    #     // Flatten mass-ratio dependence to limit extrapolation artifacts outside of calibration region
-    #     coprec_eta = ( pWF->eta >= 0.09876 ) ? pWF->eta : 0.09876
+            # Flatten spin dependence to limit extrapolation artifacts outside of calibration region
+            coprec_a1 = jax.lax.select(
+                coprec_a1 <= 0.8,
+                coprec_a1,
+                0.8,
+            )
+            coprec_a1 = jax.lax.select(
+                coprec_a1 >= 0.2,
+                coprec_a1,
+                0.2,
+            )
+            return coprec_eta, coprec_a1
 
-    #     // Flatten spin dependence to limit extrapolation artifacts outside of calibration region
-    #     coprec_a1  = ( coprec_a1  <= 0.8     ) ? coprec_a1  : 0.8
-    #     coprec_a1  = ( coprec_a1  >= 0.2     ) ? coprec_a1  : 0.2
-    # }
+        coprec_eta, coprec_a1 = jax.lax.cond(
+            p_prec.imr_phenom_x_prec_version == 330,
+            branch_330,
+            other_branch,
+            operand=coprec_a1,
+        )
 
-    # /* MU1 modifies pAmp->v1RD */
-    # pWF->MU1     = XLALSimIMRPhenomXCP_MU1_l2m2(   theta_LS, coprec_eta, coprec_a1 )
+        # /* MU1 modifies pAmp->v1RD */
+        mu1 = xlal_sim_imr_phenom_xcp_mu1_l2m2(theta_ls, coprec_eta, coprec_a1)
 
-    # // NOTE that the function for MU2 is not defined in the model
-    # /* MU2 would modify pAmp->gamma2 */
+        # // NOTE that the function for MU2 is not defined in the model
+        # /* MU2 would modify pAmp->gamma2 */
 
-    # /* MU2  */
-    # pWF->MU2     = XLALSimIMRPhenomXCP_MU2_l2m2(   theta_LS, coprec_eta, coprec_a1 )
+        # /* MU2  */
+        mu2 = xlal_sim_imr_phenom_xcp_mu2_l2m2(theta_ls, coprec_eta, coprec_a1)
 
-    # /* MU3 modifies pAmp->gamma3 */
-    # pWF->MU3     = XLALSimIMRPhenomXCP_MU3_l2m2(   theta_LS, coprec_eta, coprec_a1 )
+        # /* MU3 modifies pAmp->gamma3 */
+        mu3 = xlal_sim_imr_phenom_xcp_mu3_l2m2(theta_ls, coprec_eta, coprec_a1)
 
-    # /* MU4 modifies V2 for the intermediate amplitude
-    # for the DEFAULT value of IMRPhenomXIntermediateAmpVersion
-    # use in IMRPhenomXPHM */
-    # // pWF->MU4     = IMRPhenomXCP_MU4_l2m2(   theta_LS, coprec_eta, coprec_a1 )
+        # /* MU4 modifies V2 for the intermediate amplitude
+        # for the DEFAULT value of IMRPhenomXIntermediateAmpVersion
+        # use in IMRPhenomXPHM */
+        # // pWF->MU4     = IMRPhenomXCP_MU4_l2m2(   theta_LS, coprec_eta, coprec_a1 )
 
-    # /* NU0 modifies the output of IMRPhenomX_TimeShift_22() */
-    # pWF->NU0     = XLALSimIMRPhenomXCP_NU0_l2m2(   theta_LS, coprec_eta, coprec_a1 )
+        # /* NU0 modifies the output of IMRPhenomX_TimeShift_22() */
+        # pWF->NU0     = XLALSimIMRPhenomXCP_NU0_l2m2(   theta_LS, coprec_eta, coprec_a1 )
 
-    # /* NU4 modifies pPhase->cL */
-    # pWF->NU4     = XLALSimIMRPhenomXCP_NU4_l2m2(   theta_LS, coprec_eta, coprec_a1 )
+        # /* NU4 modifies pPhase->cL */
+        nu4 = xlal_sim_imr_phenom_xcp_nu4_l2m2(theta_ls, coprec_eta, coprec_a1)
 
-    # /* NU5 modifies pWF->fRING [EXTRAP-PASS-TRUE] */
-    # pWF->NU5     = XLALSimIMRPhenomXCP_NU5_l2m2(   theta_LS, coprec_eta, coprec_a1 )
+        # /* NU5 modifies pWF->fRING [EXTRAP-PASS-TRUE] */
+        nu5 = xlal_sim_imr_phenom_xcp_nu5_l2m2(theta_ls, coprec_eta, coprec_a1)
 
-    # /* NU6 modifies pWF->fDAMP [EXTRAP-PASS-TRUE] */
-    # pWF->NU6     = XLALSimIMRPhenomXCP_NU6_l2m2(   theta_LS, coprec_eta, coprec_a1 )
+        # /* NU6 modifies pWF->fDAMP [EXTRAP-PASS-TRUE] */
+        nu6 = xlal_sim_imr_phenom_xcp_nu6_l2m2(theta_ls, coprec_eta, coprec_a1)
 
-    # /* ZETA1 modifies pPhase->b4 */
-    # pWF->ZETA1   = XLALSimIMRPhenomXCP_ZETA1_l2m2( theta_LS, coprec_eta, coprec_a1 )
+        # /* ZETA1 modifies pPhase->b4 */
+        zeta1 = xlal_sim_imr_phenom_xcp_zeta1_l2m2(theta_ls, coprec_eta, coprec_a1)
 
-    # /* ZETA2 modifies pPhase->b1  */
-    # pWF->ZETA2   = XLALSimIMRPhenomXCP_ZETA2_l2m2( theta_LS, coprec_eta, coprec_a1 )
+        # /* ZETA2 modifies pPhase->b1  */
+        zeta2 = xlal_sim_imr_phenom_xcp_zeta2_l2m2(theta_ls, coprec_eta, coprec_a1)
+        return mu1, mu2, mu3, mu4, nu0, nu4, nu5, nu6, zeta1, zeta2
 
-    # }
+    mu1, mu2, mu3, mu4, nu0, nu4, nu5, nu6, zeta1, zeta2 = jax.lax.cond(
+        apply_pnr_deviations,
+        co_prec_branch,
+        lambda x: x,
+        operand=(mu1, mu2, mu3, mu4, nu0, nu4, nu5, nu6, zeta1, zeta2),
+    )
 
-    # //
-    # pWF->NU0 = 0
+    # nu0 = 0.0
+
+    p_prec = dataclasses.replace(
+        p_prec,
+        imr_phenom_x_return_co_prec=imr_phenom_x_return_co_prec,
+        imr_phenom_xpnr_use_tuned_coprec=imr_phenom_xpnr_use_tuned_coprec,
+        imr_phenom_xpnr_use_tuned_coprec33=imr_phenom_xpnr_use_tuned_coprec33,
+        imr_phenom_xpnr_use_input_coprec_deviations=pnr_use_input_coprec_deviations,
+        imr_phenom_xpnr_force_xhm_alignment=pnr_force_xhm_alignment,
+    )
+    p_wf = dataclasses.replace(
+        p_wf,
+        imr_phenom_xpnr_use_tuned_coprec=imr_phenom_xpnr_use_tuned_coprec,
+        imr_phenom_xpnr_use_tuned_coprec_33=imr_phenom_xpnr_use_tuned_coprec33,
+        imr_phenom_xpnr_force_xhm_alignment=pnr_force_xhm_alignment,
+        apply_pnr_deviations=apply_pnr_deviations,
+        a1=a1,
+        theta_ls=theta_ls,
+        pnr_window=pnr_window,
+        pnr_dev_parameter=pnr_dev_parameter,
+        mu1=mu1,
+        mu2=mu2,
+        mu3=mu3,
+        mu4=mu4,
+        nu0=nu0,
+        nu4=nu4,
+        nu5=nu5,
+        nu6=nu6,
+        zeta1=zeta1,
+        zeta2=zeta2,
+    )
 
     return p_wf, p_prec
+
+
+def imr_phenom_x_coprec_window(p_wf: IMRPhenomXWaveformDataClass) -> float | Array:
+    """NOTE that it only makes sense to use this function inside of LALSimIMRPhenomX_precession.c"""
+
+    # // Location of boundaries
+    window_q_boundary = 10.0  # // LEGACY VALUE --->  8.0
+    # // Width of the transition AFTER the boundary location
+    width_window_q = 10.0  # // LEGACY VALUE --->  0.50
+    # // Define parameter that the window depends on
+    window_q_argument = (p_wf.q - window_q_boundary) / width_window_q
+
+    # // When the arguments are <=0, then the model is on
+    # // when they are between 0 and 1, the model is turning off
+    # // and when they are greater than 1, the model is off
+
+    return jax.lax.select(
+        jnp.logical_and(
+            window_q_argument > 0,
+            window_q_argument <= 1,
+        ),
+        0.5 * jnp.cos(window_q_argument * PI) + 0.5,
+        jax.lax.select(
+            window_q_argument > 1,
+            0.0,
+            1.0,
+        ),
+    )
 
 
 def imr_phenom_x_pnr_set_phase_alignment_params(
     p_wf: IMRPhenomXWaveformDataClass,
     p_prec: IMRPhenomXPrecessionDataClass,
 ) -> tuple[IMRPhenomXWaveformDataClass, IMRPhenomXPrecessionDataClass]:
-
+    """Compute XAS phase and phase derivative a reference frequency "f_inspiral_align" """
     # /*
     # Copy the current state of pWF to pPrec for use in PNR+XPHM, where we will similarly want to enforce phase alignment with XHM during inspiral.
 
     # The code immediately below is very typical of annoying C language code:
     # to copy the structure, one first must allocate memory for the vessel to
     # hold the copy. Then one must copy the struct into that allocated
-    # momory. While there are "correct" versions of this code that do not
+    # memory. While there are "correct" versions of this code that do not
     # require use of malloc, these versions essentially copy the pointer, so
     # when pWF is changed, so is pWF22AS. We do not want that, so the use of
     # malloc is essential.
@@ -408,7 +491,7 @@ def imr_phenom_x_pnr_set_phase_alignment_params(
 
     # /* Define alignment frequency in fM (aka Mf). This is the
     # frequency at which PNR coprecessing phase and phase
-    # derivaive will be aligned with corresponding XAS and XHM
+    # derivative will be aligned with corresponding XAS and XHM
     # values.  */
     f_inspiral_align = 0.004
 
@@ -419,12 +502,13 @@ def imr_phenom_x_pnr_set_phase_alignment_params(
     _, p_phase_as = imr_phenom_x_get_phase_coefficients(p_wf, p_phase_as)
 
     # /*
-    # Below we use IMRPhenomX_FullPhase_22 to somultaneously compute
+    # Below we use IMRPhenomX_FullPhase_22 to simultaneously compute
     # the XAS phase and phase derivative at the point of interest.
     # */
 
     # /**********************************************************/
     # // Initialize holders for the phase and phase derivative
+    # phase, dphase
     # // Define the values inside of IMRPhenomX_FullPhase_22
     p_phase_as, phase, dphase = imr_phenom_x_full_phase_22(f_inspiral_align, p_phase_as, p_wf)
 

@@ -19,6 +19,7 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass
     IMRPhenomXWaveformDataClass,
 )
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_pnr_internals import (
+    imr_phenom_x_pnr_get_and_set_co_prec_params,
     imr_phenom_x_pnr_get_and_set_pnr_variables,
     imr_phenom_x_pnr_set_phase_alignment_params,
 )
@@ -165,7 +166,7 @@ def _build_precession_struct(p_wf: IMRPhenomXWaveformDataClass) -> IMRPhenomXPre
     )
 
 
-class TestImrPhenomXPNRGetAndSetPNRVariables:
+class TestIMRPhenomXPNRGetAndSetPNRVariables:
     """Test imr_phenom_x_pnr_get_and_set_pnr_variables function."""
 
     @pytest.fixture
@@ -326,7 +327,6 @@ class TestImrPhenomXPNRGetAndSetPNRVariables:
 
     def test_jax_jit_compatibility(self, sample_structs):
         """Test that the function is compatible with JAX JIT compilation."""
-        import jax
 
         jitted_func = jax.jit(imr_phenom_x_pnr_get_and_set_pnr_variables)
 
@@ -437,6 +437,71 @@ class TestIMRPhenomXPNRSetPhaseAlignmentParams:
         # Check that output has batch dimension
         assert p_wf_out_batch.xas_phase_at_f_inspiral_align.shape == (2,)
         assert p_wf_out_batch.xas_dphase_at_f_inspiral_align.shape == (2,)
+
+
+class TestIMRPhenomXPNRGetAndSetCoPrecParams:
+    """Test imr_phenom_x_pnr_get_and_set_co_prec_params function."""
+
+    def test_basic_output_structure(self):
+        """Test that the function returns a dataclass with expected fields."""
+        p_wf = _build_waveform_struct()
+        p_prec = _build_precession_struct(p_wf)
+        lal_params = IMRPhenomXPHMParameterDataClass()
+        err, (p_wf, p_prec) = imr_phenom_x_pnr_get_and_set_co_prec_params(p_wf, p_prec, lal_params)
+        err.throw()
+
+        assert p_prec.imr_phenom_x_return_co_prec == lal_params.imr_phenom_x_return_co_prec
+        assert p_prec.imr_phenom_xpnr_use_tuned_coprec == lal_params.pnr_use_tuned_coprec
+        assert (
+            p_prec.imr_phenom_xpnr_use_tuned_coprec33
+            == lal_params.pnr_use_tuned_coprec33 * lal_params.pnr_use_tuned_coprec
+        )
+        assert p_prec.imr_phenom_xpnr_use_input_coprec_deviations == lal_params.pnr_use_input_coprec_deviations
+        assert p_prec.imr_phenom_xpnr_force_xhm_alignment == lal_params.pnr_force_xhm_alignment
+
+    def test_invalid_coprec33_tuning_option(self):
+        """Test that invalid coprec tuning options raise an error."""
+        p_wf = _build_waveform_struct()
+        p_prec = _build_precession_struct(p_wf)
+        lal_params = IMRPhenomXPHMParameterDataClass(
+            pnr_use_tuned_coprec=1,
+            pnr_use_tuned_coprec33=1,
+            pnr_use_input_coprec_deviations=0,
+            pnr_force_xhm_alignment=0,
+        )
+
+        with pytest.raises(Exception, match=r"Error: Coprecessing tuning for l=|m|=3 must be off."):
+            err, _ = imr_phenom_x_pnr_get_and_set_co_prec_params(p_wf, p_prec, lal_params)
+            err.throw()
+
+    def test_valid_coprec33_tuning_option(self):
+        """Test that valid coprec tuning option doesn't raise an error."""
+        p_wf = _build_waveform_struct()
+        p_prec = _build_precession_struct(p_wf)
+        lal_params = IMRPhenomXPHMParameterDataClass(
+            pnr_use_tuned_coprec=0,
+            pnr_use_tuned_coprec33=1,
+            pnr_use_input_coprec_deviations=0,
+            pnr_force_xhm_alignment=0,
+        )
+
+        err, _ = imr_phenom_x_pnr_get_and_set_co_prec_params(p_wf, p_prec, lal_params)
+        err.throw()
+
+    def test_jax_jit_compatibility(self):
+        """Test that the function is compatible with JAX JIT compilation."""
+
+        jitted_func = jax.jit(imr_phenom_x_pnr_get_and_set_co_prec_params)
+
+        # Should not raise an error
+        p_wf = _build_waveform_struct()
+        p_prec = _build_precession_struct(p_wf)
+        lal_params = IMRPhenomXPHMParameterDataClass()
+        err, (p_wf, p_prec) = jitted_func(p_wf, p_prec, lal_params)
+        err.throw()
+
+        assert isinstance(p_wf, IMRPhenomXWaveformDataClass)
+        assert isinstance(p_prec, IMRPhenomXPrecessionDataClass)
 
 
 if __name__ == "__main__":

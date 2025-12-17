@@ -68,6 +68,18 @@ class IMRPhenomXPHMParameterDataClass:  # pylint: disable=too-many-instance-attr
     threshold_mband: float = 0.001
     amp_interpol_mb: int = 1
 
+    # PhenomXCP
+    xcp_mu1: float = 0.0
+    xcp_mu2: float = 0.0
+    xcp_mu3: float = 0.0
+    xcp_mu4: float = 0.0
+    xcp_nu0: float = 0.0
+    xcp_nu4: float = 0.0
+    xcp_nu5: float = 0.0
+    xcp_nu6: float = 0.0
+    xcp_zeta1: float = 0.0
+    xcp_zeta2: float = 0.0
+
     def copy(self, **kwargs) -> IMRPhenomXPHMParameterDataClass:
         """Create a new instance of the dataclass, optionally replacing some fields."""
         return dataclasses.replace(self, **kwargs)
