@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import jax
 import jax.numpy as jnp
+from scipy.interpolate import CubicSpline
 
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_precession import (
+    alpha_mrd_coeff,
     imr_phenom_x_rotate_y,
     imr_phenom_x_rotate_z,
     imr_phenom_x_vector_diff,
@@ -13,6 +15,7 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_precession import (
     imr_phenom_x_vector_scalar,
     imr_phenom_x_vector_sum,
 )
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_precession_dataclass import PhenomXPalphaMRD
 
 
 class TestRotateZ:
@@ -1028,3 +1031,53 @@ class TestVectorSum:
         # Gradient of sum((v1+v2)^2) w.r.t. v2 should be 2*(v1+v2)
         expected_grad_v2 = 2.0 * (v1 + v2)
         assert jnp.allclose(grad_v2, expected_grad_v2, atol=1e-14)
+
+
+class TestAlphaMRDCoeff:
+    """Test suite for alpha_mrd_coeff function."""
+
+    def test_basic_computation(self):
+        """Test basic computation with a simple spline."""
+        # Create a simple cubic spline: y = x^2
+        x_vals = jnp.array([0.0, 1.0, 2.0, 3.0])
+        y_vals = x_vals**2
+        spline = CubicSpline(x_vals, y_vals)
+
+        f_max_pn = 2.0
+        # p_wf is not used in the function, so pass None
+        result = alpha_mrd_coeff(spline, f_max_pn, None)
+
+        # Check that result is a PhenomXPalphaMRD instance
+        assert isinstance(result, PhenomXPalphaMRD)
+
+        # Check that coefficients are finite floats
+        assert jnp.isfinite(result.a_rd)
+        assert jnp.isfinite(result.b_rd)
+        assert jnp.isfinite(result.c_rd)
+
+    def test_different_f_max_pn(self):
+        """Test with different f_max_pn values."""
+        x_vals = jnp.array([0.0, 1.0, 2.0, 3.0])
+        y_vals = x_vals**2
+        spline = CubicSpline(x_vals, y_vals)
+
+        for f_max_pn in [1.5, 2.5, 3.0]:
+            result = alpha_mrd_coeff(spline, f_max_pn, None)
+            assert isinstance(result, PhenomXPalphaMRD)
+            assert jnp.isfinite(result.a_rd)
+            assert jnp.isfinite(result.b_rd)
+            assert jnp.isfinite(result.c_rd)
+
+    def test_linear_spline(self):
+        """Test with a linear spline."""
+        x_vals = jnp.array([0.0, 1.0, 2.0, 3.0])
+        y_vals = 2 * x_vals  # y = 2x
+        spline = CubicSpline(x_vals, y_vals)
+
+        f_max_pn = 2.0
+        result = alpha_mrd_coeff(spline, f_max_pn, None)
+
+        assert isinstance(result, PhenomXPalphaMRD)
+        assert jnp.isfinite(result.a_rd)
+        assert jnp.isfinite(result.b_rd)
+        assert jnp.isfinite(result.c_rd)
