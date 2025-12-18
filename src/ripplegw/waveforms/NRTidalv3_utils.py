@@ -2,7 +2,7 @@
 
 import jax
 import jax.numpy as jnp
-from ..constants import gt, PI, TWO_PI
+from ..constants import MTSUN, PI, TWO_PI
 from ..typing import Array
 from .IMRPhenom_tidal_utils import get_kappa
 from .IMRPhenomD_NRTidalv2 import get_spin_phase_correction
@@ -95,7 +95,7 @@ def _get_merger_frequency(theta: Array):
 
 
     # convert from angular frequency to frequency (divide by 2*pi) and then convert from dimensionless frequency to Hz (divide by mtot * LAL_MTSUN_SI)
-    fHz_merger = Momega_merger / TWO_PI / (M * gt)
+    fHz_merger = Momega_merger / TWO_PI / (M * MTSUN)
 
     return fHz_merger
 
@@ -182,7 +182,8 @@ def get_tidal_phase(
     exps2Mom = jnp.cosh(s2Mom) + jnp.sinh(s2Mom)
 
     # expression for the effective love number enhancement factor, see Eq. (27) of https://arxiv.org/pdf/2311.07456.pdf.*/
-    dynk2bar = 1.0 + ((s1) - 1)*(1.0/(1.0 + exps2Mom*exps2s3)) - ((s1-1.0)/(1.0 + exps2s3)) - 2.0*M_omega*((s1) - 1)*s2*exps2s3/((1.0 + exps2s3)*(1.0 + exps2s3))
+    # Note: M_omega here is x = π*M*f, so M*ω = 2*M_omega
+    dynk2bar = 1.0 + ((s1) - 1)*(1.0/(1.0 + exps2Mom*exps2s3)) - ((s1-1.0)/(1.0 + exps2s3)) - 4.0*M_omega*((s1) - 1)*s2*exps2s3/((1.0 + exps2s3)*(1.0 + exps2s3))
     
     PN_x = M_omega**(2.0/3.0) 
     PN_x_2 = PN_x * PN_x

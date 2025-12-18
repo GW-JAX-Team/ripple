@@ -2,7 +2,7 @@
 
 import jax
 import jax.numpy as jnp
-from ..constants import gt, PI
+from ..constants import MTSUN, PI
 from ..typing import Array
 from ripplegw import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from .IMRPhenom_tidal_utils import get_kappa, get_quadparam_octparam
@@ -37,7 +37,7 @@ def _gen_IMRPhenomXAS_NRTidalv3(
     """
 
     m1, m2, _, _, lambda1, lambda2 = theta_intrinsic
-    M_s = (m1 + m2) * gt
+    M_s = (m1 + m2) * MTSUN
     Xa = m1 / (m1 + m2)
     x = PI * f * M_s
     x_23 = x**(2.0/3.0)
@@ -224,7 +224,7 @@ def IMRPhenomX_TidalPhaseDerivative(f, theta):
     theta_intrinsic = theta
     m1, m2, chi1, chi2, lambda1, lambda2 = theta_intrinsic
     M = m1 + m2
-    M_s = (m1 + m2) * gt
+    M_s = (m1 + m2) * MTSUN
     Mf = f * M_s
     x = PI * f * M_s
 
