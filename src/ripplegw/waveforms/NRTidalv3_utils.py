@@ -182,7 +182,8 @@ def get_tidal_phase(
     exps2Mom = jnp.cosh(s2Mom) + jnp.sinh(s2Mom)
 
     # expression for the effective love number enhancement factor, see Eq. (27) of https://arxiv.org/pdf/2311.07456.pdf.*/
-    # Note: M_omega here is x = π*M*f, so M*ω = 2*M_omega
+    # Note: M_omega here is x = π*M*f, but Eq. (27) uses M*ω = 2π*M*f = 2*M_omega
+    # Therefore the last term's coefficient 2*M*ω becomes 4.0*M_omega in the code
     dynk2bar = 1.0 + ((s1) - 1)*(1.0/(1.0 + exps2Mom*exps2s3)) - ((s1-1.0)/(1.0 + exps2s3)) - 4.0*M_omega*((s1) - 1)*s2*exps2s3/((1.0 + exps2s3)*(1.0 + exps2s3))
     
     PN_x = M_omega**(2.0/3.0) 
