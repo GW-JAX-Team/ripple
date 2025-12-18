@@ -9,7 +9,10 @@ from jax.experimental import checkify
 
 from ripplegw.constants import PI, C, G
 from ripplegw.typing import Array
-from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_thm_fits import evaluate_qnm_fit_fring22
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_thm_fits import (
+    evaluate_qnm_fit_fdamp22,
+    evaluate_qnm_fit_fring22,
+)
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
     IMRPhenomXWaveformDataClass,
 )
@@ -1488,7 +1491,7 @@ def imr_phenom_x_interpolate_alpha_beta_spin_taylor(  # pylint: disable=unused-a
 
     cosbetamax = p_prec.cosbeta_spline(fmax_inspiral)
 
-    if lal_params.final_spin_mode == 4:
+    def compute_final_spin():
         m1 = p_wf.m1_si / p_wf.m_tot_si
         m2 = p_wf.m2_si / p_wf.m_tot_si
 
@@ -1531,9 +1534,22 @@ def imr_phenom_x_interpolate_alpha_beta_spin_taylor(  # pylint: disable=unused-a
             eta=p_wf.eta, chi1_l=dot_s1_l, chi2_l=dot_s2_l, chi_in_plane=chi_perp_norm
         )
 
-        p_wf = p_wf.replace(a_final=a_final)
-
         f_ring = evaluate_qnm_fit_fring22(p_wf.a_final) / (p_wf.m_final)
+        f_damp = evaluate_qnm_fit_fdamp22(p_wf.a_final) / (p_wf.m_final)
+
+        return a_final, f_ring, f_damp
+
+    # Conditional update based on final spin mode
+    a_final, f_ring, f_damp = jax.lax.cond(
+        lal_params.final_spin_mod == 4, compute_final_spin, lambda: (p_wf.a_final, p_wf.f_ring, p_wf.f_damp)
+    )
+
+    p_wf = p_wf.replace(a_final=a_final, f_ring=f_ring, f_damp=f_damp)
+
+    # Initialize parameters for RD continuation
+
+    if p_prec.imr_phenom_x_prec_version in [320, 321, 330]:
+        pass
 
     #     REAL8 dotS1L = IMRPhenomX_vector_dot_product(S1f,Lnf)/Lnorm;
     #     REAL8 dotS2L  = IMRPhenomX_vector_dot_product(S2f,Lnf)/Lnorm;
