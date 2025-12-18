@@ -894,3 +894,13 @@ class IMRPhenomXPrecessionDataClass:  # pylint: disable=too-many-instance-attrib
     """Flag to toggle conditional precession multibanding"""
 
     lal_params: IMRPhenomXPHMParameterDataClass | None = None
+
+
+@_register_dataclass
+@dataclasses.dataclass(frozen=True)
+class PhenomXPalphaMRD:
+    """Parameters for analytical MRD continuation of alpha angle."""
+
+    a_rd: float
+    b_rd: float
+    c_rd: float

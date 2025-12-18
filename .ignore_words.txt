@@ -83,6 +83,7 @@ Mfmax
 Mfmin
 Mfto
 mprime
+MRD
 MRSUN
 MSUN
 Mtot
