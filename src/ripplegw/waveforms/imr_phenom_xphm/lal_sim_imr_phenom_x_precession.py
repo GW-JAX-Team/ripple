@@ -1811,3 +1811,14 @@ def imr_phenom_x_vector_sum(v1: Array, v2: Array) -> Array:
         The resulting vector after addition (v1 + v2).
     """
     return v1 + v2
+
+
+def alpha_mrd_coeff(spline_alpha: CubicSpline, fmax_pn: float, p_wf: IMRPhenomXWaveformDataClass):
+    """Compute coefficients for alpha MRD continuation.
+
+    Args:
+        spline_alpha: Cubic spline for alpha.
+        fmax_pn: Maximum PN frequency.
+        p_wf: Waveform data class containing waveform parameters.
+    """
+    pass
