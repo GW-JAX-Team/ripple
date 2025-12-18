@@ -51,6 +51,7 @@ fring
 ftrans
 Geometrized
 Getand
+hashability
 hcross
 hplus
 Hzto
