@@ -2,7 +2,7 @@
 
 import jax
 import jax.numpy as jnp
-from ..constants import gt, PI
+from ..constants import MTSUN, PI
 from ..typing import Array
 from ripplegw import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from .IMRPhenom_tidal_utils import get_kappa, get_quadparam_octparam
@@ -37,7 +37,7 @@ def _gen_IMRPhenomXAS_NRTidalv3(
     """
 
     m1, m2, _, _, lambda1, lambda2 = theta_intrinsic
-    M_s = (m1 + m2) * gt
+    M_s = (m1 + m2) * MTSUN
     Xa = m1 / (m1 + m2)
     x = PI * f * M_s
     x_23 = x**(2.0/3.0)
@@ -116,7 +116,7 @@ def _gen_IMRPhenomXAS_NRTidalv3(
     # Reconstruct waveform with NRTidal terms included: h(f) = [A(f) + A_tidal(f)] * Exp{I [phi(f) - phi_tidal(f)]} * window(f)
     h0 = A_P * (bbh_amp + A_T) * jnp.exp(1.0j * ((bbh_psi + phase_shift + PI) - (psi_T + psi_SS))) # The additional π shift comes from Y22
 
-    return h0
+    return h0, psi_T
 
 
 def gen_IMRPhenomXAS_NRTidalv3(
@@ -207,14 +207,14 @@ def gen_IMRPhenomXAS_NRTidalv3_hphc(
         hc (array): Strain of the cross polarization
     """
     iota = params[-1]
-    h0 = gen_IMRPhenomXAS_NRTidalv3(
+    h0, psi_T = gen_IMRPhenomXAS_NRTidalv3(
         f, params[:-1], f_ref, use_lambda_tildes=use_lambda_tildes, no_taper=no_taper
     )
 
     hp = h0 * (1 / 2 * (1 + jnp.cos(iota) ** 2))
     hc = -1j * h0 * jnp.cos(iota)
 
-    return hp, hc
+    return hp, hc, psi_T
 
 
 ################################### ANALYTICAL DERIVATIVE FOR TESTING ###################################
@@ -224,7 +224,7 @@ def IMRPhenomX_TidalPhaseDerivative(f, theta):
     theta_intrinsic = theta
     m1, m2, chi1, chi2, lambda1, lambda2 = theta_intrinsic
     M = m1 + m2
-    M_s = (m1 + m2) * gt
+    M_s = (m1 + m2) * MTSUN
     Mf = f * M_s
     x = PI * f * M_s
 

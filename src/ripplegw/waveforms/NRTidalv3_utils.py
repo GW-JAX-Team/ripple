@@ -2,7 +2,7 @@
 
 import jax
 import jax.numpy as jnp
-from ..constants import gt, PI, TWO_PI
+from ..constants import MTSUN, PI, TWO_PI
 from ..typing import Array
 from .IMRPhenom_tidal_utils import get_kappa
 from .IMRPhenomD_NRTidalv2 import get_spin_phase_correction
@@ -95,7 +95,7 @@ def _get_merger_frequency(theta: Array):
 
 
     # convert from angular frequency to frequency (divide by 2*pi) and then convert from dimensionless frequency to Hz (divide by mtot * LAL_MTSUN_SI)
-    fHz_merger = Momega_merger / TWO_PI / (M * gt)
+    fHz_merger = Momega_merger / TWO_PI / (M * MTSUN)
 
     return fHz_merger
 
