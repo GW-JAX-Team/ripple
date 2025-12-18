@@ -51,6 +51,7 @@ fring
 ftrans
 Geometrized
 Getand
+hashability
 hcross
 hplus
 Hzto
@@ -83,6 +84,7 @@ Mfmax
 Mfmin
 Mfto
 mprime
+MRD
 MRSUN
 MSUN
 Mtot
