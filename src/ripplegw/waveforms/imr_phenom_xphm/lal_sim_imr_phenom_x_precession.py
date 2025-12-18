@@ -16,7 +16,10 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_thm_fits import (
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
     IMRPhenomXWaveformDataClass,
 )
-from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_precession_dataclass import IMRPhenomXPrecessionDataClass
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_precession_dataclass import (
+    IMRPhenomXPrecessionDataClass,
+    PhenomXPalphaMRD,
+)
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_utilities import (
     xlal_sim_imr_phenom_x_precessing_final_spin_2017,
     xlal_sim_imr_phenom_x_unwrap_array,
@@ -1813,12 +1816,35 @@ def imr_phenom_x_vector_sum(v1: Array, v2: Array) -> Array:
     return v1 + v2
 
 
-def alpha_mrd_coeff(spline_alpha: CubicSpline, fmax_pn: float, p_wf: IMRPhenomXWaveformDataClass):
+def alpha_mrd_coeff(spline_alpha: CubicSpline, f_max_pn: float, p_wf: IMRPhenomXWaveformDataClass) -> PhenomXPalphaMRD:
     """Compute coefficients for alpha MRD continuation.
 
     Args:
         spline_alpha: Cubic spline for alpha.
-        fmax_pn: Maximum PN frequency.
+        f_max_pn: Maximum PN frequency.
         p_wf: Waveform data class containing waveform parameters.
+
+    Returns:
+        PhenomXPalphaMRD: Coefficients for alpha MRD continuation.
     """
-    pass
+    f_trans = f_max_pn
+    f1 = 0.97 * f_trans
+    f2 = 0.99 * f_trans
+    f1_sq = f1 * f1
+    f2_sq = f2 * f2
+    f1_cube = f1_sq * f1
+    alpha1 = -spline_alpha(f1)
+    d_alpha1 = -spline_alpha.derivative(1)(f1)
+    alpha2 = -spline_alpha(f2)
+    a_c = (
+        f1_cube * (f1 - f2) * (f1 + f2) * d_alpha1
+        + 2 * (jnp.pow(f1, 4) - 2 * f1_sq * f2_sq) * alpha1
+        + 2 * jnp.pow(f2, 4) * alpha2
+    ) / (2.0 * jnp.pow(f1_sq - f2_sq, 2))
+    b_c = (jnp.pow(f1, 4) * f2_sq * (f1 * (f1 - f2) * (f1 + f2) * d_alpha1 + 2 * f2_sq * (-alpha1 + alpha2))) / (
+        2.0 * jnp.pow(f1_sq - f2_sq, 2)
+    )
+    c_c = (f1_sq * (f1 * (-jnp.pow(f1, 4) + jnp.pow(f2, 4)) * d_alpha1 + 4 * jnp.pow(f2, 4) * (alpha1 - alpha2))) / (
+        2.0 * jnp.pow(f1_sq - f2_sq, 2)
+    )
+    return PhenomXPalphaMRD(a_rd=a_c, b_rd=b_c, c_rd=c_c)
