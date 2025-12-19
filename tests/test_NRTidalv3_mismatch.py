@@ -298,16 +298,15 @@ def ripple_NRTidalv3_waveform(
 
     @jax.jit
     def waveform(theta):
-        hpc_psi_T = gen_IMRPhenomXAS_NRTidalv3_hphc(
+        hpc = gen_IMRPhenomXAS_NRTidalv3_hphc(
             frequencies[frequency_mask], theta, reference_frequency
         )
-        hp = zeros.at[frequency_mask].set(hpc_psi_T[0])
-        hc = zeros.at[frequency_mask].set(hpc_psi_T[1])
-        psi_T = zeros.at[frequency_mask].set(hpc_psi_T[2])
+        hp = zeros.at[frequency_mask].set(hpc[0])
+        hc = zeros.at[frequency_mask].set(hpc[1])
         # Apply Nyquist mask for consistent comparison
         hp = hp * nyquist_mask
         hc = hc * nyquist_mask
-        return hp, hc, psi_T
+        return hp, hc
 
     if thetas[0].size > 1:
         ripple_hpc = jax.vmap(waveform)(thetas.T)
@@ -368,7 +367,7 @@ _, *ripple_Tidalv3_hpc = ripple_NRTidalv3_waveform(
 lal_XAS_hpc = jnp.array(lal_XAS_wfms).transpose(1, 0, 2)
 lal_Tidalv3_hpc = jnp.array(lal_Tidalv3_wfms).transpose(1, 0, 2)
 ripple_XAS_hpc = jnp.array(ripple_XAS_hpc)
-ripple_Tidalv3_hpc = jnp.array(ripple_Tidalv3_hpc[:2])
+ripple_Tidalv3_hpc = jnp.array(ripple_Tidalv3_hpc)
 
 frequencies = get_freq_array(sampling_freqs=fs, duration=duration)
 interp_psd = jnp.interp(frequencies, psd_freqs, psd_arr)
