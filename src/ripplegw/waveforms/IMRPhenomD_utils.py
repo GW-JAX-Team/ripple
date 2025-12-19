@@ -3,7 +3,7 @@ from typing import Tuple
 import jax.numpy as jnp
 import jax
 
-from ..constants import gt
+from ..constants import MTSUN
 from jaxtyping import Array
 
 from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
@@ -69,8 +69,8 @@ def FinalSpin0815_s(eta, S):
 
 
 def get_fRD_fdamp(m1, m2, chi1, chi2):
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta_s = m1_s * m2_s / (M_s**2.0)
     S = (chi1 * m1_s**2 + chi2 * m2_s**2) / (M_s**2.0)
@@ -110,11 +110,11 @@ def get_transition_frequencies(
     f_RD, f_damp = get_fRD_fdamp(m1, m2, chi1, chi2)
 
     # Phase transition frequencies
-    f1 = 0.018 / (M * gt)
+    f1 = 0.018 / (M * MTSUN)
     f2 = 0.5 * f_RD
 
     # Amplitude transition frequencies
-    f3 = 0.014 / (M * gt)
+    f3 = 0.014 / (M * MTSUN)
     f4_gammaneg_gtr_1 = lambda f_RD_, f_damp_, gamma3_, gamma2_: jnp.abs(
         f_RD_ + (-f_damp_ * gamma3_) / gamma2_
     )
@@ -137,8 +137,8 @@ def get_coeffs(theta: Array) -> Array:
     # Retrives the coefficients needed to produce the waveform
 
     m1, m2, chi1, chi2 = theta
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
 

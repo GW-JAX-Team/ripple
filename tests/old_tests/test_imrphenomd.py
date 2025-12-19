@@ -8,7 +8,7 @@ from jax import grad, vmap
 from ripple import get_eff_pads, get_match_arr
 from ripple.waveforms import PPE_IMRPhenomD, IMRPhenomD, IMRPhenomD_utils
 import matplotlib.pyplot as plt
-from ripple.constants import gt
+from ripple.constants import MTSUN
 
 #plt.style.use("../plot_style.mplstyle")
 import numpy as np
@@ -535,7 +535,7 @@ def random_match_waveforms(n=1000):
         # xi_l = 0.004
         # xi_u = 0.2
         # dxi = 0.000005
-        # M_s = M * gt
+        # M_s = M * MTSUN
 
         # f_l = xi_l / M_s
         # f_u = xi_u / M_s

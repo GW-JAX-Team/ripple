@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 from ripplegw import Mc_eta_to_ms
 
-from ..constants import gt
+from ..constants import MTSUN
 from .IMRPhenomD import Phase as PhDPhase
 from .IMRPhenomD import Amp as PhDAmp
 from .IMRPhenomD_utils import get_coeffs
@@ -36,7 +36,7 @@ def PhenomPCoreTwistUp(
     assert Y2m is not None
 
     # here it is used to be LAL_MTSUN_SI
-    f = fHz * gt * M  # Frequency in geometric units
+    f = fHz * MTSUN * M  # Frequency in geometric units
     q = (1.0 + jnp.sqrt(1.0 - 4.0 * eta) - 2.0 * eta) / (2.0 * eta)
     m1 = 1.0 / (1.0 + q)  # Mass of the smaller BH for unit total mass M=1.
     m2 = q / (1.0 + q)  # Mass of the larger BH for unit total mass M=1.
@@ -179,7 +179,7 @@ def gen_IMRPhenomPv2(
     chi_eff = (m1 * chi1_l + m2 * chi2_l) / M
     chil = (1.0 + q) / q * chi_eff
     eta = m1 * m2 / (M * M)
-    m_sec = M * gt
+    m_sec = M * MTSUN
     piM = jnp.pi * m_sec
 
     omega_ref = piM * f_ref
@@ -247,7 +247,7 @@ def gen_IMRPhenomPv2(
     # )
     t0 = jax.grad(phi_IIb)(f_RD) / (2 * jnp.pi)
     phase_corr = jnp.cos(2 * jnp.pi * fs * (t0)) - 1j * jnp.sin(2 * jnp.pi * fs * (t0))
-    M_s = (m1 + m2) * gt
+    M_s = (m1 + m2) * MTSUN
     phase_corr_tc = jnp.exp(-1j * fs * M_s * tc)
     hp *= phase_corr * phase_corr_tc
     hc *= phase_corr * phase_corr_tc

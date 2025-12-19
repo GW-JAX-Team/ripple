@@ -1,7 +1,7 @@
 # from math import PI
 import jax
 import jax.numpy as jnp
-from ..constants import EulerGamma, gt, m_per_Mpc, C, PI
+from ..constants import EulerGamma, MTSUN, MPC, C, PI
 from ripplegw.waveforms import IMRPhenomX_utils
 from jaxtyping import Array
 
@@ -19,8 +19,8 @@ def get_inspiral_phase(fM_s: Array, theta: Array, phase_coeffs: Array) -> Array:
     Calculate the inspiral phase for the IMRPhenomD waveform.
     """
     m1, m2, chi1, chi2 = theta
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
     eta2 = eta * eta
@@ -336,8 +336,8 @@ def get_intermediate_raw_phase(
     fM_s: Array, theta: Array, phase_coeffs: Array, dPhaseIN, dPhaseRD, cL
 ) -> Array:
     m1, m2, chi1, chi2 = theta
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
     delta = jnp.sqrt(1.0 - 4.0 * eta)
@@ -548,8 +548,8 @@ def get_mergerringdown_raw_phase(
     fM_s: Array, theta: Array, phase_coeffs: Array
 ) -> Array:
     m1, m2, chi1, chi2 = theta
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
     delta = jnp.sqrt(1.0 - 4.0 * eta)
@@ -727,8 +727,8 @@ def Phase(f: Array, theta: Array, phase_coeffs: Array) -> Array:
         phase (array): Phase of the GW as a function of frequency
     """
     m1, m2, chi1, chi2 = theta
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
 
@@ -803,8 +803,8 @@ def get_Amp0(fM_s: Array, eta: float) -> Array:
 
 def get_inspiral_Amp(fM_s: Array, theta: Array, amp_coeffs: Array) -> Array:
     m1, m2, chi1, chi2 = theta
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
     eta2 = eta * eta
@@ -1010,8 +1010,8 @@ def get_intermediate_Amp(
     fM_s: Array, theta: Array, amp_coeffs: Array, fMs_AmpRDMin
 ) -> Array:
     m1, m2, chi1, chi2 = theta
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
     # eta2 = eta * eta
@@ -1205,8 +1205,8 @@ def get_mergerringdown_Amp(
     amp_coeffs: Array,
 ) -> Array:
     m1, m2, chi1, chi2 = theta
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
     delta = jnp.sqrt(1.0 - 4.0 * eta)
@@ -1280,14 +1280,14 @@ def get_mergerringdown_Amp(
 
 def Amp(f: Array, theta: Array, amp_coeffs: Array, D=1.0) -> Array:
     m1, m2, chi1, chi2 = theta
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
 
     fM_s = f * M_s
     _, _, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
-    amp0 = 2.0 * jnp.sqrt(5.0 / (64.0 * PI)) * M_s**2 / ((D * m_per_Mpc) / C)
+    amp0 = 2.0 * jnp.sqrt(5.0 / (64.0 * PI)) * M_s**2 / ((D * MPC) / C)
     ampNorm = jnp.sqrt(2.0 * eta / 3.0) * (PI ** (-1.0 / 6.0))
 
     fMs_AmpInsMax = fMs_MECO + 0.25 * (fMs_ISCO - fMs_MECO)
@@ -1322,8 +1322,8 @@ def _gen_IMRPhenomXAS(
     f_ref: float,
 ):
     m1, m2, chi1, chi2 = theta_intrinsic
-    m1_s = m1 * gt
-    m2_s = m2 * gt
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
 
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
