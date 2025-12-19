@@ -379,7 +379,6 @@ def get_IIb_Amp(fM_s: Array, theta: Array, coeffs: Array, f_RD, f_damp) -> Array
     return Amp_IIb
 
 
-# @jax.jit
 def Phase(f: Array, theta: Array, coeffs: Array, transition_freqs: Array) -> Array:
     """
     Computes the phase of the PhenomD waveform following 1508.07253.
@@ -457,7 +456,6 @@ def Phase(f: Array, theta: Array, coeffs: Array, transition_freqs: Array) -> Arr
     return phase
 
 
-# @jax.jit
 def Amp(
     f: Array, theta: Array, coeffs: Array, transition_frequencies: Array, D=1
 ) -> Array:
@@ -512,7 +510,6 @@ def Amp(
     return Amp0 * Amp * (M_s**2.0) / dist_s
 
 
-# @jax.jit
 def _gen_IMRPhenomD(
     f: Array,
     theta_intrinsic: Array,

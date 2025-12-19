@@ -1,7 +1,4 @@
-from typing import Tuple
-
 import jax.numpy as jnp
-import jax
 
 from ..constants import MTSUN, PI
 

@@ -2,7 +2,7 @@ import jax.numpy as jnp
 from jax.lax import complex
 
 from ..constants import PI
-from ..typing import Array
+from jaxtyping import Array
 
 
 def semi_major_minor_from_e(e: Array) -> tuple[Array, Array]:

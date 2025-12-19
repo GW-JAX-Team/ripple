@@ -1,4 +1,5 @@
 import jax.numpy as jnp
+from scipy.interpolate import CubicSpline
 
 fM_CUT = 0.2
 
@@ -3026,9 +3027,6 @@ _QNMData_fdamp = jnp.array(
         0.0002908,
     ]
 )
-
-
-from scipy.interpolate import CubicSpline
 
 QNMData_a = jnp.linspace(-1, 1, 500_000)
 QNMData_fRD = CubicSpline(_QNMData_a, _QNMData_fRD)(QNMData_a)

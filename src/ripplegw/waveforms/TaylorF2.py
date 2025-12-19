@@ -374,8 +374,8 @@ def _gen_TaylorF2(
     piM = PI * M_s
 
     # TODO: incorporate this into the waveform
-    vISCO = 1.0 / jnp.sqrt(6.0)
-    fISCO = vISCO * vISCO * vISCO / piM
+    # vISCO = 1.0 / jnp.sqrt(6.0)
+    # fISCO = vISCO * vISCO * vISCO / piM
 
     # Get the phasing coefficients
     phasing_coeffs, phasing_log_coeffs = get_PNPhasing_F2(
