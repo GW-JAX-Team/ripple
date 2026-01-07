@@ -1822,7 +1822,7 @@ def alpha_mrd_coeff(spline_alpha: CubicSpline, f_max_pn: float, p_wf: IMRPhenomX
     Args:
         spline_alpha: Cubic spline for alpha.
         f_max_pn: Maximum PN frequency.
-        p_wf: Waveform data class containing waveform parameters.
+        _p_wf: Waveform data class containing waveform parameters.
 
     Returns:
         PhenomXPalphaMRD: Coefficients for alpha MRD continuation.
@@ -1833,6 +1833,35 @@ def alpha_mrd_coeff(spline_alpha: CubicSpline, f_max_pn: float, p_wf: IMRPhenomX
     f1_sq = f1 * f1
     f2_sq = f2 * f2
     f1_cube = f1_sq * f1
+
+    # Validate spline domain BEFORE evaluation
+    spline_x_min = jnp.min(spline_alpha.x)
+    spline_x_max = jnp.max(spline_alpha.x)
+
+    f1_hz = xlal_sim_imr_phenom_x_utils_mf_to_hz(mf=f1, m_tot_msun=p_wf.m_tot)
+    f2_hz = xlal_sim_imr_phenom_x_utils_mf_to_hz(mf=f2, m_tot_msun=p_wf.m_tot)
+
+    checkify.check(
+        f1 >= spline_x_min,
+        "alpha could not be interpolated at %.5f",
+        f1_hz,
+    )
+    checkify.check(
+        f1 <= spline_x_max,
+        "alpha could not be interpolated at %.5f",
+        f1_hz,
+    )
+    checkify.check(
+        f2 >= spline_x_min,
+        "alpha could not be interpolated at %.5f",
+        f2_hz,
+    )
+    checkify.check(
+        f2 >= spline_x_min,
+        "alpha could not be interpolated at %.5f",
+        f2_hz,
+    )
+
     alpha1 = -spline_alpha(f1)
     d_alpha1 = -spline_alpha.derivative(1)(f1)
     alpha2 = -spline_alpha(f2)
