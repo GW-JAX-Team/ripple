@@ -997,7 +997,7 @@ def imr_phenom_x_get_and_set_precession_variables(
         l6=l6,
         l7=l7,
         l8=l8,
-        l8l=l8l,
+        l8_l=l8l,
         l_ref=l_ref,
         j0x_sf=j0x_sf,
         j0y_sf=j0y_sf,
@@ -2073,8 +2073,8 @@ def imr_phenom_x_wignerd_coefficients(
     s2 = s * s
     cos_beta = jnp.copysign(1.0, big_l + p_prec.s_l) / jnp.sqrt(1.0 + s2)
 
-    cos_beta_half = +jnp.sqrt(jnp.fabs(1.0 + cos_beta) / 2.0)  # cos(beta/2)
-    sin_beta_half = +jnp.sqrt(jnp.fabs(1.0 - cos_beta) / 2.0)  # sin(beta/2)
+    cos_beta_half = jnp.sqrt(jnp.fabs(1.0 + cos_beta) / 2.0)  # cos(beta/2)
+    sin_beta_half = jnp.sqrt(jnp.fabs(1.0 - cos_beta) / 2.0)  # sin(beta/2)
 
     return cos_beta_half, sin_beta_half
 

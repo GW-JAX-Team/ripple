@@ -21,6 +21,7 @@ betah
 Blanchet
 Bohe
 Cabero
+capsys
 Carlson
 cbrt
 cexp

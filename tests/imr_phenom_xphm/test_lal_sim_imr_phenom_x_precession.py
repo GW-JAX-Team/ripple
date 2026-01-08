@@ -17,7 +17,11 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass
     IMRPhenomXWaveformDataClass,
 )
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_precession import (
+    get_alphaepsilon_atfref,
+    imr_phenom_x_initialize_msa_system,
+    imr_phenom_x_return_phi_zeta_costheta_l_msa,
     imr_phenom_x_set_precessing_remnant_params,
+    imr_phenom_xp_check_max_opening_angle,
 )
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_precession_dataclass import (
     IMRPhenomXPrecessionDataClass,
@@ -26,21 +30,17 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_precession_dataclas
 jax.config.update("jax_enable_x64", True)
 
 
-def _build_waveform_struct() -> IMRPhenomXWaveformDataClass:
-    """Create a waveform dataclass with self-consistent masses and spins."""
+def _build_waveform_struct(m1=30.0, m2=20.0, chi1l=0.30, chi2l=-0.25) -> IMRPhenomXWaveformDataClass:
+    """Create a waveform dataclass"""
 
     wf_data = copy.deepcopy(WAVEFORM_DATA_CLASS_SAMPLE)
 
-    m1 = 30.0
-    m2 = 20.0
     m_tot = m1 + m2
     pi_m = PI * gt * m_tot
     q_ge_1 = m1 / m2
     eta = (m1 * m2) / (m_tot * m_tot)
     delta = jnp.sqrt(1.0 - 4.0 * eta)
 
-    chi1l = 0.30
-    chi2l = -0.25
     chi_eff = ((m1 / m_tot) * chi1l) + ((m2 / m_tot) * chi2l)
 
     wf_data.update(
@@ -125,6 +125,8 @@ def _build_precession_struct(p_wf: IMRPhenomXWaveformDataClass) -> IMRPhenomXPre
     den = jax.lax.select(m2 > m1, big_a2 * (m2**2), big_a1 * (m1**2))
     chi_p = num / den
 
+    s_perp = chi_p * m1**2
+
     p_prec = IMRPhenomXPrecessionDataClass()
 
     return dataclasses.replace(
@@ -171,6 +173,7 @@ def _build_precession_struct(p_wf: IMRPhenomXWaveformDataClass) -> IMRPhenomXPre
         l_hat_phi=0.0,
         l_hat_theta=0.0,
         chi_p=chi_p,
+        s_perp=s_perp,
     )
 
 
@@ -200,6 +203,74 @@ def dataclasses_allclose(dc1, dc2, rtol=1e-5, atol=1e-8):
                 print(f"Mismatch in {field.name}: {v1} vs {v2}")
                 return False
     return True
+
+
+class TestIMRPhenomXPCheckMaxOpeningAngle:
+    """Test class for imr_phenom_x_check_max_opening_angle function."""
+
+    def test_disable_multiband(self, capsys):
+        """Test that a warning is printed when max opening angle exceeds Pi/4."""
+        p_wf = _build_waveform_struct(m1=80.0, m2=2.0)  # p_wf.q > 7.0
+        p_prec = _build_precession_struct(p_wf)
+        lal_params = IMRPhenomXPHMParameterDataClass(threshold_mband=1.0)
+
+        # Set parameters to trigger the warning
+        p_prec = dataclasses.replace(
+            p_prec, s_l=-jnp.inf, chi_p=1.0  # (l_min + p_prec.s_l) < 0.0  # p_prec.chi_p > 0.0
+        )
+
+        lal_params_result, p_prec_result = imr_phenom_xp_check_max_opening_angle(p_wf, p_prec, lal_params)
+
+        captured = capsys.readouterr()
+        assert "Warning: The maximum opening angle exceeds Pi/2" in captured.out
+        assert "Warning: Multibanding may lead to pathological behaviour in this case." in captured.out
+
+        assert lal_params_result.threshold_mband == 0.0
+        assert p_prec_result.imr_phenom_x_prec_version == 0
+
+    def test_max_beta_warning(self, capsys):
+        """Test that a warning is printed when max opening angle exceeds Pi/4."""
+        p_wf = _build_waveform_struct(chi1l=0.0, chi2l=jnp.pi / 2)
+        p_prec = _build_precession_struct(p_wf)
+
+        lal_params = IMRPhenomXPHMParameterDataClass()
+
+        _ = imr_phenom_xp_check_max_opening_angle(p_wf, p_prec, lal_params)
+
+        captured = capsys.readouterr()
+        assert "Warning: The maximum opening angle" in captured.out
+
+    def test_warnings_in_jit_compiled(self, capsys):
+        """Test that the function can be JIT-compiled."""
+
+        p_wf = _build_waveform_struct(m1=80.0, m2=2.0)  # p_wf.q > 7.0
+        p_prec = _build_precession_struct(p_wf)
+        lal_params = IMRPhenomXPHMParameterDataClass(threshold_mband=1.0)
+
+        # Set parameters to trigger the warning
+        p_prec = dataclasses.replace(
+            p_prec, s_l=-jnp.inf, chi_p=1.0  # (l_min + p_prec.s_l) < 0.0  # p_prec.chi_p > 0.0
+        )
+
+        jit_func = jax.jit(imr_phenom_xp_check_max_opening_angle)
+
+        lal_params_result, p_prec_result = jit_func(p_wf, p_prec, lal_params)
+
+        captured = capsys.readouterr()
+        assert "Warning: The maximum opening angle exceeds Pi/2" in captured.out
+        assert "Warning: Multibanding may lead to pathological behaviour in this case." in captured.out
+
+        assert lal_params_result.threshold_mband == 0.0
+        assert p_prec_result.imr_phenom_x_prec_version == 0
+
+        p_wf = _build_waveform_struct(m1=80.0, m2=2.0)
+        p_prec = _build_precession_struct(p_wf)
+        lal_params = IMRPhenomXPHMParameterDataClass()
+
+        _ = jit_func(p_wf, p_prec, lal_params)
+
+        captured = capsys.readouterr()
+        assert "Warning: The maximum opening angle" in captured.out
 
 
 class TestIMRPhenomXSetPrecessingRemnantParams:
@@ -464,73 +535,160 @@ class TestIMRPhenomXSetPrecessingRemnantParams:
         assert jnp.isfinite(p_wf_result.a_final)
 
 
-# class TestGetAlphaEpsilonAtFref:
-#     """Test class for get_alphaepsilon_atfref function."""
+class TestGetAlphaEpsilonAtFref:
+    """Test class for get_alphaepsilon_atfref function."""
 
-#     def test_msa_branch(self):
-#         """Test MSA branch of get_alphaepsilon_atfref function."""
-#         # Sample lal_params
-#         p_wf = _build_waveform_struct()
-#         p_prec = _build_precession_struct(p_wf)
-#         p_prec = dataclasses.replace(p_prec, imr_phenom_x_prec_version=220)
+    def test_msa_branch(self):
+        """Test MSA branch of get_alphaepsilon_atfref function."""
+        # Sample lal_params
+        p_wf = _build_waveform_struct()
+        p_prec = _build_precession_struct(p_wf)
+        p_prec = dataclasses.replace(p_prec, imr_phenom_x_prec_version=220)
 
-#         _, p_prec = imr_phenom_x_initialize_msa_system(p_wf, p_prec, 2)
-#         p_prec_copy = p_prec.copy()
+        _, p_prec = imr_phenom_x_initialize_msa_system(p_wf, p_prec, 2)
+        p_prec_copy = p_prec.copy()
 
-#         alpha_offset, epsilon_offset, p_prec = get_alphaepsilon_atfref(2, p_prec, p_wf)
+        alpha_offset, epsilon_offset, p_prec = get_alphaepsilon_atfref(2, p_prec, p_wf)
 
-#         # MSA code to get expected alpha offset
-#         mprime = 2
-#         omega_ref = p_wf.pi_m * p_wf.f_ref * 2./mprime
+        # MSA code to get expected alpha offset
+        mprime = 2
+        omega_ref = p_wf.pi_m * p_wf.f_ref * 2.0 / mprime
 
-#         v = jnp.cbrt(omega_ref)
-#         vangles, p_prec_expected = imr_phenom_x_return_phi_zeta_costheta_l_msa(v,p_wf,p_prec_copy)
+        v = jnp.cbrt(omega_ref)
+        vangles, p_prec_expected = imr_phenom_x_return_phi_zeta_costheta_l_msa(v, p_wf, p_prec_copy)
 
-#         alpha_offset_expected    = vangles[0] - p_prec_expected.alpha0
-#         epsilon_offset_expected  = vangles[1] - p_prec_expected.epsilon0
+        alpha_offset_expected = vangles[0] - p_prec_expected.alpha0
+        epsilon_offset_expected = vangles[1] - p_prec_expected.epsilon0
 
-#         assert jnp.isclose(alpha_offset, alpha_offset_expected)
-#         assert jnp.isclose(epsilon_offset, epsilon_offset_expected)
+        assert jnp.isclose(alpha_offset, alpha_offset_expected)
+        assert jnp.isclose(epsilon_offset, epsilon_offset_expected)
+
+    def test_other_branch(self):
+        """Test non-MSA branch of get_alphaepsilon_atfref function."""
+
+        # Sample lal_params
+        p_wf = _build_waveform_struct()
+        p_prec = _build_precession_struct(p_wf)
+        p_prec = dataclasses.replace(p_prec, imr_phenom_x_prec_version=100)
+
+        _, p_prec = imr_phenom_x_initialize_msa_system(p_wf, p_prec, 2)
+        p_prec_copy = p_prec.copy()
+
+        alpha_offset, epsilon_offset, p_prec = get_alphaepsilon_atfref(2, p_prec, p_wf)
+
+        # Non-MSA code to get expected alpha offset
+        mprime = 2
+        omega_ref = p_wf.pi_m * p_wf.f_ref * 2.0 / mprime
+        logomega_ref = jnp.log(omega_ref)
+        omega_ref_cbrt = jnp.cbrt(omega_ref)
+        omega_ref_cbrt2 = omega_ref_cbrt * omega_ref_cbrt
+
+        alpha_offset_expected = (
+            p_prec_copy.alpha1 / omega_ref
+            + p_prec_copy.alpha2 / omega_ref_cbrt2
+            + p_prec_copy.alpha3 / omega_ref_cbrt
+            + p_prec_copy.alpha4_l * logomega_ref
+            + p_prec_copy.alpha5 * omega_ref_cbrt
+            - p_prec_copy.alpha0
+        )
+
+        epsilon_offset_expected = (
+            p_prec_copy.epsilon1 / omega_ref
+            + p_prec_copy.epsilon2 / omega_ref_cbrt2
+            + p_prec_copy.epsilon3 / omega_ref_cbrt
+            + p_prec_copy.epsilon4_l * logomega_ref
+            + p_prec_copy.epsilon5 * omega_ref_cbrt
+            - p_prec_copy.epsilon0
+        )
+
+        assert jnp.isclose(alpha_offset, alpha_offset_expected)
+        assert jnp.isclose(epsilon_offset, epsilon_offset_expected)
+
+    def test_jit_compilation(self):
+        """Test that the function can be JIT-compiled."""
+
+        p_wf = _build_waveform_struct()
+        p_prec = _build_precession_struct(p_wf)
+        p_prec = dataclasses.replace(p_prec, imr_phenom_x_prec_version=220)  # Just look at the MSA branch
+
+        _, p_prec = imr_phenom_x_initialize_msa_system(p_wf, p_prec, 2)
+        p_prec_copy = p_prec.copy()
+
+        jit_func = jax.jit(get_alphaepsilon_atfref)
+
+        # Should complete without error
+        alpha_offset, epsilon_offset, p_prec = jit_func(2, p_prec, p_wf)
+
+        # MSA code to get expected alpha offset
+        mprime = 2
+        omega_ref = p_wf.pi_m * p_wf.f_ref * 2.0 / mprime
+
+        v = jnp.cbrt(omega_ref)
+        vangles, p_prec_expected = imr_phenom_x_return_phi_zeta_costheta_l_msa(v, p_wf, p_prec_copy)
+
+        alpha_offset_expected = vangles[0] - p_prec_expected.alpha0
+        epsilon_offset_expected = vangles[1] - p_prec_expected.epsilon0
+
+        assert jnp.isclose(alpha_offset, alpha_offset_expected)
+        assert jnp.isclose(epsilon_offset, epsilon_offset_expected)
 
 
-#     def test_other_branch(self):
-#         """Test non-MSA branch of get_alphaepsilon_atfref function."""
+class TestIMRPhenomXReturnPhiZetaCosthetaLMSA:
+    """Test class for imr_phenom_x_return_phi_zeta_costheta_l_msa function."""
 
-#         # Sample lal_params
-#         p_wf = _build_waveform_struct()
-#         p_prec = _build_precession_struct(p_wf)
-#         p_prec = dataclasses.replace(p_prec, imr_phenom_x_prec_version=100)
+    def test_returns(self):
+        """Test that the function returns angles."""
+        p_wf = _build_waveform_struct()
+        p_prec = _build_precession_struct(p_wf)
+        p_prec = dataclasses.replace(
+            p_prec,
+            imr_phenom_x_prec_version=220,
+            l0=1.0,
+            l1=0.0,
+            l2=10.0,
+            l3=0.0,
+            l4=0.0,
+            l5=0.0,
+            l6=4.0,
+            l7=0.0,
+            l8=0.0,
+            l8_l=4.2,
+        )
 
-#         _, p_prec = imr_phenom_x_initialize_msa_system(p_wf, p_prec, 2)
-#         p_prec_copy = p_prec.copy()
+        _, p_prec = imr_phenom_x_initialize_msa_system(p_wf, p_prec, 2)
 
-#         alpha_offset, epsilon_offset, p_prec = get_alphaepsilon_atfref(2, p_prec, p_wf)
+        v = 0.2  # Sample velocity
+        angles, _ = imr_phenom_x_return_phi_zeta_costheta_l_msa(v, p_wf, p_prec)
 
-#         # Non-MSA code to get expected alpha offset
-#         mprime = 2
-#         omega_ref = p_wf.pi_m * p_wf.f_ref * 2./mprime
-#         logomega_ref    = jnp.log(omega_ref)
-#         omega_ref_cbrt  = jnp.cbrt(omega_ref)
-#         omega_ref_cbrt2 = omega_ref_cbrt * omega_ref_cbrt
+        assert (angles != jnp.zeros(3)).all()
 
-#         alpha_offset_expected = (
-#             p_prec_copy.alpha1  / omega_ref
-#             + p_prec_copy.alpha2  / omega_ref_cbrt2
-#             + p_prec_copy.alpha3  / omega_ref_cbrt
-#             + p_prec_copy.alpha4_l * logomega_ref
-#             + p_prec_copy.alpha5  * omega_ref_cbrt - p_prec_copy.alpha0
-#         )
+    def test_jit_compilation(self):
+        """Test that the function can be JIT-compiled."""
 
-#         epsilon_offset_expected =  (
-#             p_prec_copy.epsilon1  / omega_ref
-#             + p_prec_copy.epsilon2  / omega_ref_cbrt2
-#             + p_prec_copy.epsilon3  / omega_ref_cbrt
-#             + p_prec_copy.epsilon4_l * logomega_ref
-#             + p_prec_copy.epsilon5  * omega_ref_cbrt - p_prec_copy.epsilon0
-#         )
+        p_wf = _build_waveform_struct()
+        p_prec = _build_precession_struct(p_wf)
+        p_prec = dataclasses.replace(
+            p_prec,
+            imr_phenom_x_prec_version=220,
+            l0=1.0,
+            l1=0.0,
+            l2=10.0,
+            l3=0.0,
+            l4=0.0,
+            l5=0.0,
+            l6=4.0,
+            l7=0.0,
+            l8=0.0,
+            l8_l=4.2,
+        )
+        _, p_prec = imr_phenom_x_initialize_msa_system(p_wf, p_prec, 2)
 
-#         assert jnp.isclose(alpha_offset, alpha_offset_expected)
-#         assert jnp.isclose(epsilon_offset, epsilon_offset_expected)
+        v = 0.2  # Sample velocity
+
+        jit_func = jax.jit(imr_phenom_x_return_phi_zeta_costheta_l_msa)
+
+        # Should complete without error
+        _ = jit_func(v, p_wf, p_prec)
 
 
 if __name__ == "__main__":
