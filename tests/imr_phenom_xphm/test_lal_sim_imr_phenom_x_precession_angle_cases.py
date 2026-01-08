@@ -13,6 +13,7 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass
 )
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_precession_angle_cases import (
     imr_phenom_x_initialize_msa_system,
+    imr_phenom_x_return_s_norm_msa,
 )
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_precession_dataclass import (
     IMRPhenomXPrecessionDataClass,
@@ -263,6 +264,47 @@ class TestIninitializeMsaSystem:
 
         assert type(result_0) is IMRPhenomXPrecessionDataClass
         assert type(result_1) is IMRPhenomXPrecessionDataClass
+
+
+class TestImrPhenomXReturnSNormMsa:
+    """Test suite for imr_phenom_x_return_s_norm_msa function."""
+
+    def test_return_s_norm_msa_small_angle(self):
+        """Function computes s_norm successfully for a representative configuration."""
+
+        p_prec = _build_precession_struct(_build_waveform_struct())
+
+        s_mi2 = 4.2
+        s_pl2 = s_mi2 + 1e-7  # |p_prec.s_mi2 - p_prec.s_pl2| < 1e-5
+        p_prec = dataclasses.replace(
+            p_prec,
+            s_mi2=s_mi2,
+            s_pl2=s_pl2,
+        )
+
+        s_norm_msa = imr_phenom_x_return_s_norm_msa(3.0, p_prec)
+
+        assert s_norm_msa == jnp.sqrt(s_pl2)
+
+    def test_return_s_norm_msa_ell_int_branch(self):
+        """Function computes s_norm successfully for elliptic integral branch."""
+
+        p_prec = _build_precession_struct(_build_waveform_struct())
+
+        s_mi2 = 4.2
+        s_pl2 = s_mi2 + 1e-3  # |p_prec.s_mi2 - p_prec.s_pl2| >= 1e-5
+        p_prec = dataclasses.replace(
+            p_prec,
+            s_mi2=s_mi2,
+            s_pl2=s_pl2,
+            psi0=0.5,
+            psi1=0.1,
+            psi2=0.04,
+        )
+
+        s_norm_msa = imr_phenom_x_return_s_norm_msa(3.0, p_prec)
+
+        assert s_norm_msa != jnp.sqrt(s_pl2)
 
 
 if __name__ == "__main__":

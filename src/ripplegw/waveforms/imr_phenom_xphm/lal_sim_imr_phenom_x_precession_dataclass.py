@@ -525,7 +525,7 @@ class IMRPhenomXPrecessionDataClass:  # pylint: disable=too-many-instance-attrib
     # Minimum frequency covered by the integration of PN spin-precessing equations for SpinTaylor models
     m_fmin_integration: float = 0.0
 
-    msa_error: float = 0.0  # Flag to track errors in initialization of MSA system.
+    msa_error: int = 0  # Flag to track errors in initialization of MSA system.
 
     # /* PNR-specific additions for single-spin mapping */
     # Magnitude of effective single spin used for tapering two-spin angles, Eq. 18 of arXiv:2107.08876
@@ -589,3 +589,7 @@ class IMRPhenomXPrecessionDataClass:  # pylint: disable=too-many-instance-attrib
     conditional_prec_mband: int = 0
 
     lal_params: IMRPhenomXPHMParameterDataClass | None = None
+
+    def copy(self, **kwargs) -> IMRPhenomXPrecessionDataClass:
+        """Create a new instance of the dataclass, optionally replacing some fields."""
+        return dataclasses.replace(self, **kwargs)

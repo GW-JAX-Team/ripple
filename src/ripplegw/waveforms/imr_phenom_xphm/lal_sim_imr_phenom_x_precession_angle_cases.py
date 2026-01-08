@@ -1,3 +1,5 @@
+"""JAX implementation of internal functions for precession angle handling in IMRPhenomXP(HM)."""
+
 from __future__ import annotations
 
 import dataclasses
@@ -7,7 +9,7 @@ import jax.numpy as jnp
 from jax.experimental import checkify
 
 from ripplegw.constants import PI, gt
-from ripplegw.gsl_ellint import ellipfinc
+from ripplegw.gsl_ellint import ellipfinc, gsl_sf_elljac_e
 from ripplegw.typing import Array
 from ripplegw.waveforms.imr_phenom_xphm.lal_constants import LAL_GAMMA
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
@@ -22,6 +24,14 @@ from ripplegw.waveforms.imr_phenom_xphm.lal_sim_inspiral import (
 
 
 def get_delta_f_from_wfstruct(p_wf: IMRPhenomXWaveformDataClass) -> float:
+    """
+    Docstring for get_delta_f_from_wfstruct
+
+    :param p_wf: Description
+    :type p_wf: IMRPhenomXWaveformDataClass
+    :return: Description
+    :rtype: float
+    """
     seglen = xlal_sim_inspiral_chirp_time_bound(p_wf.f_ref, p_wf.m1_si, p_wf.m2_si, p_wf.chi1l, p_wf.chi2l)
     delta_fv1 = 1.0 / jnp.max(4.0, jnp.ceil(jnp.log(seglen) / jnp.log(2)) ** 2)
     delta_f = jnp.min(delta_fv1, 0.1)
@@ -34,26 +44,26 @@ def get_delta_f_from_wfstruct(p_wf: IMRPhenomXWaveformDataClass) -> float:
 #####################################################################################
 
 
-# /**
-#  * Internal function to computes the PN spin-orbit couplings. As in LALSimInspiralFDPrecAngles.c
-#  * cf https://git.ligo.org/lscsoft/lalsuite/-/blob/master/lalsimulation/lib/LALSimInspiralFDPrecAngles_internals.c#L798
-#  */
 def imr_phenom_x_get_pn_beta(a: float, b: float, p_prec: IMRPhenomXPrecessionDataClass) -> float:
+    """
+    Internal function to computes the PN spin-orbit couplings. As in LALSimInspiralFDPrecAngles.c
+    cf https://git.ligo.org/lscsoft/lalsuite/-/blob/master/lalsimulation/lib/LALSimInspiralFDPrecAngles_internals.c#L798
+    """
     return p_prec.dot_s1_l * (a + b * p_prec.qq) + p_prec.dot_s2_l * (a + b / p_prec.qq)
 
 
-# /**
-#  * Internal function to compute PN spin-spin couplings. As in LALSimInspiralFDPrecAngles.c
-#  * cf https://git.ligo.org/lscsoft/lalsuite/-/blob/master/lalsimulation/lib/LALSimInspiralFDPrecAngles_internals.c#L806
-#  */
 def imr_phenom_x_get_pn_sigma(a: float, b: float, p_prec: IMRPhenomXPrecessionDataClass) -> float:
+    """
+    Internal function to compute PN spin-spin couplings. As in LALSimInspiralFDPrecAngles.c
+    cf https://git.ligo.org/lscsoft/lalsuite/-/blob/master/lalsimulation/lib/LALSimInspiralFDPrecAngles_internals.c#L806
+    """
     return p_prec.inveta * (a * p_prec.dot_s1_s2 - b * p_prec.dot_s1_l * p_prec.dot_s2_l)
 
 
-# /**
-#  * Internal function to computes PN spin-spin couplings. As in LALSimInspiralFDPrecAngles.c
-#  */
 def imr_phenom_x_get_pn_tau(a: float, b: float, p_prec: IMRPhenomXPrecessionDataClass) -> float:
+    """
+    Internal function to computes PN spin-spin couplings. As in LALSimInspiralFDPrecAngles.c
+    """
     return (
         p_prec.qq * ((p_prec.s1_norm_2 * a) - b * p_prec.dot_s1_l * p_prec.dot_s1_l)
         + (a * p_prec.s2_norm_2 - b * p_prec.dot_s2_l * p_prec.dot_s2_l) / p_prec.qq
@@ -66,6 +76,9 @@ def imr_phenom_x_initialize_msa_system(
     p_prec: IMRPhenomXPrecessionDataClass,
     expansion_order: int,
 ) -> IMRPhenomXPrecessionDataClass:
+    """
+    JAX implementation of IMRPhenomX MSA initialization function.
+    """
     # /*
     # Sanity check on the precession version
     # */
@@ -177,7 +190,7 @@ def imr_phenom_x_initialize_msa_system(
     # /*
     # Note that Chatziioannou et al use q = m2/m1, where m1 > m2 and therefore q < 1
     # IMRPhenomX assumes m1 > m2 and q > 1. For the internal MSA code, flip q and
-    # dump this to p_prec->qq, where qq explicitly dentoes that this is 0 < q < 1.
+    # dump this to p_prec->qq, where qq explicitly denotes that this is 0 < q < 1.
     # */
     q = m2 / m1  # // m2 / m1, q < 1, m1 > m2
     invq = 1.0 / q  # // m2 / m1, q < 1, m1 > m2
@@ -271,12 +284,12 @@ def imr_phenom_x_initialize_msa_system(
     # printf("dotS1S2                = %.6f\n\n",p_prec->dotS1S2)
     # #endif
 
-    # /* Coeffcients for PN orbital angular momentum at 3PN, as per LALSimInspiralFDPrecAngles_internals.c */
-    # p_prec->constants_L[0] = (L_csts_nonspin[0] + eta*L_csts_nonspin[1]);
-    # p_prec->constants_L[1] = IMRPhenomX_Get_PN_beta(L_csts_spinorbit[0], L_csts_spinorbit[1], p_prec);
-    # p_prec->constants_L[2] = (L_csts_nonspin[2] + eta*L_csts_nonspin[3] + eta*eta*L_csts_nonspin[4]);
-    # p_prec->constants_L[3] = IMRPhenomX_Get_PN_beta((L_csts_spinorbit[2]+L_csts_spinorbit[3]*eta), (L_csts_spinorbit[4]+L_csts_spinorbit[5]*eta), p_prec);
-    # p_prec->constants_L[4] = (L_csts_nonspin[5]+L_csts_nonspin[6]*eta +L_csts_nonspin[7]*eta*eta+L_csts_nonspin[8]*eta*eta*eta);
+    # /* Coefficients for PN orbital angular momentum at 3PN, as per LALSimInspiralFDPrecAngles_internals.c */
+    # p_prec->constants_L[0] = (L_csts_nonspin[0] + eta*L_csts_nonspin[1])
+    # p_prec->constants_L[1] = IMRPhenomX_Get_PN_beta(L_csts_spinorbit[0], L_csts_spinorbit[1], p_prec)
+    # p_prec->constants_L[2] = (L_csts_nonspin[2] + eta*L_csts_nonspin[3] + eta*eta*L_csts_nonspin[4])
+    # p_prec->constants_L[3] = IMRPhenomX_Get_PN_beta((L_csts_spinorbit[2]+L_csts_spinorbit[3]*eta), (L_csts_spinorbit[4]+L_csts_spinorbit[5]*eta), p_prec)
+    # p_prec->constants_L[4] = (L_csts_nonspin[5]+L_csts_nonspin[6]*eta +L_csts_nonspin[7]*eta*eta+L_csts_nonspin[8]*eta*eta*eta)
 
     constants_l = jnp.array(
         [
@@ -755,13 +768,19 @@ def imr_phenom_x_initialize_msa_system(
 
     # /*
     # Check if cm goes negative, this is likely pathological. If so, set MSA_ERROR to 1, so that waveform generator can handle
-    # the error approriately
+    # the error appropriately
     # */
     # if(cm < 0.0)
     # {
     #   p_prec.MSA_ERROR = 1
     #   XLAL_PRINT_ERROR("Error, coefficient cm = %.16f, which is negative and likely to be pathological. Triggering MSA failure.\n",cm)
     # }
+
+    msa_error = jax.lax.select(
+        cm < 0.0,
+        1,
+        0,
+    )
 
     # /* fabs is here to help enforce positive definite cpcm */
     cpcm = jnp.abs(cp * cm)
@@ -856,6 +875,11 @@ def imr_phenom_x_initialize_msa_system(
     # p_prec->MSA_ERROR = 1
     # XLAL_PRINT_WARNING("Warning, |Omegaz5| = %.16f, which is larger than expected and may be pathological. Triggering MSA failure.\n",p_prec->Omegaz5)
     # }
+    msa_error = jax.lax.select(
+        jnp.abs(omegaz5) > 1000.0,
+        1,
+        msa_error,
+    )
     checkify.check(
         jnp.abs(omegaz5) < 1000.0,
         "Warning, |omegaz5| > 1000, which is larger than expected and may be pathological. Triggering MSA failure.",
@@ -1185,6 +1209,7 @@ def imr_phenom_x_initialize_msa_system(
         omega_zeta5_coeff=omega_zeta5_coeff,
         phiz_0=0.0,
         zeta_0=0.0,
+        msa_error=msa_error,
     )
 
     # #if DEBUG == 1
@@ -1238,6 +1263,18 @@ def imr_phenom_x_initialize_msa_system(
 
 
 def imr_phenom_x_return_zeta_msa(v: float, p_prec: IMRPhenomXPrecessionDataClass) -> float:
+    """
+    Get \f$\\zeta\f$ using Eq F5 in Appendix F of Chatziioannou et al, PRD 95, 104004, (2017):
+    """
+
+    # /*
+    # Eq. F5 of Chatziioannou et al, PRD 95, 104004, (2017)
+
+    # \zeta_{z,-1} = \eta v^{-3} \sum^5_{n=0} <\Omega_{\zeta}>^(n) v^(n) + \zeta_{-1}^0
+
+    # Note that the <\Omega_{\eta}>^(n) are given by pPrec->Omegazetan_coeff's as in Eqs. F6-F11
+    # */
+
     invv = 1.0 / v
     invv2 = invv * invv
     invv3 = invv * invv2
@@ -1265,7 +1302,10 @@ def imr_phenom_x_return_zeta_msa(v: float, p_prec: IMRPhenomXPrecessionDataClass
 
 
 def imr_phenom_x_return_phiz_msa(v: float, j_norm: float, p_prec: IMRPhenomXPrecessionDataClass) -> float:
-
+    """
+    Get \f$\\phi_z\f$ using Eq 66 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967:
+    - The coefficients are given in Appendix D (D15 - D26)
+    """
     invv = 1.0 / v
     invv2 = invv * invv
     l_newt = p_prec.eta / v
@@ -1330,7 +1370,9 @@ def imr_phenom_x_return_phiz_msa(v: float, j_norm: float, p_prec: IMRPhenomXPrec
 def imr_phenom_x_return_msa_corrections_msa(
     v: float, l_norm: float, j_norm: float, p_prec: IMRPhenomXPrecessionDataClass
 ):  # Adapted from Leonardo Ricca's code
-
+    r"""
+    Get MSA corrections to \zeta and \phi_z using Eq. F19 in Appendix F and Eq. 67 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967 respectively:
+    """
     pflag = p_prec.imr_phenom_x_prec_version
 
     v2 = v * v
@@ -1477,6 +1519,10 @@ def imr_phenom_x_return_msa_corrections_msa(
 
 
 def imr_phenom_x_return_constants_c_msa(v: float, j_norm: float, p_prec: IMRPhenomXPrecessionDataClass):
+    """
+    Get c constants from Appendix B (B6, B7, B8) of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
+    """
+
     v2 = v * v
     v3 = v * v2
     v4 = v2 * v2
@@ -1514,6 +1560,9 @@ def imr_phenom_x_return_constants_c_msa(v: float, j_norm: float, p_prec: IMRPhen
 
 
 def imr_phenom_x_return_constants_d_msa(l_norm: float, j_norm: float, p_prec: IMRPhenomXPrecessionDataClass):
+    """
+    Get d constants from Appendix B (B9, B10, B11) of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
+    """
     l_norm2 = l_norm * l_norm
     j_norm2 = j_norm * j_norm
 
@@ -1525,10 +1574,20 @@ def imr_phenom_x_return_constants_d_msa(l_norm: float, j_norm: float, p_prec: IM
 
 
 def imr_phenom_x_return_psi_msa(v: float, v2: float, p_prec: IMRPhenomXPrecessionDataClass):
+    """
+    Get \f$\\psi\f$ using Eq 51 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967:
+    - Here \f$\\psi\f$ is the phase of S as in Eq 23
+    - Note that the coefficients are defined in Appendix C (C1 and C2)
+    """
+
     return -0.75 * p_prec.g0 * p_prec.delta_qq * (1.0 + p_prec.psi1 * v + p_prec.psi2 * v2) / (v2 * v)
 
 
 def imr_phenom_x_return_psi_dot_msa(v: float, p_prec: IMRPhenomXPrecessionDataClass):
+    """
+    Get \f$\\dot{\\psi}\f$ using Eq 24 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967:
+    """
+
     v2 = v * v
 
     big_a_coeff = -1.5 * v2 * v2 * v2 * (1.0 - v * p_prec.s_eff) * jnp.sqrt(p_prec.inveta)
@@ -1548,6 +1607,10 @@ def imr_phenom_x_psiofv(
 def imr_phenom_x_return_spin_evolution_coefficients_msa(
     l_norm: float, j_norm: float, p_prec: IMRPhenomXPrecessionDataClass
 ) -> Array:
+    """
+    Get coefficients for Eq 21 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
+    """
+
     # // Total angular momenta: J = L + S1 + S2
     j_norm2 = j_norm * j_norm
 
@@ -1600,6 +1663,14 @@ def imr_phenom_x_return_spin_evolution_coefficients_msa(
 
 
 def imr_phenom_x_return_roots_msa(l_norm: float, j_norm: float, p_prec: IMRPhenomXPrecessionDataClass) -> Array:
+    """
+    Here we solve for the roots of Eq 21 in Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967:
+    - Roots for (d S^2)/(d t^2) = -A^2 (S^2 -S+^2)(S^2 - S-^2)(S^2 - S3^2)
+    - Returns Spl2 (S+^2), Smi2 (S-^2) and S3^2
+
+    - Note (from LAL): agrees with independent implementation in Mathematica
+    """
+
     v_bcd = imr_phenom_x_return_spin_evolution_coefficients_msa(l_norm, j_norm, p_prec)
 
     # /* Update struct. Note, that this agreed with independent implementation in Mathematica. */
@@ -1725,6 +1796,44 @@ def imr_phenom_x_return_roots_msa(l_norm: float, j_norm: float, p_prec: IMRPheno
     )
 
     return jnp.array([s32, s_mi2, spl2])
+
+
+def imr_phenom_x_return_s_norm_msa(v: float, p_prec: IMRPhenomXPrecessionDataClass) -> float | Array:
+    """
+    Get norm of S, see PRD 95, 104004, (2017)
+    """
+
+    # sn, cn are Jacobi elliptic functions
+    # psi is the phase and m a parameter entering the Jacobi elliptic functions
+
+    v2 = v * v
+
+    # /*
+    # If spin norms ~ cancel then we do not need to evaluate the Jacobi elliptic function.
+    # Check tolerance?
+    # */
+
+    def elliptic_int_branch(_):
+        # /* Equation 25 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967 */
+        m = (p_prec.s_mi2 - p_prec.s_pl2) / (p_prec.s32 - p_prec.s_pl2)
+
+        psi = imr_phenom_x_psiofv(v, v2, p_prec.psi0, p_prec.psi1, p_prec.psi2, p_prec)
+
+        # /* Evaluate the Jacobi ellptic functions */
+        sn, _, _ = gsl_sf_elljac_e(psi, m)
+        return sn
+
+    sn = jax.lax.cond(
+        jnp.abs(p_prec.s_mi2 - p_prec.s_pl2) < 1.0e-5,
+        lambda _: 0.0,
+        elliptic_int_branch,
+        operand=None,
+    )
+
+    # /* Equation 23 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967 */
+    s_norm2 = p_prec.s_pl2 + (p_prec.s_mi2 - p_prec.s_pl2) * sn * sn
+
+    return jnp.sqrt(s_norm2)
 
 
 ####################################################################################

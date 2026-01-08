@@ -6,6 +6,7 @@ import jax.numpy as jnp
 from jax import lax
 
 from ripplegw.constants import PI
+from ripplegw.typing import Array
 from ripplegw.waveforms.imr_phenom_xphm.lal_constants import LAL_MTSUN_SI
 
 
@@ -274,6 +275,50 @@ def xlal_sim_imr_phenom_x_final_spin_2017(eta, chi1_l, chi2_l) -> float:  # pyli
     return no_spin + eq_spin + uneq_spin
 
 
+def xlal_sim_imr_phenom_x_precessing_final_spin_2017(
+    eta: float,  # Symmetric mass ratio
+    chi1_l: float,  # Aligned spin of BH 1
+    chi2_l: float,  # Aligned spin of BH 2
+    chi_inplane: float,  # Effective precessions spin parameter, see Section IV D of arXiv:XXXX.YYYY
+) -> float | Array:
+    """
+    Wrapper for the final spin in generically precessing binary black holes
+    """
+    m1 = 0.5 * (1.0 + jnp.sqrt(1 - 4.0 * eta))
+    m2 = 0.5 * (1.0 - jnp.sqrt(1 - 4.0 * eta))
+    big_m = m1 + m2
+
+    eta = lax.cond(
+        eta > 0.25,
+        lambda _: imr_phenom_x_internal_nudge(eta, 0.25, 1e-6),
+        lambda _: eta,
+        operand=None,
+    )
+
+    def m1gtm2_branch(operand):
+        q_factor = m1 / big_m
+        eta, chi1_l, chi2_l = operand
+        af_parallel = xlal_sim_imr_phenom_x_final_spin_2017(eta, chi1_l, chi2_l)
+        return q_factor, af_parallel
+
+    def m1ltm2_branch(operand):
+        q_factor = m2 / big_m
+        eta, chi1_l, chi2_l = operand
+        af_parallel = xlal_sim_imr_phenom_x_final_spin_2017(eta, chi2_l, chi1_l)
+        return q_factor, af_parallel
+
+    q_factor, af_parallel = lax.cond(
+        m1 >= m2,
+        m1gtm2_branch,
+        m1ltm2_branch,
+        operand=(eta, chi1_l, chi2_l),
+    )
+
+    s_perp = chi_inplane * q_factor * q_factor
+    af = jnp.copysign(1.0, af_parallel) * jnp.sqrt(s_perp * s_perp + af_parallel * af_parallel)
+    return af
+
+
 def xlal_sim_imr_phenom_x_f_meco(eta: float, chi1_l: float, chi2_l: float) -> float:
     """Compute the MECO frequency.
 
@@ -452,6 +497,20 @@ def xlal_sim_imr_phenom_x_psi4_to_strain(eta: float, s: float, dchi: float) -> f
 
 
 def xlal_sim_imr_phenom_x_linb(eta: float, s: float, dchi: float, delta: float) -> float:
+    """
+    Docstring for xlal_sim_imr_phenom_x_linb
+
+    :param eta: Description
+    :type eta: float
+    :param s: Description
+    :type s: float
+    :param dchi: Description
+    :type dchi: float
+    :param delta: Description
+    :type delta: float
+    :return: Description
+    :rtype: float
+    """
 
     eta2 = eta * eta
     eta3 = eta2 * eta
@@ -479,3 +538,13 @@ def xlal_sim_imr_phenom_x_linb(eta: float, s: float, dchi: float, delta: float) 
     uneq_spin = -148.17317525117338 * dchi * delta * eta2
 
     return no_spin + eq_spin + uneq_spin
+
+
+def xlal_sim_imr_phenom_x_atan2tol(a: float, b: float, tol: float) -> float:
+    """This is a docstring. It it's a string string that docs"""
+    return lax.cond(
+        jnp.logical_and((jnp.abs(a) < tol), (jnp.abs(b) < tol)),
+        lambda _: 0.0,
+        lambda _: jnp.arctan2(a, b),
+        operand=None,
+    )

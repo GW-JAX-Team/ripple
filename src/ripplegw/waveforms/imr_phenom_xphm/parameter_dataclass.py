@@ -49,6 +49,9 @@ class IMRPhenomXPHMParameterDataClass:  # pylint: disable=too-many-instance-attr
     mband_version: int = 0
     imr_phenom_x_return_co_prec: int = 0
     pnr_use_input_coprec_deviations: int = 0
+    convention: int = 1
+
+    xp_final_spin_mod: int = 4
 
     # IMRPhenomXHM parameters
     phenom_xhm_release_version: int = 122022
@@ -79,6 +82,8 @@ class IMRPhenomXPHMParameterDataClass:  # pylint: disable=too-many-instance-attr
     xcp_nu6: float = 0.0
     xcp_zeta1: float = 0.0
     xcp_zeta2: float = 0.0
+
+    threshold_mband: float = 0.0
 
     def copy(self, **kwargs) -> IMRPhenomXPHMParameterDataClass:
         """Create a new instance of the dataclass, optionally replacing some fields."""
