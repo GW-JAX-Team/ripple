@@ -6,6 +6,9 @@ import jax
 import jax.numpy as jnp
 from scipy.interpolate import CubicSpline
 
+from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_internals_dataclass import (
+    IMRPhenomXWaveformDataClass,
+)
 from ripplegw.waveforms.imr_phenom_xphm.lal_sim_imr_phenom_x_precession import (
     alpha_mrd_coeff,
     imr_phenom_x_rotate_y,
@@ -1036,7 +1039,7 @@ class TestVectorSum:
 class TestAlphaMRDCoeff:
     """Test suite for alpha_mrd_coeff function."""
 
-    def test_basic_computation(self):
+    def test_basic_computation(self, waveform_data_class_sample):
         """Test basic computation with a simple spline."""
         # Create a simple cubic spline: y = x^2
         x_vals = jnp.array([0.0, 1.0, 2.0, 3.0])
@@ -1044,8 +1047,8 @@ class TestAlphaMRDCoeff:
         spline = CubicSpline(x_vals, y_vals)
 
         f_max_pn = 2.0
-        # p_wf is not used in the function, so pass None
-        result = alpha_mrd_coeff(spline, f_max_pn, None)
+
+        result = alpha_mrd_coeff(spline, f_max_pn, IMRPhenomXWaveformDataClass(**waveform_data_class_sample))
 
         # Check that result is a PhenomXPalphaMRD instance
         assert isinstance(result, PhenomXPalphaMRD)
@@ -1055,27 +1058,27 @@ class TestAlphaMRDCoeff:
         assert jnp.isfinite(result.b_rd)
         assert jnp.isfinite(result.c_rd)
 
-    def test_different_f_max_pn(self):
+    def test_different_f_max_pn(self, waveform_data_class_sample):
         """Test with different f_max_pn values."""
         x_vals = jnp.array([0.0, 1.0, 2.0, 3.0])
         y_vals = x_vals**2
         spline = CubicSpline(x_vals, y_vals)
 
         for f_max_pn in [1.5, 2.5, 3.0]:
-            result = alpha_mrd_coeff(spline, f_max_pn, None)
+            result = alpha_mrd_coeff(spline, f_max_pn, IMRPhenomXWaveformDataClass(**waveform_data_class_sample))
             assert isinstance(result, PhenomXPalphaMRD)
             assert jnp.isfinite(result.a_rd)
             assert jnp.isfinite(result.b_rd)
             assert jnp.isfinite(result.c_rd)
 
-    def test_linear_spline(self):
+    def test_linear_spline(self, waveform_data_class_sample):
         """Test with a linear spline."""
         x_vals = jnp.array([0.0, 1.0, 2.0, 3.0])
         y_vals = 2 * x_vals  # y = 2x
         spline = CubicSpline(x_vals, y_vals)
 
         f_max_pn = 2.0
-        result = alpha_mrd_coeff(spline, f_max_pn, None)
+        result = alpha_mrd_coeff(spline, f_max_pn, IMRPhenomXWaveformDataClass(**waveform_data_class_sample))
 
         assert isinstance(result, PhenomXPalphaMRD)
         assert jnp.isfinite(result.a_rd)
