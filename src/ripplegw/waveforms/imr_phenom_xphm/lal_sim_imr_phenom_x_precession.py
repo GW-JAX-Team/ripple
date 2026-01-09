@@ -352,8 +352,8 @@ def imr_phenom_x_get_and_set_precession_variables(
         sqrt2p5=sqrt2p5,
         imr_phenom_x_prec_version=imr_phenom_x_prec_version,
         expansion_order=expansion_order,
-        imr_phenom_x_pnr_use_tuned_angles=imr_phenom_xpnr_use_tuned_angles,
-        imr_phenom_x_pnr_interp_tolerance=imr_phenom_xpnr_interp_tolerance,
+        imr_phenom_xpnr_use_tuned_angles=imr_phenom_xpnr_use_tuned_angles,
+        imr_phenom_xpnr_interp_tolerance=imr_phenom_xpnr_interp_tolerance,
         imr_phenom_x_antisymmetric_waveform=imr_phenom_x_antisymmetric_waveform,
         polarization_symmetry=polarization_symmetry,
         conditional_prec_mband=conditional_prec_mband,
@@ -500,10 +500,21 @@ def imr_phenom_x_get_and_set_precession_variables(
 
     is_msa = jnp.logical_or(jnp.logical_or(pflag == 220, pflag == 221), jnp.logical_or(pflag == 223, pflag == 224))
 
-    _, p_prec = jax.lax.cond(
+    def call_msa_initialization(args):
+        _, result = imr_phenom_x_initialize_msa_system(*args)
+        return result
+    def set_pprec_constants_l_to_zero_array(args):
+        _, p_prec, _ = args
+        p_prec = dataclasses.replace(
+            p_prec,
+            constants_l=jnp.zeros(5)
+        )
+        return p_prec
+
+    p_prec = jax.lax.cond(
         is_msa,
-        lambda args: imr_phenom_x_initialize_msa_system(*args)[1],
-        lambda args: (args[0], args[1]),
+        call_msa_initialization,
+        set_pprec_constants_l_to_zero_array, # This retains the pytree structure for JAX
         operand=(p_wf, p_prec, p_prec.expansion_order),
     )
     # If MSA fails to initialize, and we are in a version that allows fallback, set to NNLO PN angles with 3PN L
@@ -663,7 +674,7 @@ def imr_phenom_x_get_and_set_precession_variables(
 
         # Use weighted sum to get index
         index = 1 * is_101 + 2 * is_102_group + 3 * is_222_223 + 4 * is_103 + 5 * is_104
-        return int(index)
+        return index.astype(int)
 
     index = pflag_to_branch_index(pflag)
     checkify.check(
@@ -835,8 +846,8 @@ def imr_phenom_x_get_and_set_precession_variables(
     # Q = (N x P) by construction
     pq_arun = jax.lax.select(
         jnp.logical_or(convention == 0, convention == 5),
-        (0.0, -1.0, 0.0, nz_jf, 0.0, -nx_jf),
-        (nz_jf, 0.0, -nx_jf, 0.0, 1.0, 0.0),
+        jnp.array([0.0, -1.0, 0.0, nz_jf, 0.0, -nx_jf]),
+        jnp.array([nz_jf, 0.0, -nx_jf, 0.0, 1.0, 0.0]),
     )
     p_arun_x_jf, p_arun_y_jf, p_arun_z_jf, q_arun_x_jf, q_arun_y_jf, q_arun_z_jf = pq_arun
 
@@ -855,7 +866,7 @@ def imr_phenom_x_get_and_set_precession_variables(
     # */
 
     # /* ********** PN Euler Angle Coefficients ********** */
-    def get_imr_phenom_pv2_pn_euler_angle_coeffs():
+    def get_imr_phenom_pv2_pn_euler_angle_coeffs(alpha_epsilon_arr: Array) -> Array:
         # This uses the single spin PN Euler angles as per IMRPhenomPv2
 
         # /* Post-Newtonian Euler Angles: alpha */
@@ -955,25 +966,17 @@ def imr_phenom_x_get_and_set_precession_variables(
             )
         ) / (6.5028096e7 * eta * m1_3)
 
-        return alpha1, alpha2, alpha3, alpha4l, alpha5, epsilon1, epsilon2, epsilon3, epsilon4l, epsilon5
+        alpha_epsilon_list = [alpha1, alpha2, alpha3, alpha4l, alpha5, epsilon1, epsilon2, epsilon3, epsilon4l, epsilon5]
+        alpha_epsilon_arr = alpha_epsilon_arr.at[:].set(alpha_epsilon_list)
+
+        return alpha_epsilon_arr
 
     is_euler_as_pv2 = jnp.isin(pflag, jnp.array([101, 102, 103, 104]))
     alpha1, alpha2, alpha3, alpha4l, alpha5, epsilon1, epsilon2, epsilon3, epsilon4l, epsilon5 = jax.lax.cond(
         is_euler_as_pv2,
         get_imr_phenom_pv2_pn_euler_angle_coeffs,
-        lambda: (
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-        ),  # I'm not adding the prec version check here, but earlier code should have already done this
-        operand=None,
+        lambda x: x,  # I'm not adding the prec version check here, but earlier code should have already done this
+        operand=jnp.zeros(10)
     )
 
     epsilon0 = jax.lax.select(
@@ -1030,18 +1033,19 @@ def imr_phenom_x_get_and_set_precession_variables(
         alpha1=alpha1,
         alpha2=alpha2,
         alpha3=alpha3,
-        alpha4l=alpha4l,
+        alpha4_l=alpha4l,
         alpha5=alpha5,
         epsilon0=epsilon0,
         epsilon1=epsilon1,
         epsilon2=epsilon2,
         epsilon3=epsilon3,
-        epsilon4l=epsilon4l,
+        epsilon4_l=epsilon4l,
         epsilon5=epsilon5,
     )
 
-    def alpha_epsilon_offsets_57_branch(p_prec, p_wf):
-        _, _ = p_prec, p_wf  # Unused
+    def alpha_epsilon_offsets_57_branch(operand):
+        _ = operand # Unused
+
         alpha_offset = -alpha0
         epsilon_offset = 0.0
         alpha_offset_1 = -alpha0
@@ -1061,7 +1065,8 @@ def imr_phenom_x_get_and_set_precession_variables(
             epsilon_offset_4,
         )
 
-    def alpha_epsilon_offsets_other_branch(p_prec, p_wf):
+    def alpha_epsilon_offsets_other_branch(operand):
+        p_prec, p_wf = operand
         # /* Get initial Get \alpha and \epsilon offsets at \omega = pi * M * f_{Ref} */
         alpha_offset, epsilon_offset, p_prec = get_alphaepsilon_atfref(
             2,

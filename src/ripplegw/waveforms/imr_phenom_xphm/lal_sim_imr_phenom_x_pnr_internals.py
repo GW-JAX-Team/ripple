@@ -254,9 +254,7 @@ def imr_phenom_x_pnr_get_and_set_co_prec_params(
     # Ensure p_prec.p_wf_22_as is initialized to match pytree structure in both branches
     p_prec = dataclasses.replace(
         p_prec,
-        p_wf_22_as=copy.deepcopy(
-            p_wf
-        ),  # This keeps the same pytree structure for JAX, but is never used in the false case below
+        p_wf_22_as=p_wf.copy() # This keeps the same pytree structure for JAX, but is never used in the false case below
     )
     p_wf, p_prec = jax.lax.cond(
         jnp.logical_and(

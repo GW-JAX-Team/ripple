@@ -188,7 +188,7 @@ class IMRPhenomXPrecessionDataClass:  # pylint: disable=too-many-instance-attrib
     y30: complex = 0j
     y31: complex = 0j
     y32: complex = 0j
-    y3: complex = 0j
+    y33: complex = 0j
 
     # /* l = 4 */
     y4m4: complex = 0j

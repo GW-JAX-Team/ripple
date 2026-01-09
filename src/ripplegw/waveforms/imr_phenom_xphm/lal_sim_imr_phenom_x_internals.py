@@ -526,7 +526,7 @@ def imr_phenom_x_set_waveform_variables(  # pylint: disable=too-many-statements,
     nu6 = 0
     zeta1 = 0
     zeta2 = 0
-    f_ring_eff_shift_divided_by_emm = 0
+    f_ring_eff_shift_divided_by_emm = 0.0
 
     f_inspiral_align = 0.0
     xas_dphase_at_f_inspiral_align = 0.0
