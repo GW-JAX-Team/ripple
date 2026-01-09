@@ -1844,22 +1844,22 @@ def alpha_mrd_coeff(spline_alpha: CubicSpline, f_max_pn: float, p_wf: IMRPhenomX
     checkify.check(
         f1 >= spline_x_min,
         "alpha could not be interpolated at %.5f",
-        f1_hz,
+        jnp.array(f1_hz),
     )
     checkify.check(
         f1 <= spline_x_max,
         "alpha could not be interpolated at %.5f",
-        f1_hz,
+        jnp.array(f1_hz),
     )
     checkify.check(
         f2 >= spline_x_min,
         "alpha could not be interpolated at %.5f",
-        f2_hz,
+        jnp.array(f2_hz),
     )
     checkify.check(
-        f2 >= spline_x_min,
+        f2 <= spline_x_max,
         "alpha could not be interpolated at %.5f",
-        f2_hz,
+        jnp.array(f2_hz),
     )
 
     alpha1 = -spline_alpha(f1)
