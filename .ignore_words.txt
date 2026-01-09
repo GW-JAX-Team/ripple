@@ -53,6 +53,7 @@ Geometrized
 Getand
 hashability
 hcross
+HIGHERMODES
 hplus
 Hzto
 imr
