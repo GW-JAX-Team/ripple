@@ -1877,3 +1877,17 @@ def alpha_mrd_coeff(spline_alpha: CubicSpline, f_max_pn: float, p_wf: IMRPhenomX
         2.0 * jnp.pow(f1_sq - f2_sq, 2)
     )
     return PhenomXPalphaMRD(a_rd=a_c, b_rd=b_c, c_rd=c_c)
+
+
+def beta_mrd_coeff(spline_beta: CubicSpline, f_max_pn: float, p_wf: IMRPhenomXWaveformDataClass) -> PhenomXPbetaMRD:
+    """Compute coefficients for beta MRD continuation.
+
+    Args:
+        spline_beta: Cubic spline for cos(beta).
+        f_max_pn: Maximum PN frequency.
+        p_wf: Waveform data class containing waveform parameters.
+
+    Returns:
+        PhenomXPbetaMRD: Coefficients for beta MRD continuation.
+    """
+    f_damp = p_wf.f_damp
