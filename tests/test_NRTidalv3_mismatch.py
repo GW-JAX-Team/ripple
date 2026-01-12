@@ -34,6 +34,7 @@ from lal import MSUN_SI, MTSUN_SI, PC_SI
 import lalsimulation as lalsim
 from lalsimulation import IMRPhenomXAS, IMRPhenomXAS_NRTidalv3
 import tqdm
+from pathlib import Path
 
 MPC_SI = PC_SI * 1e6
 print(lalsim.__version__)
@@ -57,7 +58,12 @@ from ripplegw.waveforms.IMRPhenomXAS_NRTidalv3 import gen_IMRPhenomXAS_NRTidalv3
 NYQUIST_BINS_TO_ZERO = 2
 
 # Choose the ET PSD just to have the wide frequency range
-psd_freqs, *psd_arrs = np.loadtxt("psds/ET-D-psd.txt", unpack=True)
+# Try loading from current directory first, then relative to tests directory
+psd_path = Path("psds/ET-D-psd.txt")
+if not psd_path.exists():
+    psd_path = Path(__file__).parent / "psds/ET-D-psd.txt"
+    print(f"Loading PSD from {psd_path}")
+psd_freqs, *psd_arrs = np.loadtxt(psd_path, unpack=True)
 psd_arr = psd_arrs[0]
 
 
