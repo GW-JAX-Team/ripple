@@ -454,9 +454,9 @@ def get_NRTidalv3_coefficients(
     s31 = -1.70505852e-05  # s31
     s32 = 3.38040594e-05  # s32
 
-    kappa2T = get_kappa(
-        theta_intrinsic
-    )  # WHY DO THE PAPERS HAVE A PREFACTOR OF 2/13 BUT CODE (BOTH RIPPLE AND LAL) 3/13????
+    kappa2T = get_kappa(theta_intrinsic)
+    # The NRTidal papers seem to use a prefactor of 2/13 in the kappa
+    # computation whereas LAL uses 3/13. We follow the LAL convention here.
 
     NRTidalv3_coeffs = NRTidalv3_coeffs.at[0].set(
         s10 + s11 * kappa2T + s12 * q * kappa2T
