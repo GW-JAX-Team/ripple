@@ -40,6 +40,9 @@ docs = [
 cuda = [
     "jax[cuda]>=0.8.2",
 ]
+tests = [
+    "lalsuite",
+]
 
 [dependency-groups]
 dev = [
