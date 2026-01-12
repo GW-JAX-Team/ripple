@@ -39,7 +39,10 @@ docs = [
     "pymdown-extensions==10.19.1",
 ]
 cuda = [
-    "jax[cuda]>=0.8.1",
+    "jax[cuda]<=0.8.1",
+]
+tests = [
+    "lalsuite",
 ]
 
 [dependency-groups]
