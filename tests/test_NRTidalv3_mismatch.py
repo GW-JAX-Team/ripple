@@ -30,7 +30,7 @@ mismatch is exactly 0 or slightly negative due to floating-point arithmetic.
 """
 
 import lal
-from lal import MSUN_SI, MTSUN_SI, PC_SI
+from lal import MSUN_SI, PC_SI
 import lalsimulation as lalsim
 from lalsimulation import IMRPhenomXAS, IMRPhenomXAS_NRTidalv3
 import tqdm
@@ -400,9 +400,6 @@ Tidalv3_hist_data = np.where(
     Tidalv3_log_mismatches,
     min(np.where(np.isfinite(Tidalv3_log_mismatches), Tidalv3_log_mismatches, 100)),
 )
-
-# for i in range(Nsamples):
-#     print(thetas.T[i], f"NRTidalv3 Mismatch: {Tidalv3_log_mismatches[i]:.3e}")
 
 fig, axs = plt.subplots(2, 1, figsize=(8, 6))
 axs[0].set_title("XAS Mismatches")

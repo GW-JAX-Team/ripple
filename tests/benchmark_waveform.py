@@ -12,7 +12,6 @@ jax.config.update("jax_enable_x64", True)
 
 import jax.numpy as jnp
 import pandas as pd
-from ripplegw.waveforms.NRTidalv3_utils import _get_merger_frequency
 from tqdm import tqdm
 
 from ripplegw import get_eff_pads, get_match_arr, ms_to_Mc_eta, lambdas_to_lambda_tildes
@@ -161,7 +160,7 @@ def random_match(n: int, bounds: dict, IMRphenom: str = "IMRPhenomD_NRTidalv2", 
     thetas = np.array(thetas)
     matches = np.array(matches)
     if outdir is not None:
-        csv_name = f"{outdir}/matches_{IMRphenom}_highMass.csv"
+        csv_name = f"{outdir}/matches_{IMRphenom}.csv"
         print(f"Saving matches to {csv_name}")
         df = save_matches(csv_name, thetas, matches, delta_f_merger=delta_f_merger, is_tidal=is_tidal, verbose=True)
 
@@ -181,7 +180,7 @@ def non_precessing_matchmaking(
     l1 = np.random.uniform(bounds["lambda"][0], bounds["lambda"][1])
     l2 = np.random.uniform(bounds["lambda"][0], bounds["lambda"][1])
 
-    dist_mpc = 50 #np.random.uniform(bounds["d_L"][0], bounds["d_L"][1])
+    dist_mpc = np.random.uniform(bounds["d_L"][0], bounds["d_L"][1])
     tc = 0.0
     inclination = np.random.uniform(0, PI)
     phi_ref = np.random.uniform(0, 2*PI)
@@ -283,20 +282,6 @@ def non_precessing_matchmaking(
     )
     thetas.append(theta)
 
-    # M = theta[0] + theta[1]
-    # q = theta[0]/theta[1]
-    # f_merger_LAL = lalsim.SimNRTunedTidesMergerFrequency_v3(
-    #     M,
-    #     theta[4],
-    #     theta[5],
-    #     q,
-    #     theta[2],
-    #     theta[3]
-    # )
-    # f_merger_ripple = _get_merger_frequency(theta[:6])
-
-    # delta_f_merger.append(f_merger_ripple - f_merger_LAL)
-
 def save_matches(filename, thetas, matches, delta_f_merger, verbose=True, is_tidal=False):
 
     # Get the parameters, which depends on whether or not tidal:
@@ -326,7 +311,6 @@ def save_matches(filename, thetas, matches, delta_f_merger, verbose=True, is_tid
                 'inclination': inclination,
                 'match': matches, 
                 'mismatch': mismatches,
-                # 'delta_f_merger': delta_f_merger
                 }
     else:
         m1          = thetas[:, 0]

@@ -35,18 +35,32 @@ def _gen_IMRPhenomXAS_NRTidalv3(
     no_taper: bool = False,
 ):
     """
-    Master internal function to get the GW strain for given parameters. The function takes
-    a BBH strain, computed from an underlying BBH approximant, e.g. IMRPhenomD, and applies the
-    tidal corrections to it afterwards
+    Master internal function to get the GW strain for given parameters.
 
-    Args:
-        f (Array): Frequencies in Hz
-        theta_intrinsic (Array): Internal parameters of the system: m1, m2, chi1, chi2, lambda1, lambda2
-        theta_extrinsic (Array): Extrinsic parameters of the system: d_L, tc and phi_c
-        h0_bbh (Array): The BBH strain of the underlying model (i.e. before applying tidal corrections).
+    The function takes a BBH strain, computed from an underlying BBH approximant,
+    e.g. IMRPhenomD, and applies the tidal corrections to it afterwards.
 
-    Returns:
-        Array: Final complex-valued strain of GW.
+    Parameters
+    ----------
+    f : Array
+        Frequencies in Hz.
+    f_ref : float
+        Reference frequency for the waveform.
+    theta_intrinsic : Array
+        Intrinsic parameters of the system: [m1, m2, chi1, chi2, lambda1, lambda2].
+    theta_extrinsic : Array
+        Extrinsic parameters of the system: [d_L, tc, phi_c].
+    bbh_amp : Array
+        The BBH amplitude of the underlying model (before applying tidal corrections).
+    bbh_psi : Array
+        The BBH phase of the underlying model (before applying tidal corrections).
+    no_taper : bool, optional
+        Whether to disable tapering. Default is False.
+
+    Returns
+    -------
+    h0 : Array
+        Final complex-valued strain of GW.
     """
 
     m1, m2, _, _, lambda1, lambda2 = theta_intrinsic
@@ -70,7 +84,6 @@ def _gen_IMRPhenomXAS_NRTidalv3(
     if no_taper:
         P_P = jnp.ones_like(f)
         P_P_fref = 1.0
-        # P_P_ffinal = 1.0
         dphiT = jax.grad(fullTidalPhaseCorrection)(f_final * M_s, theta_intrinsic, 1.0)
         A_P = jnp.ones_like(f)
     else:
@@ -78,7 +91,6 @@ def _gen_IMRPhenomXAS_NRTidalv3(
         P_P_fref = general_planck_taper(
             f_ref * M_s, 1.15 * f_merger * M_s, 1.35 * f_merger * M_s
         )
-        # P_P_ffinal = general_planck_taper(f_final, 1.15*f_merger, 1.35*f_merger)
         dphiT = jax.grad(
             lambda fMs: fullTidalPhaseCorrection(
                 fMs,
@@ -154,23 +166,35 @@ def gen_IMRPhenomXAS_NRTidalv3(
     """
     Generate NRTidalv3 frequency domain waveform following 2311.07456.
 
-    params array contains both intrinsic and extrinsic variables
-    theta = [Mchirp, eta, chi1, chi2, lambda1, lambda2, D, tc, phic]:
-        Mchirp: Chirp mass of the system [solar masses]
-        eta: Symmetric mass ratio [between 0.0 and 0.25]
-        chi1: Dimensionless aligned spin of the primary object [between -1 and 1]
-        chi2: Dimensionless aligned spin of the secondary object [between -1 and 1]
-        lambda1: Dimensionless tidal deformability of primary object
-        lambda2: Dimensionless tidal deformability of secondary object
-        D: Luminosity distance to source [Mpc]
-        tc: Time of coalesence. This only appears as an overall linear in f contribution to the phase
-        phic: Phase of coalesence
+    Parameters
+    ----------
+    f : Array
+        Frequencies in Hz.
+    params : Array
+        Array containing both intrinsic and extrinsic variables
+        theta = [Mchirp, eta, chi1, chi2, lambda1, lambda2, D, tc, phic]:
 
-    f_ref: Reference frequency for the waveform
+        - Mchirp: Chirp mass of the system [solar masses]
+        - eta: Symmetric mass ratio [between 0.0 and 0.25]
+        - chi1: Dimensionless aligned spin of the primary object [between -1 and 1]
+        - chi2: Dimensionless aligned spin of the secondary object [between -1 and 1]
+        - lambda1: Dimensionless tidal deformability of primary object
+        - lambda2: Dimensionless tidal deformability of secondary object
+        - D: Luminosity distance to source [Mpc]
+        - tc: Time of coalescence. This only appears as an overall linear in f
+          contribution to the phase
+        - phic: Phase of coalescence
+    f_ref : float
+        Reference frequency for the waveform.
+    use_lambda_tildes : bool, optional
+        Use lambda tilde and delta lambda instead of lambda1 and lambda2. Default is True.
+    no_taper : bool, optional
+        Whether to disable tapering. Default is False.
 
-    Returns:
-    --------
-        h0 (array): Strain
+    Returns
+    -------
+    h0 : Array
+        Strain.
     """
 
     # Get component masses
@@ -210,26 +234,43 @@ def gen_IMRPhenomXAS_NRTidalv3_hphc(
     no_taper: bool = False,
 ):
     """
-    vars array contains both intrinsic and extrinsic variables
+    Generate NRTidalv3 frequency domain waveform with plus and cross polarizations.
 
-    IMRPhenom denotes the name of the underlying BBH approximant used, before applying tidal corrections.
+    IMRPhenom denotes the name of the underlying BBH approximant used, before
+    applying tidal corrections.
 
-    theta = [Mchirp, eta, chi1, chi2, lambda1, lambda2, D, tc, phic, inclination]
-    Mchirp: Chirp mass of the system [solar masses]
-    eta: Symmetric mass ratio [between 0.0 and 0.25]
-    chi1: Dimensionless aligned spin of the primary object [between -1 and 1]
-    chi2: Dimensionless aligned spin of the secondary object [between -1 and 1]
-    D: Luminosity distance to source [Mpc]
-    tc: Time of coalesence. This only appears as an overall linear in f contribution to the phase
-    phic: Phase of coalesence
-    inclination: Inclination angle of the binary [between 0 and PI]
+    Parameters
+    ----------
+    f : Array
+        Frequencies in Hz.
+    params : Array
+        Array containing both intrinsic and extrinsic variables
+        theta = [Mchirp, eta, chi1, chi2, lambda1, lambda2, D, tc, phic, inclination]:
 
-    f_ref: Reference frequency for the waveform
+        - Mchirp: Chirp mass of the system [solar masses]
+        - eta: Symmetric mass ratio [between 0.0 and 0.25]
+        - chi1: Dimensionless aligned spin of the primary object [between -1 and 1]
+        - chi2: Dimensionless aligned spin of the secondary object [between -1 and 1]
+        - lambda1: Dimensionless tidal deformability of primary object
+        - lambda2: Dimensionless tidal deformability of secondary object
+        - D: Luminosity distance to source [Mpc]
+        - tc: Time of coalescence. This only appears as an overall linear in f
+          contribution to the phase
+        - phic: Phase of coalescence
+        - inclination: Inclination angle of the binary [between 0 and PI]
+    f_ref : float
+        Reference frequency for the waveform.
+    use_lambda_tildes : bool, optional
+        Use lambda tilde and delta lambda instead of lambda1 and lambda2. Default is True.
+    no_taper : bool, optional
+        Whether to disable tapering. Default is False.
 
-    Returns:
-    --------
-        hp (array): Strain of the plus polarization
-        hc (array): Strain of the cross polarization
+    Returns
+    -------
+    hp : Array
+        Strain of the plus polarization.
+    hc : Array
+        Strain of the cross polarization.
     """
     iota = params[-1]
     h0 = gen_IMRPhenomXAS_NRTidalv3(
@@ -256,9 +297,6 @@ def IMRPhenomX_TidalPhaseDerivative(f, theta):
 
     X_A = m1 / M
     X_B = m2 / M
-
-    PN_coeffs = get_tidalphasePN_coeffs(theta_intrinsic)
-    NRTidalv3_coeffs = get_NRTidalv3_coefficients(theta_intrinsic, PN_coeffs)
 
     # Compute quadrupole parameters
     quadparam1, octparam1 = get_quadparam_octparam(lambda1)
@@ -302,8 +340,6 @@ def IMRPhenomX_TidalPhaseDerivative(f, theta):
         - 440.0 * octparam1 * X_A * X_A**2 * chi1**2 * chi1
         - 440.0 * octparam2 * X_B * X_B**2 * chi2**2 * chi2
     )
-
-    NRTuned_dphase = 0.0
 
     pfaN = 3.0 / (128.0 * X_A * X_B)
 
