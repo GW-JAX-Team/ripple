@@ -40,13 +40,10 @@ docs = [
 cuda = [
     "jax[cuda]>=0.8.2",
 ]
-tests = [
-    "lalsuite",
-]
 
 [dependency-groups]
 dev = [
-    "ripplegw",
+    "lalsuite",
     "pre-commit>=4.2.0",
     "coverage>=7.7.0",
     "coveralls>=4.0.1",
