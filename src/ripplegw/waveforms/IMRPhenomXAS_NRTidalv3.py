@@ -101,16 +101,16 @@ def _gen_IMRPhenomXAS_NRTidalv3(
         A_P = get_planck_taper(f, f_merger)
 
     bbh_phase_coeffs = IMRPhenomX_utils.PhenomX_phase_coeff_table
+
     # Note: the π shift from Y22 has been moved to the calculation of h0
-    phifRef = (
+    phifRef = (  # This is part of the BBH phase alignment
         Phase(f_ref, theta_intrinsic[:4], bbh_phase_coeffs) - PI / 4.0
-    )  # This is part of the BBH phase alignment
-    phiTfRef = fullTidalPhaseCorrection(
+    )
+    phiTfRef = fullTidalPhaseCorrection(  # This is part of the tidal correction to the phase alignment
         f_ref * M_s, theta_intrinsic, P_P_fref
-    )  # This is part of the tidal correction to the phase alignment
+    )
 
     dphiXAS = jax.grad(Phase)(f_final, theta_intrinsic[:4], bbh_phase_coeffs) / M_s
-    # dphiT = IMRPhenomX_TidalPhaseDerivative(f_final, theta_intrinsic) # Analytical derivative for testing purposes
     dphi_merger = -(dphiXAS - dphiT)  # linb from LAL
 
     ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] + 2 * theta_extrinsic[2]
