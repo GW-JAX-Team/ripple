@@ -2,7 +2,7 @@
 
 import jax.numpy as jnp
 from ..constants import MTSUN, PI, TWO_PI
-from ..typing import Array
+from jaxtyping import Array
 from .IMRPhenom_tidal_utils import get_kappa
 from .IMRPhenomD_NRTidalv2 import get_spin_phase_correction
 
