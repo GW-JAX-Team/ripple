@@ -143,7 +143,6 @@ def random_match(n: int, bounds: dict, IMRphenom: str = "IMRPhenomD_NRTidalv2", 
     # Get a frequency domain waveform
     thetas = []
     matches = []
-    delta_f_merger = []
 
     import os
     psd_file = os.path.join(os.path.dirname(__file__), psd_file)
@@ -153,7 +152,7 @@ def random_match(n: int, bounds: dict, IMRphenom: str = "IMRPhenomD_NRTidalv2", 
     # Mismatches computations:
     for _ in tqdm(range(n)):
         non_precessing_matchmaking(
-            bounds, IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches, delta_f_merger
+            bounds, IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches
         )
 
     # Save and report mismatches
@@ -162,13 +161,13 @@ def random_match(n: int, bounds: dict, IMRphenom: str = "IMRPhenomD_NRTidalv2", 
     if outdir is not None:
         csv_name = f"{outdir}/matches_{IMRphenom}.csv"
         print(f"Saving matches to {csv_name}")
-        df = save_matches(csv_name, thetas, matches, delta_f_merger=delta_f_merger, is_tidal=is_tidal, verbose=True)
+        df = save_matches(csv_name, thetas, matches, is_tidal=is_tidal, verbose=True)
 
     return df
 
 
 def non_precessing_matchmaking(
-    bounds, IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches, delta_f_merger,
+    bounds, IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches
 ):
     
     is_tidal = check_is_tidal(IMRphenom)
@@ -282,7 +281,7 @@ def non_precessing_matchmaking(
     )
     thetas.append(theta)
 
-def save_matches(filename, thetas, matches, delta_f_merger, verbose=True, is_tidal=False):
+def save_matches(filename, thetas, matches, verbose=True, is_tidal=False):
 
     # Get the parameters, which depends on whether or not tidal:
     if is_tidal:
