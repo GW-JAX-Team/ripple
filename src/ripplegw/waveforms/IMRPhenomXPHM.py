@@ -38,7 +38,24 @@ TF2_FIVE_LOG = 6
 TF2_SIX = 7
 TF2_SIX_LOG = 8
 TF2_SEVEN = 9
-TF2_NUM_COEFFS = 10 
+TF2_NUM_COEFFS = 10
+
+# PhiInsp coefficient array indices (for JIT-compatible array-based storage)
+PHI_INITIAL_PHASING = 0
+PHI_TWO_THIRDS = 1
+PHI_THIRD = 2
+PHI_THIRD_LOG = 3
+PHI_LOG = 4
+PHI_MIN_THIRD = 5
+PHI_MIN_TWO_THIRDS = 6
+PHI_MIN_ONE = 7
+PHI_MIN_FOUR_THIRDS = 8
+PHI_MIN_FIVE_THIRDS = 9
+PHI_ONE = 10
+PHI_FOUR_THIRDS = 11
+PHI_FIVE_THIRDS = 12
+PHI_TWO = 13
+PHI_NUM_COEFFS = 14 
 
 
 
@@ -242,6 +259,83 @@ def compute_TF2_coefficients(eta, eta2, Seta, chi_s, chi_a, chi1, chi2,
                            coeff_six, coeff_six_log, coeff_seven], axis=-1)
 
     return TF2coeffs
+
+
+def compute_PhiInsp_coefficients(TF2coeffs, TF2OverallAmpl, sigma1, sigma2, sigma3, sigma4):
+    """
+    Compute inspiral phase coefficients as a JAX array.
+
+    This function computes the inspiral phase coefficients from TF2 coefficients
+    and sigma calibration parameters. Returns an array instead of a dictionary
+    for JIT compatibility.
+
+    Parameters
+    ----------
+    TF2coeffs : jnp.ndarray
+        Array of TF2 coefficients from compute_TF2_coefficients()
+    TF2OverallAmpl : array_like
+        Overall amplitude factor 3/(128*eta)
+    sigma1, sigma2, sigma3, sigma4 : array_like
+        Calibration coefficients from phenomenological fits
+
+    Returns
+    -------
+    PhiInspcoeffs : jnp.ndarray
+        Array of shape (..., 14) containing the inspiral phase coefficients:
+        [initial_phasing, two_thirds, third, third_log, log, min_third,
+         min_two_thirds, min_one, min_four_thirds, min_five_thirds,
+         one, four_thirds, five_thirds, two]
+    """
+    # Coefficient 0: 'initial_phasing'
+    initial_phasing = TF2coeffs[..., TF2_FIVE] * TF2OverallAmpl - (jnp.pi / 4)
+
+    # Coefficient 1: 'two_thirds'
+    two_thirds = TF2coeffs[..., TF2_SEVEN] * TF2OverallAmpl * (jnp.pi ** (2. / 3.))
+
+    # Coefficient 2: 'third'
+    third = TF2coeffs[..., TF2_SIX] * TF2OverallAmpl * (jnp.pi ** (1. / 3.))
+
+    # Coefficient 3: 'third_log'
+    third_log = TF2coeffs[..., TF2_SIX_LOG] * TF2OverallAmpl * (jnp.pi ** (1. / 3.))
+
+    # Coefficient 4: 'log'
+    log_coeff = TF2coeffs[..., TF2_FIVE_LOG] * TF2OverallAmpl
+
+    # Coefficient 5: 'min_third'
+    min_third = TF2coeffs[..., TF2_FOUR] * TF2OverallAmpl * (jnp.pi ** (-1. / 3.))
+
+    # Coefficient 6: 'min_two_thirds'
+    min_two_thirds = TF2coeffs[..., TF2_THREE] * TF2OverallAmpl * (jnp.pi ** (-2. / 3.))
+
+    # Coefficient 7: 'min_one'
+    min_one = TF2coeffs[..., TF2_TWO] * TF2OverallAmpl / jnp.pi
+
+    # Coefficient 8: 'min_four_thirds'
+    min_four_thirds = TF2coeffs[..., TF2_ONE] * TF2OverallAmpl * (jnp.pi ** (-4. / 3.))
+
+    # Coefficient 9: 'min_five_thirds'
+    min_five_thirds = TF2coeffs[..., TF2_ZERO] * TF2OverallAmpl * (jnp.pi ** (-5. / 3.))
+
+    # Coefficient 10: 'one'
+    one = sigma1
+
+    # Coefficient 11: 'four_thirds'
+    four_thirds = sigma2 * 0.75
+
+    # Coefficient 12: 'five_thirds'
+    five_thirds = sigma3 * 0.6
+
+    # Coefficient 13: 'two'
+    two = sigma4 * 0.5
+
+    # Stack all coefficients into an array
+    # Shape: (..., 14) where ... is the batch dimensions
+    PhiInspcoeffs = jnp.stack([initial_phasing, two_thirds, third, third_log,
+                                log_coeff, min_third, min_two_thirds, min_one,
+                                min_four_thirds, min_five_thirds, one,
+                                four_thirds, five_thirds, two], axis=-1)
+
+    return PhiInspcoeffs
 
 
 class WaveFormModel(ABC):
@@ -581,23 +675,10 @@ class IMRPhenomXPHM(WaveFormModel):
             chi1dotchi2, chi12, chi22, m1ByM, m2ByM, QuadMon1, QuadMon2
         )
         TF2OverallAmpl = 3./(128. * eta)
-        # Now translate into inspiral coefficients, label with the power in front of which they appear
-        PhiInspcoeffs = {}
-
-        PhiInspcoeffs['initial_phasing'] = TF2coeffs[..., TF2_FIVE]*TF2OverallAmpl - (np.pi/4)
-        PhiInspcoeffs['two_thirds'] = TF2coeffs[..., TF2_SEVEN]*TF2OverallAmpl*(np.pi**(2./3.))
-        PhiInspcoeffs['third'] = TF2coeffs[..., TF2_SIX]*TF2OverallAmpl*(np.pi**(1./3.))
-        PhiInspcoeffs['third_log'] = TF2coeffs[..., TF2_SIX_LOG]*TF2OverallAmpl*(np.pi**(1./3.))
-        PhiInspcoeffs['log'] = TF2coeffs[..., TF2_FIVE_LOG]*TF2OverallAmpl
-        PhiInspcoeffs['min_third'] = TF2coeffs[..., TF2_FOUR]*TF2OverallAmpl*(np.pi**(-1./3.))
-        PhiInspcoeffs['min_two_thirds'] = TF2coeffs[..., TF2_THREE]*TF2OverallAmpl*(np.pi**(-2./3.))
-        PhiInspcoeffs['min_one'] = TF2coeffs[..., TF2_TWO]*TF2OverallAmpl/np.pi
-        PhiInspcoeffs['min_four_thirds'] = TF2coeffs[..., TF2_ONE]*TF2OverallAmpl*(np.pi**(-4./3.))
-        PhiInspcoeffs['min_five_thirds'] = TF2coeffs[..., TF2_ZERO]*TF2OverallAmpl*(np.pi**(-5./3.))
-        PhiInspcoeffs['one'] = sigma1
-        PhiInspcoeffs['four_thirds'] = sigma2 * 0.75
-        PhiInspcoeffs['five_thirds'] = sigma3 * 0.6
-        PhiInspcoeffs['two'] = sigma4 * 0.5
+        # Compute inspiral phase coefficients as a JAX array (JIT-compatible)
+        PhiInspcoeffs = compute_PhiInsp_coefficients(
+            TF2coeffs, TF2OverallAmpl, sigma1, sigma2, sigma3, sigma4
+        )
         
         #Now compute the coefficients to align the three parts
         
@@ -619,7 +700,7 @@ class IMRPhenomXPHM(WaveFormModel):
         C2Int = DPhiIns - DPhiInt
         
         # This is the inspiral phase computed at fInsJoin
-        PhiInsJoin = PhiInspcoeffs['initial_phasing'] + PhiInspcoeffs['two_thirds']*(fInsJoinPh**(2./3.)) + PhiInspcoeffs['third']*(fInsJoinPh**(1./3.)) + PhiInspcoeffs['third_log']*(fInsJoinPh**(1./3.))*np.log(np.pi*fInsJoinPh)/3. + PhiInspcoeffs['log']*np.log(np.pi*fInsJoinPh)/3. + PhiInspcoeffs['min_third']*(fInsJoinPh**(-1./3.)) + PhiInspcoeffs['min_two_thirds']*(fInsJoinPh**(-2./3.)) + PhiInspcoeffs['min_one']/fInsJoinPh + PhiInspcoeffs['min_four_thirds']*(fInsJoinPh**(-4./3.)) + PhiInspcoeffs['min_five_thirds']*(fInsJoinPh**(-5./3.)) + (PhiInspcoeffs['one']*fInsJoinPh + PhiInspcoeffs['four_thirds']*(fInsJoinPh**(4./3.)) + PhiInspcoeffs['five_thirds']*(fInsJoinPh**(5./3.)) + PhiInspcoeffs['two']*fInsJoinPh*fInsJoinPh)/eta
+        PhiInsJoin = PhiInspcoeffs[..., PHI_INITIAL_PHASING] + PhiInspcoeffs[..., PHI_TWO_THIRDS]*(fInsJoinPh**(2./3.)) + PhiInspcoeffs[..., PHI_THIRD]*(fInsJoinPh**(1./3.)) + PhiInspcoeffs[..., PHI_THIRD_LOG]*(fInsJoinPh**(1./3.))*np.log(np.pi*fInsJoinPh)/3. + PhiInspcoeffs[..., PHI_LOG]*np.log(np.pi*fInsJoinPh)/3. + PhiInspcoeffs[..., PHI_MIN_THIRD]*(fInsJoinPh**(-1./3.)) + PhiInspcoeffs[..., PHI_MIN_TWO_THIRDS]*(fInsJoinPh**(-2./3.)) + PhiInspcoeffs[..., PHI_MIN_ONE]/fInsJoinPh + PhiInspcoeffs[..., PHI_MIN_FOUR_THIRDS]*(fInsJoinPh**(-4./3.)) + PhiInspcoeffs[..., PHI_MIN_FIVE_THIRDS]*(fInsJoinPh**(-5./3.)) + (PhiInspcoeffs[..., PHI_ONE]*fInsJoinPh + PhiInspcoeffs[..., PHI_FOUR_THIRDS]*(fInsJoinPh**(4./3.)) + PhiInspcoeffs[..., PHI_FIVE_THIRDS]*(fInsJoinPh**(5./3.)) + PhiInspcoeffs[..., PHI_TWO]*fInsJoinPh*fInsJoinPh)/eta
         # This is the Intermediate phase computed at fInsJoin
         PhiIntJoin = beta1*fInsJoinPh - beta3/(3.*fInsJoinPh*fInsJoinPh*fInsJoinPh) + beta2*np.log(fInsJoinPh)
         
@@ -714,23 +795,23 @@ class IMRPhenomXPHM(WaveFormModel):
 
             # Inspiral phase (f < PHI_fJoin_INS)
             phi_inspiral = (
-                PhiInspcoeffs['initial_phasing']
+                PhiInspcoeffs[..., PHI_INITIAL_PHASING]
                 # Positive powers of f
-                + PhiInspcoeffs['two_thirds'] * f**(2./3.)
-                + PhiInspcoeffs['third'] * f**(1./3.)
-                + PhiInspcoeffs['third_log'] * f**(1./3.) * log_pi_f / 3.
-                + PhiInspcoeffs['log'] * log_pi_f / 3.
+                + PhiInspcoeffs[..., PHI_TWO_THIRDS] * f**(2./3.)
+                + PhiInspcoeffs[..., PHI_THIRD] * f**(1./3.)
+                + PhiInspcoeffs[..., PHI_THIRD_LOG] * f**(1./3.) * log_pi_f / 3.
+                + PhiInspcoeffs[..., PHI_LOG] * log_pi_f / 3.
                 # Negative powers of f
-                + PhiInspcoeffs['min_third'] * f**(-1./3.)
-                + PhiInspcoeffs['min_two_thirds'] * f**(-2./3.)
-                + PhiInspcoeffs['min_one'] / f
-                + PhiInspcoeffs['min_four_thirds'] * f**(-4./3.)
-                + PhiInspcoeffs['min_five_thirds'] * f**(-5./3.)
+                + PhiInspcoeffs[..., PHI_MIN_THIRD] * f**(-1./3.)
+                + PhiInspcoeffs[..., PHI_MIN_TWO_THIRDS] * f**(-2./3.)
+                + PhiInspcoeffs[..., PHI_MIN_ONE] / f
+                + PhiInspcoeffs[..., PHI_MIN_FOUR_THIRDS] * f**(-4./3.)
+                + PhiInspcoeffs[..., PHI_MIN_FIVE_THIRDS] * f**(-5./3.)
                 # Higher order terms (divided by eta)
-                + (PhiInspcoeffs['one'] * f
-                    + PhiInspcoeffs['four_thirds'] * f**(4./3.)
-                    + PhiInspcoeffs['five_thirds'] * f**(5./3.)
-                    + PhiInspcoeffs['two'] * f * f) / eta
+                + (PhiInspcoeffs[..., PHI_ONE] * f
+                    + PhiInspcoeffs[..., PHI_FOUR_THIRDS] * f**(4./3.)
+                    + PhiInspcoeffs[..., PHI_FIVE_THIRDS] * f**(5./3.)
+                    + PhiInspcoeffs[..., PHI_TWO] * f * f) / eta
             )
 
             # Intermediate phase (PHI_fJoin_INS <= f < fMRDJoinPh)
