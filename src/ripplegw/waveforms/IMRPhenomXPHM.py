@@ -554,12 +554,12 @@ class IMRPhenomXPHM(WaveFormModel):
         etaInv = 1./eta
         chi1, chi2 = kwargs['chi1z'], kwargs['chi2z']
         iota = kwargs['iota']
-        QuadMon1, QuadMon2 = np.ones(M.shape), np.ones(M.shape)
+        QuadMon1, QuadMon2 = jnp.ones(M.shape), jnp.ones(M.shape)
         
         chi12, chi22 = chi1*chi1, chi2*chi2
         chi1dotchi2  = chi1*chi2
         # This is needed to stabilize JAX derivatives
-        Seta = np.sqrt(np.where(eta<0.25, 1.0 - 4.0*eta, 0.))
+        Seta = jnp.sqrt(jnp.where(eta<0.25, 1.0 - 4.0*eta, 0.))
         SetaPlus1 = 1.0 + Seta
         chi_s = 0.5 * (chi1 + chi2)
         chi_a = 0.5 * (chi1 - chi2)
@@ -573,7 +573,7 @@ class IMRPhenomXPHM(WaveFormModel):
         # We work in dimensionless frequency M*f, not f
         fgrid = M*MTSUN_SI*f
         # This is MfRef, needed to recover LAL, which sets fRef to f_min if fRef=0
-        fRef  = np.amin(fgrid, axis=0)
+        fRef  = jnp.amin(fgrid, axis=0)
         #if self.fRef is not None
         fRef = M*MTSUN_SI*self.fRef
         # As in arXiv:1508.07253 eq. (4) and LALSimIMRPhenomD_internals.c line 97
@@ -586,25 +586,25 @@ class IMRPhenomXPHM(WaveFormModel):
     
         # Compute the real and imag parts of the complex ringdown frequency for the (l,m) mode as in LALSimIMRPhenomHM.c line 189
         # These are all fits of the different modes. We directly exploit the fact that the relevant HM in this WF are 6
-        #modes = np.array([21,22,32,33,43,44]) #
-        modes = np.array([21,22,32,33,44])
+        #modes = jnp.array([21,22,32,33,43,44]) #
+        modes = jnp.array([21,22,32,33,44])
         
         
-        ells = np.floor(modes/10).astype('int')
+        ells = jnp.floor(modes/10).astype(jnp.int32)
         mms = modes - ells*10
         # Domain mapping for dimnesionless BH spin
-        alphaRDfr = np.log(2. - aeff) / np.log(3.)
+        alphaRDfr = jnp.log(2. - aeff) / jnp.log(3.)
         # beta = 1. / (2. + l - abs(m))
-        betaRDfr = np.where(modes==21, 1./3., np.where(modes==22, 0.5, np.where(modes==32, 1./3., np.where(modes==33, 0.5, np.where(modes==43, 1./3., 0.5)))))
-        kappaRDfr  = np.expand_dims(alphaRDfr,len(alphaRDfr.shape))**betaRDfr
+        betaRDfr = jnp.where(modes==21, 1./3., jnp.where(modes==22, 0.5, jnp.where(modes==32, 1./3., jnp.where(modes==33, 0.5, jnp.where(modes==43, 1./3., 0.5)))))
+        kappaRDfr  = jnp.expand_dims(alphaRDfr,len(alphaRDfr.shape))**betaRDfr
         kappaRDfr2 = kappaRDfr*kappaRDfr
         kappaRDfr3 = kappaRDfr*kappaRDfr2
         kappaRDfr4 = kappaRDfr*kappaRDfr3
         
-        tmpRDfr = np.where(modes==21, 0.589113 * np.exp(0.043525 * 1j) + 0.18896353 * np.exp(2.289868 * 1j) * kappaRDfr + 1.15012965 * np.exp(5.810057 * 1j) * kappaRDfr2 + 6.04585476 * np.exp(2.741967 * 1j) * kappaRDfr3 + 11.12627777 * np.exp(5.844130 * 1j) * kappaRDfr4 + 9.34711461 * np.exp(2.669372 * 1j) * kappaRDfr4*kappaRDfr + 3.03838318 * np.exp(5.791518 * 1j) * kappaRDfr4*kappaRDfr2, np.where(modes==22, 1.0 + kappaRDfr * (1.557847 * np.exp(2.903124 * 1j) + 1.95097051 * np.exp(5.920970 * 1j) * kappaRDfr + 2.09971716 * np.exp(2.760585 * 1j) * kappaRDfr2 + 1.41094660 * np.exp(5.914340 * 1j) * kappaRDfr3 + 0.41063923 * np.exp(2.795235 * 1j) * kappaRDfr4), np.where(modes==32, 1.022464 * np.exp(0.004870 * 1j) + 0.24731213 * np.exp(0.665292 * 1j) * kappaRDfr + 1.70468239 * np.exp(3.138283 * 1j) * kappaRDfr2 + 0.94604882 * np.exp(0.163247 * 1j) * kappaRDfr3 + 1.53189884 * np.exp(5.703573 * 1j) * kappaRDfr4 + 2.28052668 * np.exp(2.685231 * 1j) * kappaRDfr4*kappaRDfr + 0.92150314 * np.exp(5.841704 * 1j) * kappaRDfr4*kappaRDfr2, np.where(modes==33, 1.5 + kappaRDfr * (2.095657 * np.exp(2.964973 * 1j) + 2.46964352 * np.exp(5.996734 * 1j) * kappaRDfr + 2.66552551 * np.exp(2.817591 * 1j) * kappaRDfr2 + 1.75836443 * np.exp(5.932693 * 1j) * kappaRDfr3 + 0.49905688 * np.exp(2.781658 * 1j) * kappaRDfr4), np.where(modes==43, 1.5 + kappaRDfr * (0.205046 * np.exp(0.595328 * 1j) + 3.10333396 * np.exp(3.016200 * 1j) * kappaRDfr + 4.23612166 * np.exp(6.038842 * 1j) * kappaRDfr2 + 3.02890198 * np.exp(2.826239 * 1j) * kappaRDfr3 + 0.90843949 * np.exp(5.915164 * 1j) * kappaRDfr4), 2.0 + kappaRDfr * (2.658908 * np.exp(3.002787 * 1j) + 2.97825567 * np.exp(6.050955 * 1j) * kappaRDfr + 3.21842350 * np.exp(2.877514 * 1j) * kappaRDfr2 + 2.12764967 * np.exp(5.989669 * 1j) * kappaRDfr3 + 0.60338186 * np.exp(2.830031 * 1j) * kappaRDfr4))))))
+        tmpRDfr = jnp.where(modes==21, 0.589113 * jnp.exp(0.043525 * 1j) + 0.18896353 * jnp.exp(2.289868 * 1j) * kappaRDfr + 1.15012965 * jnp.exp(5.810057 * 1j) * kappaRDfr2 + 6.04585476 * jnp.exp(2.741967 * 1j) * kappaRDfr3 + 11.12627777 * jnp.exp(5.844130 * 1j) * kappaRDfr4 + 9.34711461 * jnp.exp(2.669372 * 1j) * kappaRDfr4*kappaRDfr + 3.03838318 * jnp.exp(5.791518 * 1j) * kappaRDfr4*kappaRDfr2, jnp.where(modes==22, 1.0 + kappaRDfr * (1.557847 * jnp.exp(2.903124 * 1j) + 1.95097051 * jnp.exp(5.920970 * 1j) * kappaRDfr + 2.09971716 * jnp.exp(2.760585 * 1j) * kappaRDfr2 + 1.41094660 * jnp.exp(5.914340 * 1j) * kappaRDfr3 + 0.41063923 * jnp.exp(2.795235 * 1j) * kappaRDfr4), jnp.where(modes==32, 1.022464 * jnp.exp(0.004870 * 1j) + 0.24731213 * jnp.exp(0.665292 * 1j) * kappaRDfr + 1.70468239 * jnp.exp(3.138283 * 1j) * kappaRDfr2 + 0.94604882 * jnp.exp(0.163247 * 1j) * kappaRDfr3 + 1.53189884 * jnp.exp(5.703573 * 1j) * kappaRDfr4 + 2.28052668 * jnp.exp(2.685231 * 1j) * kappaRDfr4*kappaRDfr + 0.92150314 * jnp.exp(5.841704 * 1j) * kappaRDfr4*kappaRDfr2, jnp.where(modes==33, 1.5 + kappaRDfr * (2.095657 * jnp.exp(2.964973 * 1j) + 2.46964352 * jnp.exp(5.996734 * 1j) * kappaRDfr + 2.66552551 * jnp.exp(2.817591 * 1j) * kappaRDfr2 + 1.75836443 * jnp.exp(5.932693 * 1j) * kappaRDfr3 + 0.49905688 * jnp.exp(2.781658 * 1j) * kappaRDfr4), jnp.where(modes==43, 1.5 + kappaRDfr * (0.205046 * jnp.exp(0.595328 * 1j) + 3.10333396 * jnp.exp(3.016200 * 1j) * kappaRDfr + 4.23612166 * jnp.exp(6.038842 * 1j) * kappaRDfr2 + 3.02890198 * jnp.exp(2.826239 * 1j) * kappaRDfr3 + 0.90843949 * jnp.exp(5.915164 * 1j) * kappaRDfr4), 2.0 + kappaRDfr * (2.658908 * jnp.exp(3.002787 * 1j) + 2.97825567 * jnp.exp(6.050955 * 1j) * kappaRDfr + 3.21842350 * jnp.exp(2.877514 * 1j) * kappaRDfr2 + 2.12764967 * jnp.exp(5.989669 * 1j) * kappaRDfr3 + 0.60338186 * jnp.exp(2.830031 * 1j) * kappaRDfr4))))))
 
-        fringlm = (np.real(tmpRDfr)/(2.*np.pi*np.expand_dims(finMass, len(finMass.shape))))
-        fdamplm = (np.imag(tmpRDfr)/(2.*np.pi*np.expand_dims(finMass, len(finMass.shape))))
+        fringlm = (jnp.real(tmpRDfr)/(2.*np.pi*jnp.expand_dims(finMass, len(finMass.shape))))
+        fdamplm = (jnp.imag(tmpRDfr)/(2.*np.pi*jnp.expand_dims(finMass, len(finMass.shape))))
         
         # This recomputation is needed for JAX derivatives
         betaRDfr = 0.5
@@ -613,10 +613,10 @@ class IMRPhenomXPHM(WaveFormModel):
         kappaRDfr3 = kappaRDfr*kappaRDfr2
         kappaRDfr4 = kappaRDfr*kappaRDfr3
         
-        tmpRDfr = 1.0 + kappaRDfr * (1.557847 * np.exp(2.903124 * 1j) + 1.95097051 * np.exp(5.920970 * 1j) * kappaRDfr + 2.09971716 * np.exp(2.760585 * 1j) * kappaRDfr2 + 1.41094660 * np.exp(5.914340 * 1j) * kappaRDfr3 + 0.41063923 * np.exp(2.795235 * 1j) * kappaRDfr4)
-        
-        fring = (np.real(tmpRDfr)/(2.*np.pi*finMass))
-        fdamp = (np.imag(tmpRDfr)/(2.*np.pi*finMass))
+        tmpRDfr = 1.0 + kappaRDfr * (1.557847 * jnp.exp(2.903124 * 1j) + 1.95097051 * jnp.exp(5.920970 * 1j) * kappaRDfr + 2.09971716 * jnp.exp(2.760585 * 1j) * kappaRDfr2 + 1.41094660 * jnp.exp(5.914340 * 1j) * kappaRDfr3 + 0.41063923 * jnp.exp(2.795235 * 1j) * kappaRDfr4)
+
+        fring = (jnp.real(tmpRDfr)/(2.*np.pi*finMass))
+        fdamp = (jnp.imag(tmpRDfr)/(2.*np.pi*finMass))
 
         # Compute PhenomD-style fring and fdamp using spline interpolation (for t0 calculation)
         # This matches LALSim's IMRPhenomDComputet0 which uses fring/fdamp from QNM data tables
@@ -638,13 +638,13 @@ class IMRPhenomXPHM(WaveFormModel):
                                       kwargs['chi2x'], kwargs['chi2y'])
         #np.where(ASp2 > ASp1, ASp2 / (A2 * m2ByM * m2ByM), ASp1 / (A1 * m1ByM * m1ByM))
         # Compute final spin with chip contribution as in XLALSimPhenomUtilsPhenomPv2FinalSpin
-        q_factor = np.where(m1ByM >= m2ByM, m1ByM, m2ByM)
+        q_factor = jnp.where(m1ByM >= m2ByM, m1ByM, m2ByM)
         Sperp = chip * q_factor * q_factor
-        finspin_phenomD = np.sign(aeff) * np.sqrt(Sperp * Sperp + aeff * aeff)
+        finspin_phenomD = jnp.sign(aeff) * jnp.sqrt(Sperp * Sperp + aeff * aeff)
    
 
-        fring_phenomD = jnp.interp(finspin_phenomD, np.array(QNMData_a), np.array(QNMData_fRD)) / finMass
-        fdamp_phenomD = jnp.interp(finspin_phenomD, np.array(QNMData_a), np.array(QNMData_fdamp)) / finMass
+        fring_phenomD = jnp.interp(finspin_phenomD, jnp.array(QNMData_a), jnp.array(QNMData_fRD)) / finMass
+        fdamp_phenomD = jnp.interp(finspin_phenomD, jnp.array(QNMData_a), jnp.array(QNMData_fdamp)) / finMass
 
 
 
@@ -692,7 +692,7 @@ class IMRPhenomXPHM(WaveFormModel):
         # PhiIns (fInsJoin)  =   PhiInt (fInsJoin) + C1Int + C2Int fInsJoin
         # PhiIns'(fInsJoin)  =   PhiInt'(fInsJoin) + C2Int
         # This is the first derivative wrt f of the inspiral phase computed at fInsJoin, first add the PN contribution and then the higher order calibrated terms
-        DPhiIns = (2.0*TF2coeffs[..., TF2_SEVEN]*TF2OverallAmpl*((np.pi*fInsJoinPh)**(7./3.)) + (TF2coeffs[..., TF2_SIX]*TF2OverallAmpl + TF2coeffs[..., TF2_SIX_LOG]*TF2OverallAmpl * (1.0 + np.log(np.pi*fInsJoinPh)/3.))*((np.pi*fInsJoinPh)**(2.)) + TF2coeffs[..., TF2_FIVE_LOG]*TF2OverallAmpl*((np.pi*fInsJoinPh)**(5./3.)) - TF2coeffs[..., TF2_FOUR]*TF2OverallAmpl*((np.pi*fInsJoinPh)**(4./3.)) - 2.*TF2coeffs[..., TF2_THREE]*TF2OverallAmpl*(np.pi*fInsJoinPh) - 3.*TF2coeffs[..., TF2_TWO]*TF2OverallAmpl*((np.pi*fInsJoinPh)**(2./3.)) - 4.*TF2coeffs[..., TF2_ONE]*TF2OverallAmpl*((np.pi*fInsJoinPh)**(1./3.)) - 5.*TF2coeffs[..., TF2_ZERO]*TF2OverallAmpl)*np.pi/(3.*((np.pi*fInsJoinPh)**(8./3.)))
+        DPhiIns = (2.0*TF2coeffs[..., TF2_SEVEN]*TF2OverallAmpl*((np.pi*fInsJoinPh)**(7./3.)) + (TF2coeffs[..., TF2_SIX]*TF2OverallAmpl + TF2coeffs[..., TF2_SIX_LOG]*TF2OverallAmpl * (1.0 + jnp.log(np.pi*fInsJoinPh)/3.))*((np.pi*fInsJoinPh)**(2.)) + TF2coeffs[..., TF2_FIVE_LOG]*TF2OverallAmpl*((np.pi*fInsJoinPh)**(5./3.)) - TF2coeffs[..., TF2_FOUR]*TF2OverallAmpl*((np.pi*fInsJoinPh)**(4./3.)) - 2.*TF2coeffs[..., TF2_THREE]*TF2OverallAmpl*(np.pi*fInsJoinPh) - 3.*TF2coeffs[..., TF2_TWO]*TF2OverallAmpl*((np.pi*fInsJoinPh)**(2./3.)) - 4.*TF2coeffs[..., TF2_ONE]*TF2OverallAmpl*((np.pi*fInsJoinPh)**(1./3.)) - 5.*TF2coeffs[..., TF2_ZERO]*TF2OverallAmpl)*np.pi/(3.*((np.pi*fInsJoinPh)**(8./3.)))
         DPhiIns = DPhiIns + (sigma1 + sigma2*(fInsJoinPh**(1./3.)) + sigma3*(fInsJoinPh**(2./3.)) + sigma4*fInsJoinPh)/eta
         # This is the first derivative of the Intermediate phase computed at fInsJoin
         DPhiInt = (beta1 + beta3/(fInsJoinPh**4) + beta2/fInsJoinPh)/eta
@@ -700,9 +700,9 @@ class IMRPhenomXPHM(WaveFormModel):
         C2Int = DPhiIns - DPhiInt
         
         # This is the inspiral phase computed at fInsJoin
-        PhiInsJoin = PhiInspcoeffs[..., PHI_INITIAL_PHASING] + PhiInspcoeffs[..., PHI_TWO_THIRDS]*(fInsJoinPh**(2./3.)) + PhiInspcoeffs[..., PHI_THIRD]*(fInsJoinPh**(1./3.)) + PhiInspcoeffs[..., PHI_THIRD_LOG]*(fInsJoinPh**(1./3.))*np.log(np.pi*fInsJoinPh)/3. + PhiInspcoeffs[..., PHI_LOG]*np.log(np.pi*fInsJoinPh)/3. + PhiInspcoeffs[..., PHI_MIN_THIRD]*(fInsJoinPh**(-1./3.)) + PhiInspcoeffs[..., PHI_MIN_TWO_THIRDS]*(fInsJoinPh**(-2./3.)) + PhiInspcoeffs[..., PHI_MIN_ONE]/fInsJoinPh + PhiInspcoeffs[..., PHI_MIN_FOUR_THIRDS]*(fInsJoinPh**(-4./3.)) + PhiInspcoeffs[..., PHI_MIN_FIVE_THIRDS]*(fInsJoinPh**(-5./3.)) + (PhiInspcoeffs[..., PHI_ONE]*fInsJoinPh + PhiInspcoeffs[..., PHI_FOUR_THIRDS]*(fInsJoinPh**(4./3.)) + PhiInspcoeffs[..., PHI_FIVE_THIRDS]*(fInsJoinPh**(5./3.)) + PhiInspcoeffs[..., PHI_TWO]*fInsJoinPh*fInsJoinPh)/eta
+        PhiInsJoin = PhiInspcoeffs[..., PHI_INITIAL_PHASING] + PhiInspcoeffs[..., PHI_TWO_THIRDS]*(fInsJoinPh**(2./3.)) + PhiInspcoeffs[..., PHI_THIRD]*(fInsJoinPh**(1./3.)) + PhiInspcoeffs[..., PHI_THIRD_LOG]*(fInsJoinPh**(1./3.))*jnp.log(np.pi*fInsJoinPh)/3. + PhiInspcoeffs[..., PHI_LOG]*jnp.log(np.pi*fInsJoinPh)/3. + PhiInspcoeffs[..., PHI_MIN_THIRD]*(fInsJoinPh**(-1./3.)) + PhiInspcoeffs[..., PHI_MIN_TWO_THIRDS]*(fInsJoinPh**(-2./3.)) + PhiInspcoeffs[..., PHI_MIN_ONE]/fInsJoinPh + PhiInspcoeffs[..., PHI_MIN_FOUR_THIRDS]*(fInsJoinPh**(-4./3.)) + PhiInspcoeffs[..., PHI_MIN_FIVE_THIRDS]*(fInsJoinPh**(-5./3.)) + (PhiInspcoeffs[..., PHI_ONE]*fInsJoinPh + PhiInspcoeffs[..., PHI_FOUR_THIRDS]*(fInsJoinPh**(4./3.)) + PhiInspcoeffs[..., PHI_FIVE_THIRDS]*(fInsJoinPh**(5./3.)) + PhiInspcoeffs[..., PHI_TWO]*fInsJoinPh*fInsJoinPh)/eta
         # This is the Intermediate phase computed at fInsJoin
-        PhiIntJoin = beta1*fInsJoinPh - beta3/(3.*fInsJoinPh*fInsJoinPh*fInsJoinPh) + beta2*np.log(fInsJoinPh)
+        PhiIntJoin = beta1*fInsJoinPh - beta3/(3.*fInsJoinPh*fInsJoinPh*fInsJoinPh) + beta2*jnp.log(fInsJoinPh)
         
         C1Int = PhiInsJoin - PhiIntJoin/eta - C2Int*fInsJoinPh
         
