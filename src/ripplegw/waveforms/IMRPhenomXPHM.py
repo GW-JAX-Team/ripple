@@ -18,14 +18,27 @@ from .LALSimIMRPhenomD_internals import DPhiMRD
 
 
 
-uGpc = 3.085677581491367278913937957796471611e25 
+uGpc = 3.085677581491367278913937957796471611e25
 #3.085677581491367278913937957796471611e25 # meters
 GMsun_over_c2 = MTSUN_SI * C
 #1.476625061404649406193430731479084713e3 # meters
-GMsun_over_c2_Gpc = GMsun_over_c2/uGpc 
+GMsun_over_c2_Gpc = GMsun_over_c2/uGpc
 
 
-#MTSUN_SI = 4.925491025543575903411922162094833998e-6 
+#MTSUN_SI = 4.925491025543575903411922162094833998e-6
+
+# TF2 coefficient array indices (for JIT-compatible array-based storage)
+TF2_ZERO = 0
+TF2_ONE = 1
+TF2_TWO = 2
+TF2_THREE = 3
+TF2_FOUR = 4
+TF2_FIVE = 5
+TF2_FIVE_LOG = 6
+TF2_SIX = 7
+TF2_SIX_LOG = 8
+TF2_SEVEN = 9
+TF2_NUM_COEFFS = 10 
 
 
 
@@ -121,6 +134,114 @@ def compute_c_prefactors(f: Array, params: Array, X: float):
     return c_plus, c_cross
 
 
+def compute_TF2_coefficients(eta, eta2, Seta, chi_s, chi_a, chi1, chi2,
+                              chi1dotchi2, chi12, chi22,
+                              m1ByM, m2ByM, QuadMon1, QuadMon2):
+    """
+    Compute TF2 (TaylorF2) phase coefficients as a JAX array.
+
+    This function computes the post-Newtonian phase coefficients used in the
+    inspiral phase of the IMRPhenomXPHM waveform model. Returns an array
+    instead of a dictionary for JIT compatibility.
+
+    Parameters
+    ----------
+    eta : array_like
+        Symmetric mass ratio
+    eta2 : array_like
+        eta squared
+    Seta : array_like
+        sqrt(1 - 4*eta), related to mass difference
+    chi_s : array_like
+        Symmetric spin combination (chi1 + chi2)/2
+    chi_a : array_like
+        Antisymmetric spin combination (chi1 - chi2)/2
+    chi1, chi2 : array_like
+        Individual spin components (z-components)
+    chi1dotchi2 : array_like
+        Product chi1 * chi2
+    chi12, chi22 : array_like
+        Squared spins chi1^2, chi2^2
+    m1ByM, m2ByM : array_like
+        Mass fractions m1/M and m2/M
+    QuadMon1, QuadMon2 : array_like
+        Quadrupole moment parameters
+
+    Returns
+    -------
+    TF2coeffs : jnp.ndarray
+        Array of shape (..., 10) containing the TF2 coefficients:
+        [zero, one, two, three, four, five, five_log, six, six_log, seven]
+    """
+    # Coefficient 0: 'zero'
+    coeff_zero = jnp.ones_like(eta)
+
+    # Coefficient 1: 'one'
+    coeff_one = jnp.zeros_like(eta)
+
+    # Coefficient 2: 'two'
+    coeff_two = 3715./756. + (55.*eta)/9.
+
+    # Coefficient 3: 'three'
+    coeff_three = -16.*jnp.pi + (113.*Seta*chi_a)/3. + (113./3. - (76.*eta)/3.)*chi_s
+
+    # Coefficient 4: 'four' - 2PN with quadrupole moments
+    coeff_four = (5.*(3058.673/7.056 + 5429./7.*eta + 617.*eta2)/72.
+                  + 247./4.8*eta*chi1dotchi2 - 721./4.8*eta*chi1dotchi2
+                  + (-720./9.6*QuadMon1 + 1./9.6)*m1ByM*m1ByM*chi12
+                  + (-720./9.6*QuadMon2 + 1./9.6)*m2ByM*m2ByM*chi22
+                  + (240./9.6*QuadMon1 - 7./9.6)*m1ByM*m1ByM*chi12
+                  + (240./9.6*QuadMon2 - 7./9.6)*m2ByM*m2ByM*chi22)
+
+    # Common part for coefficients 5 and 5_log
+    TF2_5coeff_tmp = ((732985./2268. - 24260.*eta/81. - 340.*eta2/9.)*chi_s
+                      + (732985./2268. + 140.*eta/9.)*Seta*chi_a)
+
+    # Coefficient 5: 'five'
+    coeff_five = 38645.*jnp.pi/756. - 65.*jnp.pi*eta/9. - TF2_5coeff_tmp
+
+    # Coefficient 6: 'five_log'
+    coeff_five_log = (38645.*jnp.pi/756. - 65.*jnp.pi*eta/9. - TF2_5coeff_tmp)*3.
+
+    # Coefficient 7: 'six' - 3PN with quadrupole moments
+    coeff_six = (11583.231236531/4.694215680 - 640./3.*jnp.pi*jnp.pi
+                 - 684.8/2.1*jnp.euler_gamma
+                 + eta*(-15737.765635/3.048192 + 225.5/1.2*jnp.pi*jnp.pi)
+                 + eta2*76.055/1.728 - eta2*eta*127.825/1.296
+                 - jnp.log(4.)*684.8/2.1
+                 + jnp.pi*chi1*m1ByM*(1490./3. + m1ByM*260.)
+                 + jnp.pi*chi2*m2ByM*(1490./3. + m2ByM*260.)
+                 + (326.75/1.12 + 557.5/1.8*eta)*eta*chi1dotchi2
+                 + (4703.5/8.4 + 2935./6.*m1ByM - 120.*m1ByM*m1ByM)*m1ByM*m1ByM*QuadMon1*chi12
+                 + (-4108.25/6.72 - 108.5/1.2*m1ByM + 125.5/3.6*m1ByM*m1ByM)*m1ByM*m1ByM*chi12
+                 + (4703.5/8.4 + 2935./6.*m2ByM - 120.*m2ByM*m2ByM)*m2ByM*m2ByM*QuadMon2*chi22
+                 + (-4108.25/6.72 - 108.5/1.2*m2ByM + 125.5/3.6*m2ByM*m2ByM)*m2ByM*m2ByM*chi22)
+
+    # Coefficient 8: 'six_log'
+    coeff_six_log = -6848./21. * jnp.ones_like(eta)
+
+    # Coefficient 9: 'seven'
+    coeff_seven = (77096675.*jnp.pi/254016. + 378515.*jnp.pi*eta/1512.
+                   - 74045.*jnp.pi*eta2/756.
+                   + (-25150083775./3048192. + 10566655595.*eta/762048.
+                      - 1042165.*eta2/3024. + 5345.*eta2*eta/36.)*chi_s
+                   + Seta*((-25150083775./3048192. + 26804935.*eta/6048.
+                           - 1985.*eta2/48.)*chi_a))
+
+    # Remove the part that was not available when IMRPhenomD was tuned
+    coeff_six = coeff_six - ((326.75/1.12 + 557.5/1.8*eta)*eta*chi1dotchi2
+                             + ((4703.5/8.4 + 2935./6.*m1ByM - 120.*m1ByM*m1ByM)
+                                + (-4108.25/6.72 - 108.5/1.2*m1ByM + 125.5/3.6*m1ByM*m1ByM))*m1ByM*m1ByM*chi12
+                             + ((4703.5/8.4 + 2935./6.*m2ByM - 120.*m2ByM*m2ByM)
+                                + (-4108.25/6.72 - 108.5/1.2*m2ByM + 125.5/3.6*m2ByM*m2ByM))*m2ByM*m2ByM*chi22)
+
+    # Stack all coefficients into an array
+    # Shape: (..., 10) where ... is the batch dimensions from eta
+    TF2coeffs = jnp.stack([coeff_zero, coeff_one, coeff_two, coeff_three,
+                           coeff_four, coeff_five, coeff_five_log,
+                           coeff_six, coeff_six_log, coeff_seven], axis=-1)
+
+    return TF2coeffs
 
 
 class WaveFormModel(ABC):
@@ -359,8 +480,8 @@ class IMRPhenomXPHM(WaveFormModel):
         fgrid = M*MTSUN_SI*f
         # This is MfRef, needed to recover LAL, which sets fRef to f_min if fRef=0
         fRef  = np.amin(fgrid, axis=0)
-        if self.fRef is not None:
-            fRef = M*MTSUN_SI*self.fRef
+        #if self.fRef is not None
+        fRef = M*MTSUN_SI*self.fRef
         # As in arXiv:1508.07253 eq. (4) and LALSimIMRPhenomD_internals.c line 97
         chiPN = (chi_s * (1.0 - eta * 76.0 / 113.0) + Seta * chi_a)
         xi = - 1.0 + chiPN
@@ -428,8 +549,8 @@ class IMRPhenomXPHM(WaveFormModel):
         finspin_phenomD = np.sign(aeff) * np.sqrt(Sperp * Sperp + aeff * aeff)
    
 
-        fring_phenomD = np.interp(finspin_phenomD, np.array(QNMData_a), np.array(QNMData_fRD)) / finMass
-        fdamp_phenomD = np.interp(finspin_phenomD, np.array(QNMData_a), np.array(QNMData_fdamp)) / finMass
+        fring_phenomD = jnp.interp(finspin_phenomD, np.array(QNMData_a), np.array(QNMData_fRD)) / finMass
+        fdamp_phenomD = jnp.interp(finspin_phenomD, np.array(QNMData_a), np.array(QNMData_fdamp)) / finMass
 
 
 
@@ -454,39 +575,25 @@ class IMRPhenomXPHM(WaveFormModel):
         alpha4 = -0.02989487384493607 + 1.4022106448583738*eta + (-0.07356049468633846 + 0.8337006542278661*eta + 0.2240008282397391*eta2 + (-0.055202870001177226 + 0.5667186343606578*eta + 0.7186931973380503*eta2)*xi + (-0.015507437354325743 + 0.15750322779277187*eta + 0.21076815715176228*eta2)*xi*xi)*xi
         alpha5 = 0.9974408278363099 - 0.007884449714907203*eta + (-0.059046901195591035 + 1.3958712396764088*eta - 4.516631601676276*eta2 + (-0.05585343136869692 + 1.7516580039343603*eta - 5.990208965347804*eta2)*xi + (-0.017945336522161195 + 0.5965097794825992*eta - 2.0608879367971804*eta2)*xi*xi)*xi
         
-        # Compute the TF2 phase coefficients and put them in a dictionary (spin effects are included up to 3.5PN)
-        TF2coeffs = {}
+        # Compute the TF2 phase coefficients as a JAX array (JIT-compatible)
+        TF2coeffs = compute_TF2_coefficients(
+            eta, eta2, Seta, chi_s, chi_a, chi1, chi2,
+            chi1dotchi2, chi12, chi22, m1ByM, m2ByM, QuadMon1, QuadMon2
+        )
         TF2OverallAmpl = 3./(128. * eta)
-        
-        TF2coeffs['zero'] = 1.
-        TF2coeffs['one'] = 0.
-        TF2coeffs['two'] = 3715./756. + (55.*eta)/9.
-        TF2coeffs['three'] = -16.*np.pi + (113.*Seta*chi_a)/3. + (113./3. - (76.*eta)/3.)*chi_s
-        # For 2PN coeff we use chi1 and chi2 so to have the quadrupole moment explicitly appearing
-        TF2coeffs['four'] = 5.*(3058.673/7.056 + 5429./7.*eta+617.*eta2)/72. + 247./4.8*eta*chi1dotchi2 -721./4.8*eta*chi1dotchi2 + (-720./9.6*QuadMon1 + 1./9.6)*m1ByM*m1ByM*chi12 + (-720./9.6*QuadMon2 + 1./9.6)*m2ByM*m2ByM*chi22 + (240./9.6*QuadMon1 - 7./9.6)*m1ByM*m1ByM*chi12 + (240./9.6*QuadMon2 - 7./9.6)*m2ByM*m2ByM*chi22
-        # This part is common to 5 and 5log, avoid recomputing
-        TF2_5coeff_tmp = (732985./2268. - 24260.*eta/81. - 340.*eta2/9.)*chi_s + (732985./2268. + 140.*eta/9.)*Seta*chi_a
-        TF2coeffs['five'] = (38645.*np.pi/756. - 65.*np.pi*eta/9. - TF2_5coeff_tmp)
-        TF2coeffs['five_log'] = (38645.*np.pi/756. - 65.*np.pi*eta/9. - TF2_5coeff_tmp)*3.
-        # For 3PN coeff we use chi1 and chi2 so to have the quadrupole moment explicitly appearing
-        TF2coeffs['six'] = 11583.231236531/4.694215680 - 640./3.*np.pi*np.pi - 684.8/2.1*np.euler_gamma + eta*(-15737.765635/3.048192 + 225.5/1.2*np.pi*np.pi) + eta2*76.055/1.728 - eta2*eta*127.825/1.296 - np.log(4.)*684.8/2.1 + np.pi*chi1*m1ByM*(1490./3. + m1ByM*260.) + np.pi*chi2*m2ByM*(1490./3. + m2ByM*260.) + (326.75/1.12 + 557.5/1.8*eta)*eta*chi1dotchi2 + (4703.5/8.4+2935./6.*m1ByM-120.*m1ByM*m1ByM)*m1ByM*m1ByM*QuadMon1*chi12 + (-4108.25/6.72-108.5/1.2*m1ByM+125.5/3.6*m1ByM*m1ByM)*m1ByM*m1ByM*chi12 + (4703.5/8.4+2935./6.*m2ByM-120.*m2ByM*m2ByM)*m2ByM*m2ByM*QuadMon2*chi22 + (-4108.25/6.72-108.5/1.2*m2ByM+125.5/3.6*m2ByM*m2ByM)*m2ByM*m2ByM*chi22
-        TF2coeffs['six_log'] = -6848./21.
-        TF2coeffs['seven'] = 77096675.*np.pi/254016. + 378515.*np.pi*eta/1512.- 74045.*np.pi*eta2/756. + (-25150083775./3048192. + 10566655595.*eta/762048. - 1042165.*eta2/3024. + 5345.*eta2*eta/36.)*chi_s + Seta*((-25150083775./3048192. + 26804935.*eta/6048. - 1985.*eta2/48.)*chi_a)
-        # Remove this part since it was not available when IMRPhenomD was tuned
-        TF2coeffs['six'] = TF2coeffs['six'] - ((326.75/1.12 + 557.5/1.8*eta)*eta*chi1dotchi2 + ((4703.5/8.4+2935./6.*m1ByM-120.*m1ByM*m1ByM) + (-4108.25/6.72-108.5/1.2*m1ByM+125.5/3.6*m1ByM*m1ByM))*m1ByM*m1ByM*chi12 + ((4703.5/8.4+2935./6.*m2ByM-120.*m2ByM*m2ByM) + (-4108.25/6.72-108.5/1.2*m2ByM+125.5/3.6*m2ByM*m2ByM))*m2ByM*m2ByM*chi22)
         # Now translate into inspiral coefficients, label with the power in front of which they appear
         PhiInspcoeffs = {}
-        
-        PhiInspcoeffs['initial_phasing'] = TF2coeffs['five']*TF2OverallAmpl - (np.pi/4)
-        PhiInspcoeffs['two_thirds'] = TF2coeffs['seven']*TF2OverallAmpl*(np.pi**(2./3.))
-        PhiInspcoeffs['third'] = TF2coeffs['six']*TF2OverallAmpl*(np.pi**(1./3.))
-        PhiInspcoeffs['third_log'] = TF2coeffs['six_log']*TF2OverallAmpl*(np.pi**(1./3.))
-        PhiInspcoeffs['log'] = TF2coeffs['five_log']*TF2OverallAmpl
-        PhiInspcoeffs['min_third'] = TF2coeffs['four']*TF2OverallAmpl*(np.pi**(-1./3.))
-        PhiInspcoeffs['min_two_thirds'] = TF2coeffs['three']*TF2OverallAmpl*(np.pi**(-2./3.))
-        PhiInspcoeffs['min_one'] = TF2coeffs['two']*TF2OverallAmpl/np.pi
-        PhiInspcoeffs['min_four_thirds'] = TF2coeffs['one']*TF2OverallAmpl*(np.pi**(-4./3.))
-        PhiInspcoeffs['min_five_thirds'] = TF2coeffs['zero']*TF2OverallAmpl*(np.pi**(-5./3.))
+
+        PhiInspcoeffs['initial_phasing'] = TF2coeffs[..., TF2_FIVE]*TF2OverallAmpl - (np.pi/4)
+        PhiInspcoeffs['two_thirds'] = TF2coeffs[..., TF2_SEVEN]*TF2OverallAmpl*(np.pi**(2./3.))
+        PhiInspcoeffs['third'] = TF2coeffs[..., TF2_SIX]*TF2OverallAmpl*(np.pi**(1./3.))
+        PhiInspcoeffs['third_log'] = TF2coeffs[..., TF2_SIX_LOG]*TF2OverallAmpl*(np.pi**(1./3.))
+        PhiInspcoeffs['log'] = TF2coeffs[..., TF2_FIVE_LOG]*TF2OverallAmpl
+        PhiInspcoeffs['min_third'] = TF2coeffs[..., TF2_FOUR]*TF2OverallAmpl*(np.pi**(-1./3.))
+        PhiInspcoeffs['min_two_thirds'] = TF2coeffs[..., TF2_THREE]*TF2OverallAmpl*(np.pi**(-2./3.))
+        PhiInspcoeffs['min_one'] = TF2coeffs[..., TF2_TWO]*TF2OverallAmpl/np.pi
+        PhiInspcoeffs['min_four_thirds'] = TF2coeffs[..., TF2_ONE]*TF2OverallAmpl*(np.pi**(-4./3.))
+        PhiInspcoeffs['min_five_thirds'] = TF2coeffs[..., TF2_ZERO]*TF2OverallAmpl*(np.pi**(-5./3.))
         PhiInspcoeffs['one'] = sigma1
         PhiInspcoeffs['four_thirds'] = sigma2 * 0.75
         PhiInspcoeffs['five_thirds'] = sigma3 * 0.6
@@ -504,7 +611,7 @@ class IMRPhenomXPHM(WaveFormModel):
         # PhiIns (fInsJoin)  =   PhiInt (fInsJoin) + C1Int + C2Int fInsJoin
         # PhiIns'(fInsJoin)  =   PhiInt'(fInsJoin) + C2Int
         # This is the first derivative wrt f of the inspiral phase computed at fInsJoin, first add the PN contribution and then the higher order calibrated terms
-        DPhiIns = (2.0*TF2coeffs['seven']*TF2OverallAmpl*((np.pi*fInsJoinPh)**(7./3.)) + (TF2coeffs['six']*TF2OverallAmpl + TF2coeffs['six_log']*TF2OverallAmpl * (1.0 + np.log(np.pi*fInsJoinPh)/3.))*((np.pi*fInsJoinPh)**(2.)) + TF2coeffs['five_log']*TF2OverallAmpl*((np.pi*fInsJoinPh)**(5./3.)) - TF2coeffs['four']*TF2OverallAmpl*((np.pi*fInsJoinPh)**(4./3.)) - 2.*TF2coeffs['three']*TF2OverallAmpl*(np.pi*fInsJoinPh) - 3.*TF2coeffs['two']*TF2OverallAmpl*((np.pi*fInsJoinPh)**(2./3.)) - 4.*TF2coeffs['one']*TF2OverallAmpl*((np.pi*fInsJoinPh)**(1./3.)) - 5.*TF2coeffs['zero']*TF2OverallAmpl)*np.pi/(3.*((np.pi*fInsJoinPh)**(8./3.)))
+        DPhiIns = (2.0*TF2coeffs[..., TF2_SEVEN]*TF2OverallAmpl*((np.pi*fInsJoinPh)**(7./3.)) + (TF2coeffs[..., TF2_SIX]*TF2OverallAmpl + TF2coeffs[..., TF2_SIX_LOG]*TF2OverallAmpl * (1.0 + np.log(np.pi*fInsJoinPh)/3.))*((np.pi*fInsJoinPh)**(2.)) + TF2coeffs[..., TF2_FIVE_LOG]*TF2OverallAmpl*((np.pi*fInsJoinPh)**(5./3.)) - TF2coeffs[..., TF2_FOUR]*TF2OverallAmpl*((np.pi*fInsJoinPh)**(4./3.)) - 2.*TF2coeffs[..., TF2_THREE]*TF2OverallAmpl*(np.pi*fInsJoinPh) - 3.*TF2coeffs[..., TF2_TWO]*TF2OverallAmpl*((np.pi*fInsJoinPh)**(2./3.)) - 4.*TF2coeffs[..., TF2_ONE]*TF2OverallAmpl*((np.pi*fInsJoinPh)**(1./3.)) - 5.*TF2coeffs[..., TF2_ZERO]*TF2OverallAmpl)*np.pi/(3.*((np.pi*fInsJoinPh)**(8./3.)))
         DPhiIns = DPhiIns + (sigma1 + sigma2*(fInsJoinPh**(1./3.)) + sigma3*(fInsJoinPh**(2./3.)) + sigma4*fInsJoinPh)/eta
         # This is the first derivative of the Intermediate phase computed at fInsJoin
         DPhiInt = (beta1 + beta3/(fInsJoinPh**4) + beta2/fInsJoinPh)/eta
@@ -594,72 +701,65 @@ class IMRPhenomXPHM(WaveFormModel):
         Overallamp = M * GMsun_over_c2_Gpc * M * MTSUN_SI / kwargs['dL']
         
         def completeAmpl(infreqs):
-            if self.apply_fcut:
-                return Overallamp*amp0*(infreqs**(-7./6.))*np.where(infreqs < self.AMP_fJoin_INS, 1. + (infreqs**(2./3.))*Acoeffs['two_thirds'] + (infreqs**(4./3.)) * Acoeffs['four_thirds'] + (infreqs**(5./3.)) *  Acoeffs['five_thirds'] + (infreqs**(7./3.)) * Acoeffs['seven_thirds'] + (infreqs**(8./3.)) * Acoeffs['eight_thirds'] + infreqs * (Acoeffs['one'] + infreqs * Acoeffs['two'] + infreqs*infreqs * Acoeffs['three']), np.where(infreqs < fpeak, delta0 + infreqs*delta1 + infreqs*infreqs*(delta2 + infreqs*delta3 + infreqs*infreqs*delta4), np.where(infreqs < self.fcutPar,np.exp(-(infreqs - fring)*gamma2/(fdamp*gamma3))* (fdamp*gamma3*gamma1) / ((infreqs - fring)*(infreqs - fring) + fdamp*gamma3*fdamp*gamma3), 0.)))
-            else:
-                return Overallamp*amp0*(infreqs**(-7./6.))*np.where(infreqs < self.AMP_fJoin_INS, 1. + (infreqs**(2./3.))*Acoeffs['two_thirds'] + (infreqs**(4./3.)) * Acoeffs['four_thirds'] + (infreqs**(5./3.)) *  Acoeffs['five_thirds'] + (infreqs**(7./3.)) * Acoeffs['seven_thirds'] + (infreqs**(8./3.)) * Acoeffs['eight_thirds'] + infreqs * (Acoeffs['one'] + infreqs * Acoeffs['two'] + infreqs*infreqs * Acoeffs['three']), np.where(infreqs < fpeak, delta0 + infreqs*delta1 + infreqs*infreqs*(delta2 + infreqs*delta3 + infreqs*infreqs*delta4), np.exp(-(infreqs - fring)*gamma2/(fdamp*gamma3))* (fdamp*gamma3*gamma1) / ((infreqs - fring)*(infreqs - fring) + fdamp*gamma3*fdamp*gamma3)))
+            return Overallamp*amp0*(infreqs**(-7./6.))*np.where(infreqs < self.AMP_fJoin_INS, 1. + (infreqs**(2./3.))*Acoeffs['two_thirds'] + (infreqs**(4./3.)) * Acoeffs['four_thirds'] + (infreqs**(5./3.)) *  Acoeffs['five_thirds'] + (infreqs**(7./3.)) * Acoeffs['seven_thirds'] + (infreqs**(8./3.)) * Acoeffs['eight_thirds'] + infreqs * (Acoeffs['one'] + infreqs * Acoeffs['two'] + infreqs*infreqs * Acoeffs['three']), np.where(infreqs < fpeak, delta0 + infreqs*delta1 + infreqs*infreqs*(delta2 + infreqs*delta3 + infreqs*infreqs*delta4), np.where(infreqs < self.fcutPar,np.exp(-(infreqs - fring)*gamma2/(fdamp*gamma3))* (fdamp*gamma3*gamma1) / ((infreqs - fring)*(infreqs - fring) + fdamp*gamma3*fdamp*gamma3), 0.)))
         
         def completePhase(infreqs, C1MRDuse, C2MRDuse, RhoUse, TauUse):
             #print(f"ripple debug end of insp {XLALSimIMRPhenomXUtilsMftoHz(self.PHI_fJoin_INS, mass_1+mass_2)}")
             #print(f"ripple debug end or merger {XLALSimIMRPhenomXUtilsMftoHz(fMRDJoinPh, mass_1+mass_2)}")
             #print(f"ripple debug end of ringdown {XLALSimIMRPhenomXUtilsMftoHz(self.fcutPar, mass_1+mass_2)}")
 
+            # Compute phase for each frequency regime
+            f = infreqs
+            log_pi_f = np.log(np.pi * f)
 
-            if self.apply_fcut:
-                # Compute phase for each frequency regime
-                f = infreqs
-                log_pi_f = np.log(np.pi * f)
+            # Inspiral phase (f < PHI_fJoin_INS)
+            phi_inspiral = (
+                PhiInspcoeffs['initial_phasing']
+                # Positive powers of f
+                + PhiInspcoeffs['two_thirds'] * f**(2./3.)
+                + PhiInspcoeffs['third'] * f**(1./3.)
+                + PhiInspcoeffs['third_log'] * f**(1./3.) * log_pi_f / 3.
+                + PhiInspcoeffs['log'] * log_pi_f / 3.
+                # Negative powers of f
+                + PhiInspcoeffs['min_third'] * f**(-1./3.)
+                + PhiInspcoeffs['min_two_thirds'] * f**(-2./3.)
+                + PhiInspcoeffs['min_one'] / f
+                + PhiInspcoeffs['min_four_thirds'] * f**(-4./3.)
+                + PhiInspcoeffs['min_five_thirds'] * f**(-5./3.)
+                # Higher order terms (divided by eta)
+                + (PhiInspcoeffs['one'] * f
+                    + PhiInspcoeffs['four_thirds'] * f**(4./3.)
+                    + PhiInspcoeffs['five_thirds'] * f**(5./3.)
+                    + PhiInspcoeffs['two'] * f * f) / eta
+            )
 
-                # Inspiral phase (f < PHI_fJoin_INS)
-                phi_inspiral = (
-                    PhiInspcoeffs['initial_phasing']
-                    # Positive powers of f
-                    + PhiInspcoeffs['two_thirds'] * f**(2./3.)
-                    + PhiInspcoeffs['third'] * f**(1./3.)
-                    + PhiInspcoeffs['third_log'] * f**(1./3.) * log_pi_f / 3.
-                    + PhiInspcoeffs['log'] * log_pi_f / 3.
-                    # Negative powers of f
-                    + PhiInspcoeffs['min_third'] * f**(-1./3.)
-                    + PhiInspcoeffs['min_two_thirds'] * f**(-2./3.)
-                    + PhiInspcoeffs['min_one'] / f
-                    + PhiInspcoeffs['min_four_thirds'] * f**(-4./3.)
-                    + PhiInspcoeffs['min_five_thirds'] * f**(-5./3.)
-                    # Higher order terms (divided by eta)
-                    + (PhiInspcoeffs['one'] * f
-                       + PhiInspcoeffs['four_thirds'] * f**(4./3.)
-                       + PhiInspcoeffs['five_thirds'] * f**(5./3.)
-                       + PhiInspcoeffs['two'] * f * f) / eta
+            # Intermediate phase (PHI_fJoin_INS <= f < fMRDJoinPh)
+            phi_intermediate = (
+                (beta1 * f - beta3 / (3. * f**3) + beta2 * np.log(f)) / eta
+                + C1Int + C2Int * f
+            )
+
+            # Merger-ringdown phase (fMRDJoinPh <= f < fcutPar)
+            phi_mrd = (
+                (-alpha2 / f
+                    + (4./3.) * alpha3 * f**(3./4.)
+                    + alpha1 * f
+                    + alpha4 * RhoUse * np.arctan((f - alpha5 * fring) / (fdamp * RhoUse * TauUse))
+                ) / eta
+                + C1MRDuse + C2MRDuse * f
+            )
+
+            # Combine using nested np.where for frequency regime selection
+            return np.where(
+                f < self.PHI_fJoin_INS,
+                phi_inspiral,
+                np.where(
+                    f < fMRDJoinPh,
+                    phi_intermediate,
+                    np.where(f < self.fcutPar, phi_mrd, 0.)
                 )
+            )
 
-                # Intermediate phase (PHI_fJoin_INS <= f < fMRDJoinPh)
-                phi_intermediate = (
-                    (beta1 * f - beta3 / (3. * f**3) + beta2 * np.log(f)) / eta
-                    + C1Int + C2Int * f
-                )
-
-                # Merger-ringdown phase (fMRDJoinPh <= f < fcutPar)
-                phi_mrd = (
-                    (-alpha2 / f
-                     + (4./3.) * alpha3 * f**(3./4.)
-                     + alpha1 * f
-                     + alpha4 * RhoUse * np.arctan((f - alpha5 * fring) / (fdamp * RhoUse * TauUse))
-                    ) / eta
-                    + C1MRDuse + C2MRDuse * f
-                )
-
-                # Combine using nested np.where for frequency regime selection
-                return np.where(
-                    f < self.PHI_fJoin_INS,
-                    phi_inspiral,
-                    np.where(
-                        f < fMRDJoinPh,
-                        phi_intermediate,
-                        np.where(f < self.fcutPar, phi_mrd, 0.)
-                    )
-                )
-            else:
-                return np.where(infreqs < self.PHI_fJoin_INS, PhiInspcoeffs['initial_phasing'] + PhiInspcoeffs['two_thirds']*(infreqs**(2./3.)) + PhiInspcoeffs['third']*(infreqs**(1./3.)) + PhiInspcoeffs['third_log']*(infreqs**(1./3.))*np.log(np.pi*infreqs)/3. + PhiInspcoeffs['log']*np.log(np.pi*infreqs)/3. + PhiInspcoeffs['min_third']*(infreqs**(-1./3.)) + PhiInspcoeffs['min_two_thirds']*(infreqs**(-2./3.)) + PhiInspcoeffs['min_one']/infreqs + PhiInspcoeffs['min_four_thirds']*(infreqs**(-4./3.)) + PhiInspcoeffs['min_five_thirds']*(infreqs**(-5./3.)) + (PhiInspcoeffs['one']*infreqs + PhiInspcoeffs['four_thirds']*(infreqs**(4./3.)) + PhiInspcoeffs['five_thirds']*(infreqs**(5./3.)) + PhiInspcoeffs['two']*infreqs*infreqs)/eta, np.where(infreqs<fMRDJoinPh, (beta1*infreqs - beta3/(3.*infreqs*infreqs*infreqs) + beta2*np.log(infreqs))/eta + C1Int + C2Int*infreqs, (-(alpha2/infreqs) + (4.0/3.0) * (alpha3 * (infreqs**(3./4.))) + alpha1 * infreqs + alpha4 * RhoUse * np.arctan((infreqs - alpha5 * fring)/(fdamp * RhoUse * TauUse)))/eta + C1MRDuse + C2MRDuse*infreqs))
- 
         def OnePointFiveSpinPN(infreqs, ChiS, ChiA):
             # PN amplitudes function, needed to scale
             
@@ -762,24 +862,20 @@ class IMRPhenomXPHM(WaveFormModel):
         tmpMf = Map_amPhi * Map_fr + Map_bmPhi
         tmpphaseC = (- PhDBconst + PhDBAterm + completePhase(tmpMf.T, C1MRDHM, C2MRDHM, Rholm, Taulm) / Map_amPhi.T)
         
-        tmpGridShape = len((fgrid*Map_ai + Map_bi).shape)
-                                
-        if len(AmplsAllModes.shape)==3:
-            PhisAllModes = np.where(fgrid < Map_fiPhi, np.moveaxis(completePhase(np.moveaxis((fgrid*Map_ai + Map_bi), tmpGridShape-1, tmpGridShape-2), C1MRDHM, C2MRDHM, Rholm, Taulm), len(AmplsAllModes.shape)-1, len(AmplsAllModes.shape)-2)/Map_ai, np.where(fgrid < Map_fr, np.moveaxis(- PhDBconst + PhDBAterm + completePhase(np.moveaxis((fgrid*Map_amPhi + Map_bmPhi), tmpGridShape-1, tmpGridShape-2), C1MRDHM, C2MRDHM, Rholm, Taulm)/Map_amPhi.T, len(AmplsAllModes.shape)-1, len(AmplsAllModes.shape)-2), np.moveaxis(- PhDCconst + tmpphaseC + completePhase(np.moveaxis((fgrid*Map_arPhi + Map_brPhi), tmpGridShape-1, tmpGridShape-2), C1MRDHM, C2MRDHM, Rholm, Taulm)/Map_arPhi.T, len(AmplsAllModes.shape)-1, len(AmplsAllModes.shape)-2)))
-        else:
-            C1MRDHM, C2MRDHM, Rholm, Taulm = C1MRDHM.T, C2MRDHM.T, Rholm.T, Taulm.T
-            PhDBconst, PhDCconst, PhDBAterm, tmpphaseC = PhDBconst.T, PhDCconst.T, PhDBAterm.T, tmpphaseC.T
-            PhisAllModes = np.where(fgrid < Map_fiPhi, completePhase((fgrid*Map_ai + Map_bi), C1MRDHM, C2MRDHM, Rholm, Taulm)/Map_ai, np.where(fgrid < Map_fr, - PhDBconst + PhDBAterm + completePhase((fgrid*Map_amPhi + Map_bmPhi), C1MRDHM, C2MRDHM, Rholm, Taulm)/Map_amPhi, - PhDCconst + tmpphaseC + completePhase((fgrid*Map_arPhi + Map_brPhi), C1MRDHM, C2MRDHM, Rholm, Taulm)/Map_arPhi))
-        
+                        
+        C1MRDHM, C2MRDHM, Rholm, Taulm = C1MRDHM.T, C2MRDHM.T, Rholm.T, Taulm.T
+        PhDBconst, PhDCconst, PhDBAterm, tmpphaseC = PhDBconst.T, PhDCconst.T, PhDBAterm.T, tmpphaseC.T
+        PhisAllModes = np.where(fgrid < Map_fiPhi, completePhase((fgrid*Map_ai + Map_bi), C1MRDHM, C2MRDHM, Rholm, Taulm)/Map_ai, np.where(fgrid < Map_fr, - PhDBconst + PhDBAterm + completePhase((fgrid*Map_amPhi + Map_bmPhi), C1MRDHM, C2MRDHM, Rholm, Taulm)/Map_amPhi, - PhDCconst + tmpphaseC + completePhase((fgrid*Map_arPhi + Map_brPhi), C1MRDHM, C2MRDHM, Rholm, Taulm)/Map_arPhi))
+    
         # override  #FIXME
         #t0 = np.array([2.6023655427e+02])
 
         # Save PhisAllModes to dat file for debugging (frequency + modes as columns)
-        freqs_flat = fgrid.flatten()
-        n_modes = PhisAllModes.shape[1] if len(PhisAllModes.shape) > 1 else 1
-        phases_2d = PhisAllModes.reshape(-1, n_modes)  # shape: (nfreqs, n_modes)
-        save_data = np.column_stack([freqs_flat, phases_2d])
-        np.savetxt('PhisAllModes_ripple.dat', save_data, header='f 21 22 32 33 43')
+        #freqs_flat = fgrid.flatten()
+        #n_modes = PhisAllModes.shape[1] if len(PhisAllModes.shape) > 1 else 1
+        #phases_2d = PhisAllModes.reshape(-1, n_modes)  # shape: (nfreqs, n_modes)
+        #save_data = np.column_stack([freqs_flat, phases_2d])
+        #np.savetxt('PhisAllModes_ripple.dat', save_data, header='f 21 22 32 33 43')
 
 
         PhisAllModes = PhisAllModes - np.expand_dims(t0, len(t0.shape))*(fgrid - np.expand_dims(fRef, len(fRef.shape))) - mms*np.expand_dims(phi0, len(phi0.shape)) + self.complShiftm[mms]
