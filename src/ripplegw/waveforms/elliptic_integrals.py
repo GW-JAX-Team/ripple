@@ -212,7 +212,7 @@ def gsl_sf_elljac_e(u: float, m: float, max_iter: int = 16):
         k = jnp.sqrt(m)
         (a_final, c_final), (a_arr, c_arr) = jax.lax.scan(
             landen_forward,
-            (1.0, k),
+            (jnp.ones_like(k), k),
             jnp.arange(max_iter)
         )
 
@@ -252,16 +252,14 @@ def gsl_sf_elljac_e(u: float, m: float, max_iter: int = 16):
     is_m_zero = abs_m < 1e-10
     is_m_one = jnp.abs(abs_m - 1.0) < 1e-10
 
-    # Nested conditional: check m=0 first, then m=1, then general
-    def select_result():
-        return jax.lax.cond(
-            is_m_zero,
-            case_m_zero,
-            lambda: jax.lax.cond(
-                is_m_one,
-                case_m_one,
-                case_general
-            )
-        )
+    # Compute all three cases
+    sn_zero, cn_zero, dn_zero = case_m_zero()
+    sn_one, cn_one, dn_one = case_m_one()
+    sn_gen, cn_gen, dn_gen = case_general()
 
-    return select_result()
+    # Select based on m value using nested where
+    sn = jnp.where(is_m_zero, sn_zero, jnp.where(is_m_one, sn_one, sn_gen))
+    cn = jnp.where(is_m_zero, cn_zero, jnp.where(is_m_one, cn_one, cn_gen))
+    dn = jnp.where(is_m_zero, dn_zero, jnp.where(is_m_one, dn_one, dn_gen))
+
+    return sn, cn, dn

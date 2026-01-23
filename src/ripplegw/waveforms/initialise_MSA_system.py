@@ -584,12 +584,13 @@ def IMRPhenomX_Return_Roots_MSA(LNorm, JNorm, pPrec):
     
     vector_condition = jnp.logical_or(jnp.isnan(theta),
                                                    (jnp.isnan(sqrtarg)))
-    scalar_condition = jnp.logical_or.reduce(jnp.array([(pPrec.dotS1Ln == 1.0),
-                                                   (pPrec.dotS2Ln == 1.0),
-                                                   (pPrec.dotS1Ln == -1.0),
-                                                   (pPrec.dotS2Ln == -1.0),
-                                                   (pPrec.S1_norm_2 == 0.0),
-                                                   (pPrec.S2_norm_2 == 0.0)]))
+    scalar_condition = jnp.any(jnp.array([(pPrec.dotS1Ln == 1.0),
+                                       (pPrec.dotS2Ln == 1.0),
+                                       (pPrec.dotS1Ln == -1.0),
+                                       (pPrec.dotS2Ln == -1.0),
+                                       (pPrec.S1_norm_2 == 0.0),
+                                       (pPrec.S2_norm_2 == 0.0)]))
+
     invalid_case = jnp.logical_or(vector_condition, scalar_condition)
 
     def roots_when_valid():

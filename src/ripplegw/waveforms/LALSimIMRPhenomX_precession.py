@@ -283,6 +283,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
     Omegazeta5_coeff: float = field(init=False, default=0.0)
     phiz_0: float = field(init=False, default=0.0)
     zeta_0: float = field(init=False, default=0.0)
+    zeta_polarization: float = field(init=False, default=0.0)
 
 
     def __post_init__(self):
@@ -896,6 +897,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
 
         #Now get the angle zeta
         zeta_polarization = jnp.atan2(XdotQArun, XdotPArun)
+        object.__setattr__(self, 'zeta_polarization', zeta_polarization)
 
         #/* ********** PN Euler Angle Coefficients ********** */
         #/*
@@ -1092,12 +1094,14 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(pPrec, pWF, v):
     object.__setattr__(pPrec, 'S_norm', SNorm)
     object.__setattr__(pPrec, 'S_norm_2', SNorm * SNorm)
 
-    vMSA = jnp.array([0., 0., 0.])
-
     # Compressing line 2245-2249
     vMSA_correction = IMRPhenomX_Return_MSA_Corrections_MSA(v, L_norm, J_norm, pPrec)
     cond = (jnp.abs(pPrec.Smi2 - pPrec.Spl2) > 1.e-5)
-    vMSA = jnp.where(cond, vMSA_correction, vMSA)
+
+    # Create vMSA with zeros matching the shape of vMSA_correction
+    vMSA_zeros = jnp.zeros_like(vMSA_correction)
+    vMSA = jnp.where(cond, vMSA_correction, vMSA_zeros)
+    
     '''
     if(jnp.abs(pPrec.Smi2 - pPrec.Spl2) > 1.e-5):
 
@@ -1203,7 +1207,7 @@ def IMRPhenomX_Return_Roots_MSA(LNorm, JNorm, pPrec):
 
     vector_condition = jnp.logical_or(jnp.isnan(theta),
                                                    (jnp.isnan(sqrtarg)))
-    scalar_condition = jnp.logical_or.reduce(jnp.array([(pPrec.dotS1Ln == 1.0),
+    scalar_condition = jnp.any(jnp.array([(pPrec.dotS1Ln == 1.0),
                                                    (pPrec.dotS2Ln == 1.0),
                                                    (pPrec.dotS1Ln == -1.0),
                                                    (pPrec.dotS2Ln == -1.0),
@@ -1292,6 +1296,7 @@ def IMRPhenomX_Return_SNorm_MSA(v, pPrec):
 
     cancel_condition = jnp.abs(pPrec.Smi2 - pPrec.Spl2) < 1e-5
 
+
     def sn_zero(_):
         sn = jnp.array(0.0)
         return sn
@@ -1299,6 +1304,7 @@ def IMRPhenomX_Return_SNorm_MSA(v, pPrec):
     def sn_jacobi(_):
         # Equation 25 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
         m = (pPrec.Smi2 - pPrec.Spl2) / (pPrec.S32 - pPrec.Spl2)
+
 
         psi = IMRPhenomX_psiofv(
             v, v2,
@@ -1310,7 +1316,7 @@ def IMRPhenomX_Return_SNorm_MSA(v, pPrec):
         sn, cn, dn = gsl_sf_elljac_e(psi, m) # FIXME
         return sn
 
-    sn = jax.lax.cond(cancel_condition, sn_zero, sn_jacobi, operand=None)
+    sn = jnp.where(cancel_condition, 0.0, sn_jacobi(None))
 
     # Equation 23 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
     SNorm2 = pPrec.Spl2 + (pPrec.Smi2 - pPrec.Spl2) * sn * sn
@@ -1407,7 +1413,7 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
     vMSA_x = jnp.where(jnp.isnan(vMSA_x), 0.0, vMSA_x)
     vMSA_y = jnp.where(jnp.isnan(vMSA_y), 0.0, vMSA_y)
 
-    return jnp.array([vMSA_x, vMSA_y, 0.0])
+    return jnp.stack([vMSA_x, vMSA_y, jnp.zeros_like(vMSA_x)], axis=0)
 
 
 
