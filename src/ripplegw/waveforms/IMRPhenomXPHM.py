@@ -1,5 +1,6 @@
 
 import jax
+from jax import jit
 import jax.numpy as jnp
 from jax import vmap
 import numpy as np
@@ -57,100 +58,7 @@ PHI_FIVE_THIRDS = 12
 PHI_TWO = 13
 PHI_NUM_COEFFS = 14 
 
-
-
-def compute_zeta(params: Array):
-
-    zeta = None
-    return zeta
-
-
-
-
-def compute_m2ylm(l: int, m: int, theta_jn: float):
-    """
-    Computes the -2 spin weighted spherical harmonic evaluated at theta = theta_jn, phi = 0.
-    l: l index
-    m: m index
-    theta_jn: theta_jn angle
-    """
-
-    m2ylm = jnp.where(l==2, compute_sminus2_l2(theta_jn, m), 
-                      jnp.where(l==3, compute_sminus2_l3(theta_jn, m), 
-                                jnp.where(l==4, compute_sminus2_l4(theta_jn, m), jnp.nan)
-                                )
-                    )
-
-    return m2ylm
-
-def compute_transfer_function(l: int, m: int, mprime: int, alpha: Array, beta: Array, theta_jn: float):
-
-    ### substitute Atransfer_slow
-
-    pos_wigner_coefficient = compute_wigner_coefficient(l, m, mprime, beta)
-    neg_wigner_coefficient = compute_wigner_coefficient(l, -m, mprime, beta)
-    negative_power = (-1)**(l+m)
-
-
-
-    term_a = jnp.exp(-1j*m*alpha) * pos_wigner_coefficient[0] * compute_m2ylm(l, m, theta_jn)
-
-    term_b = negative_power * jnp.exp(-1j*m*alpha) * pos_wigner_coefficient[1] * compute_m2ylm(l, m, theta_jn)
-
-    term_c = jnp.exp(1j*m*alpha) * neg_wigner_coefficient[0] * compute_m2ylm(l, -m, theta_jn)
-
-    term_d = negative_power * jnp.exp(1j*m*alpha) * neg_wigner_coefficient[1] * compute_m2ylm(l, -m, theta_jn)
-
-    return term_a, term_b, term_c, term_d
-
-
-def compute_wigner_coefficient():
-    return None
-
-
-def compute_twist_factor_plus_cross(l: float, mprime: float, theta_jn: float, alpha: Array, beta: Array, gamma: Array):
-    ### substitute: twist_factor_slow_plus_cross
-
-    def body(m):
-        transfer = compute_transfer_function(l, m, mprime, alpha, beta, theta_jn)
-        term_1 = transfer[1] + transfer[3]
-        term_2 = ((-1) ** l) * jnp.conj(transfer[0] + transfer[2])
-        plus_contrib = term_1 + term_2
-        cross_contrib = term_1 - term_2
-        return plus_contrib, cross_contrib
-
-    # Vectorize over m
-    plus_vals, cross_vals = vmap(body)(jnp.arange(1, l + 1, 1))
-
-    plus_summand = jnp.sum(plus_vals)
-    cross_summand = jnp.sum(cross_vals)
-    
-    wigner_coefficient = compute_wigner_coefficient(l, 0, mprime, beta)
-
-    term_alpha = ((-1)**l) * wigner_coefficient[1] * compute_m2ylm(l, 0, theta_jn)
-    term_beta = ((-1)**l) * wigner_coefficient[0] * compute_m2ylm(l, 0, theta_jn)
-
-
-    plus_summand += term_alpha + term_beta
-    cross_summand += term_alpha - term_beta
-
-    return 0.5*jnp.exp(1*mprime*gamma)*plus_summand, 1j*0.5*jnp.exp(1*mprime*gamma)*cross_summand
-
-
-def compute_c_prefactors(f: Array, params: Array, X: float):
-
-    c_plus_j, c_cross_j =  compute_twist_factor_plus_cross()
-
-    zeta = compute_zeta(params)
-
-    c_plus = jnp.cos(2*zeta)*c_plus_j + jnp.sin(2*zeta)*c_cross_j
-    
-    c_cross = jnp.cos(2*zeta)*c_cross_j - jnp.sin(2*zeta)*c_plus_j
-
-
-    return c_plus, c_cross
-
-
+@jit
 def compute_TF2_coefficients(eta, eta2, Seta, chi_s, chi_a, chi1, chi2,
                               chi1dotchi2, chi12, chi22,
                               m1ByM, m2ByM, QuadMon1, QuadMon2):
@@ -260,7 +168,7 @@ def compute_TF2_coefficients(eta, eta2, Seta, chi_s, chi_a, chi1, chi2,
 
     return TF2coeffs
 
-
+@jit
 def compute_PhiInsp_coefficients(TF2coeffs, TF2OverallAmpl, sigma1, sigma2, sigma3, sigma4):
     """
     Compute inspiral phase coefficients as a JAX array.
@@ -367,7 +275,7 @@ class WaveFormModel(ABC):
         self.fcutPar = fcutPar
         
         # Dictionary containing the order in which the parameters will appear in the Fisher matrix
-        self.ParNums = {'Mc':0, 'eta':1, 'dL':2, 'theta':3, 'phi':4, 'iota':5, 'psi':6, 'tcoal':7, 'Phicoal':8, 'chiS':9,  'chiA':10}
+        self.ParNums = {'chirp_mass':0, 'eta':1, 'dL':2, 'theta':3, 'phi':4, 'iota':5, 'psi':6, 'tcoal':7, 'Phicoal':8, 'chiS':9,  'chiA':10}
         """
         Dictionary containing the number of the rows/columns in which the parameters will appear in the Fisher matrix.
         
@@ -386,14 +294,14 @@ class WaveFormModel(ABC):
         
         if is_newtonian:
             # In the Newtonian case eta and the spins are not included in the Fisher, since they do not enter the signal
-            self.ParNums = {'Mc':0, 'dL':1, 'theta':2, 'phi':3, 'iota':4, 'psi':5, 'tcoal':6, 'Phicoal':7}
+            self.ParNums = {'chirp_mass':0, 'dL':1, 'theta':2, 'phi':3, 'iota':4, 'psi':5, 'tcoal':6, 'Phicoal':7}
             self.nParams = 8
         if (is_Precessing) and (is_tidal):
             if not is_eccentric:
-                self.ParNums = {'Mc':0, 'eta':1, 'dL':2, 'theta':3, 'phi':4, 'iota':5, 'psi':6, 'tcoal':7, 'Phicoal':8, 'chi1z':9,  'chi2z':10, 'chi1x':11, 'chi2x':12, 'chi1y':13, 'chi2y':14, 'LambdaTilde':15, 'deltaLambda':16}
+                self.ParNums = {'chirp_mass':0, 'eta':1, 'dL':2, 'theta':3, 'phi':4, 'iota':5, 'psi':6, 'tcoal':7, 'Phicoal':8, 'chi1z':9,  'chi2z':10, 'chi1x':11, 'chi2x':12, 'chi1y':13, 'chi2y':14, 'LambdaTilde':15, 'deltaLambda':16}
                 self.nParams = 17
             else:
-                self.ParNums = {'Mc':0, 'eta':1, 'dL':2, 'theta':3, 'phi':4, 'iota':5, 'psi':6, 'tcoal':7, 'Phicoal':8, 'chi1z':9,  'chi2z':10, 'chi1x':11, 'chi2x':12, 'chi1y':13, 'chi2y':14, 'LambdaTilde':15, 'deltaLambda':16, 'ecc':17}
+                self.ParNums = {'chirp_mass':0, 'eta':1, 'dL':2, 'theta':3, 'phi':4, 'iota':5, 'psi':6, 'tcoal':7, 'Phicoal':8, 'chi1z':9,  'chi2z':10, 'chi1x':11, 'chi2x':12, 'chi1y':13, 'chi2y':14, 'LambdaTilde':15, 'deltaLambda':16, 'ecc':17}
                 self.nParams = 18
         elif (is_tidal) and (not is_Precessing):
             # Note that the Fisher is computed for LabdaTilde and deltaLambda, but the waveforms accept as input only Lambda1 and Lambda2
@@ -406,10 +314,10 @@ class WaveFormModel(ABC):
                 self.nParams = 14
         elif (not is_tidal) and (is_Precessing):
             if not is_eccentric:
-                self.ParNums = {'Mc':0, 'eta':1, 'dL':2, 'theta':3, 'phi':4, 'iota':5, 'psi':6, 'tcoal':7, 'Phicoal':8, 'chi1z':9,  'chi2z':10, 'chi1x':11, 'chi2x':12, 'chi1y':13, 'chi2y':14}
+                self.ParNums = {'chirp_mass':0, 'eta':1, 'dL':2, 'theta':3, 'phi':4, 'iota':5, 'psi':6, 'tcoal':7, 'Phicoal':8, 'chi1z':9,  'chi2z':10, 'chi1x':11, 'chi2x':12, 'chi1y':13, 'chi2y':14}
                 self.nParams = 15
             else:
-                self.ParNums = {'Mc':0, 'eta':1, 'dL':2, 'theta':3, 'phi':4, 'iota':5, 'psi':6, 'tcoal':7, 'Phicoal':8, 'chi1z':9,  'chi2z':10, 'chi1x':11, 'chi2x':12, 'chi1y':13, 'chi2y':14, 'ecc':15}
+                self.ParNums = {'chirp_mass':0, 'eta':1, 'dL':2, 'theta':3, 'phi':4, 'iota':5, 'psi':6, 'tcoal':7, 'Phicoal':8, 'chi1z':9,  'chi2z':10, 'chi1x':11, 'chi2x':12, 'chi1y':13, 'chi2y':14, 'ecc':15}
                 self.nParams = 16
         elif (not is_tidal) and (not is_Precessing) and (is_eccentric):
             self.ParNums['ecc']=11
@@ -477,7 +385,7 @@ class WaveFormModel(ABC):
         :rtype: array
         
         """
-        return 2.18567 * ((1.21/kwargs['Mc'])**(5./3.)) * ((100/f)**(8./3.))
+        return 2.18567 * ((1.21/kwargs['chirp_mass'])**(5./3.)) * ((100/f)**(8./3.))
     
     def fcut(self, **kwargs):
         """
@@ -488,7 +396,7 @@ class WaveFormModel(ABC):
         :rtype: array
         
         """
-        return self.fcutPar/(kwargs['Mc']/(kwargs['eta']**(3./5.)))
+        return self.fcutPar/(kwargs['chirp_mass']/(kwargs['eta']**(3./5.)))
 
 
 class IMRPhenomXPHM(WaveFormModel):
@@ -546,15 +454,15 @@ class IMRPhenomXPHM(WaveFormModel):
         
         """
         # This function retuns directly the full plus and cross polarisations, avoiding for loops over the modes
-        M = kwargs['Mc']/(kwargs['eta']**(3./5.))
+        total_mass = kwargs['chirp_mass']/(kwargs['eta']**(3./5.))
         mass_ratio = symmetric_mass_ratio_to_mass_ratio(kwargs['eta'])
-        mass_1, mass_2 = chirp_mass_and_mass_ratio_to_component_masses(kwargs['Mc'], mass_ratio)
+        mass_1, mass_2 = chirp_mass_and_mass_ratio_to_component_masses(kwargs['chirp_mass'], mass_ratio)
         eta = kwargs['eta']
         eta2 = eta*eta # These can speed up a bit, we call them multiple times
         etaInv = 1./eta
         chi1, chi2 = kwargs['chi1z'], kwargs['chi2z']
         iota = kwargs['iota']
-        QuadMon1, QuadMon2 = jnp.ones(M.shape), jnp.ones(M.shape)
+        QuadMon1, QuadMon2 = jnp.ones(total_mass.shape), jnp.ones(total_mass.shape)
         
         chi12, chi22 = chi1*chi1, chi2*chi2
         chi1dotchi2  = chi1*chi2
@@ -571,11 +479,11 @@ class IMRPhenomXPHM(WaveFormModel):
         m1ByM = 0.5 * (1.0 + Seta)
         m2ByM = 0.5 * (1.0 - Seta)
         # We work in dimensionless frequency M*f, not f
-        fgrid = M*MTSUN_SI*f
+        fgrid = total_mass*MTSUN_SI*f
         # This is MfRef, needed to recover LAL, which sets fRef to f_min if fRef=0
         fRef  = jnp.amin(fgrid, axis=0)
         #if self.fRef is not None
-        fRef = M*MTSUN_SI*self.fRef
+        fRef = total_mass*MTSUN_SI*self.fRef
         # As in arXiv:1508.07253 eq. (4) and LALSimIMRPhenomD_internals.c line 97
         chiPN = (chi_s * (1.0 - eta * 76.0 / 113.0) + Seta * chi_a)
         xi = - 1.0 + chiPN
@@ -587,7 +495,7 @@ class IMRPhenomXPHM(WaveFormModel):
         # Compute the real and imag parts of the complex ringdown frequency for the (l,m) mode as in LALSimIMRPhenomHM.c line 189
         # These are all fits of the different modes. We directly exploit the fact that the relevant HM in this WF are 6
         #modes = jnp.array([21,22,32,33,43,44]) #
-        modes = jnp.array([21,22,32,33,44])
+        modes = jnp.array([21, 22, 32, 33, 44])
         
         
         ells = jnp.floor(modes/10).astype(jnp.int32)
@@ -779,7 +687,7 @@ class IMRPhenomXPHM(WaveFormModel):
         # Defined as in LALSimulation - LALSimIMRPhenomUtils.c line 70. Final units are correctly Hz^-1
         # there is a 2 * sqrt(5/(64*pi)) missing w.r.t the standard coefficient, which comes from the (2,2) shperical harmonic
 
-        Overallamp = M * GMsun_over_c2_Gpc * M * MTSUN_SI / kwargs['dL']
+        Overallamp = total_mass * GMsun_over_c2_Gpc * total_mass * MTSUN_SI / kwargs['dL']
         
         def completeAmpl(infreqs):
             return Overallamp*amp0*(infreqs**(-7./6.))*jnp.where(infreqs < self.AMP_fJoin_INS, 1. + (infreqs**(2./3.))*Acoeffs['two_thirds'] + (infreqs**(4./3.)) * Acoeffs['four_thirds'] + (infreqs**(5./3.)) *  Acoeffs['five_thirds'] + (infreqs**(7./3.)) * Acoeffs['seven_thirds'] + (infreqs**(8./3.)) * Acoeffs['eight_thirds'] + infreqs * (Acoeffs['one'] + infreqs * Acoeffs['two'] + infreqs*infreqs * Acoeffs['three']), jnp.where(infreqs < fpeak, delta0 + infreqs*delta1 + infreqs*infreqs*(delta2 + infreqs*delta3 + infreqs*infreqs*delta4), jnp.where(infreqs < self.fcutPar,jnp.exp(-(infreqs - fring)*gamma2/(fdamp*gamma3))* (fdamp*gamma3*gamma1) / ((infreqs - fring)*(infreqs - fring) + fdamp*gamma3*fdamp*gamma3), 0.)))
@@ -1083,7 +991,7 @@ class IMRPhenomXPHM(WaveFormModel):
         :rtype: array
         
         """
-        Mtot_sec = kwargs['Mc']*MTSUN_SI/(kwargs['eta']**(3./5.))
+        Mtot_sec = kwargs['chirp_mass']*MTSUN_SI/(kwargs['eta']**(3./5.))
         v = (jnp.pi*Mtot_sec*f)**(1./3.)
         eta  = kwargs['eta']
         eta2 = eta*eta
@@ -1105,7 +1013,7 @@ class IMRPhenomXPHM(WaveFormModel):
         :rtype: array
         
         """
-        return self.fcutPar/(kwargs['Mc']*MTSUN_SI/(kwargs['eta']**(3./5.)))
+        return self.fcutPar/(kwargs['chirp_mass']*MTSUN_SI/(kwargs['eta']**(3./5.)))
 
 
 
@@ -1244,11 +1152,11 @@ class IMRPhenomXPHM(WaveFormModel):
         f = jnp.arange(minimum_frequency, maximum_frequency, 1/duration)
         Mf = XLALSimIMRPhenomXUtilsHztoMf(f, m1+m2)
 
-        Mc = component_masses_to_chirp_mass(m1, m2)
+        chirp_mass = component_masses_to_chirp_mass(m1, m2)
         eta = m1 * m2 / jnp.power(m1+m2, 2)
 
         hlm = self.hphc(f,
-                         Mc = Mc,
+                         chirp_mass = chirp_mass,
                          eta = eta,
                          dL = distance,
                          theta = None,
