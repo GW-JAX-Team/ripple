@@ -417,7 +417,7 @@ class IMRPhenomXPHM(WaveFormModel):
         
     """
     # All is taken from LALSimulation and arXiv:1508.07250, arXiv:1508.07253, arXiv:1708.00404, arXiv:1909.10010
-    def __init__(self, fRef=None, **kwargs):
+    def __init__(self, reference_frequency=None, **kwargs):
         """
         Constructor method
         """
@@ -428,7 +428,7 @@ class IMRPhenomXPHM(WaveFormModel):
         # Dimensionless frequency (Mf) at which we define the end of the waveform
         fcutPar = 0.2
         
-        self.fRef = fRef
+        self.reference_frequency = reference_frequency
         
         super().__init__('BBH', fcutPar, is_HigherModes=True, **kwargs)
         
@@ -459,7 +459,6 @@ class IMRPhenomXPHM(WaveFormModel):
         mass_1, mass_2 = chirp_mass_and_mass_ratio_to_component_masses(kwargs['chirp_mass'], mass_ratio)
         eta = kwargs['eta']
         eta2 = eta*eta # These can speed up a bit, we call them multiple times
-        etaInv = 1./eta
         chi1, chi2 = kwargs['chi1z'], kwargs['chi2z']
         iota = kwargs['iota']
         QuadMon1, QuadMon2 = jnp.ones(total_mass.shape), jnp.ones(total_mass.shape)
@@ -471,19 +470,17 @@ class IMRPhenomXPHM(WaveFormModel):
         SetaPlus1 = 1.0 + Seta
         chi_s = 0.5 * (chi1 + chi2)
         chi_a = 0.5 * (chi1 - chi2)
-        q = 0.5*(1.0 + Seta - 2.0*eta)/eta
-        chi_s2, chi_a2 = chi_s*chi_s, chi_a*chi_a
         chi1dotchi2    = chi1*chi2
-        chi_sdotchi_a  = chi_s*chi_a
-        # These are m1/Mtot and m2/Mtot
+
+        # These are mass_1/total_mass and mass_2/total_mass
         m1ByM = 0.5 * (1.0 + Seta)
         m2ByM = 0.5 * (1.0 - Seta)
         # We work in dimensionless frequency M*f, not f
         fgrid = total_mass*MTSUN_SI*f
         # This is MfRef, needed to recover LAL, which sets fRef to f_min if fRef=0
-        fRef  = jnp.amin(fgrid, axis=0)
-        #if self.fRef is not None
-        fRef = total_mass*MTSUN_SI*self.fRef
+        reference_frequency  = jnp.amin(fgrid, axis=0)
+        #if self.reference_frequency is not None
+        reference_frequency = total_mass*MTSUN_SI*self.reference_frequency
         # As in arXiv:1508.07253 eq. (4) and LALSimIMRPhenomD_internals.c line 97
         chiPN = (chi_s * (1.0 - eta * 76.0 / 113.0) + Seta * chi_a)
         xi = - 1.0 + chiPN
@@ -780,7 +777,7 @@ class IMRPhenomXPHM(WaveFormModel):
         #t0 = (alpha1 + alpha2/(fpeak_phenomD*fpeak_phenomD) + alpha3/(fpeak_phenomD**(1./4.)) + alpha4/(fdamp_phenomD*(1. + (fpeak_phenomD - alpha5*fring_phenomD)*(fpeak_phenomD - alpha5*fring_phenomD)/(fdamp_phenomD*fdamp_phenomD))))/eta
 
 
-        phiRef = completePhase(fRef, C1MRD, C2MRD, 1., 1.) # Matches exactly with lalsimulation
+        phiRef = completePhase(reference_frequency, C1MRD, C2MRD, 1., 1.) # Matches exactly with lalsimulation
         phi0   = 0.5*phiRef #+ kwargs['Phicoal']
         #FIXME Need to swtich on kwargs['Phicoal'] at some point
         
@@ -867,7 +864,7 @@ class IMRPhenomXPHM(WaveFormModel):
         #np.savetxt('PhisAllModes_ripple.dat', save_data, header='f 21 22 32 33 43')
 
 
-        PhisAllModes = PhisAllModes - jnp.expand_dims(t0, len(t0.shape))*(fgrid - jnp.expand_dims(fRef, len(fRef.shape))) - mms*jnp.expand_dims(phi0, len(phi0.shape)) + self.complShiftm[mms]
+        PhisAllModes = PhisAllModes - jnp.expand_dims(t0, len(t0.shape))*(fgrid - jnp.expand_dims(reference_frequency, len(reference_frequency.shape))) - mms*jnp.expand_dims(phi0, len(phi0.shape)) + self.complShiftm[mms]
 
         #print(f"ripple debug t0 value {t0}")
         #print(f"ripple debug phi0 {phi0}")
