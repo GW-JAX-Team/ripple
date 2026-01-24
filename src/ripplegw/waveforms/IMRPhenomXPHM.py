@@ -1816,7 +1816,7 @@ def hphc(frequency_array, chirp_mass, eta, chi1x, chi1y, chi1z, chi2x, chi2y, ch
     """
     Compute the plus and cross polarisations of the GW as a function of frequency, given the events parameters, avoiding for loops over the modes.
     
-    :param array f: Frequency grid on which the phase will be computed, in :math:`\\rm Hz`.
+    :param array frequency_array: Frequency grid on which the phase will be computed, in :math:`\\rm Hz`.
     :param dict(array, array, ...) kwargs: Dictionary with arrays containing the parameters of the events to compute the phase of, as in :py:data:`events`.
     :return: Plus and cross polarisations of the GW for the chosen events evaluated on the frequency grid.
     :rtype: tuple(array, array)
