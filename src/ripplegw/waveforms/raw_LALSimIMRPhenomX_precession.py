@@ -1,7 +1,7 @@
 import jax.numpy as jnp
 import math
 from ..typing import Array
-from ..constants import G, MSUN, C, MTSUN_SI, GAMMA
+from ..constants import G, MSUN, C, MTSUN, GAMMA
 import jax
 from .spherical_harmonics import *
 from .IMRPhenomXPHM_utils import *
@@ -1237,7 +1237,7 @@ def IMRPhenomX_PNR_GetAndSetCoPrecParams(*args):
 
 
 def XLALSimIMRPhenomXUtilsMftoHz(Mf, Mtot_Msun):
-    return Mf / (MTSUN_SI*Mtot_Msun)
+    return Mf / (MTSUN*Mtot_Msun)
 
 
 
@@ -1513,7 +1513,7 @@ def XLALSimIMRPhenomXUtilsHztoMf(fHz: float, Mtot_Msun: float) -> float:
     Returns:
         float: Frequency in dimensionless units
     """
-    return fHz * (MTSUN_SI * Mtot_Msun)
+    return fHz * (MTSUN * Mtot_Msun)
 
 def evaluate_QNMfit_fring21(finalDimlessSpin: float) -> float:
     """

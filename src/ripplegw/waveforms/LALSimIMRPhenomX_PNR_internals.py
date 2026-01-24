@@ -1,6 +1,6 @@
 import jax.numpy as jnp
 import jax
-from ..constants import MTSUN_SI
+from ..constants import MTSUN
 from .initialise_MSA_system import IMRPhenomX_Initialize_MSA_System
 jax.config.update("jax_enable_x64", True)
 
@@ -438,10 +438,10 @@ def IMRPhenomX_PNR_CheckTwoSpin(pPrec: dict) -> bool:
 def XLALSimPhenomUtilsHztoMf(fHz: float, Mtot: float) -> float:
     """Stub: Convert Hz to dimensionless frequency"""
     # Implementation needed - likely similar to XLALSimIMRPhenomXUtilsHztoMf
-    return fHz * (MTSUN_SI * Mtot)
+    return fHz * (MTSUN * Mtot)
 
 def XLALSimPhenomUtilsMftoHz(Mf: float, Mtot: float) -> float:
-    return Mf / (MTSUN_SI * Mtot)
+    return Mf / (MTSUN * Mtot)
 
 
 

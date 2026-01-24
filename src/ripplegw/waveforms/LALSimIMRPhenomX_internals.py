@@ -7,7 +7,7 @@ IMRPhenomX waveform model, converted from the LALSimulation C code to JAX.
 import jax
 import jax.numpy as jnp
 from typing import Dict, Any, Optional
-from ..constants import MSUN, MRSUN, MTSUN_SI, PI
+from ..constants import MSUN, MRSUN, MTSUN, PI
 from .LALSimIMRPhenomX_PNR_internals import (
     XLALSimIMRPhenomXchiEff,
     XLALSimIMRPhenomXSTotR,
@@ -358,7 +358,7 @@ def IMRPhenomXSetWaveformVariables(
     wf['Mtot'] = m1 + m2
     wf['m1'] = m1 / wf['Mtot']
     wf['m2'] = m2 / wf['Mtot']
-    wf['M_sec'] = wf['Mtot'] * MTSUN_SI
+    wf['M_sec'] = wf['Mtot'] * MTSUN
     wf['delta'] = delta
 
     wf['eta2'] = eta * eta
@@ -447,7 +447,7 @@ def IMRPhenomXSetWaveformVariables(
     wf['inclination'] = inclination
 
     # Amplitude normalization
-    wf['amp0'] = wf['Mtot'] * MRSUN * wf['Mtot'] * MTSUN_SI / wf['distance']
+    wf['amp0'] = wf['Mtot'] * MRSUN * wf['Mtot'] * MTSUN / wf['distance']
     wf['ampNorm'] = jnp.sqrt(2.0 / 3.0) * jnp.sqrt(wf['eta']) * (PI ** (-1.0 / 6.0))
 
     # Phase normalization

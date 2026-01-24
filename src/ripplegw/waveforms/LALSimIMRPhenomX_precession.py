@@ -2,7 +2,7 @@ import jax.numpy as jnp
 import math
 from typing import Any
 from ..typing import Array
-from ..constants import G, MSUN, C, MTSUN_SI, GAMMA
+from ..constants import G, MSUN, C, MTSUN, GAMMA
 import jax
 from .spherical_harmonics import *
 from .IMRPhenomXPHM_utils import *
@@ -1750,9 +1750,7 @@ def XLALSimIMRPhenomXUtilsHztoMf(fHz: float, Mtot_Msun: float) -> float:
     float
         Geometric frequency Mf
     """
-    # Mtot in seconds = Mtot_Msun * MTSUN_SI
-    MTSUN_SI = 4.925491025543575903411922162094833998e-6  # seconds
-    return fHz * Mtot_Msun * MTSUN_SI
+    return fHz * Mtot_Msun * MTSUN
 
 
 def XLALSimIMRPhenomXUtilsMftoHz(Mf: float, Mtot_Msun: float) -> float:
@@ -1771,8 +1769,7 @@ def XLALSimIMRPhenomXUtilsMftoHz(Mf: float, Mtot_Msun: float) -> float:
     float
         Frequency in Hz
     """
-    MTSUN_SI = 4.925491025543575903411922162094833998e-6  # seconds
-    return Mf / (Mtot_Msun * MTSUN_SI)
+    return Mf / (Mtot_Msun * MTSUN)
 
 
 def check_kerr_bound(pnr_use_tuned_angles, pnr_single_spin, chi1_norm, chi2_norm):

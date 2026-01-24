@@ -1,7 +1,7 @@
 
 import jax.numpy as jnp
 import jax
-from ..constants import MTSUN_SI, GAMMA
+from ..constants import MTSUN, GAMMA
 from .elliptic_integrals import ellint_F
 
 #/** This function initializes all the core variables required for the MSA system. This will be called first. */
