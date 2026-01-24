@@ -415,6 +415,83 @@ def compute_gamma_coefficients(
 
 
 @jit
+def compute_rho_coefficients(
+    eta: Array,
+    eta2: Array,
+    xi: Array,
+) -> tuple[Array, Array, Array]:
+    """
+    Compute rho coefficients for the intermediate amplitude.
+
+    These coefficients appear in arXiv:1508.07253 eq. (30), with numerical
+    values from Table 5. They parameterize the intermediate amplitude region.
+
+    Parameters
+    ----------
+    eta : Array
+        Symmetric mass ratio.
+    eta2 : Array
+        Symmetric mass ratio squared.
+    xi : Array
+        Spin parameter, defined as xi = -1 + chiPN.
+
+    Returns
+    -------
+    rho1 : Array
+        First rho coefficient.
+    rho2 : Array
+        Second rho coefficient.
+    rho3 : Array
+        Third rho coefficient.
+    """
+    xi2 = xi * xi
+
+    rho1 = (
+        3931.8979897196696
+        - 17395.758706812805 * eta
+        + (3132.375545898835
+           + 343965.86092361377 * eta
+           - 1.2162565819981997e6 * eta2
+           + (-70698.00600428853
+              + 1.383907177859705e6 * eta
+              - 3.9662761890979446e6 * eta2) * xi
+           + (-60017.52423652596
+              + 803515.1181825735 * eta
+              - 2.091710365941658e6 * eta2) * xi2) * xi
+    )
+
+    rho2 = (
+        -40105.47653771657
+        + 112253.0169706701 * eta
+        + (23561.696065836168
+           - 3.476180699403351e6 * eta
+           + 1.137593670849482e7 * eta2
+           + (754313.1127166454
+              - 1.308476044625268e7 * eta
+              + 3.6444584853928134e7 * eta2) * xi
+           + (596226.612472288
+              - 7.4277901143564405e6 * eta
+              + 1.8928977514040343e7 * eta2) * xi2) * xi
+    )
+
+    rho3 = (
+        83208.35471266537
+        - 191237.7264145924 * eta
+        + (-210916.2454782992
+           + 8.71797508352568e6 * eta
+           - 2.6914942420669552e7 * eta2
+           + (-1.9889806527362722e6
+              + 3.0888029960154563e7 * eta
+              - 8.390870279256162e7 * eta2) * xi
+           + (-1.4535031953446497e6
+              + 1.7063528990822166e7 * eta
+              - 4.2748659731120914e7 * eta2) * xi2) * xi
+    )
+
+    return rho1, rho2, rho3
+
+
+@jit
 def compute_TF2_coefficients(eta, eta2, Seta, chi_s, chi_a, chi1, chi2,
                               chi1dotchi2, chi12, chi22,
                               m1ByM, m2ByM, QuadMon1, QuadMon2):
@@ -1162,9 +1239,7 @@ class IMRPhenomXPHM(WaveFormModel):
 
 
         # Compute coefficients rho appearing in arXiv:1508.07253 eq. (30), the numerical coefficients are in Tab. 5
-        rho1 = 3931.8979897196696 - 17395.758706812805*eta + (3132.375545898835 + 343965.86092361377*eta - 1.2162565819981997e6*eta2 + (-70698.00600428853 + 1.383907177859705e6*eta - 3.9662761890979446e6*eta2)*xi + (-60017.52423652596 + 803515.1181825735*eta - 2.091710365941658e6*eta2)*xi*xi)*xi
-        rho2 = -40105.47653771657 + 112253.0169706701*eta + (23561.696065836168 - 3.476180699403351e6*eta + 1.137593670849482e7*eta2 + (754313.1127166454 - 1.308476044625268e7*eta + 3.6444584853928134e7*eta2)*xi + (596226.612472288 - 7.4277901143564405e6*eta + 1.8928977514040343e7*eta2)*xi*xi)*xi
-        rho3 = 83208.35471266537 - 191237.7264145924*eta + (-210916.2454782992 + 8.71797508352568e6*eta - 2.6914942420669552e7*eta2 + (-1.9889806527362722e6 + 3.0888029960154563e7*eta - 8.390870279256162e7*eta2)*xi + (-1.4535031953446497e6 + 1.7063528990822166e7*eta - 4.2748659731120914e7*eta2)*xi*xi)*xi
+        rho1, rho2, rho3 = compute_rho_coefficients(eta, eta2, xi)
         # Compute coefficients delta appearing in arXiv:1508.07253 eq. (21)
         f1Interm = self.AMP_fJoin_INS
         f3Interm = fpeak
