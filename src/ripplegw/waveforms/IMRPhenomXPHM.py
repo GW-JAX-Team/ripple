@@ -1811,7 +1811,7 @@ def compute_full_amplitude(
 
 
 
-
+@jit
 def hphc(frequency_array, chirp_mass, eta, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, iota, luminosity_distance, initial_phase, reference_frequency):
     """
     Compute the plus and cross polarisations of the GW as a function of frequency, given the events parameters, avoiding for loops over the modes.
@@ -1823,7 +1823,7 @@ def hphc(frequency_array, chirp_mass, eta, chi1x, chi1y, chi1z, chi2x, chi2y, ch
     
     """
     fcutPar = 0.2
-    complShiftm = np.array([0., jnp.pi*0.5, 0., -jnp.pi*0.5, jnp.pi, jnp.pi*0.5, 0.])
+    complShiftm = jnp.array([0., jnp.pi*0.5, 0., -jnp.pi*0.5, jnp.pi, jnp.pi*0.5, 0.])
     # Dimensionless frequency (Mf) at which the inspiral amplitude switches to the intermediate amplitude
     AMP_fJoin_INS = 0.014
     # Dimensionless frequency (Mf) at which the inspiral phase switches to the intermediate phase
@@ -1857,7 +1857,7 @@ def hphc(frequency_array, chirp_mass, eta, chi1x, chi1y, chi1z, chi2x, chi2y, ch
     fgrid = total_mass*MTSUN_SI*frequency_array
     # This is MfRef, needed to recover LAL, which sets fRef to f_min if fRef=0
     #reference_frequency  = jnp.amin(fgrid, axis=0)
-    #if self.reference_frequency is not None
+
     reference_frequency = total_mass*MTSUN_SI*reference_frequency
     # As in arXiv:1508.07253 eq. (4) and LALSimIMRPhenomD_internals.c line 97
     chiPN = (chi_s * (1.0 - eta * 76.0 / 113.0) + Seta * chi_a)
@@ -1969,7 +1969,7 @@ def hphc(frequency_array, chirp_mass, eta, chi1x, chi1y, chi1z, chi2x, chi2y, ch
     dfInterm = 0.5*(f3Interm - f1Interm)
     f2Interm = f1Interm + dfInterm
     # Compute inspiral amplitude coefficients as a JAX array (JIT-compatible)
-    amp0 = jnp.sqrt(2.0*eta/3.0)*(np.pi**(-1./6.))
+    amp0 = jnp.sqrt(2.0*eta/3.0)*(jnp.pi**(-1./6.))
     Acoeffs = compute_Acoeffs(eta, eta2, Seta, SetaPlus1, chi1, chi2, chi12, chi22, rho1, rho2, rho3)
     # v1 is the inspiral model evaluated at f1Interm
     v1 = compute_v1(f1Interm, Acoeffs)
@@ -2117,7 +2117,7 @@ def hphc(frequency_array, chirp_mass, eta, chi1x, chi1y, chi1z, chi2x, chi2y, ch
 
     #print(f"ripple debug t0 value {t0}")
     #print(f"ripple debug phi0 {phi0}")
-    #print(f"ripple debug self.complShiftm[mms] {self.complShiftm[mms]}")
+
 
 
     modes = jnp.expand_dims(modes, len(modes.shape))
