@@ -1,4 +1,5 @@
 import lalsimulation as lalsim
+import jax
 import jax.numpy as jnp
 import numpy as np
 from ripplegw.constants import C, MSUN
@@ -7,15 +8,9 @@ import matplotlib.pyplot as plt
 from ripplegw.waveforms import IMRPhenomXPHM
 import bilby
 from utils import GPSt_to_LMST
-
+print("Device", jax.devices())
 
 def compute_overlap(frequency_series_1, frequency_series_2, df):
-
-
-
-    prefactor = 4.0/df
-
-
 
     norm1 = np.sum(frequency_series_1*np.conj(frequency_series_1))**0.5
     norm2 = np.sum(frequency_series_2*np.conj(frequency_series_2))**0.5
@@ -31,7 +26,7 @@ injection_parameters['m1_SI'] = injection_parameters['m1'] * MSUN
 injection_parameters['m2_SI'] = injection_parameters['m2'] * MSUN
 
 
-injection_parameters['Mc'] = bilby.gw.conversion.component_masses_to_chirp_mass(injection_parameters['m1'], 
+injection_parameters['chirp_mass'] = bilby.gw.conversion.component_masses_to_chirp_mass(injection_parameters['m1'], 
                                                                                 injection_parameters['m2'])
 
 injection_parameters['distance'] = np.array([0.001]) # In GPc
@@ -108,7 +103,7 @@ lal_hp_xphm, lal_hc_xphm = lalsim.SimIMRPhenomXPHM(injection_parameters['m1_SI']
 ###### jax code
 run_jim = True
 tGPS = 3600
-model = IMRPhenomXPHM.IMRPhenomXPHM(fRef = reference_frequency, apply_fcut = True)
+model = IMRPhenomXPHM.IMRPhenomXPHM(apply_fcut = True, reference_frequency=reference_frequency)
 
 if run_jim:
 
@@ -189,22 +184,20 @@ if run_jim:
     
 
 # Convert all parameters to JAX arrays to avoid type mixing issues
-
-hlm = model.hphc(f = f,
-                        Mc = injection_parameters['Mc'],
-                        eta = injection_parameters['eta'],
-                        dL = injection_parameters['distance'],
-                        theta = injection_parameters['theta'],
-                        phi = injection_parameters['phi'],
-                        iota = injection_parameters['iota'],
-                        tcoal = np.array([GPSt_to_LMST(tGPS, lat=0.,   long=0.)]),
-                        Phicoal = injection_parameters['Phicoal'],
-                        chi1x = injection_parameters['chi1x'],
-                        chi1y = injection_parameters['chi1y'],
-                        chi1z = injection_parameters['chi1z'],
-                        chi2x = injection_parameters['chi2x'],
-                        chi2y = injection_parameters['chi2y'],
-                        chi2z = injection_parameters['chi2z'],
+print('\n Calling the hphc directly')
+hlm = IMRPhenomXPHM.hphc(frequency_array = jnp.arange(minimum_frequency, maximum_frequency, df),
+                        chirp_mass = injection_parameters['chirp_mass'][0],
+                        eta = injection_parameters['eta'][0],
+                        chi1x = injection_parameters['chi1x'][0],
+                        chi1y = injection_parameters['chi1y'][0],
+                        chi1z = injection_parameters['chi1z'][0],
+                        chi2x = injection_parameters['chi2x'][0],
+                        chi2y = injection_parameters['chi2y'][0],
+                        chi2z = injection_parameters['chi2z'][0],
+                        luminosity_distance= injection_parameters['distance'][0],
+                        iota = injection_parameters['iota'][0],
+                        initial_phase= injection_parameters['Phicoal'][0],
+                        reference_frequency = reference_frequency
                         )
 
 # Save each mode of hlm to separate files
