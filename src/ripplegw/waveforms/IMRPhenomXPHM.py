@@ -1836,7 +1836,7 @@ class WaveFormModel(ABC):
         # The kind of system the wf model is made for, can be 'BBH', 'BNS' or 'NSBH'
         self.objType = objType 
         # The cut frequency factor of the waveform, in Hz, to be divided by Mtot (in units of Msun). The method fcut can be redefined, as e.g. in the IMRPhenomD implementation, and fcutPar can be passed as an adimensional frequency (Mf)
-        self.fcutPar = fcutPar
+        fcutPar = fcutPar
         
         # Dictionary containing the order in which the parameters will appear in the Fisher matrix
         self.ParNums = {'chirp_mass':0, 'eta':1, 'dL':2, 'theta':3, 'phi':4, 'iota':5, 'psi':6, 'tcoal':7, 'Phicoal':8, 'chiS':9,  'chiA':10}
@@ -1960,7 +1960,7 @@ class WaveFormModel(ABC):
         :rtype: array
         
         """
-        return self.fcutPar/(kwargs['chirp_mass']/(kwargs['eta']**(3./5.)))
+        return fcutPar/(kwargs['chirp_mass']/(kwargs['eta']**(3./5.)))
 
 
 class IMRPhenomXPHM(WaveFormModel):
@@ -1992,7 +1992,6 @@ class IMRPhenomXPHM(WaveFormModel):
         # Dimensionless frequency (Mf) at which we define the end of the waveform
         fcutPar = 0.2
         
-        self.reference_frequency = reference_frequency
         
         super().__init__('BBH', fcutPar, is_HigherModes=True, **kwargs)
         
@@ -2017,6 +2016,7 @@ class IMRPhenomXPHM(WaveFormModel):
         :rtype: tuple(array, array)
         
         """
+        fcutPar = 0.2
         # This function retuns directly the full plus and cross polarisations, avoiding for loops over the modes
         total_mass = chirp_mass/(eta**(3./5.))
         mass_ratio = symmetric_mass_ratio_to_mass_ratio(eta)
@@ -2190,7 +2190,7 @@ class IMRPhenomXPHM(WaveFormModel):
                                     beta1, beta2, beta3, C1Int, C2Int,
                                     alpha1, alpha2, alpha3, alpha4, alpha5,
                                     fringlm[1], fdamplm[1], fMRDJoinPh,
-                                    self.PHI_fJoin_INS, self.fcutPar,
+                                    self.PHI_fJoin_INS, fcutPar,
                                     C1MRD, C2MRD, 1, 1)
 
         #phiRef = completePhase(reference_frequency, C1MRD, C2MRD, 1., 1.) # Matches exactly with lalsimulation
@@ -2256,7 +2256,7 @@ class IMRPhenomXPHM(WaveFormModel):
                                                 fpeak,
                                                 delta0, delta1, delta2, delta3, delta4,
                                                 fringlm[1], fdamplm[1], gamma1, gamma2, gamma3,
-                                                self.AMP_fJoin_INS, self.fcutPar)
+                                                self.AMP_fJoin_INS, fcutPar)
         
         AmplsAllModes = jnp.nan_to_num(full_amplitude * (beta_term1 / beta_term2) * HMamp_term1 / HMamp_term2)
         
@@ -2271,7 +2271,7 @@ class IMRPhenomXPHM(WaveFormModel):
             beta1, beta2, beta3, C1Int, C2Int,
             alpha1, alpha2, alpha3, alpha4, alpha5,
             fringlm[1], fdamplm[1], fMRDJoinPh,
-            self.PHI_fJoin_INS, self.fcutPar,
+            self.PHI_fJoin_INS, fcutPar,
             C1MRDHM, C2MRDHM, Rholm, Taulm,
             Map_ai, Map_bi, Map_amPhi, Map_bmPhi,
             Map_arPhi, Map_brPhi, Map_fiPhi, Map_fr
@@ -2284,7 +2284,7 @@ class IMRPhenomXPHM(WaveFormModel):
             beta1, beta2, beta3, C1Int, C2Int,
             alpha1, alpha2, alpha3, alpha4, alpha5,
             fringlm[1], fdamplm[1], fMRDJoinPh,
-            self.PHI_fJoin_INS, self.fcutPar,
+            self.PHI_fJoin_INS, fcutPar,
             C1MRDHM, C2MRDHM, Rholm, Taulm,
             Map_ai, Map_bi, Map_amPhi, Map_bmPhi,
             Map_arPhi, Map_brPhi, Map_fiPhi, Map_fr,
@@ -2449,13 +2449,13 @@ class IMRPhenomXPHM(WaveFormModel):
         
         pPrec = self.generate_precession_struct(pWF, m1, m2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, lalParams)
 
-        f = jnp.arange(minimum_frequency, maximum_frequency, 1/duration)
-        Mf = XLALSimIMRPhenomXUtilsHztoMf(f, m1+m2)
+        frequency_array = jnp.arange(minimum_frequency, maximum_frequency, 1/duration)
+        Mf = XLALSimIMRPhenomXUtilsHztoMf(frequency_array, m1+m2)
 
         chirp_mass = component_masses_to_chirp_mass(m1, m2)
         eta = m1 * m2 / jnp.power(m1+m2, 2)
 
-        hlm = self.hphc(f,
+        hlm = self.hphc(frequency_array,
                          chirp_mass = chirp_mass,
                          eta = eta,
                          luminosity_distance=distance,
