@@ -2486,6 +2486,124 @@ class IMRPhenomXPHM(WaveFormModel):
         
 
 
+
+
+def GPSt_to_LMST(t_GPS, lat, long):
+    """
+    Compute the Local Mean Sidereal Time (LMST) in units of fraction of day, from GPS time and location (given as latitude and longitude in degrees)
+    
+    :param array or float t_GPS: GPS time(s) to convert, in seconds.
+    :param float lat: Latitude of the chosen location, in :math:`\\rm deg`.
+    :param float long: Longitude of the chosen location, in :math:`\\rm deg`.
+    
+    :return: Local Mean Sidereal Time(s).
+    :rtype: array or float
+    
+    """
+    from astropy.coordinates import EarthLocation
+    import astropy.time as aspyt
+    import astropy.units as u
+    # Uncomment the next two lines in case of troubles with IERS
+    #import astropy
+    #astropy.utils.iers.conf.iers_degraded_accuracy='ignore'
+    loc = EarthLocation(lat=lat*u.deg, lon=long*u.deg)
+    t = aspyt.Time(t_GPS, format='gps', location=(loc))
+    LMST = t.sidereal_time('mean').value
+    return jnp.array(LMST/24.)
+
+
+
+@dataclass
+class BetaPowers:
+    """
+    Stores powers of cos(beta/2) and sin(beta/2) for Wigner-d coefficient calculations.
+
+    Attributes:
+        cBetah: cos(beta/2)
+        cBetah2: cos^2(beta/2)
+        cBetah3: cos^3(beta/2)
+        cBetah4: cos^4(beta/2)
+        cBetah5: cos^5(beta/2)
+        cBetah6: cos^6(beta/2)
+        cBetah7: cos^7(beta/2)
+        cBetah8: cos^8(beta/2)
+        sBetah: sin(beta/2)
+        sBetah2: sin^2(beta/2)
+        sBetah3: sin^3(beta/2)
+        sBetah4: sin^4(beta/2)
+        sBetah5: sin^5(beta/2)
+        sBetah6: sin^6(beta/2)
+        sBetah7: sin^7(beta/2)
+        sBetah8: sin^8(beta/2)
+    """
+    cBetah: float
+    cBetah2: float
+    cBetah3: float
+    cBetah4: float
+    cBetah5: float
+    cBetah6: float
+    cBetah7: float
+    cBetah8: float
+    sBetah: float
+    sBetah2: float
+    sBetah3: float
+    sBetah4: float
+    sBetah5: float
+    sBetah6: float
+    sBetah7: float
+    sBetah8: float
+
+    @classmethod
+    def from_half_angle_trig(cls, cBetah: float, sBetah: float):
+        """
+        Constructs a BetaPowers instance from cos(beta/2) and sin(beta/2).
+
+        Args:
+            cBetah: cos(beta/2)
+            sBetah: sin(beta/2)
+
+        Returns:
+            BetaPowers instance with all power values computed
+        """
+        cBetah2 = cBetah * cBetah
+        cBetah3 = cBetah * cBetah2
+        cBetah4 = cBetah * cBetah3
+        cBetah5 = cBetah * cBetah4
+        cBetah6 = cBetah * cBetah5
+        cBetah7 = cBetah * cBetah6
+        cBetah8 = cBetah * cBetah7
+
+        sBetah2 = sBetah * sBetah
+        sBetah3 = sBetah * sBetah2
+        sBetah4 = sBetah * sBetah3
+        sBetah5 = sBetah * sBetah4
+        sBetah6 = sBetah * sBetah5
+        sBetah7 = sBetah * sBetah6
+        sBetah8 = sBetah * sBetah7
+
+        return cls(
+            cBetah=cBetah,
+            cBetah2=cBetah2,
+            cBetah3=cBetah3,
+            cBetah4=cBetah4,
+            cBetah5=cBetah5,
+            cBetah6=cBetah6,
+            cBetah7=cBetah7,
+            cBetah8=cBetah8,
+            sBetah=sBetah,
+            sBetah2=sBetah2,
+            sBetah3=sBetah3,
+            sBetah4=sBetah4,
+            sBetah5=sBetah5,
+            sBetah6=sBetah6,
+            sBetah7=sBetah7,
+            sBetah8=sBetah8,
+        )
+
+        return None
+    
+
+
 def twist_22(cexp_i_alpha, pPrec, beta_powers):
 
 
@@ -2865,7 +2983,7 @@ def twist_43(cexp_i_alpha, pPrec, beta_powers):
 
     return hp_sum, hc_sum
 
-
+@jit
 def apply_polarization_rotation(zeta_polarization, _hp, _hc):
     """Apply polarization rotation to waveform components.
     
@@ -2894,98 +3012,8 @@ def apply_polarization_rotation(zeta_polarization, _hp, _hc):
     return hp, hc
 
 
-@dataclass
-class BetaPowers:
-    """
-    Stores powers of cos(beta/2) and sin(beta/2) for Wigner-d coefficient calculations.
 
-    Attributes:
-        cBetah: cos(beta/2)
-        cBetah2: cos^2(beta/2)
-        cBetah3: cos^3(beta/2)
-        cBetah4: cos^4(beta/2)
-        cBetah5: cos^5(beta/2)
-        cBetah6: cos^6(beta/2)
-        cBetah7: cos^7(beta/2)
-        cBetah8: cos^8(beta/2)
-        sBetah: sin(beta/2)
-        sBetah2: sin^2(beta/2)
-        sBetah3: sin^3(beta/2)
-        sBetah4: sin^4(beta/2)
-        sBetah5: sin^5(beta/2)
-        sBetah6: sin^6(beta/2)
-        sBetah7: sin^7(beta/2)
-        sBetah8: sin^8(beta/2)
-    """
-    cBetah: float
-    cBetah2: float
-    cBetah3: float
-    cBetah4: float
-    cBetah5: float
-    cBetah6: float
-    cBetah7: float
-    cBetah8: float
-    sBetah: float
-    sBetah2: float
-    sBetah3: float
-    sBetah4: float
-    sBetah5: float
-    sBetah6: float
-    sBetah7: float
-    sBetah8: float
-
-    @classmethod
-    def from_half_angle_trig(cls, cBetah: float, sBetah: float):
-        """
-        Constructs a BetaPowers instance from cos(beta/2) and sin(beta/2).
-
-        Args:
-            cBetah: cos(beta/2)
-            sBetah: sin(beta/2)
-
-        Returns:
-            BetaPowers instance with all power values computed
-        """
-        cBetah2 = cBetah * cBetah
-        cBetah3 = cBetah * cBetah2
-        cBetah4 = cBetah * cBetah3
-        cBetah5 = cBetah * cBetah4
-        cBetah6 = cBetah * cBetah5
-        cBetah7 = cBetah * cBetah6
-        cBetah8 = cBetah * cBetah7
-
-        sBetah2 = sBetah * sBetah
-        sBetah3 = sBetah * sBetah2
-        sBetah4 = sBetah * sBetah3
-        sBetah5 = sBetah * sBetah4
-        sBetah6 = sBetah * sBetah5
-        sBetah7 = sBetah * sBetah6
-        sBetah8 = sBetah * sBetah7
-
-        return cls(
-            cBetah=cBetah,
-            cBetah2=cBetah2,
-            cBetah3=cBetah3,
-            cBetah4=cBetah4,
-            cBetah5=cBetah5,
-            cBetah6=cBetah6,
-            cBetah7=cBetah7,
-            cBetah8=cBetah8,
-            sBetah=sBetah,
-            sBetah2=sBetah2,
-            sBetah3=sBetah3,
-            sBetah4=sBetah4,
-            sBetah5=sBetah5,
-            sBetah6=sBetah6,
-            sBetah7=sBetah7,
-            sBetah8=sBetah8,
-        )
-
-        return None
-    
-
-
-
+@jit
 def IMRPhenomXWignerdCoefficients_cosbeta(cos_beta):
     """
     Compute cos(beta/2) and sin(beta/2) from cos(beta).
@@ -3014,14 +3042,12 @@ def IMRPhenomXWignerdCoefficients_cosbeta(cos_beta):
 
 
 
-
+@jit
 def component_masses_to_chirp_mass(mass_1, mass_2):
     return (mass_1 * mass_2) ** 0.6 / (mass_1 + mass_2) ** 0.2
 
 
-
-
-
+@jit
 def XLALSimIMRPhenomXUtilsHztoMf(fHz: float, Mtot_Msun: float) -> float:
     """
     Convert frequency from Hz to geometric units (Mf).
@@ -3042,9 +3068,7 @@ def XLALSimIMRPhenomXUtilsHztoMf(fHz: float, Mtot_Msun: float) -> float:
     return fHz * Mtot_Msun * MTSUN_SI
 
 
-
-
-
+@jit
 def XLALSimIMRPhenomXUtilsMftoHz(Mf: float, Mtot_Msun: float) -> float:
     """
     Convert frequency from geometric units (Mf) to Hz.
@@ -3074,33 +3098,7 @@ def XLALSimIMRPhenomXUtilsMftoHz(Mf: float, Mtot_Msun: float) -> float:
     # Mtot in seconds = Mtot_Msun * MTSUN_SI
     return Mf / (Mtot_Msun * MTSUN_SI)
 
-
-
-
-def GPSt_to_LMST(t_GPS, lat, long):
-    """
-    Compute the Local Mean Sidereal Time (LMST) in units of fraction of day, from GPS time and location (given as latitude and longitude in degrees)
-    
-    :param array or float t_GPS: GPS time(s) to convert, in seconds.
-    :param float lat: Latitude of the chosen location, in :math:`\\rm deg`.
-    :param float long: Longitude of the chosen location, in :math:`\\rm deg`.
-    
-    :return: Local Mean Sidereal Time(s).
-    :rtype: array or float
-    
-    """
-    from astropy.coordinates import EarthLocation
-    import astropy.time as aspyt
-    import astropy.units as u
-    # Uncomment the next two lines in case of troubles with IERS
-    #import astropy
-    #astropy.utils.iers.conf.iers_degraded_accuracy='ignore'
-    loc = EarthLocation(lat=lat*u.deg, lon=long*u.deg)
-    t = aspyt.Time(t_GPS, format='gps', location=(loc))
-    LMST = t.sidereal_time('mean').value
-    return jnp.array(LMST/24.)
-
-
+@jit
 def chirp_mass_and_mass_ratio_to_component_masses(chirp_mass, mass_ratio):
 
     total_mass = chirp_mass_and_mass_ratio_to_total_mass(chirp_mass=chirp_mass,
@@ -3111,7 +3109,7 @@ def chirp_mass_and_mass_ratio_to_component_masses(chirp_mass, mass_ratio):
     )
     return mass_1, mass_2
 
-
+@jit
 def chirp_mass_and_mass_ratio_to_total_mass(chirp_mass, mass_ratio):
     """
     Convert chirp mass and mass ratio of a binary to its total mass.
@@ -3134,7 +3132,7 @@ def chirp_mass_and_mass_ratio_to_total_mass(chirp_mass, mass_ratio):
 
     return chirp_mass * (1 + mass_ratio) ** 1.2 / mass_ratio ** 0.6
 
-
+@jit
 def total_mass_and_mass_ratio_to_component_masses(mass_ratio, total_mass):
     """
     Convert total mass and mass ratio of a binary to its component masses.
@@ -3158,7 +3156,7 @@ def total_mass_and_mass_ratio_to_component_masses(mass_ratio, total_mass):
     mass_2 = mass_1 * mass_ratio
     return mass_1, mass_2
 
-
+@jit
 def symmetric_mass_ratio_to_mass_ratio(symmetric_mass_ratio):
     """
     Convert the symmetric mass ratio to the normal mass ratio.
