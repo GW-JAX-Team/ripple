@@ -941,6 +941,110 @@ def compute_delta_coefficients(
 
 
 @jit
+def compute_full_phase(
+    f: Array,
+    PhiInspcoeffs: Array,
+    eta: Array,
+    beta1: Array,
+    beta2: Array,
+    beta3: Array,
+    C1Int: Array,
+    C2Int: Array,
+    alpha1: Array,
+    alpha2: Array,
+    alpha3: Array,
+    alpha4: Array,
+    alpha5: Array,
+    fring22: Array,
+    fdamp22: Array,
+    fMRDJoinPh: Array,
+    PHI_fJoin_INS: Array,
+    fcutPar: Array,
+    C1MRDuse: Array,
+    C2MRDuse: Array,
+    RhoUse: Array,
+    TauUse: Array,
+) -> Array:
+    """
+    Compute the full IMRPhenomX phase across all frequency regimes.
+
+    This function evaluates the gravitational wave phase as a piecewise function:
+    - Inspiral phase for f < PHI_fJoin_INS
+    - Intermediate phase for PHI_fJoin_INS <= f < fMRDJoinPh
+    - Merger-ringdown phase for fMRDJoinPh <= f < fcutPar
+    - Zero for f >= fcutPar
+
+    Parameters
+    ----------
+    f : Array
+        Frequency array at which to evaluate the phase.
+    PhiInspcoeffs : Array
+        Array of inspiral phase coefficients with shape (..., PHI_NUM_COEFFS).
+    eta : Array
+        Symmetric mass ratio.
+    beta1, beta2, beta3 : Array
+        Intermediate phase coefficients.
+    C1Int, C2Int : Array
+        Integration constants for intermediate phase continuity.
+    alpha1, alpha2, alpha3, alpha4, alpha5 : Array
+        Merger-ringdown phase coefficients.
+    fring22 : Array
+        Ringdown frequency for the (2,2) mode.
+    fdamp22 : Array
+        Damping frequency for the (2,2) mode.
+    fMRDJoinPh : Array
+        Frequency at which the intermediate phase joins the merger-ringdown phase.
+    PHI_fJoin_INS : Array
+        Frequency at which the inspiral phase joins the intermediate phase.
+    fcutPar : Array
+        Cutoff frequency above which the phase is set to zero.
+    C1MRDuse : Array
+        Integration constant for merger-ringdown phase (offset).
+    C2MRDuse : Array
+        Integration constant for merger-ringdown phase (slope).
+    RhoUse : Array
+        Ratio fring22/fringlm for mode scaling.
+    TauUse : Array
+        Ratio fdamplm/fdamp22 for mode scaling.
+
+    Returns
+    -------
+    phase : Array
+        Full phase evaluated at frequency f.
+    """
+    # Inspiral phase (f < PHI_fJoin_INS)
+    phi_inspiral = compute_PhiInsJoin(f, PhiInspcoeffs, eta)
+
+    # Intermediate phase (PHI_fJoin_INS <= f < fMRDJoinPh)
+    f3 = f * f * f
+    phi_intermediate = (
+        (beta1 * f - beta3 / (3. * f3) + beta2 * jnp.log(f)) / eta
+        + C1Int + C2Int * f
+    )
+
+    # Merger-ringdown phase (fMRDJoinPh <= f < fcutPar)
+    phi_mrd = (
+        (-alpha2 / f
+            + (4. / 3.) * alpha3 * f ** (3. / 4.)
+            + alpha1 * f
+            + alpha4 * RhoUse * jnp.arctan((f - alpha5 * fring22) / (fdamp22 * RhoUse * TauUse))
+        ) / eta
+        + C1MRDuse + C2MRDuse * f
+    )
+
+    # Combine using nested jnp.where for frequency regime selection
+    return jnp.where(
+        f < PHI_fJoin_INS,
+        phi_inspiral,
+        jnp.where(
+            f < fMRDJoinPh,
+            phi_intermediate,
+            jnp.where(f < fcutPar, phi_mrd, 0.)
+        )
+    )
+
+
+@jit
 def compute_TF2_coefficients(eta, eta2, Seta, chi_s, chi_a, chi1, chi2,
                               chi1dotchi2, chi12, chi22,
                               m1ByM, m2ByM, QuadMon1, QuadMon2):
@@ -1735,48 +1839,16 @@ class IMRPhenomXPHM(WaveFormModel):
         # there is a 2 * sqrt(5/(64*pi)) missing w.r.t the standard coefficient, which comes from the (2,2) shperical harmonic
 
         Overallamp = total_mass * GMsun_over_c2_Gpc * total_mass * MTSUN_SI / kwargs['dL']
-        
 
-
-        def completeAmpl(infreqs):
-            return Overallamp*amp0*(infreqs**(-7./6.))*jnp.where(infreqs < self.AMP_fJoin_INS, 1. + (infreqs**(2./3.))*Acoeffs[..., AMP_TWO_THIRDS] + (infreqs**(4./3.)) * Acoeffs[..., AMP_FOUR_THIRDS] + (infreqs**(5./3.)) *  Acoeffs[..., AMP_FIVE_THIRDS] + (infreqs**(7./3.)) * Acoeffs[..., AMP_SEVEN_THIRDS] + (infreqs**(8./3.)) * Acoeffs[..., AMP_EIGHT_THIRDS] + infreqs * (Acoeffs[..., AMP_ONE] + infreqs * Acoeffs[..., AMP_TWO] + infreqs*infreqs * Acoeffs[..., AMP_THREE]), jnp.where(infreqs < fpeak, delta0 + infreqs*delta1 + infreqs*infreqs*(delta2 + infreqs*delta3 + infreqs*infreqs*delta4), jnp.where(infreqs < self.fcutPar,jnp.exp(-(infreqs - fringlm[1])*gamma2/(fdamplm[1]*gamma3))* (fdamplm[1]*gamma3*gamma1) / ((infreqs - fringlm[1])*(infreqs - fringlm[1]) + fdamplm[1]*gamma3*fdamplm[1]*gamma3), 0.)))
-        
+        # Create a partial function for compute_full_phase with captured variables
         def completePhase(infreqs, C1MRDuse, C2MRDuse, RhoUse, TauUse):
-            #print(f"ripple debug end of insp {XLALSimIMRPhenomXUtilsMftoHz(self.PHI_fJoin_INS, mass_1+mass_2)}")
-            #print(f"ripple debug end or merger {XLALSimIMRPhenomXUtilsMftoHz(fMRDJoinPh, mass_1+mass_2)}")
-            #print(f"ripple debug end of ringdown {XLALSimIMRPhenomXUtilsMftoHz(self.fcutPar, mass_1+mass_2)}")
-
-            # Compute phase for each frequency regime
-            f = infreqs
-
-            # Inspiral phase (f < PHI_fJoin_INS)
-            phi_inspiral = compute_PhiInsJoin(f, PhiInspcoeffs, eta)
-
-            # Intermediate phase (PHI_fJoin_INS <= f < fMRDJoinPh)
-            phi_intermediate = (
-                (beta1 * f - beta3 / (3. * f**3) + beta2 * jnp.log(f)) / eta
-                + C1Int + C2Int * f
-            )
-
-            # Merger-ringdown phase (fMRDJoinPh <= f < fcutPar)
-            phi_mrd = (
-                (-alpha2 / f
-                    + (4./3.) * alpha3 * f**(3./4.)
-                    + alpha1 * f
-                    + alpha4 * RhoUse * jnp.arctan((f - alpha5 * fringlm[1]) / (fdamplm[1] * RhoUse * TauUse))
-                ) / eta
-                + C1MRDuse + C2MRDuse * f
-            )
-
-            # Combine using nested jnp.where for frequency regime selection
-            return jnp.where(
-                f < self.PHI_fJoin_INS,
-                phi_inspiral,
-                jnp.where(
-                    f < fMRDJoinPh,
-                    phi_intermediate,
-                    jnp.where(f < self.fcutPar, phi_mrd, 0.)
-                )
+            return compute_full_phase(
+                infreqs, PhiInspcoeffs, eta,
+                beta1, beta2, beta3, C1Int, C2Int,
+                alpha1, alpha2, alpha3, alpha4, alpha5,
+                fringlm[1], fdamplm[1], fMRDJoinPh,
+                self.PHI_fJoin_INS, self.fcutPar,
+                C1MRDuse, C2MRDuse, RhoUse, TauUse
             )
 
         def OnePointFiveSpinPN(infreqs, ChiS, ChiA):
@@ -1809,8 +1881,14 @@ class IMRPhenomXPHM(WaveFormModel):
         t0 = DPhiMRD(fpeak, alpha1, alpha2, alpha3, alpha4, alpha5, fringlm[1], eta, fdamplm[1], 1, 1)
         #t0 = (alpha1 + alpha2/(fpeak_phenomD*fpeak_phenomD) + alpha3/(fpeak_phenomD**(1./4.)) + alpha4/(fdamp_phenomD*(1. + (fpeak_phenomD - alpha5*fring_phenomD)*(fpeak_phenomD - alpha5*fring_phenomD)/(fdamp_phenomD*fdamp_phenomD))))/eta
 
+        phiRef = compute_full_phase(reference_frequency, PhiInspcoeffs, eta,
+                                    beta1, beta2, beta3, C1Int, C2Int,
+                                    alpha1, alpha2, alpha3, alpha4, alpha5,
+                                    fringlm[1], fdamplm[1], fMRDJoinPh,
+                                    self.PHI_fJoin_INS, self.fcutPar,
+                                    C1MRD, C2MRD, 1, 1)
 
-        phiRef = completePhase(reference_frequency, C1MRD, C2MRD, 1., 1.) # Matches exactly with lalsimulation
+        #phiRef = completePhase(reference_frequency, C1MRD, C2MRD, 1., 1.) # Matches exactly with lalsimulation
         phi0   = 0.5*phiRef #+ kwargs['Phicoal']
         #FIXME Need to swtich on kwargs['Phicoal'] at some point
         
@@ -1875,6 +1953,7 @@ class IMRPhenomXPHM(WaveFormModel):
         AmplsAllModes = jnp.nan_to_num(full_amplitude * (beta_term1 / beta_term2) * HMamp_term1 / HMamp_term2)
         
         AmplsAllModes = jnp.moveaxis(AmplsAllModes, len(AmplsAllModes.shape)-1, len(AmplsAllModes.shape) - 2)
+        
         #AmplsAllModes = AmplsAllModes.transpose(0,2,1)
         C1MRDHM, C2MRDHM, Rholm, Taulm = C1MRDHM.T, C2MRDHM.T, Rholm.T, Taulm.T
         
