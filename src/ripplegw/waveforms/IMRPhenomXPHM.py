@@ -1349,6 +1349,24 @@ def compute_sigma_coefficients(eta, eta2, xi):
     return sigma_coeffs
 
 
+@jit
+def compute_full_amplitude(
+    infreqs, Overallamp, amp0, Acoeffs, fpeak,
+    delta0, delta1, delta2, delta3, delta4,
+    fringlm_22, fdamplm_22, gamma1, gamma2, gamma3,
+    AMP_fJoin_INS, fcutPar
+):
+    inspiral = compute_v1(infreqs, Acoeffs)
+    intermediate = delta0 + infreqs * delta1 + infreqs**2 * (delta2 + infreqs * delta3 + infreqs**2 * delta4)
+    merger_ringdown = compute_v3(infreqs, fringlm_22, fdamplm_22, gamma1, gamma2, gamma3)
+    
+    return Overallamp * amp0 * (infreqs ** (-7./6.)) * jnp.where(
+        infreqs < AMP_fJoin_INS,
+        inspiral,
+        jnp.where(infreqs < fpeak, intermediate,
+                  jnp.where(infreqs < fcutPar, merger_ringdown, 0.)))
+
+
 class WaveFormModel(ABC):
     """
     Abstract class to compute waveforms
@@ -1718,6 +1736,8 @@ class IMRPhenomXPHM(WaveFormModel):
 
         Overallamp = total_mass * GMsun_over_c2_Gpc * total_mass * MTSUN_SI / kwargs['dL']
         
+
+
         def completeAmpl(infreqs):
             return Overallamp*amp0*(infreqs**(-7./6.))*jnp.where(infreqs < self.AMP_fJoin_INS, 1. + (infreqs**(2./3.))*Acoeffs[..., AMP_TWO_THIRDS] + (infreqs**(4./3.)) * Acoeffs[..., AMP_FOUR_THIRDS] + (infreqs**(5./3.)) *  Acoeffs[..., AMP_FIVE_THIRDS] + (infreqs**(7./3.)) * Acoeffs[..., AMP_SEVEN_THIRDS] + (infreqs**(8./3.)) * Acoeffs[..., AMP_EIGHT_THIRDS] + infreqs * (Acoeffs[..., AMP_ONE] + infreqs * Acoeffs[..., AMP_TWO] + infreqs*infreqs * Acoeffs[..., AMP_THREE]), jnp.where(infreqs < fpeak, delta0 + infreqs*delta1 + infreqs*infreqs*(delta2 + infreqs*delta3 + infreqs*infreqs*delta4), jnp.where(infreqs < self.fcutPar,jnp.exp(-(infreqs - fringlm[1])*gamma2/(fdamplm[1]*gamma3))* (fdamplm[1]*gamma3*gamma1) / ((infreqs - fringlm[1])*(infreqs - fringlm[1]) + fdamplm[1]*gamma3*fdamplm[1]*gamma3), 0.)))
         
@@ -1843,8 +1863,17 @@ class IMRPhenomXPHM(WaveFormModel):
 
         # The (3,3) and (4,3) modes vanish if eta=0.25 (equal mass case) and the (2,1) mode vanishes if both eta=0.25 and chi1z=chi2z
         # This results in NaNs having 0/0, correct for this using jnp.nan_to_num()
-
-        AmplsAllModes = jnp.nan_to_num(completeAmpl(fgridScaled) * (beta_term1 / beta_term2) * HMamp_term1 / HMamp_term2)
+        full_amplitude = compute_full_amplitude(fgridScaled, 
+                                                Overallamp, 
+                                                amp0, 
+                                                Acoeffs, 
+                                                fpeak,
+                                                delta0, delta1, delta2, delta3, delta4,
+                                                fringlm[1], fdamplm[1], gamma1, gamma2, gamma3,
+                                                self.AMP_fJoin_INS, self.fcutPar)
+        
+        AmplsAllModes = jnp.nan_to_num(full_amplitude * (beta_term1 / beta_term2) * HMamp_term1 / HMamp_term2)
+        
         AmplsAllModes = jnp.moveaxis(AmplsAllModes, len(AmplsAllModes.shape)-1, len(AmplsAllModes.shape) - 2)
         #AmplsAllModes = AmplsAllModes.transpose(0,2,1)
         C1MRDHM, C2MRDHM, Rholm, Taulm = C1MRDHM.T, C2MRDHM.T, Rholm.T, Taulm.T
