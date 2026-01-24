@@ -2007,7 +2007,7 @@ class IMRPhenomXPHM(WaveFormModel):
         return None
     
 
-    def hphc(self, f, **kwargs):
+    def hphc(self, f, chirp_mass, eta, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, iota, luminosity_distance, initial_phase):
         """
         Compute the plus and cross polarisations of the GW as a function of frequency, given the events parameters, avoiding for loops over the modes.
         
@@ -2018,13 +2018,13 @@ class IMRPhenomXPHM(WaveFormModel):
         
         """
         # This function retuns directly the full plus and cross polarisations, avoiding for loops over the modes
-        total_mass = kwargs['chirp_mass']/(kwargs['eta']**(3./5.))
-        mass_ratio = symmetric_mass_ratio_to_mass_ratio(kwargs['eta'])
-        mass_1, mass_2 = chirp_mass_and_mass_ratio_to_component_masses(kwargs['chirp_mass'], mass_ratio)
-        eta = kwargs['eta']
+        total_mass = chirp_mass/(eta**(3./5.))
+        mass_ratio = symmetric_mass_ratio_to_mass_ratio(eta)
+        mass_1, mass_2 = chirp_mass_and_mass_ratio_to_component_masses(chirp_mass, mass_ratio)
+
         eta2 = eta*eta # These can speed up a bit, we call them multiple times
-        chi1, chi2 = kwargs['chi1z'], kwargs['chi2z']
-        iota = kwargs['iota']
+        chi1, chi2 = chi1z, chi2z
+
         QuadMon1, QuadMon2 = jnp.ones(total_mass.shape), jnp.ones(total_mass.shape)
         
         chi12, chi22 = chi1*chi1, chi2*chi2
@@ -2064,8 +2064,8 @@ class IMRPhenomXPHM(WaveFormModel):
         # Domain mapping for dimnesionless BH spin
         
         chip = XLALSimPhenomUtilsChiP(mass_1, mass_2, 
-                                      kwargs['chi1x'], kwargs['chi1y'], 
-                                      kwargs['chi2x'], kwargs['chi2y'])
+                                      chi1x, chi1y, 
+                                      chi2x, chi2y)
 
         fringlm, fdamplm = compute_fring_and_fdamp(aeff = aeff,
                                                    finMass = finMass,
@@ -2177,7 +2177,7 @@ class IMRPhenomXPHM(WaveFormModel):
         # Defined as in LALSimulation - LALSimIMRPhenomUtils.c line 70. Final units are correctly Hz^-1
         # there is a 2 * sqrt(5/(64*pi)) missing w.r.t the standard coefficient, which comes from the (2,2) shperical harmonic
 
-        Overallamp = total_mass * GMsun_over_c2_Gpc * total_mass * MTSUN_SI / kwargs['dL']
+        Overallamp = total_mass * GMsun_over_c2_Gpc * total_mass * MTSUN_SI / luminosity_distance
         
         # Time shift so that peak amplitude is approximately at t=0
         # Use PhenomD-style fring/fdamp/fpeak to match LALSim's IMRPhenomDComputet0
@@ -2458,12 +2458,9 @@ class IMRPhenomXPHM(WaveFormModel):
         hlm = self.hphc(f,
                          chirp_mass = chirp_mass,
                          eta = eta,
-                         dL = distance,
-                         theta = None,
-                         phi = None,
+                         luminosity_distance=distance,
                          iota = inclination,
-                         tcoal = jnp.array([GPSt_to_LMST(3600, lat=0.,   long=0.)]), ## FIXME
-                         Phicoal = phi0,
+                         initial_phase = phi0,
                          chi1x = chi1x,
                          chi1y = chi1y,
                          chi1z = chi1z,
