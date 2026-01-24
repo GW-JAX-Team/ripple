@@ -210,6 +210,211 @@ def compute_fring_and_fdamp(
 
 
 @jit
+def compute_DPhiIns(
+    f: Array,
+    TF2coeffs: Array,
+    TF2OverallAmpl: Array,
+    sigma1: Array,
+    sigma2: Array,
+    sigma3: Array,
+    sigma4: Array,
+    eta: Array,
+) -> Array:
+    """
+    Compute the derivative of the inspiral phase with respect to frequency.
+
+    This computes d(PhiIns)/df, which includes the TaylorF2 post-Newtonian
+    contribution plus higher-order calibrated sigma terms.
+
+    Parameters
+    ----------
+    f : Array
+        Frequency at which to evaluate the derivative.
+    TF2coeffs : Array
+        Array of TF2 phase coefficients with shape (..., TF2_NUM_COEFFS).
+    TF2OverallAmpl : Array
+        Overall TF2 amplitude factor, typically 3/(128*eta).
+    sigma1, sigma2, sigma3, sigma4 : Array
+        Higher-order calibration coefficients for the inspiral phase.
+    eta : Array
+        Symmetric mass ratio.
+
+    Returns
+    -------
+    DPhiIns : Array
+        Derivative of the inspiral phase at frequency f.
+    """
+    pif = jnp.pi * f
+    pif_1_3 = pif ** (1. / 3.)
+    pif_2_3 = pif_1_3 * pif_1_3
+    pif_4_3 = pif_2_3 * pif_2_3
+    pif_5_3 = pif_4_3 * pif_1_3
+    pif_7_3 = pif_5_3 * pif_2_3
+    pif_8_3 = pif_7_3 * pif_1_3
+
+    f_1_3 = f ** (1. / 3.)
+    f_2_3 = f_1_3 * f_1_3
+
+    # TF2 (post-Newtonian) contribution
+    DPhiIns_TF2 = (
+        2.0 * TF2coeffs[..., TF2_SEVEN] * TF2OverallAmpl * pif_7_3
+        + (TF2coeffs[..., TF2_SIX] * TF2OverallAmpl
+           + TF2coeffs[..., TF2_SIX_LOG] * TF2OverallAmpl * (1.0 + jnp.log(pif) / 3.)) * (pif ** 2.)
+        + TF2coeffs[..., TF2_FIVE_LOG] * TF2OverallAmpl * pif_5_3
+        - TF2coeffs[..., TF2_FOUR] * TF2OverallAmpl * pif_4_3
+        - 2. * TF2coeffs[..., TF2_THREE] * TF2OverallAmpl * pif
+        - 3. * TF2coeffs[..., TF2_TWO] * TF2OverallAmpl * pif_2_3
+        - 4. * TF2coeffs[..., TF2_ONE] * TF2OverallAmpl * pif_1_3
+        - 5. * TF2coeffs[..., TF2_ZERO] * TF2OverallAmpl
+    ) * jnp.pi / (3. * pif_8_3)
+
+    # Higher-order calibrated sigma terms
+    DPhiIns_sigma = (sigma1 + sigma2 * f_1_3 + sigma3 * f_2_3 + sigma4 * f) / eta
+
+    return DPhiIns_TF2 + DPhiIns_sigma
+
+
+@jit
+def compute_PhiInsJoin(
+    f: Array,
+    PhiInspcoeffs: Array,
+    eta: Array,
+) -> Array:
+    """
+    Compute the inspiral phase at a given frequency.
+
+    This evaluates the inspiral phase function using the pre-computed
+    PhiInspcoeffs array, which includes TaylorF2 and higher-order terms.
+
+    Parameters
+    ----------
+    f : Array
+        Frequency at which to evaluate the inspiral phase.
+    PhiInspcoeffs : Array
+        Array of inspiral phase coefficients with shape (..., PHI_NUM_COEFFS).
+    eta : Array
+        Symmetric mass ratio.
+
+    Returns
+    -------
+    PhiIns : Array
+        Inspiral phase at frequency f.
+    """
+    # Pre-compute powers of f
+    f_1_3 = f ** (1. / 3.)
+    f_2_3 = f_1_3 * f_1_3
+    f_4_3 = f_2_3 * f_2_3
+    f_5_3 = f_4_3 * f_1_3
+    f_m1_3 = 1. / f_1_3
+    f_m2_3 = f_m1_3 * f_m1_3
+    f_m4_3 = f_m2_3 * f_m2_3
+    f_m5_3 = f_m4_3 * f_m1_3
+
+    log_pi_f = jnp.log(jnp.pi * f)
+
+    # Inspiral phase with positive and negative powers of f
+    PhiIns = (
+        PhiInspcoeffs[..., PHI_INITIAL_PHASING]
+        # Positive powers of f
+        + PhiInspcoeffs[..., PHI_TWO_THIRDS] * f_2_3
+        + PhiInspcoeffs[..., PHI_THIRD] * f_1_3
+        + PhiInspcoeffs[..., PHI_THIRD_LOG] * f_1_3 * log_pi_f / 3.
+        + PhiInspcoeffs[..., PHI_LOG] * log_pi_f / 3.
+        # Negative powers of f
+        + PhiInspcoeffs[..., PHI_MIN_THIRD] * f_m1_3
+        + PhiInspcoeffs[..., PHI_MIN_TWO_THIRDS] * f_m2_3
+        + PhiInspcoeffs[..., PHI_MIN_ONE] / f
+        + PhiInspcoeffs[..., PHI_MIN_FOUR_THIRDS] * f_m4_3
+        + PhiInspcoeffs[..., PHI_MIN_FIVE_THIRDS] * f_m5_3
+        # Higher order terms (divided by eta)
+        + (PhiInspcoeffs[..., PHI_ONE] * f
+           + PhiInspcoeffs[..., PHI_FOUR_THIRDS] * f_4_3
+           + PhiInspcoeffs[..., PHI_FIVE_THIRDS] * f_5_3
+           + PhiInspcoeffs[..., PHI_TWO] * f * f) / eta
+    )
+
+    return PhiIns
+
+
+@jit
+def compute_gamma_coefficients(
+    eta: Array,
+    eta2: Array,
+    xi: Array,
+) -> tuple[Array, Array, Array]:
+    """
+    Compute gamma coefficients for the merger-ringdown amplitude.
+
+    These coefficients appear in arXiv:1508.07253 eq. (19), with numerical
+    values from Table 5. They are used to compute the peak frequency fpeak.
+
+    Parameters
+    ----------
+    eta : Array
+        Symmetric mass ratio.
+    eta2 : Array
+        Symmetric mass ratio squared.
+    xi : Array
+        Spin parameter, defined as xi = -1 + chiPN.
+
+    Returns
+    -------
+    gamma1 : Array
+        First gamma coefficient.
+    gamma2 : Array
+        Second gamma coefficient.
+    gamma3 : Array
+        Third gamma coefficient.
+    """
+    xi2 = xi * xi
+    xi3 = xi2 * xi
+
+    gamma1 = (
+        0.006927402739328343
+        + 0.03020474290328911 * eta
+        + (0.006308024337706171
+           - 0.12074130661131138 * eta
+           + 0.26271598905781324 * eta2
+           + (0.0034151773647198794
+              - 0.10779338611188374 * eta
+              + 0.27098966966891747 * eta2) * xi
+           + (0.0007374185938559283
+              - 0.02749621038376281 * eta
+              + 0.0733150789135702 * eta2) * xi2) * xi
+    )
+
+    gamma2 = (
+        1.010344404799477
+        + 0.0008993122007234548 * eta
+        + (0.283949116804459
+           - 4.049752962958005 * eta
+           + 13.207828172665366 * eta2
+           + (0.10396278486805426
+              - 7.025059158961947 * eta
+              + 24.784892370130475 * eta2) * xi
+           + (0.03093202475605892
+              - 2.6924023896851663 * eta
+              + 9.609374464684983 * eta2) * xi2) * xi
+    )
+
+    gamma3 = (
+        1.3081615607036106
+        - 0.005537729694807678 * eta
+        + (-0.06782917938621007
+           - 0.6689834970767117 * eta
+           + 3.403147966134083 * eta2
+           + (-0.05296577374411866
+              - 0.9923793203111362 * eta
+              + 4.820681208409587 * eta2) * xi
+           + (-0.006134139870393713
+              - 0.38429253308696365 * eta
+              + 1.7561754421985984 * eta2) * xi2) * xi
+    )
+
+    return gamma1, gamma2, gamma3
+
+
+@jit
 def compute_TF2_coefficients(eta, eta2, Seta, chi_s, chi_a, chi1, chi2,
                               chi1dotchi2, chi12, chi22,
                               m1ByM, m2ByM, QuadMon1, QuadMon2):
@@ -847,6 +1052,7 @@ class IMRPhenomXPHM(WaveFormModel):
         # These are mass_1/total_mass and mass_2/total_mass
         m1ByM = 0.5 * (1.0 + Seta)
         m2ByM = 0.5 * (1.0 - Seta)
+
         # We work in dimensionless frequency M*f, not f
         fgrid = total_mass*MTSUN_SI*f
         # This is MfRef, needed to recover LAL, which sets fRef to f_min if fRef=0
@@ -926,16 +1132,15 @@ class IMRPhenomXPHM(WaveFormModel):
         # Joining at fInsJoin
         # PhiIns (fInsJoin)  =   PhiInt (fInsJoin) + C1Int + C2Int fInsJoin
         # PhiIns'(fInsJoin)  =   PhiInt'(fInsJoin) + C2Int
-        # This is the first derivative wrt f of the inspiral phase computed at fInsJoin, first add the PN contribution and then the higher order calibrated terms
-        DPhiIns = (2.0*TF2coeffs[..., TF2_SEVEN]*TF2OverallAmpl*((jnp.pi*fInsJoinPh)**(7./3.)) + (TF2coeffs[..., TF2_SIX]*TF2OverallAmpl + TF2coeffs[..., TF2_SIX_LOG]*TF2OverallAmpl * (1.0 + jnp.log(jnp.pi*fInsJoinPh)/3.))*((jnp.pi*fInsJoinPh)**(2.)) + TF2coeffs[..., TF2_FIVE_LOG]*TF2OverallAmpl*((jnp.pi*fInsJoinPh)**(5./3.)) - TF2coeffs[..., TF2_FOUR]*TF2OverallAmpl*((jnp.pi*fInsJoinPh)**(4./3.)) - 2.*TF2coeffs[..., TF2_THREE]*TF2OverallAmpl*(jnp.pi*fInsJoinPh) - 3.*TF2coeffs[..., TF2_TWO]*TF2OverallAmpl*((jnp.pi*fInsJoinPh)**(2./3.)) - 4.*TF2coeffs[..., TF2_ONE]*TF2OverallAmpl*((jnp.pi*fInsJoinPh)**(1./3.)) - 5.*TF2coeffs[..., TF2_ZERO]*TF2OverallAmpl)*jnp.pi/(3.*((jnp.pi*fInsJoinPh)**(8./3.)))
-        DPhiIns = DPhiIns + (sigma1 + sigma2*(fInsJoinPh**(1./3.)) + sigma3*(fInsJoinPh**(2./3.)) + sigma4*fInsJoinPh)/eta
+        # This is the first derivative wrt f of the inspiral phase computed at fInsJoin
+        DPhiIns = compute_DPhiIns(fInsJoinPh, TF2coeffs, TF2OverallAmpl, sigma1, sigma2, sigma3, sigma4, eta)
         # This is the first derivative of the Intermediate phase computed at fInsJoin
         DPhiInt = (beta1 + beta3/(fInsJoinPh**4) + beta2/fInsJoinPh)/eta
         
         C2Int = DPhiIns - DPhiInt
         
         # This is the inspiral phase computed at fInsJoin
-        PhiInsJoin = PhiInspcoeffs[..., PHI_INITIAL_PHASING] + PhiInspcoeffs[..., PHI_TWO_THIRDS]*(fInsJoinPh**(2./3.)) + PhiInspcoeffs[..., PHI_THIRD]*(fInsJoinPh**(1./3.)) + PhiInspcoeffs[..., PHI_THIRD_LOG]*(fInsJoinPh**(1./3.))*jnp.log(jnp.pi*fInsJoinPh)/3. + PhiInspcoeffs[..., PHI_LOG]*jnp.log(jnp.pi*fInsJoinPh)/3. + PhiInspcoeffs[..., PHI_MIN_THIRD]*(fInsJoinPh**(-1./3.)) + PhiInspcoeffs[..., PHI_MIN_TWO_THIRDS]*(fInsJoinPh**(-2./3.)) + PhiInspcoeffs[..., PHI_MIN_ONE]/fInsJoinPh + PhiInspcoeffs[..., PHI_MIN_FOUR_THIRDS]*(fInsJoinPh**(-4./3.)) + PhiInspcoeffs[..., PHI_MIN_FIVE_THIRDS]*(fInsJoinPh**(-5./3.)) + (PhiInspcoeffs[..., PHI_ONE]*fInsJoinPh + PhiInspcoeffs[..., PHI_FOUR_THIRDS]*(fInsJoinPh**(4./3.)) + PhiInspcoeffs[..., PHI_FIVE_THIRDS]*(fInsJoinPh**(5./3.)) + PhiInspcoeffs[..., PHI_TWO]*fInsJoinPh*fInsJoinPh)/eta
+        PhiInsJoin = compute_PhiInsJoin(fInsJoinPh, PhiInspcoeffs, eta)
         # This is the Intermediate phase computed at fInsJoin
         PhiIntJoin = beta1*fInsJoinPh - beta3/(3.*fInsJoinPh*fInsJoinPh*fInsJoinPh) + beta2*jnp.log(fInsJoinPh)
         
@@ -951,15 +1156,10 @@ class IMRPhenomXPHM(WaveFormModel):
         C1MRD = PhiIntTempVal - PhiMRJoinTemp/eta - C2MRD*fMRDJoinPh
 
         # Compute coefficients gamma appearing in arXiv:1508.07253 eq. (19), the numerical coefficients are in Tab. 5
-        gamma1 = 0.006927402739328343 + 0.03020474290328911*eta + (0.006308024337706171 - 0.12074130661131138*eta + 0.26271598905781324*eta2 + (0.0034151773647198794 - 0.10779338611188374*eta + 0.27098966966891747*eta2)*xi+ (0.0007374185938559283 - 0.02749621038376281*eta + 0.0733150789135702*eta2)*xi*xi)*xi
-        gamma2 = 1.010344404799477 + 0.0008993122007234548*eta + (0.283949116804459 - 4.049752962958005*eta + 13.207828172665366*eta2 + (0.10396278486805426 - 7.025059158961947*eta + 24.784892370130475*eta2)*xi + (0.03093202475605892 - 2.6924023896851663*eta + 9.609374464684983*eta2)*xi*xi)*xi
-        gamma3 = 1.3081615607036106 - 0.005537729694807678*eta +(-0.06782917938621007 - 0.6689834970767117*eta + 3.403147966134083*eta2 + (-0.05296577374411866 - 0.9923793203111362*eta + 4.820681208409587*eta2)*xi + (-0.006134139870393713 - 0.38429253308696365*eta + 1.7561754421985984*eta2)*xi*xi)*xi
+        gamma1, gamma2, gamma3 = compute_gamma_coefficients(eta, eta2, xi)
         # Compute fpeak, from arXiv:1508.07253 eq. (20), we remove the square root term in case it is complex
         fpeak = jnp.where(gamma2 >= 1.0, jnp.fabs(fringlm[1] - (fdamplm[1]*gamma3)/gamma2), jnp.fabs(fringlm[1] + (fdamplm[1]*(-1.0 + jnp.sqrt(1.0 - gamma2*gamma2))*gamma3)/gamma2))
-        # Compute fpeak using PhenomD-style fring/fdamp for t0 calculation (to match LALSim's IMRPhenomDComputet0)
-        fpeak_phenomD = jnp.where(gamma2 >= 1.0, jnp.fabs(fringlm[1] - (fdamplm[1]*gamma3)/gamma2), jnp.fabs(fringlm[1] + (fdamplm[1]*(-1.0 + jnp.sqrt(1.0 - gamma2*gamma2))*gamma3)/gamma2))
 
-        #print(f'ripple debug fpeak {fpeak} and fpeak_phenomD {fpeak_phenomD}')
 
         # Compute coefficients rho appearing in arXiv:1508.07253 eq. (30), the numerical coefficients are in Tab. 5
         rho1 = 3931.8979897196696 - 17395.758706812805*eta + (3132.375545898835 + 343965.86092361377*eta - 1.2162565819981997e6*eta2 + (-70698.00600428853 + 1.383907177859705e6*eta - 3.9662761890979446e6*eta2)*xi + (-60017.52423652596 + 803515.1181825735*eta - 2.091710365941658e6*eta2)*xi*xi)*xi
@@ -1021,28 +1221,9 @@ class IMRPhenomXPHM(WaveFormModel):
 
             # Compute phase for each frequency regime
             f = infreqs
-            log_pi_f = jnp.log(jnp.pi * f)
 
             # Inspiral phase (f < PHI_fJoin_INS)
-            phi_inspiral = (
-                PhiInspcoeffs[..., PHI_INITIAL_PHASING]
-                # Positive powers of f
-                + PhiInspcoeffs[..., PHI_TWO_THIRDS] * f**(2./3.)
-                + PhiInspcoeffs[..., PHI_THIRD] * f**(1./3.)
-                + PhiInspcoeffs[..., PHI_THIRD_LOG] * f**(1./3.) * log_pi_f / 3.
-                + PhiInspcoeffs[..., PHI_LOG] * log_pi_f / 3.
-                # Negative powers of f
-                + PhiInspcoeffs[..., PHI_MIN_THIRD] * f**(-1./3.)
-                + PhiInspcoeffs[..., PHI_MIN_TWO_THIRDS] * f**(-2./3.)
-                + PhiInspcoeffs[..., PHI_MIN_ONE] / f
-                + PhiInspcoeffs[..., PHI_MIN_FOUR_THIRDS] * f**(-4./3.)
-                + PhiInspcoeffs[..., PHI_MIN_FIVE_THIRDS] * f**(-5./3.)
-                # Higher order terms (divided by eta)
-                + (PhiInspcoeffs[..., PHI_ONE] * f
-                    + PhiInspcoeffs[..., PHI_FOUR_THIRDS] * f**(4./3.)
-                    + PhiInspcoeffs[..., PHI_FIVE_THIRDS] * f**(5./3.)
-                    + PhiInspcoeffs[..., PHI_TWO] * f * f) / eta
-            )
+            phi_inspiral = compute_PhiInsJoin(f, PhiInspcoeffs, eta)
 
             # Intermediate phase (PHI_fJoin_INS <= f < fMRDJoinPh)
             phi_intermediate = (
@@ -1098,7 +1279,7 @@ class IMRPhenomXPHM(WaveFormModel):
         # Use PhenomD-style fring/fdamp/fpeak to match LALSim's IMRPhenomDComputet0
         
         
-        t0 = DPhiMRD(fpeak_phenomD, alpha1, alpha2, alpha3, alpha4, alpha5, fringlm[1], eta, fdamplm[1], 1, 1)
+        t0 = DPhiMRD(fpeak, alpha1, alpha2, alpha3, alpha4, alpha5, fringlm[1], eta, fdamplm[1], 1, 1)
         #t0 = (alpha1 + alpha2/(fpeak_phenomD*fpeak_phenomD) + alpha3/(fpeak_phenomD**(1./4.)) + alpha4/(fdamp_phenomD*(1. + (fpeak_phenomD - alpha5*fring_phenomD)*(fpeak_phenomD - alpha5*fring_phenomD)/(fdamp_phenomD*fdamp_phenomD))))/eta
 
 
