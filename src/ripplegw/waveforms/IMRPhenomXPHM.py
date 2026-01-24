@@ -1045,6 +1045,273 @@ def compute_full_phase(
 
 
 @jit
+def compute_PhisAllModes(
+    fgrid: Array,
+    PhiInspcoeffs: Array,
+    eta: Array,
+    beta1: Array,
+    beta2: Array,
+    beta3: Array,
+    C1Int: Array,
+    C2Int: Array,
+    alpha1: Array,
+    alpha2: Array,
+    alpha3: Array,
+    alpha4: Array,
+    alpha5: Array,
+    fring22: Array,
+    fdamp22: Array,
+    fMRDJoinPh: Array,
+    PHI_fJoin_INS: Array,
+    fcutPar: Array,
+    C1MRDHM: Array,
+    C2MRDHM: Array,
+    Rholm: Array,
+    Taulm: Array,
+    Map_ai: Array,
+    Map_bi: Array,
+    Map_amPhi: Array,
+    Map_bmPhi: Array,
+    Map_arPhi: Array,
+    Map_brPhi: Array,
+    Map_fiPhi: Array,
+    Map_fr: Array,
+    PhDBconst: Array,
+    PhDCconst: Array,
+    PhDBAterm: Array,
+    tmpphaseC: Array,
+) -> Array:
+    """
+    Compute the full phase for all higher-order modes across all frequency regimes.
+
+    This function computes the gravitational wave phase for multiple (l,m) modes
+    using the PhenomHM frequency mapping. It evaluates the phase in three regimes
+    (inspiral, intermediate, merger-ringdown) and applies the appropriate frequency
+    scaling for each mode.
+
+    Parameters
+    ----------
+    fgrid : Array
+        Frequency grid at which to evaluate the phases, shape (..., n_freqs, n_modes).
+    PhiInspcoeffs : Array
+        Array of inspiral phase coefficients with shape (..., PHI_NUM_COEFFS).
+    eta : Array
+        Symmetric mass ratio.
+    beta1, beta2, beta3 : Array
+        Intermediate phase coefficients.
+    C1Int, C2Int : Array
+        Integration constants for intermediate phase continuity.
+    alpha1, alpha2, alpha3, alpha4, alpha5 : Array
+        Merger-ringdown phase coefficients.
+    fring22 : Array
+        Ringdown frequency for the (2,2) mode.
+    fdamp22 : Array
+        Damping frequency for the (2,2) mode.
+    fMRDJoinPh : Array
+        Frequency at which the intermediate phase joins the merger-ringdown phase.
+    PHI_fJoin_INS : Array
+        Frequency at which the inspiral phase joins the intermediate phase.
+    fcutPar : Array
+        Cutoff frequency above which the phase is set to zero.
+    C1MRDHM, C2MRDHM : Array
+        Integration constants for merger-ringdown phase for each mode.
+    Rholm, Taulm : Array
+        Mode-dependent scaling factors for ringdown frequency and damping time.
+    Map_ai, Map_bi : Array
+        Frequency mapping coefficients for the inspiral regime.
+    Map_amPhi, Map_bmPhi : Array
+        Frequency mapping coefficients for the intermediate regime.
+    Map_arPhi, Map_brPhi : Array
+        Frequency mapping coefficients for the merger-ringdown regime.
+    Map_fiPhi : Array
+        Frequency boundary between inspiral and intermediate regimes.
+    Map_fr : Array
+        Frequency boundary between intermediate and merger-ringdown regimes.
+    PhDBconst, PhDCconst : Array
+        Phase continuity constants at regime boundaries.
+    PhDBAterm, tmpphaseC : Array
+        Additional phase correction terms for continuity.
+
+    Returns
+    -------
+    PhisAllModes : Array
+        Full phase for all modes evaluated at the frequency grid.
+    """
+    # Compute phases for each frequency regime
+    phase_inspiral = compute_full_phase(
+        (fgrid * Map_ai + Map_bi), PhiInspcoeffs, eta,
+        beta1, beta2, beta3, C1Int, C2Int,
+        alpha1, alpha2, alpha3, alpha4, alpha5,
+        fring22, fdamp22, fMRDJoinPh,
+        PHI_fJoin_INS, fcutPar,
+        C1MRDHM, C2MRDHM, Rholm, Taulm
+    ) / Map_ai
+
+    phase_intermediate = compute_full_phase(
+        (fgrid * Map_amPhi + Map_bmPhi), PhiInspcoeffs, eta,
+        beta1, beta2, beta3, C1Int, C2Int,
+        alpha1, alpha2, alpha3, alpha4, alpha5,
+        fring22, fdamp22, fMRDJoinPh,
+        PHI_fJoin_INS, fcutPar,
+        C1MRDHM, C2MRDHM, Rholm, Taulm
+    ) / Map_amPhi
+
+    phase_mrd = compute_full_phase(
+        (fgrid * Map_arPhi + Map_brPhi), PhiInspcoeffs, eta,
+        beta1, beta2, beta3, C1Int, C2Int,
+        alpha1, alpha2, alpha3, alpha4, alpha5,
+        fring22, fdamp22, fMRDJoinPh,
+        PHI_fJoin_INS, fcutPar,
+        C1MRDHM, C2MRDHM, Rholm, Taulm
+    ) / Map_arPhi
+
+    # Combine using nested jnp.where for frequency regime selection
+    return jnp.where(
+        fgrid < Map_fiPhi,
+        phase_inspiral,
+        jnp.where(
+            fgrid < Map_fr,
+            -PhDBconst + PhDBAterm + phase_intermediate,
+            -PhDCconst + tmpphaseC + phase_mrd
+        )
+    )
+
+
+@jit
+def compute_temp_phase_coefficients(
+    PhiInspcoeffs: Array,
+    eta: Array,
+    beta1: Array,
+    beta2: Array,
+    beta3: Array,
+    C1Int: Array,
+    C2Int: Array,
+    alpha1: Array,
+    alpha2: Array,
+    alpha3: Array,
+    alpha4: Array,
+    alpha5: Array,
+    fring22: Array,
+    fdamp22: Array,
+    fMRDJoinPh: Array,
+    PHI_fJoin_INS: Array,
+    fcutPar: Array,
+    C1MRDHM: Array,
+    C2MRDHM: Array,
+    Rholm: Array,
+    Taulm: Array,
+    Map_ai: Array,
+    Map_bi: Array,
+    Map_amPhi: Array,
+    Map_bmPhi: Array,
+    Map_arPhi: Array,
+    Map_brPhi: Array,
+    Map_fiPhi: Array,
+    Map_fr: Array,
+) -> tuple[Array, Array, Array, Array]:
+    """
+    Compute temporary phase coefficients for mode continuity corrections.
+
+    These coefficients ensure phase continuity across the frequency regime
+    boundaries when mapping from the (2,2) mode to higher-order modes using
+    the PhenomHM frequency scaling.
+
+    Parameters
+    ----------
+    PhiInspcoeffs : Array
+        Array of inspiral phase coefficients with shape (..., PHI_NUM_COEFFS).
+    eta : Array
+        Symmetric mass ratio.
+    beta1, beta2, beta3 : Array
+        Intermediate phase coefficients.
+    C1Int, C2Int : Array
+        Integration constants for intermediate phase continuity.
+    alpha1, alpha2, alpha3, alpha4, alpha5 : Array
+        Merger-ringdown phase coefficients.
+    fring22 : Array
+        Ringdown frequency for the (2,2) mode.
+    fdamp22 : Array
+        Damping frequency for the (2,2) mode.
+    fMRDJoinPh : Array
+        Frequency at which the intermediate phase joins the merger-ringdown phase.
+    PHI_fJoin_INS : Array
+        Frequency at which the inspiral phase joins the intermediate phase.
+    fcutPar : Array
+        Cutoff frequency above which the phase is set to zero.
+    C1MRDHM, C2MRDHM : Array
+        Integration constants for merger-ringdown phase for each mode.
+    Rholm, Taulm : Array
+        Mode-dependent scaling factors for ringdown frequency and damping time.
+    Map_ai, Map_bi : Array
+        Frequency mapping coefficients for the inspiral regime.
+    Map_amPhi, Map_bmPhi : Array
+        Frequency mapping coefficients for the intermediate regime.
+    Map_arPhi, Map_brPhi : Array
+        Frequency mapping coefficients for the merger-ringdown regime.
+    Map_fiPhi : Array
+        Frequency boundary between inspiral and intermediate regimes.
+    Map_fr : Array
+        Frequency boundary between intermediate and merger-ringdown regimes.
+
+    Returns
+    -------
+    PhDBconst : Array
+        Phase constant at the inspiral-intermediate boundary (scaled by Map_amPhi).
+    PhDCconst : Array
+        Phase constant at the intermediate-ringdown boundary (scaled by Map_arPhi).
+    PhDBAterm : Array
+        Phase term from inspiral regime at the boundary (scaled by Map_ai).
+    tmpphaseC : Array
+        Combined phase correction for ringdown regime continuity.
+    """
+    # Phase at inspiral-intermediate boundary (Map_amPhi scaling)
+    tmpMf_B = Map_amPhi * Map_fiPhi + Map_bmPhi
+    PhDBconst = compute_full_phase(
+        tmpMf_B.T, PhiInspcoeffs, eta,
+        beta1, beta2, beta3, C1Int, C2Int,
+        alpha1, alpha2, alpha3, alpha4, alpha5,
+        fring22, fdamp22, fMRDJoinPh,
+        PHI_fJoin_INS, fcutPar,
+        C1MRDHM, C2MRDHM, Rholm, Taulm
+    ) / Map_amPhi.T
+
+    # Phase at intermediate-ringdown boundary (Map_arPhi scaling)
+    tmpMf_C = Map_arPhi * Map_fr + Map_brPhi
+    PhDCconst = compute_full_phase(
+        tmpMf_C.T, PhiInspcoeffs, eta,
+        beta1, beta2, beta3, C1Int, C2Int,
+        alpha1, alpha2, alpha3, alpha4, alpha5,
+        fring22, fdamp22, fMRDJoinPh,
+        PHI_fJoin_INS, fcutPar,
+        C1MRDHM, C2MRDHM, Rholm, Taulm
+    ) / Map_arPhi.T
+
+    # Phase from inspiral regime at boundary (Map_ai scaling)
+    tmpMf_BA = Map_ai * Map_fiPhi + Map_bi
+    PhDBAterm = (compute_full_phase(
+        tmpMf_BA.T, PhiInspcoeffs, eta,
+        beta1, beta2, beta3, C1Int, C2Int,
+        alpha1, alpha2, alpha3, alpha4, alpha5,
+        fring22, fdamp22, fMRDJoinPh,
+        PHI_fJoin_INS, fcutPar,
+        C1MRDHM, C2MRDHM, Rholm, Taulm
+    ).T / Map_ai).T
+
+    # Combined correction for ringdown regime continuity
+    tmpMf_amfr = Map_amPhi * Map_fr + Map_bmPhi
+    tmpphaseC = -PhDBconst + PhDBAterm + compute_full_phase(
+        tmpMf_amfr.T, PhiInspcoeffs, eta,
+        beta1, beta2, beta3, C1Int, C2Int,
+        alpha1, alpha2, alpha3, alpha4, alpha5,
+        fring22, fdamp22, fMRDJoinPh,
+        PHI_fJoin_INS, fcutPar,
+        C1MRDHM, C2MRDHM, Rholm, Taulm
+    ) / Map_amPhi.T
+
+    return PhDBconst, PhDCconst, PhDBAterm, tmpphaseC
+
+
+@jit
 def compute_TF2_coefficients(eta, eta2, Seta, chi_s, chi_a, chi1, chi2,
                               chi1dotchi2, chi12, chi22,
                               m1ByM, m2ByM, QuadMon1, QuadMon2):
@@ -1840,16 +2107,6 @@ class IMRPhenomXPHM(WaveFormModel):
 
         Overallamp = total_mass * GMsun_over_c2_Gpc * total_mass * MTSUN_SI / kwargs['dL']
 
-        # Create a partial function for compute_full_phase with captured variables
-        def completePhase(infreqs, C1MRDuse, C2MRDuse, RhoUse, TauUse):
-            return compute_full_phase(
-                infreqs, PhiInspcoeffs, eta,
-                beta1, beta2, beta3, C1Int, C2Int,
-                alpha1, alpha2, alpha3, alpha4, alpha5,
-                fringlm[1], fdamplm[1], fMRDJoinPh,
-                self.PHI_fJoin_INS, self.fcutPar,
-                C1MRDuse, C2MRDuse, RhoUse, TauUse
-            )
 
         def OnePointFiveSpinPN(infreqs, ChiS, ChiA):
             # PN amplitudes function, needed to scale
@@ -1956,24 +2213,33 @@ class IMRPhenomXPHM(WaveFormModel):
         
         #AmplsAllModes = AmplsAllModes.transpose(0,2,1)
         C1MRDHM, C2MRDHM, Rholm, Taulm = C1MRDHM.T, C2MRDHM.T, Rholm.T, Taulm.T
-        
-        tmpMf = Map_amPhi * Map_fiPhi + Map_bmPhi
-        PhDBconst = (completePhase(tmpMf.T, C1MRDHM, C2MRDHM, Rholm, Taulm) / Map_amPhi.T)
-                    
-        tmpMf = Map_arPhi * Map_fr + Map_brPhi
-        PhDCconst = (completePhase(tmpMf.T, C1MRDHM, C2MRDHM, Rholm, Taulm) / Map_arPhi.T)
-            
-        tmpMf = Map_ai * Map_fiPhi + Map_bi
-        PhDBAterm = (completePhase(tmpMf.T, C1MRDHM, C2MRDHM, Rholm, Taulm).T / Map_ai).T
-        
-        tmpMf = Map_amPhi * Map_fr + Map_bmPhi
-        tmpphaseC = (- PhDBconst + PhDBAterm + completePhase(tmpMf.T, C1MRDHM, C2MRDHM, Rholm, Taulm) / Map_amPhi.T)
-        
-                        
-        C1MRDHM, C2MRDHM, Rholm, Taulm = C1MRDHM.T, C2MRDHM.T, Rholm.T, Taulm.T
+
+        # Compute temporary phase coefficients for mode continuity
+        PhDBconst, PhDCconst, PhDBAterm, tmpphaseC = compute_temp_phase_coefficients(
+            PhiInspcoeffs, eta,
+            beta1, beta2, beta3, C1Int, C2Int,
+            alpha1, alpha2, alpha3, alpha4, alpha5,
+            fringlm[1], fdamplm[1], fMRDJoinPh,
+            self.PHI_fJoin_INS, self.fcutPar,
+            C1MRDHM, C2MRDHM, Rholm, Taulm,
+            Map_ai, Map_bi, Map_amPhi, Map_bmPhi,
+            Map_arPhi, Map_brPhi, Map_fiPhi, Map_fr
+        )
         PhDBconst, PhDCconst, PhDBAterm, tmpphaseC = PhDBconst.T, PhDCconst.T, PhDBAterm.T, tmpphaseC.T
-        PhisAllModes = jnp.where(fgrid < Map_fiPhi, completePhase((fgrid*Map_ai + Map_bi), C1MRDHM, C2MRDHM, Rholm, Taulm)/Map_ai, jnp.where(fgrid < Map_fr, - PhDBconst + PhDBAterm + completePhase((fgrid*Map_amPhi + Map_bmPhi), C1MRDHM, C2MRDHM, Rholm, Taulm)/Map_amPhi, - PhDCconst + tmpphaseC + completePhase((fgrid*Map_arPhi + Map_brPhi), C1MRDHM, C2MRDHM, Rholm, Taulm)/Map_arPhi))
-    
+
+        # Compute phases for all modes
+        PhisAllModes = compute_PhisAllModes(
+            fgrid, PhiInspcoeffs, eta,
+            beta1, beta2, beta3, C1Int, C2Int,
+            alpha1, alpha2, alpha3, alpha4, alpha5,
+            fringlm[1], fdamplm[1], fMRDJoinPh,
+            self.PHI_fJoin_INS, self.fcutPar,
+            C1MRDHM, C2MRDHM, Rholm, Taulm,
+            Map_ai, Map_bi, Map_amPhi, Map_bmPhi,
+            Map_arPhi, Map_brPhi, Map_fiPhi, Map_fr,
+            PhDBconst, PhDCconst, PhDBAterm, tmpphaseC
+        )
+
         # override  #FIXME
         #t0 = np.array([2.6023655427e+02])
 
