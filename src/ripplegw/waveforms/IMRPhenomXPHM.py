@@ -492,6 +492,455 @@ def compute_rho_coefficients(
 
 
 @jit
+def compute_v1(
+    f: Array,
+    Acoeffs: Array,
+) -> Array:
+    """
+    Compute v1, the inspiral amplitude model evaluated at frequency f.
+
+    This evaluates the inspiral amplitude using the pre-computed Acoeffs array.
+
+    Parameters
+    ----------
+    f : Array
+        Frequency at which to evaluate the inspiral amplitude.
+    Acoeffs : Array
+        Array of amplitude coefficients with shape (..., AMP_NUM_COEFFS).
+
+    Returns
+    -------
+    v1 : Array
+        Inspiral amplitude at frequency f.
+    """
+    f_2_3 = f ** (2. / 3.)
+    f_4_3 = f_2_3 * f_2_3
+    f_5_3 = f_4_3 * f ** (1. / 3.)
+    f_7_3 = f_4_3 * f
+    f_8_3 = f_7_3 * f ** (1. / 3.)
+
+    v1 = (
+        1.
+        + f_2_3 * Acoeffs[..., AMP_TWO_THIRDS]
+        + f_4_3 * Acoeffs[..., AMP_FOUR_THIRDS]
+        + f_5_3 * Acoeffs[..., AMP_FIVE_THIRDS]
+        + f_7_3 * Acoeffs[..., AMP_SEVEN_THIRDS]
+        + f_8_3 * Acoeffs[..., AMP_EIGHT_THIRDS]
+        + f * (Acoeffs[..., AMP_ONE]
+               + f * Acoeffs[..., AMP_TWO]
+               + f * f * Acoeffs[..., AMP_THREE])
+    )
+
+    return v1
+
+
+@jit
+def compute_v2(
+    eta: Array,
+    eta2: Array,
+    xi: Array,
+) -> Array:
+    """
+    Compute v2, the amplitude at the intermediate collocation point.
+
+    This is the fitted value of the amplitude at f2, from the collocation
+    points in the intermediate region.
+
+    Parameters
+    ----------
+    eta : Array
+        Symmetric mass ratio.
+    eta2 : Array
+        Symmetric mass ratio squared.
+    xi : Array
+        Spin parameter, defined as xi = -1 + chiPN.
+
+    Returns
+    -------
+    v2 : Array
+        Amplitude at the intermediate collocation point.
+    """
+    xi2 = xi * xi
+
+    v2 = (
+        0.8149838730507785
+        + 2.5747553517454658 * eta
+        + (1.1610198035496786
+           - 2.3627771785551537 * eta
+           + 6.771038707057573 * eta2
+           + (0.7570782938606834
+              - 2.7256896890432474 * eta
+              + 7.1140380397149965 * eta2) * xi
+           + (0.1766934149293479
+              - 0.7978690983168183 * eta
+              + 2.1162391502005153 * eta2) * xi2) * xi
+    )
+
+    return v2
+
+
+@jit
+def compute_v3(
+    f: Array,
+    fring: Array,
+    fdamp: Array,
+    gamma1: Array,
+    gamma2: Array,
+    gamma3: Array,
+) -> Array:
+    """
+    Compute v3, the merger-ringdown amplitude model evaluated at frequency f.
+
+    This evaluates the merger-ringdown amplitude from arXiv:1508.07253 eq. (19).
+
+    Parameters
+    ----------
+    f : Array
+        Frequency at which to evaluate (typically f3Interm = fpeak).
+    fring : Array
+        Ringdown frequency (typically fringlm[1] for the 22 mode).
+    fdamp : Array
+        Damping frequency (typically fdamplm[1] for the 22 mode).
+    gamma1 : Array
+        First gamma coefficient.
+    gamma2 : Array
+        Second gamma coefficient.
+    gamma3 : Array
+        Third gamma coefficient.
+
+    Returns
+    -------
+    v3 : Array
+        Merger-ringdown amplitude at frequency f.
+    """
+    df = f - fring
+    fdamp_gamma3 = fdamp * gamma3
+
+    v3 = (
+        jnp.exp(-df * gamma2 / fdamp_gamma3)
+        * (fdamp_gamma3 * gamma1)
+        / (df * df + fdamp_gamma3 * fdamp_gamma3)
+    )
+
+    return v3
+
+
+@jit
+def compute_d1(
+    f: Array,
+    eta: Array,
+    eta2: Array,
+    chi1: Array,
+    chi2: Array,
+    chi12: Array,
+    chi22: Array,
+    Seta: Array,
+    SetaPlus1: Array,
+    rho1: Array,
+    rho2: Array,
+    rho3: Array,
+) -> Array:
+    """
+    Compute d1, the derivative of the inspiral amplitude model at frequency f.
+
+    This is the derivative of the inspiral amplitude with respect to frequency,
+    used for matching conditions at the inspiral-intermediate boundary.
+
+    Parameters
+    ----------
+    f : Array
+        Frequency at which to evaluate (typically f1Interm = AMP_fJoin_INS).
+    eta : Array
+        Symmetric mass ratio.
+    eta2 : Array
+        Symmetric mass ratio squared.
+    chi1 : Array
+        Spin of the primary (z-component).
+    chi2 : Array
+        Spin of the secondary (z-component).
+    chi12 : Array
+        chi1 squared.
+    chi22 : Array
+        chi2 squared.
+    Seta : Array
+        sqrt(1 - 4*eta), related to mass difference.
+    SetaPlus1 : Array
+        1 + Seta.
+    rho1, rho2, rho3 : Array
+        Rho coefficients from compute_rho_coefficients.
+
+    Returns
+    -------
+    d1 : Array
+        Derivative of the inspiral amplitude at frequency f.
+    """
+    pi = jnp.pi
+    pi_2_3 = pi ** (2. / 3.)
+    pi_4_3 = pi ** (4. / 3.)
+    pi_5_3 = pi ** (5. / 3.)
+    pi2 = pi * pi
+
+    f_1_3 = f ** (1. / 3.)
+    f_2_3 = f_1_3 * f_1_3
+    f_4_3 = f_2_3 * f_2_3
+    f_5_3 = f_4_3 * f_1_3
+
+    eta3 = eta2 * eta
+
+    # Term 1: (-969 + 1804*eta) * pi^(2/3) / (1008 * f^(1/3))
+    term1 = ((-969. + 1804. * eta) * pi_2_3) / (1008. * f_1_3)
+
+    # Term 2: spin contribution at 1PN
+    term2 = ((chi1 * (81. * SetaPlus1 - 44. * eta)
+              + chi2 * (81. - 81. * Seta - 44. * eta)) * pi) / 48.
+
+    # Term 3: f^(1/3) * pi^(4/3) term
+    term3 = ((-27312085.
+              - 10287648. * chi22
+              - 10287648. * chi12 * SetaPlus1
+              + 10287648. * chi22 * Seta
+              + 24. * (-1975055. + 857304. * chi12 - 994896. * chi1 * chi2 + 857304. * chi22) * eta
+              + 35371056. * eta2) * f_1_3 * pi_4_3) / 6.096384e6
+
+    # Term 4: f^(2/3) * pi^(5/3) term
+    term4 = (5. * f_2_3 * pi_5_3 * (
+        chi2 * (-285197. * (-1 + Seta) + 4. * (-91902. + 1579. * Seta) * eta - 35632. * eta2)
+        + chi1 * (285197. * SetaPlus1 - 4. * (91902. + 1579. * Seta) * eta - 35632. * eta2)
+        + 42840. * (-1 + 4 * eta) * pi)) / 96768.
+
+    # Term 5: f * pi^2 term (note the minus sign in front)
+    term5 = -(f * pi2 * (
+        -336. * (-3248849057.0 + 2943675504. * chi12 - 3339284256. * chi1 * chi2 + 2943675504. * chi22) * eta2
+        - 324322727232. * eta3
+        - 7. * (-177520268561. + 107414046432. * chi22 + 107414046432. * chi12 * SetaPlus1
+                - 107414046432. * chi22 * Seta
+                + 11087290368 * (chi1 + chi2 + chi1 * Seta - chi2 * Seta) * pi)
+        + 12. * eta * (-545384828789.0 - 176491177632. * chi1 * chi2 + 202603761360. * chi22
+                       + 77616. * chi12 * (2610335. + 995766. * Seta)
+                       - 77287373856. * chi22 * Seta
+                       + 5841690624. * (chi1 + chi2) * pi
+                       + 21384760320 * pi2))) / 3.0042980352e10
+
+    # Term 6: rho terms
+    term6 = (7.0 / 3.0) * f_4_3 * rho1 + (8.0 / 3.0) * f_5_3 * rho2 + 3. * f * f * rho3
+
+    d1 = term1 + term2 + term3 + term4 + term5 + term6
+
+    return d1
+
+
+@jit
+def compute_d2(
+    f: Array,
+    fring: Array,
+    fdamp: Array,
+    gamma1: Array,
+    gamma2: Array,
+    gamma3: Array,
+) -> Array:
+    """
+    Compute d2, the derivative of the merger-ringdown amplitude at frequency f.
+
+    This is the derivative of the merger-ringdown amplitude (eq. 19 of
+    arXiv:1508.07253) with respect to frequency.
+
+    Parameters
+    ----------
+    f : Array
+        Frequency at which to evaluate (typically f3Interm = fpeak).
+    fring : Array
+        Ringdown frequency (typically fringlm[1] for the 22 mode).
+    fdamp : Array
+        Damping frequency (typically fdamplm[1] for the 22 mode).
+    gamma1 : Array
+        First gamma coefficient.
+    gamma2 : Array
+        Second gamma coefficient.
+    gamma3 : Array
+        Third gamma coefficient.
+
+    Returns
+    -------
+    d2 : Array
+        Derivative of the merger-ringdown amplitude at frequency f.
+    """
+    df = f - fring
+    fdamp_gamma3 = fdamp * gamma3
+    df2 = df * df
+    fdamp_gamma3_2 = fdamp_gamma3 * fdamp_gamma3
+    denom = df2 + fdamp_gamma3_2
+
+    d2 = (
+        ((-2. * fdamp * df * gamma3 * gamma1) / denom - (gamma2 * gamma1))
+        / (jnp.exp(df * gamma2 / fdamp_gamma3) * denom)
+    )
+
+    return d2
+
+
+@jit
+def compute_delta_coefficients(
+    f1Interm: Array,
+    f2Interm: Array,
+    f3Interm: Array,
+    d1: Array,
+    d2: Array,
+    v1: Array,
+    v2: Array,
+    v3: Array,
+) -> tuple[Array, Array, Array, Array, Array]:
+    """
+    Compute delta coefficients for the intermediate amplitude region.
+
+    These coefficients appear in arXiv:1508.07253 eq. (21) and are used to
+    construct the intermediate amplitude as a polynomial interpolation between
+    the inspiral and merger-ringdown regions.
+
+    Parameters
+    ----------
+    f1Interm : Array
+        First intermediate frequency (AMP_fJoin_INS).
+    f2Interm : Array
+        Second intermediate frequency (midpoint).
+    f3Interm : Array
+        Third intermediate frequency (fpeak).
+    d1 : Array
+        Derivative of inspiral amplitude at f1Interm.
+    d2 : Array
+        Derivative of merger-ringdown amplitude at f3Interm.
+    v1 : Array
+        Inspiral amplitude at f1Interm.
+    v2 : Array
+        Amplitude at f2Interm (from fit).
+    v3 : Array
+        Merger-ringdown amplitude at f3Interm.
+
+    Returns
+    -------
+    delta0, delta1, delta2, delta3, delta4 : tuple[Array, ...]
+        Delta coefficients for the intermediate amplitude polynomial.
+    """
+    # Pre-compute powers of frequencies
+    f1 = f1Interm
+    f2 = f2Interm
+    f3 = f3Interm
+
+    f12 = f1 * f1
+    f13 = f1 * f12
+    f14 = f1 * f13
+    f15 = f1 * f14
+
+    f22 = f2 * f2
+    f23 = f2 * f22
+    f24 = f2 * f23
+
+    f32 = f3 * f3
+    f33 = f3 * f32
+    f34 = f3 * f33
+    f35 = f3 * f34
+
+    # Pre-compute common denominators
+    f1_m_f2 = f1 - f2
+    f1_m_f3 = f1 - f3
+    f3_m_f2 = f3 - f2
+
+    denom = (f1_m_f2 * f1_m_f2 * f1_m_f3 * f1_m_f3 * f1_m_f3 * f3_m_f2 * f3_m_f2)
+
+    # delta0
+    delta0 = -((d2 * f15 * f22 * f3 - 2. * d2 * f14 * f23 * f3 + d2 * f13 * f24 * f3
+                - d2 * f15 * f2 * f32 + d2 * f14 * f22 * f32 - d1 * f13 * f23 * f32
+                + d2 * f13 * f23 * f32 + d1 * f12 * f24 * f32 - d2 * f12 * f24 * f32
+                + d2 * f14 * f2 * f33 + 2. * d1 * f13 * f22 * f33 - 2. * d2 * f13 * f22 * f33
+                - d1 * f12 * f23 * f33 + d2 * f12 * f23 * f33 - d1 * f1 * f24 * f33
+                - d1 * f13 * f2 * f34 - d1 * f12 * f22 * f34 + 2. * d1 * f1 * f23 * f34
+                + d1 * f12 * f2 * f35 - d1 * f1 * f22 * f35
+                + 4. * f12 * f23 * f32 * v1 - 3. * f1 * f24 * f32 * v1
+                - 8. * f12 * f22 * f33 * v1 + 4. * f1 * f23 * f33 * v1 + f24 * f33 * v1
+                + 4. * f12 * f2 * f34 * v1 + f1 * f22 * f34 * v1 - 2. * f23 * f34 * v1
+                - 2. * f1 * f2 * f35 * v1 + f22 * f35 * v1
+                - f15 * f32 * v2 + 3. * f14 * f33 * v2 - 3. * f13 * f34 * v2 + f12 * f35 * v2
+                - f15 * f22 * v3 + 2. * f14 * f23 * v3 - f13 * f24 * v3
+                + 2. * f15 * f2 * f3 * v3 - f14 * f22 * f3 * v3 - 4. * f13 * f23 * f3 * v3
+                + 3. * f12 * f24 * f3 * v3 - 4. * f14 * f2 * f32 * v3
+                + 8. * f13 * f22 * f32 * v3 - 4. * f12 * f23 * f32 * v3) / denom)
+
+    # delta1
+    delta1 = -((-(d2 * f15 * f22) + 2. * d2 * f14 * f23 - d2 * f13 * f24
+                - d2 * f14 * f22 * f3 + 2. * d1 * f13 * f23 * f3 + 2. * d2 * f13 * f23 * f3
+                - 2. * d1 * f12 * f24 * f3 - d2 * f12 * f24 * f3
+                + d2 * f15 * f32 - 3. * d1 * f13 * f22 * f32 - d2 * f13 * f22 * f32
+                + 2. * d1 * f12 * f23 * f32 - 2. * d2 * f12 * f23 * f32
+                + d1 * f1 * f24 * f32 + 2. * d2 * f1 * f24 * f32
+                - d2 * f14 * f33 + d1 * f12 * f22 * f33 + 3. * d2 * f12 * f22 * f33
+                - 2. * d1 * f1 * f23 * f33 - 2. * d2 * f1 * f23 * f33 + d1 * f24 * f33
+                + d1 * f13 * f34 + d1 * f1 * f22 * f34 - 2. * d1 * f23 * f34
+                - d1 * f12 * f35 + d1 * f22 * f35
+                - 8. * f12 * f23 * f3 * v1 + 6. * f1 * f24 * f3 * v1
+                + 12. * f12 * f22 * f32 * v1 - 8. * f1 * f23 * f32 * v1
+                - 4. * f12 * f34 * v1 + 2. * f1 * f35 * v1
+                + 2. * f15 * f3 * v2 - 4. * f14 * f32 * v2 + 4. * f12 * f34 * v2 - 2. * f1 * f35 * v2
+                - 2. * f15 * f3 * v3 + 8. * f12 * f23 * f3 * v3 - 6. * f1 * f24 * f3 * v3
+                + 4. * f14 * f32 * v3 - 12. * f12 * f22 * f32 * v3 + 8. * f1 * f23 * f32 * v3) / denom)
+
+    # delta2
+    delta2 = -((d2 * f15 * f2 - d1 * f13 * f23 - 3. * d2 * f13 * f23
+                + d1 * f12 * f24 + 2. * d2 * f12 * f24
+                - d2 * f15 * f3 + d2 * f14 * f2 * f3 - d1 * f12 * f23 * f3 + d2 * f12 * f23 * f3
+                + d1 * f1 * f24 * f3 - d2 * f1 * f24 * f3
+                - d2 * f14 * f32 + 3. * d1 * f13 * f2 * f32 + d2 * f13 * f2 * f32
+                - d1 * f1 * f23 * f32 + d2 * f1 * f23 * f32 - 2. * d1 * f24 * f32 - d2 * f24 * f32
+                - 2. * d1 * f13 * f33 + 2. * d2 * f13 * f33 - d1 * f12 * f2 * f33
+                - 3. * d2 * f12 * f2 * f33 + 3. * d1 * f23 * f33 + d2 * f23 * f33
+                + d1 * f12 * f34 - d1 * f1 * f2 * f34
+                + d1 * f1 * f35 - d1 * f2 * f35
+                + 4. * f12 * f23 * v1 - 3. * f1 * f24 * v1
+                + 4. * f1 * f23 * f3 * v1 - 3. * f24 * f3 * v1
+                - 12. * f12 * f2 * f32 * v1 + 4. * f23 * f32 * v1
+                + 8. * f12 * f33 * v1 - f1 * f34 * v1 - f35 * v1
+                - f15 * v2 - f14 * f3 * v2 + 8. * f13 * f32 * v2
+                - 8. * f12 * f33 * v2 + f1 * f34 * v2 + f35 * v2
+                + f15 * v3 - 4. * f12 * f23 * v3 + 3. * f1 * f24 * v3
+                + f14 * f3 * v3 - 4. * f1 * f23 * f3 * v3 + 3. * f24 * f3 * v3
+                - 8. * f13 * f32 * v3 + 12. * f12 * f2 * f32 * v3 - 4. * f23 * f32 * v3) / denom)
+
+    # delta3
+    delta3 = -((-2. * d2 * f14 * f2 + d1 * f13 * f22 + 3. * d2 * f13 * f22
+                - d1 * f1 * f24 - d2 * f1 * f24
+                + 2. * d2 * f14 * f3 - 2. * d1 * f13 * f2 * f3 - 2. * d2 * f13 * f2 * f3
+                + d1 * f12 * f22 * f3 - d2 * f12 * f22 * f3 + d1 * f24 * f3 + d2 * f24 * f3
+                + d1 * f13 * f32 - d2 * f13 * f32 - 2. * d1 * f12 * f2 * f32
+                + 2. * d2 * f12 * f2 * f32 + d1 * f1 * f22 * f32 - d2 * f1 * f22 * f32
+                + d1 * f12 * f33 - d2 * f12 * f33 + 2. * d1 * f1 * f2 * f33
+                + 2. * d2 * f1 * f2 * f33 - 3. * d1 * f22 * f33 - d2 * f22 * f33
+                - 2. * d1 * f1 * f34 + 2. * d1 * f2 * f34
+                - 4. * f12 * f22 * v1 + 2. * f24 * v1
+                + 8. * f12 * f2 * f3 * v1 - 4. * f1 * f22 * f3 * v1
+                - 4. * f12 * f32 * v1 + 8. * f1 * f2 * f32 * v1 - 4. * f22 * f32 * v1
+                - 4. * f1 * f33 * v1 + 2. * f34 * v1
+                + 2. * f14 * v2 - 4. * f13 * f3 * v2 + 4. * f1 * f33 * v2 - 2. * f34 * v2
+                - 2. * f14 * v3 + 4. * f12 * f22 * v3 - 2. * f24 * v3
+                + 4. * f13 * f3 * v3 - 8. * f12 * f2 * f3 * v3 + 4. * f1 * f22 * f3 * v3
+                + 4. * f12 * f32 * v3 - 8. * f1 * f2 * f32 * v3 + 4. * f22 * f32 * v3) / denom)
+
+    # delta4
+    delta4 = -((d2 * f13 * f2 - d1 * f12 * f22 - 2. * d2 * f12 * f22
+                + d1 * f1 * f23 + d2 * f1 * f23
+                - d2 * f13 * f3 + 2. * d1 * f12 * f2 * f3 + d2 * f12 * f2 * f3
+                - d1 * f1 * f22 * f3 + d2 * f1 * f22 * f3 - d1 * f23 * f3 - d2 * f23 * f3
+                - d1 * f12 * f32 + d2 * f12 * f32 - d1 * f1 * f2 * f32
+                - 2. * d2 * f1 * f2 * f32 + 2. * d1 * f22 * f32 + d2 * f22 * f32
+                + d1 * f1 * f33 - d1 * f2 * f33
+                + 3. * f1 * f22 * v1 - 2. * f23 * v1
+                - 6. * f1 * f2 * f3 * v1 + 3. * f22 * f3 * v1
+                + 3. * f1 * f32 * v1 - f33 * v1
+                - f13 * v2 + 3. * f12 * f3 * v2 - 3. * f1 * f32 * v2 + f33 * v2
+                + f13 * v3 - 3. * f1 * f22 * v3 + 2. * f23 * v3
+                - 3. * f12 * f3 * v3 + 6. * f1 * f2 * f3 * v3 - 3. * f22 * f3 * v3) / denom)
+
+    return delta0, delta1, delta2, delta3, delta4
+
+
+@jit
 def compute_TF2_coefficients(eta, eta2, Seta, chi_s, chi_a, chi1, chi2,
                               chi1dotchi2, chi12, chi22,
                               m1ByM, m2ByM, QuadMon1, QuadMon2):
@@ -1249,37 +1698,20 @@ class IMRPhenomXPHM(WaveFormModel):
         amp0 = jnp.sqrt(2.0*eta/3.0)*(np.pi**(-1./6.))
         Acoeffs = compute_Acoeffs(eta, eta2, Seta, SetaPlus1, chi1, chi2, chi12, chi22, rho1, rho2, rho3)
         # v1 is the inspiral model evaluated at f1Interm
-        v1 = 1. + (f1Interm**(2./3.))*Acoeffs[..., AMP_TWO_THIRDS] + (f1Interm**(4./3.)) * Acoeffs[..., AMP_FOUR_THIRDS] + (f1Interm**(5./3.)) *  Acoeffs[..., AMP_FIVE_THIRDS] + (f1Interm**(7./3.)) * Acoeffs[..., AMP_SEVEN_THIRDS] + (f1Interm**(8./3.)) * Acoeffs[..., AMP_EIGHT_THIRDS] + f1Interm * (Acoeffs[..., AMP_ONE] + f1Interm * Acoeffs[..., AMP_TWO] + f1Interm*f1Interm * Acoeffs[..., AMP_THREE])
-        # d1 is the derivative of the inspiral model evaluated at f1
-        d1 = ((-969. + 1804.*eta)*(jnp.pi**(2./3.)))/(1008.*(f1Interm**(1./3.))) + ((chi1*(81.*SetaPlus1 - 44.*eta) + chi2*(81. - 81.*Seta - 44.*eta))*jnp.pi)/48. + ((-27312085. - 10287648.*chi22 - 10287648.*chi12*SetaPlus1 + 10287648.*chi22*Seta + 24.*(-1975055. + 857304.*chi12 - 994896.*chi1*chi2 + 857304.*chi22)*eta + 35371056.*eta2)*(f1Interm**(1./3.))*(jnp.pi**(4./3.)))/6.096384e6 + (5.*(f1Interm**(2./3.))*(jnp.pi**(5./3.))*(chi2*(-285197.*(-1 + Seta)+ 4.*(-91902. + 1579.*Seta)*eta - 35632.*eta2) + chi1*(285197.*SetaPlus1- 4.*(91902. + 1579.*Seta)*eta - 35632.*eta2) + 42840.*(-1 + 4*eta)*jnp.pi))/96768.- (f1Interm*jnp.pi*jnp.pi*(-336.*(-3248849057.0 + 2943675504.*chi12 - 3339284256.*chi1*chi2 + 2943675504.*chi22)*eta2 - 324322727232.*eta2*eta - 7.*(-177520268561. + 107414046432.*chi22 + 107414046432.*chi12*SetaPlus1 - 107414046432.*chi22*Seta+ 11087290368*(chi1 + chi2 + chi1*Seta - chi2*Seta)*jnp.pi)+ 12.*eta*(-545384828789.0 - 176491177632.*chi1*chi2 + 202603761360.*chi22 + 77616.*chi12*(2610335. + 995766.*Seta)- 77287373856.*chi22*Seta + 5841690624.*(chi1 + chi2)*jnp.pi + 21384760320*jnp.pi*jnp.pi)))/3.0042980352e10+ (7.0/3.0)*(f1Interm**(4./3.))*rho1 + (8.0/3.0)*(f1Interm**(5./3.))*rho2 + 3.*(f1Interm*f1Interm)*rho3
-        # v3 is the merger-ringdown model (eq. (19) of arXiv:1508.07253) evaluated at f3
-        v3 = jnp.exp(-(f3Interm - fringlm[1])*gamma2/(fdamplm[1]*gamma3))* (fdamplm[1]*gamma3*gamma1) / ((f3Interm - fringlm[1])*(f3Interm - fringlm[1]) + fdamplm[1]*gamma3*fdamplm[1]*gamma3)
-        # d2 is the derivative of the merger-ringdown model evaluated at f3
-        d2 = ((-2.*fdamplm[1]*(f3Interm - fringlm[1])*gamma3*gamma1) / ((f3Interm - fringlm[1])*(f3Interm - fringlm[1]) + fdamplm[1]*gamma3*fdamplm[1]*gamma3) - (gamma2*gamma1))/(jnp.exp((f3Interm - fringlm[1])*gamma2/(fdamplm[1]*gamma3)) * ((f3Interm - fringlm[1])*(f3Interm - fringlm[1]) + fdamplm[1]*gamma3*fdamplm[1]*gamma3))
+        v1 = compute_v1(f1Interm, Acoeffs)
         # v2 is the value of the amplitude evaluated at f2. They come from the fit of the collocation points in the intermediate region
-        v2 = 0.8149838730507785 + 2.5747553517454658*eta + (1.1610198035496786 - 2.3627771785551537*eta + 6.771038707057573*eta2 + (0.7570782938606834 - 2.7256896890432474*eta + 7.1140380397149965*eta2)*xi + (0.1766934149293479 - 0.7978690983168183*eta + 2.1162391502005153*eta2)*xi*xi)*xi
-        # Now some definitions to speed up
-        f1  = f1Interm
-        f2  = f2Interm
-        f3  = f3Interm
-        f12 = f1Interm*f1Interm
-        f13 = f1Interm*f12;
-        f14 = f1Interm*f13;
-        f15 = f1Interm*f14;
-        f22 = f2Interm*f2Interm;
-        f23 = f2Interm*f22;
-        f24 = f2Interm*f23;
-        f32 = f3Interm*f3Interm;
-        f33 = f3Interm*f32;
-        f34 = f3Interm*f33;
-        f35 = f3Interm*f34;
-        # Finally conpute the deltas
-        delta0 = -((d2*f15*f22*f3 - 2.*d2*f14*f23*f3 + d2*f13*f24*f3 - d2*f15*f2*f32 + d2*f14*f22*f32 - d1*f13*f23*f32 + d2*f13*f23*f32 + d1*f12*f24*f32 - d2*f12*f24*f32 + d2*f14*f2*f33 + 2.*d1*f13*f22*f33 - 2.*d2*f13*f22*f33 - d1*f12*f23*f33 + d2*f12*f23*f33 - d1*f1*f24*f33 - d1*f13*f2*f34 - d1*f12*f22*f34 + 2.*d1*f1*f23*f34 + d1*f12*f2*f35 - d1*f1*f22*f35 + 4.*f12*f23*f32*v1 - 3.*f1*f24*f32*v1 - 8.*f12*f22*f33*v1 + 4.*f1*f23*f33*v1 + f24*f33*v1 + 4.*f12*f2*f34*v1 + f1*f22*f34*v1 - 2.*f23*f34*v1 - 2.*f1*f2*f35*v1 + f22*f35*v1 - f15*f32*v2 + 3.*f14*f33*v2 - 3.*f13*f34*v2 + f12*f35*v2 - f15*f22*v3 + 2.*f14*f23*v3 - f13*f24*v3 + 2.*f15*f2*f3*v3 - f14*f22*f3*v3 - 4.*f13*f23*f3*v3 + 3.*f12*f24*f3*v3 - 4.*f14*f2*f32*v3 + 8.*f13*f22*f32*v3 - 4.*f12*f23*f32*v3) / ((f1 - f2)*(f1 - f2)*(f1 - f3)*(f1 - f3)*(f1 - f3)*(f3 - f2)*(f3 - f2)))
-        delta0 = -((d2*f15*f22*f3 - 2.*d2*f14*f23*f3 + d2*f13*f24*f3 - d2*f15*f2*f32 + d2*f14*f22*f32 - d1*f13*f23*f32 + d2*f13*f23*f32 + d1*f12*f24*f32 - d2*f12*f24*f32 + d2*f14*f2*f33 + 2*d1*f13*f22*f33 - 2*d2*f13*f22*f33 - d1*f12*f23*f33 + d2*f12*f23*f33 - d1*f1*f24*f33 - d1*f13*f2*f34 - d1*f12*f22*f34 + 2*d1*f1*f23*f34 + d1*f12*f2*f35 - d1*f1*f22*f35 + 4*f12*f23*f32*v1 - 3*f1*f24*f32*v1 - 8*f12*f22*f33*v1 + 4*f1*f23*f33*v1 + f24*f33*v1 + 4*f12*f2*f34*v1 + f1*f22*f34*v1 - 2*f23*f34*v1 - 2*f1*f2*f35*v1 + f22*f35*v1 - f15*f32*v2 + 3*f14*f33*v2 - 3*f13*f34*v2 + f12*f35*v2 - f15*f22*v3 + 2*f14*f23*v3 - f13*f24*v3 + 2*f15*f2*f3*v3 - f14*f22*f3*v3 - 4*f13*f23*f3*v3 + 3*f12*f24*f3*v3 - 4*f14*f2*f32*v3 + 8*f13*f22*f32*v3 - 4*f12*f23*f32*v3) / ((f1 - f2)*(f1 - f2)*(f1 - f3)*(f1 - f3)*(f1 - f3)*(f3-f2)*(f3-f2)))
-        delta1 = -((-(d2*f15*f22) + 2.*d2*f14*f23 - d2*f13*f24 - d2*f14*f22*f3 + 2.*d1*f13*f23*f3 + 2.*d2*f13*f23*f3 - 2*d1*f12*f24*f3 - d2*f12*f24*f3 + d2*f15*f32 - 3*d1*f13*f22*f32 - d2*f13*f22*f32 + 2*d1*f12*f23*f32 - 2*d2*f12*f23*f32 + d1*f1*f24*f32 + 2*d2*f1*f24*f32 - d2*f14*f33 + d1*f12*f22*f33 + 3*d2*f12*f22*f33 - 2*d1*f1*f23*f33 - 2*d2*f1*f23*f33 + d1*f24*f33 + d1*f13*f34 + d1*f1*f22*f34 - 2*d1*f23*f34 - d1*f12*f35 + d1*f22*f35 - 8*f12*f23*f3*v1 + 6*f1*f24*f3*v1 + 12*f12*f22*f32*v1 - 8*f1*f23*f32*v1 - 4*f12*f34*v1 + 2*f1*f35*v1 + 2*f15*f3*v2 - 4*f14*f32*v2 + 4*f12*f34*v2 - 2*f1*f35*v2 - 2*f15*f3*v3 + 8*f12*f23*f3*v3 - 6*f1*f24*f3*v3 + 4*f14*f32*v3 - 12*f12*f22*f32*v3 + 8*f1*f23*f32*v3) / ((f1 - f2)*(f1 - f2)*(f1 - f3)*(f1 - f3)*(f1 - f3)*(f3 - f2)*(f3 - f2)))
-        delta2 = -((d2*f15*f2 - d1*f13*f23 - 3*d2*f13*f23 + d1*f12*f24 + 2.*d2*f12*f24 - d2*f15*f3 + d2*f14*f2*f3 - d1*f12*f23*f3 + d2*f12*f23*f3 + d1*f1*f24*f3 - d2*f1*f24*f3 - d2*f14*f32 + 3*d1*f13*f2*f32 + d2*f13*f2*f32 - d1*f1*f23*f32 + d2*f1*f23*f32 - 2*d1*f24*f32 - d2*f24*f32 - 2*d1*f13*f33 + 2*d2*f13*f33 - d1*f12*f2*f33 - 3*d2*f12*f2*f33 + 3*d1*f23*f33 + d2*f23*f33 + d1*f12*f34 - d1*f1*f2*f34 + d1*f1*f35 - d1*f2*f35 + 4*f12*f23*v1 - 3*f1*f24*v1 + 4*f1*f23*f3*v1 - 3*f24*f3*v1 - 12*f12*f2*f32*v1 + 4*f23*f32*v1 + 8*f12*f33*v1 - f1*f34*v1 - f35*v1 - f15*v2 - f14*f3*v2 + 8*f13*f32*v2 - 8*f12*f33*v2 + f1*f34*v2 + f35*v2 + f15*v3 - 4*f12*f23*v3 + 3*f1*f24*v3 + f14*f3*v3 - 4*f1*f23*f3*v3 + 3*f24*f3*v3 - 8*f13*f32*v3 + 12*f12*f2*f32*v3 - 4*f23*f32*v3) / ((f1 - f2)*(f1 - f2)*(f1 - f3)*(f1 - f3)*(f1 - f3)*(f3 - f2)*(f3 - f2)))
-        delta3 = -((-2.*d2*f14*f2 + d1*f13*f22 + 3*d2*f13*f22 - d1*f1*f24 - d2*f1*f24 + 2*d2*f14*f3 - 2.*d1*f13*f2*f3 - 2*d2*f13*f2*f3 + d1*f12*f22*f3 - d2*f12*f22*f3 + d1*f24*f3 + d2*f24*f3 + d1*f13*f32 - d2*f13*f32 - 2*d1*f12*f2*f32 + 2*d2*f12*f2*f32 + d1*f1*f22*f32 - d2*f1*f22*f32 + d1*f12*f33 - d2*f12*f33 + 2*d1*f1*f2*f33 + 2*d2*f1*f2*f33 - 3*d1*f22*f33 - d2*f22*f33 - 2*d1*f1*f34 + 2*d1*f2*f34 - 4*f12*f22*v1 + 2*f24*v1 + 8*f12*f2*f3*v1 - 4*f1*f22*f3*v1 - 4*f12*f32*v1 + 8*f1*f2*f32*v1 - 4*f22*f32*v1 - 4*f1*f33*v1 + 2*f34*v1 + 2*f14*v2 - 4*f13*f3*v2 + 4*f1*f33*v2 - 2*f34*v2 - 2*f14*v3 + 4*f12*f22*v3 - 2*f24*v3 + 4*f13*f3*v3 - 8*f12*f2*f3*v3 + 4*f1*f22*f3*v3 + 4*f12*f32*v3 - 8*f1*f2*f32*v3 + 4*f22*f32*v3) / ((f1 - f2)*(f1 - f2)*(f1 - f3)*(f1 - f3)*(f1 - f3)*(f3 - f2)*(f3 - f2)))
-        delta4 = -((d2*f13*f2 - d1*f12*f22 - 2*d2*f12*f22 + d1*f1*f23 + d2*f1*f23 - d2*f13*f3 + 2.*d1*f12*f2*f3 + d2*f12*f2*f3 - d1*f1*f22*f3 + d2*f1*f22*f3 - d1*f23*f3 - d2*f23*f3 - d1*f12*f32 + d2*f12*f32 - d1*f1*f2*f32 - 2*d2*f1*f2*f32 + 2*d1*f22*f32 + d2*f22*f32 + d1*f1*f33 - d1*f2*f33 + 3*f1*f22*v1 - 2*f23*v1 - 6*f1*f2*f3*v1 + 3*f22*f3*v1 + 3*f1*f32*v1 - f33*v1 - f13*v2 + 3*f12*f3*v2 - 3*f1*f32*v2 + f33*v2 + f13*v3 - 3*f1*f22*v3 + 2*f23*v3 - 3*f12*f3*v3 + 6*f1*f2*f3*v3 - 3*f22*f3*v3) / ((f1 - f2)*(f1 - f2)*(f1 - f3)*(f1 - f3)*(f1 - f3)*(f3 - f2)*(f3 - f2)))
+        v2 = compute_v2(eta, eta2, xi)
+        # v3 is the merger-ringdown model (eq. (19) of arXiv:1508.07253) evaluated at f3
+        v3 = compute_v3(f3Interm, fringlm[1], fdamplm[1], gamma1, gamma2, gamma3)
+        
+        # d1 is the derivative of the inspiral model evaluated at f1
+        d1 = compute_d1(f1Interm, eta, eta2, chi1, chi2, chi12, chi22, Seta, SetaPlus1, rho1, rho2, rho3)
+        # d2 is the derivative of the merger-ringdown model evaluated at f3
+        d2 = compute_d2(f3Interm, fringlm[1], fdamplm[1], gamma1, gamma2, gamma3)
+        # Compute the delta coefficients for the intermediate amplitude
+        delta0, delta1, delta2, delta3, delta4 = compute_delta_coefficients(
+            f1Interm, f2Interm, f3Interm, d1, d2, v1, v2, v3
+        )
         
         # Defined as in LALSimulation - LALSimIMRPhenomUtils.c line 70. Final units are correctly Hz^-1
         # there is a 2 * sqrt(5/(64*pi)) missing w.r.t the standard coefficient, which comes from the (2,2) shperical harmonic
