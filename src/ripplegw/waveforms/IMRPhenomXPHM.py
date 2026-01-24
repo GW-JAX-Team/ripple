@@ -970,8 +970,8 @@ class IMRPhenomXPHM(WaveFormModel):
         Y, Ymstar = SpinWeighted_SphericalHarmonic(iota)
         Y, Ymstar = Y.T, jnp.conj(Ymstar).T
 
-        hp = jnp.sum(AmplsAllModes*jnp.exp(-1j*PhisAllModes)*(0.5*(Y + ((-1)**ells)*Ymstar)), axis=-1)
-        hc = -jnp.sum(AmplsAllModes*jnp.exp(-1j*PhisAllModes)*(-1j* 0.5 * (Y - ((-1)**ells)* Ymstar)), axis=-1)
+        #hp = jnp.sum(AmplsAllModes*jnp.exp(-1j*PhisAllModes)*(0.5*(Y + ((-1)**ells)*Ymstar)), axis=-1)
+        #hc = -jnp.sum(AmplsAllModes*jnp.exp(-1j*PhisAllModes)*(-1j* 0.5 * (Y - ((-1)**ells)* Ymstar)), axis=-1)
 
         hlm = AmplsAllModes * jnp.exp(-1j*PhisAllModes) * jnp.power(-1, ells)
 
