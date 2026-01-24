@@ -2007,7 +2007,7 @@ class IMRPhenomXPHM(WaveFormModel):
         return None
     
 
-    def hphc(self, f, chirp_mass, eta, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, iota, luminosity_distance, initial_phase):
+    def hphc(self, frequency_array, chirp_mass, eta, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, iota, luminosity_distance, initial_phase, reference_frequency):
         """
         Compute the plus and cross polarisations of the GW as a function of frequency, given the events parameters, avoiding for loops over the modes.
         
@@ -2041,11 +2041,11 @@ class IMRPhenomXPHM(WaveFormModel):
         m2ByM = 0.5 * (1.0 - Seta)
 
         # We work in dimensionless frequency M*f, not f
-        fgrid = total_mass*MTSUN_SI*f
+        fgrid = total_mass*MTSUN_SI*frequency_array
         # This is MfRef, needed to recover LAL, which sets fRef to f_min if fRef=0
-        reference_frequency  = jnp.amin(fgrid, axis=0)
+        #reference_frequency  = jnp.amin(fgrid, axis=0)
         #if self.reference_frequency is not None
-        reference_frequency = total_mass*MTSUN_SI*self.reference_frequency
+        reference_frequency = total_mass*MTSUN_SI*reference_frequency
         # As in arXiv:1508.07253 eq. (4) and LALSimIMRPhenomD_internals.c line 97
         chiPN = (chi_s * (1.0 - eta * 76.0 / 113.0) + Seta * chi_a)
         xi = - 1.0 + chiPN
@@ -2466,7 +2466,8 @@ class IMRPhenomXPHM(WaveFormModel):
                          chi1z = chi1z,
                          chi2x = chi2x,
                          chi2y = chi2y,
-                         chi2z = chi2z)
+                         chi2z = chi2z, 
+                         reference_frequency= reference_frequency)
         
 
         _hp, _hc = self.twistup(Mf, pWF, pPrec, hlm)
