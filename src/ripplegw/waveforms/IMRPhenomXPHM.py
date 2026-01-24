@@ -91,6 +91,78 @@ SIGMA_3 = 2
 SIGMA_4 = 3
 SIGMA_NUM_COEFFS = 4
 
+
+@jit
+def SpinWeighted_SphericalHarmonic(theta, modes, phi=0.):
+            # Taken from arXiv:0709.0093v3 eq. (II.7), (II.8) and LALSimulation for the s=-2 case and up to l=4.
+            # We assume already phi=0 and s=-2 to simplify the function
+
+            Ylm    = jnp.where(modes==21, jnp.sqrt( 5.0 / ( 16.0 * jnp.pi ) ) * jnp.sin( theta )*( 1.0 + jnp.cos( theta )), jnp.where(modes==22, jnp.sqrt( 5.0 / ( 64.0 * jnp.pi ) ) * ( 1.0 + jnp.cos( theta ))*( 1.0 + jnp.cos( theta )), jnp.where(modes==32, jnp.sqrt(7.0/jnp.pi)*((jnp.cos(theta*0.5))**(4.0))*(-2.0 + 3.0*jnp.cos(theta))*0.5, jnp.where(modes==33, -jnp.sqrt(21.0/(2.0*jnp.pi))*((jnp.cos(theta/2.0))**(5.0))*jnp.sin(theta*0.5), jnp.where(modes==43, -3.0*jnp.sqrt(7.0/(2.0*jnp.pi))*((jnp.cos(theta*0.5))**5.0)*(-1.0 + 2.0*jnp.cos(theta))*jnp.sin(theta*0.5), 3.0*jnp.sqrt(7.0/jnp.pi)*((jnp.cos(theta*0.5))**6.0)*(jnp.sin(theta*0.5)*jnp.sin(theta*0.5)))))))
+            Ylminm = jnp.where(modes==21, jnp.sqrt( 5.0 / ( 16.0 * jnp.pi ) ) * jnp.sin( theta )*( 1.0 - jnp.cos( theta )), jnp.where(modes==22, jnp.sqrt( 5.0 / ( 64.0 * jnp.pi ) ) * ( 1.0 - jnp.cos( theta ))*( 1.0 - jnp.cos( theta )), jnp.where(modes==32, jnp.sqrt(7.0/(4.0*jnp.pi))*(2.0 + 3.0*jnp.cos(theta))*((jnp.sin(theta*0.5))**(4.0)), jnp.where(modes==33, jnp.sqrt(21.0/(2.0*jnp.pi))*jnp.cos(theta*0.5)*((jnp.sin(theta*0.5))**(5.)), jnp.where(modes==43, 3.0*jnp.sqrt(7.0/(2.0*jnp.pi))*jnp.cos(theta*0.5)*(1.0 + 2.0*jnp.cos(theta))*((jnp.sin(theta*0.5))**5.0), 3.0*jnp.sqrt(7.0/jnp.pi)*(jnp.cos(theta*0.5)*jnp.cos(theta*0.5))*((jnp.sin(theta*0.5))**6.0))))))
+
+            return Ylm, Ylminm
+
+@jit
+def OnePointFiveSpinPN(infreqs, ChiS, ChiA, mms, modes, eta, Seta):
+            # PN amplitudes function, needed to scale
+
+            v  = jnp.moveaxis((2.*jnp.pi*infreqs/mms)**(1./3.), len(infreqs.shape)-1, len(infreqs.shape) - 2)
+            v2 = v*v
+            v3 = v2*v
+
+            reshModes = jnp.expand_dims(modes, len(modes.shape))
+            Hlm = jnp.where(reshModes==21, (jnp.sqrt(2.0) / 3.0) * (v * Seta - v2 * 1.5 * (ChiA + Seta * ChiS) + v3 * Seta * ((335.0 / 672.0) + (eta * 117.0 / 56.0)) + v3*v * (ChiA * (3427.0 / 1344. - eta * 2101.0 / 336.) + Seta * ChiS * (3427.0 / 1344 - eta * 965 / 336) + Seta * (-1j * 0.5 - jnp.pi - 2 * 1j * 0.69314718056))), jnp.where(reshModes==22, 1., jnp.where(reshModes==32, (1.0 / 3.0) * jnp.sqrt(5.0 / 7.0) * (v2 * (1.0 - 3.0 * eta)), jnp.where(reshModes==33, 0.75 * jnp.sqrt(5.0 / 7.0) * (v * Seta), jnp.where(reshModes==43, 0.75 * jnp.sqrt(3.0 / 35.0) * v3 * Seta * (1.0 - 2.0 * eta), (4.0 / 9.0) * jnp.sqrt(10.0 / 7.0) * v2 * (1.0 - 3.0 * eta))))))
+
+            # Compute the final PN Amplitude at Leading Order in Mf
+
+            return jnp.pi * jnp.sqrt(eta * 2. / 3.) * (v**(-3.5)) * abs(Hlm)
+
+
+@jit
+def _radiatednrg(eta, chi1, chi2):
+        """
+        Compute the total radiated energy, as in `arXiv:1508.07250 <https://arxiv.org/abs/1508.07250>`_ eq. (3.7) and (3.8).
+        
+        :param array or float eta: Symmetric mass ratio of the objects.
+        :param array or float chi1: Spin of the primary object.
+        :param array or float chi2: Spin of the secondary object.
+        :return: Total energy radiated by the system.
+        :rtype: array or float
+        
+        """
+        # This is needed to stabilize JAX derivatives
+        Seta = jnp.sqrt(jnp.where(eta<0.25, 1.0 - 4.0*eta, 0.))
+        m1 = 0.5 * (1.0 + Seta)
+        m2 = 0.5 * (1.0 - Seta)
+        s  = (m1*m1 * chi1 + m2*m2 * chi2) / (m1*m1 + m2*m2)
+
+        EradNS = eta * (0.055974469826360077 + 0.5809510763115132 * eta - 0.9606726679372312 * eta*eta + 3.352411249771192 * eta*eta*eta)
+
+        return (EradNS * (1. + (-0.0030302335878845507 - 2.0066110851351073 * eta + 7.7050567802399215 * eta*eta) * s)) / (1. + (-0.6714403054720589 - 1.4756929437702908 * eta + 7.304676214885011 * eta*eta) * s)
+    
+
+@jit
+def _finalspin(eta, chi1, chi2):
+        """
+        Compute the spin of the final object, as in LALSimIMRPhenomD_internals.c line 161 and 142, which is taken from `arXiv:1508.07250 <https://arxiv.org/abs/1508.07250>`_ eq. (3.6).
+        
+        :param array or float eta: Symmetric mass ratio of the objects.
+        :param array or float chi1: Spin of the primary object.
+        :param array or float chi2: Spin of the secondary object.
+        :return: The spin of the final object.
+        :rtype: array or float
+        
+        """
+        # This is needed to stabilize JAX derivatives
+        Seta = jnp.sqrt(jnp.where(eta<0.25, 1.0 - 4.0*eta, 0.))
+        m1 = 0.5 * (1.0 + Seta)
+        m2 = 0.5 * (1.0 - Seta)
+        s  = (m1*m1 * chi1 + m2*m2 * chi2)
+        af1 = eta*(3.4641016151377544 - 4.399247300629289*eta + 9.397292189321194*eta*eta - 13.180949901606242*eta*eta*eta)
+        af2 = eta*(s*((1.0/eta - 0.0850917821418767 - 5.837029316602263*eta) + (0.1014665242971878 - 2.0967746996832157*eta)*s))
+        af3 = eta*(s*((-1.3546806617824356 + 4.108962025369336*eta)*s*s + (-0.8676969352555539 + 2.064046835273906*eta)*s*s*s))
+        return af1 + af2 + af3
+
 @jit
 def compute_fring_and_fdamp(
     aeff: Array,
@@ -1978,8 +2050,8 @@ class IMRPhenomXPHM(WaveFormModel):
         chiPN = (chi_s * (1.0 - eta * 76.0 / 113.0) + Seta * chi_a)
         xi = - 1.0 + chiPN
         # Compute final spin, radiated energy and mass
-        aeff = self._finalspin(eta, chi1, chi2)
-        Erad = self._radiatednrg(eta, chi1, chi2)
+        aeff = _finalspin(eta, chi1, chi2)
+        Erad = _radiatednrg(eta, chi1, chi2)
         finMass = 1. - Erad
     
         # Compute the real and imag parts of the complex ringdown frequency for the (l,m) mode as in LALSimIMRPhenomHM.c line 189
@@ -2106,30 +2178,6 @@ class IMRPhenomXPHM(WaveFormModel):
         # there is a 2 * sqrt(5/(64*pi)) missing w.r.t the standard coefficient, which comes from the (2,2) shperical harmonic
 
         Overallamp = total_mass * GMsun_over_c2_Gpc * total_mass * MTSUN_SI / kwargs['dL']
-
-
-        def OnePointFiveSpinPN(infreqs, ChiS, ChiA):
-            # PN amplitudes function, needed to scale
-
-            v  = jnp.moveaxis((2.*jnp.pi*infreqs/mms)**(1./3.), len(infreqs.shape)-1, len(infreqs.shape) - 2)
-            v2 = v*v
-            v3 = v2*v
-
-            reshModes = jnp.expand_dims(modes, len(modes.shape))
-            Hlm = jnp.where(reshModes==21, (jnp.sqrt(2.0) / 3.0) * (v * Seta - v2 * 1.5 * (ChiA + Seta * ChiS) + v3 * Seta * ((335.0 / 672.0) + (eta * 117.0 / 56.0)) + v3*v * (ChiA * (3427.0 / 1344. - eta * 2101.0 / 336.) + Seta * ChiS * (3427.0 / 1344 - eta * 965 / 336) + Seta * (-1j * 0.5 - jnp.pi - 2 * 1j * 0.69314718056))), jnp.where(reshModes==22, 1., jnp.where(reshModes==32, (1.0 / 3.0) * jnp.sqrt(5.0 / 7.0) * (v2 * (1.0 - 3.0 * eta)), jnp.where(reshModes==33, 0.75 * jnp.sqrt(5.0 / 7.0) * (v * Seta), jnp.where(reshModes==43, 0.75 * jnp.sqrt(3.0 / 35.0) * v3 * Seta * (1.0 - 2.0 * eta), (4.0 / 9.0) * jnp.sqrt(10.0 / 7.0) * v2 * (1.0 - 3.0 * eta))))))
-
-            # Compute the final PN Amplitude at Leading Order in Mf
-
-            return jnp.pi * jnp.sqrt(eta * 2. / 3.) * (v**(-3.5)) * abs(Hlm)
-        
-        def SpinWeighted_SphericalHarmonic(theta, phi=0.):
-            # Taken from arXiv:0709.0093v3 eq. (II.7), (II.8) and LALSimulation for the s=-2 case and up to l=4.
-            # We assume already phi=0 and s=-2 to simplify the function
-
-            Ylm    = jnp.where(modes==21, jnp.sqrt( 5.0 / ( 16.0 * jnp.pi ) ) * jnp.sin( theta )*( 1.0 + jnp.cos( theta )), jnp.where(modes==22, jnp.sqrt( 5.0 / ( 64.0 * jnp.pi ) ) * ( 1.0 + jnp.cos( theta ))*( 1.0 + jnp.cos( theta )), jnp.where(modes==32, jnp.sqrt(7.0/jnp.pi)*((jnp.cos(theta*0.5))**(4.0))*(-2.0 + 3.0*jnp.cos(theta))*0.5, jnp.where(modes==33, -jnp.sqrt(21.0/(2.0*jnp.pi))*((jnp.cos(theta/2.0))**(5.0))*jnp.sin(theta*0.5), jnp.where(modes==43, -3.0*jnp.sqrt(7.0/(2.0*jnp.pi))*((jnp.cos(theta*0.5))**5.0)*(-1.0 + 2.0*jnp.cos(theta))*jnp.sin(theta*0.5), 3.0*jnp.sqrt(7.0/jnp.pi)*((jnp.cos(theta*0.5))**6.0)*(jnp.sin(theta*0.5)*jnp.sin(theta*0.5)))))))
-            Ylminm = jnp.where(modes==21, jnp.sqrt( 5.0 / ( 16.0 * jnp.pi ) ) * jnp.sin( theta )*( 1.0 - jnp.cos( theta )), jnp.where(modes==22, jnp.sqrt( 5.0 / ( 64.0 * jnp.pi ) ) * ( 1.0 - jnp.cos( theta ))*( 1.0 - jnp.cos( theta )), jnp.where(modes==32, jnp.sqrt(7.0/(4.0*jnp.pi))*(2.0 + 3.0*jnp.cos(theta))*((jnp.sin(theta*0.5))**(4.0)), jnp.where(modes==33, jnp.sqrt(21.0/(2.0*jnp.pi))*jnp.cos(theta*0.5)*((jnp.sin(theta*0.5))**(5.)), jnp.where(modes==43, 3.0*jnp.sqrt(7.0/(2.0*jnp.pi))*jnp.cos(theta*0.5)*(1.0 + 2.0*jnp.cos(theta))*((jnp.sin(theta*0.5))**5.0), 3.0*jnp.sqrt(7.0/jnp.pi)*(jnp.cos(theta*0.5)*jnp.cos(theta*0.5))*((jnp.sin(theta*0.5))**6.0))))))
-
-            return Ylm, Ylminm
         
         # Time shift so that peak amplitude is approximately at t=0
         # Use PhenomD-style fring/fdamp/fpeak to match LALSim's IMRPhenomDComputet0
@@ -2188,10 +2236,13 @@ class IMRPhenomXPHM(WaveFormModel):
         fgridScaled = jnp.where(fgrid < Map_fiAmp, fgrid*Map_ai + Map_bi, jnp.where(fgrid < Map_fr, fgrid*Map_amAmp + Map_bmAmp, fgrid*Map_arAmp + Map_brAmp))
         # Map the ampliude's range
         # We divide by the leading order l=m=2 behavior, and then scale in the expected PN behavior for the multipole of interest.
-              
-        beta_term1  = OnePointFiveSpinPN(fgrid, chi_s, chi_a)
-        beta_term2  = OnePointFiveSpinPN(2.*fgrid/mms, chi_s, chi_a)
-        HMamp_term1 = OnePointFiveSpinPN(fgridScaled, chi_s, chi_a)
+
+
+
+
+        beta_term1  = OnePointFiveSpinPN(fgrid, chi_s, chi_a, mms, modes, eta, Seta)
+        beta_term2  = OnePointFiveSpinPN(2.*fgrid/mms, chi_s, chi_a, mms, modes, eta, Seta)
+        HMamp_term1 = OnePointFiveSpinPN(fgridScaled, chi_s, chi_a, mms, modes, eta, Seta)
         fgridScaled = jnp.moveaxis(fgridScaled, len(fgridScaled.shape)-1, len(fgridScaled.shape) - 2)
         #fgridScaled = fgridScaled.transpose(0,2,1)
         HMamp_term2 = jnp.pi * jnp.sqrt(eta * 2. / 3.) * ((jnp.pi*fgridScaled)**(-7./6.))
@@ -2240,9 +2291,7 @@ class IMRPhenomXPHM(WaveFormModel):
             PhDBconst, PhDCconst, PhDBAterm, tmpphaseC
         )
 
-        # override  #FIXME
-        #t0 = np.array([2.6023655427e+02])
-
+        #FIXME
         # Save PhisAllModes to dat file for debugging (frequency + modes as columns)
         #freqs_flat = fgrid.flatten()
         #n_modes = PhisAllModes.shape[1] if len(PhisAllModes.shape) > 1 else 1
@@ -2259,7 +2308,7 @@ class IMRPhenomXPHM(WaveFormModel):
 
 
         modes = jnp.expand_dims(modes, len(modes.shape))
-        Y, Ymstar = SpinWeighted_SphericalHarmonic(iota)
+        Y, Ymstar = SpinWeighted_SphericalHarmonic(iota, modes)
         Y, Ymstar = Y.T, jnp.conj(Ymstar).T
 
         #hp = jnp.sum(AmplsAllModes*jnp.exp(-1j*PhisAllModes)*(0.5*(Y + ((-1)**ells)*Ymstar)), axis=-1)
@@ -2269,100 +2318,8 @@ class IMRPhenomXPHM(WaveFormModel):
 
         return hlm
 
-        
-    def _finalspin(self, eta, chi1, chi2):
-        """
-        Compute the spin of the final object, as in LALSimIMRPhenomD_internals.c line 161 and 142, which is taken from `arXiv:1508.07250 <https://arxiv.org/abs/1508.07250>`_ eq. (3.6).
-        
-        :param array or float eta: Symmetric mass ratio of the objects.
-        :param array or float chi1: Spin of the primary object.
-        :param array or float chi2: Spin of the secondary object.
-        :return: The spin of the final object.
-        :rtype: array or float
-        
-        """
-        # This is needed to stabilize JAX derivatives
-        Seta = jnp.sqrt(jnp.where(eta<0.25, 1.0 - 4.0*eta, 0.))
-        m1 = 0.5 * (1.0 + Seta)
-        m2 = 0.5 * (1.0 - Seta)
-        s  = (m1*m1 * chi1 + m2*m2 * chi2)
-        af1 = eta*(3.4641016151377544 - 4.399247300629289*eta + 9.397292189321194*eta*eta - 13.180949901606242*eta*eta*eta)
-        af2 = eta*(s*((1.0/eta - 0.0850917821418767 - 5.837029316602263*eta) + (0.1014665242971878 - 2.0967746996832157*eta)*s))
-        af3 = eta*(s*((-1.3546806617824356 + 4.108962025369336*eta)*s*s + (-0.8676969352555539 + 2.064046835273906*eta)*s*s*s))
-        return af1 + af2 + af3
 
-    def _radiatednrg(self, eta, chi1, chi2):
-        """
-        Compute the total radiated energy, as in `arXiv:1508.07250 <https://arxiv.org/abs/1508.07250>`_ eq. (3.7) and (3.8).
-        
-        :param array or float eta: Symmetric mass ratio of the objects.
-        :param array or float chi1: Spin of the primary object.
-        :param array or float chi2: Spin of the secondary object.
-        :return: Total energy radiated by the system.
-        :rtype: array or float
-        
-        """
-        # This is needed to stabilize JAX derivatives
-        Seta = jnp.sqrt(jnp.where(eta<0.25, 1.0 - 4.0*eta, 0.))
-        m1 = 0.5 * (1.0 + Seta)
-        m2 = 0.5 * (1.0 - Seta)
-        s  = (m1*m1 * chi1 + m2*m2 * chi2) / (m1*m1 + m2*m2)
-
-        EradNS = eta * (0.055974469826360077 + 0.5809510763115132 * eta - 0.9606726679372312 * eta*eta + 3.352411249771192 * eta*eta*eta)
-
-        return (EradNS * (1. + (-0.0030302335878845507 - 2.0066110851351073 * eta + 7.7050567802399215 * eta*eta) * s)) / (1. + (-0.6714403054720589 - 1.4756929437702908 * eta + 7.304676214885011 * eta*eta) * s)
     
-    def _RDfreqCalc(self, finalmass, finalspin, l, m):
-        """
-        Compute the real and imaginary parts of the complex ringdown frequency for the :math:`(l,m)` mode as in :py:class:`LALSimIMRPhenomHM.c` line 189. This function includes all fits of the different modes.
-        
-        :param array or float finalmass: Mass(es) of the final object(s).
-        :param array or float finalspin: Spin(s) of the final object(s).
-        :param int l: :math:`l` of the chosen mode.
-        :param int m: :math:`m` of the chosen mode.
-        :return: Real and imaginary parts of the complex ringdown frequency (ringdown and damping frequencies).
-        :rtype: tuple(array, array) or tuple(float, float)
-        
-        """
-        
-        # Domain mapping for dimnesionless BH spin
-        alpha = jnp.log(2. - finalspin) / jnp.log(3.);
-        beta = 1. / (2. + l - abs(m));
-        kappa  = alpha**beta
-        kappa2 = kappa*kappa
-        kappa3 = kappa*kappa2
-        kappa4 = kappa*kappa3
-
-        if (2 == l) and (2 == m):
-            res = 1.0 + kappa * (1.557847 * jnp.exp(2.903124 * 1j) + 1.95097051 * jnp.exp(5.920970 * 1j) * kappa + 2.09971716 * jnp.exp(2.760585 * 1j) * kappa2 + 1.41094660 * jnp.exp(5.914340 * 1j) * kappa3 + 0.41063923 * jnp.exp(2.795235 * 1j) * kappa4)
-
-        elif (3 == l) and (2 == m):
-            res = 1.022464 * jnp.exp(0.004870 * 1j) + 0.24731213 * jnp.exp(0.665292 * 1j) * kappa + 1.70468239 * jnp.exp(3.138283 * 1j) * kappa2 + 0.94604882 * jnp.exp(0.163247 * 1j) * kappa3 + 1.53189884 * jnp.exp(5.703573 * 1j) * kappa4 + 2.28052668 * jnp.exp(2.685231 * 1j) * kappa4*kappa + 0.92150314 * jnp.exp(5.841704 * 1j) * kappa4*kappa2
-
-        elif (4 == l) and (4 == m):
-            res = 2.0 + kappa * (2.658908 * jnp.exp(3.002787 * 1j) + 2.97825567 * jnp.exp(6.050955 * 1j) * kappa + 3.21842350 * jnp.exp(2.877514 * 1j) * kappa2 + 2.12764967 * jnp.exp(5.989669 * 1j) * kappa3 + 0.60338186 * jnp.exp(2.830031 * 1j) * kappa4)
-
-        elif (2 == l) and (1 == m):
-            res = 0.589113 * jnp.exp(0.043525 * 1j) + 0.18896353 * jnp.exp(2.289868 * 1j) * kappa + 1.15012965 * jnp.exp(5.810057 * 1j) * kappa2 + 6.04585476 * jnp.exp(2.741967 * 1j) * kappa3 + 11.12627777 * jnp.exp(5.844130 * 1j) * kappa4 + 9.34711461 * jnp.exp(2.669372 * 1j) * kappa4*kappa + 3.03838318 * jnp.exp(5.791518 * 1j) * kappa4*kappa2
-
-        elif (3 == l) and (3 == m):
-            res = 1.5 + kappa * (2.095657 * jnp.exp(2.964973 * 1j) + 2.46964352 * jnp.exp(5.996734 * 1j) * kappa + 2.66552551 * jnp.exp(2.817591 * 1j) * kappa2 + 1.75836443 * jnp.exp(5.932693 * 1j) * kappa3 + 0.49905688 * jnp.exp(2.781658 * 1j) * kappa4)
-
-        elif (4 == l) and (3 == m):
-            res = 1.5 + kappa * (0.205046 * jnp.exp(0.595328 * 1j) + 3.10333396 * jnp.exp(3.016200 * 1j) * kappa + 4.23612166 * jnp.exp(6.038842 * 1j) * kappa2 + 3.02890198 * jnp.exp(2.826239 * 1j) * kappa3 + 0.90843949 * jnp.exp(5.915164 * 1j) * kappa4)
-
-        else:
-            raise ValueError('Mode not present in IMRPhenomHM waveform model.')
-
-        if m < 0:
-            res = -jnp.conj(res)
-
-        fring = jnp.real(res)/(2.*np.pi*finalmass)
-
-        fdamp = jnp.imag(res)/(2.*np.pi*finalmass)
-        
-        return fring, fdamp
-        
     def tau_star(self, f, **kwargs):
         """
         Compute the time to coalescence (in seconds) as a function of frequency (in :math:`\\rm Hz`), given the events parameters.
