@@ -766,16 +766,9 @@ class IMRPhenomXPHM(WaveFormModel):
         fdamplm = (jnp.imag(tmpRDfr)/(2.*jnp.pi*jnp.expand_dims(finMass, len(finMass.shape))))
         
         # This recomputation is needed for JAX derivatives
-        betaRDfr = 0.5
-        kappaRDfr  = alphaRDfr**betaRDfr
-        kappaRDfr2 = kappaRDfr*kappaRDfr
-        kappaRDfr3 = kappaRDfr*kappaRDfr2
-        kappaRDfr4 = kappaRDfr*kappaRDfr3
-        
-        tmpRDfr = 1.0 + kappaRDfr * (1.557847 * jnp.exp(2.903124 * 1j) + 1.95097051 * jnp.exp(5.920970 * 1j) * kappaRDfr + 2.09971716 * jnp.exp(2.760585 * 1j) * kappaRDfr2 + 1.41094660 * jnp.exp(5.914340 * 1j) * kappaRDfr3 + 0.41063923 * jnp.exp(2.795235 * 1j) * kappaRDfr4)
 
-        fring = (jnp.real(tmpRDfr)/(2.*jnp.pi*finMass))
-        fdamp = (jnp.imag(tmpRDfr)/(2.*jnp.pi*finMass))
+        fring = fringlm[1]
+        fdamp = fdamplm[1]
 
         chip = XLALSimPhenomUtilsChiP(mass_1, mass_2, 
                                       kwargs['chi1x'], kwargs['chi1y'], 
@@ -790,8 +783,7 @@ class IMRPhenomXPHM(WaveFormModel):
 
         fring_phenomD = jnp.interp(finspin_phenomD, jnp.array(QNMData_a), jnp.array(QNMData_fRD)) / finMass
         fdamp_phenomD = jnp.interp(finspin_phenomD, jnp.array(QNMData_a), jnp.array(QNMData_fdamp)) / finMass
-
-
+        print(f"values of fringlm {fringlm} fring {fring} and fring_phenomD {fring_phenomD}")
 
         # Compute sigma coefficients as a JAX array (JIT-compatible)
         sigma_coeffs = compute_sigma_coefficients(eta, eta2, xi)
@@ -868,6 +860,9 @@ class IMRPhenomXPHM(WaveFormModel):
         fpeak = jnp.where(gamma2 >= 1.0, jnp.fabs(fring - (fdamp*gamma3)/gamma2), jnp.fabs(fring + (fdamp*(-1.0 + jnp.sqrt(1.0 - gamma2*gamma2))*gamma3)/gamma2))
         # Compute fpeak using PhenomD-style fring/fdamp for t0 calculation (to match LALSim's IMRPhenomDComputet0)
         fpeak_phenomD = jnp.where(gamma2 >= 1.0, jnp.fabs(fring_phenomD - (fdamp_phenomD*gamma3)/gamma2), jnp.fabs(fring_phenomD + (fdamp_phenomD*(-1.0 + jnp.sqrt(1.0 - gamma2*gamma2))*gamma3)/gamma2))
+
+        print(f'ripple debug fpeak {fpeak} and fpeak_phenomD {fpeak_phenomD}')
+
         # Compute coefficients rho appearing in arXiv:1508.07253 eq. (30), the numerical coefficients are in Tab. 5
         rho1 = 3931.8979897196696 - 17395.758706812805*eta + (3132.375545898835 + 343965.86092361377*eta - 1.2162565819981997e6*eta2 + (-70698.00600428853 + 1.383907177859705e6*eta - 3.9662761890979446e6*eta2)*xi + (-60017.52423652596 + 803515.1181825735*eta - 2.091710365941658e6*eta2)*xi*xi)*xi
         rho2 = -40105.47653771657 + 112253.0169706701*eta + (23561.696065836168 - 3.476180699403351e6*eta + 1.137593670849482e7*eta2 + (754313.1127166454 - 1.308476044625268e7*eta + 3.6444584853928134e7*eta2)*xi + (596226.612472288 - 7.4277901143564405e6*eta + 1.8928977514040343e7*eta2)*xi*xi)*xi
