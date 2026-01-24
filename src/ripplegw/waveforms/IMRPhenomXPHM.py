@@ -1810,7 +1810,6 @@ def compute_full_amplitude(
                   jnp.where(infreqs < fcutPar, merger_ringdown, 0.)))
 
 
-
 @jit
 def hphc(frequency_array, chirp_mass, eta, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, iota, luminosity_distance, initial_phase, reference_frequency):
     """
