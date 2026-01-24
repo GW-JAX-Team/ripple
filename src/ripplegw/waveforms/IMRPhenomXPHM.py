@@ -92,6 +92,124 @@ SIGMA_4 = 3
 SIGMA_NUM_COEFFS = 4
 
 @jit
+def compute_fring_and_fdamp(
+    aeff: Array,
+    finMass: Array,
+    modes: Array,
+    chip: Array,
+    m1ByM: Array,
+) -> tuple[Array, Array]:
+    """
+    Compute the ringdown and damping frequencies for different (l,m) modes.
+
+    Based on fits from LALSimIMRPhenomHM.c for quasi-normal mode frequencies.
+
+    Parameters
+    ----------
+    aeff : Array
+        Effective final spin of the remnant black hole.
+    finMass : Array
+        Final mass of the remnant (1 - E_rad), dimensionless.
+    modes : Array, optional
+        Array of mode identifiers (e.g., [21, 22, 32, 33, 44]).
+        Defaults to [21, 22, 32, 33, 44].
+    chip : Array, optional
+        In-plane spin parameter. If provided along with m1ByM, applies
+        PhenomD correction to the (2,2) mode.
+    m1ByM : Array, optional
+        Mass ratio m1/M. Required if chip is provided.
+
+    Returns
+    -------
+    fringlm : Array
+        Ringdown frequencies for each mode, shape (n_modes, ...).
+    fdamplm : Array
+        Damping frequencies for each mode, shape (n_modes, ...).
+    """
+
+    # Domain mapping for dimensionless BH spin
+    alphaRDfr = jnp.log(2. - aeff) / jnp.log(3.)
+
+    # beta = 1. / (2. + l - abs(m)) for each mode
+    betaRDfr = jnp.where(
+        modes == 21, 1./3.,
+        jnp.where(modes == 22, 0.5,
+        jnp.where(modes == 32, 1./3.,
+        jnp.where(modes == 33, 0.5,
+        jnp.where(modes == 43, 1./3., 0.5)))))
+
+    # Compute kappa powers
+    kappaRDfr = jnp.expand_dims(alphaRDfr, len(alphaRDfr.shape)) ** betaRDfr
+    kappaRDfr2 = kappaRDfr * kappaRDfr
+    kappaRDfr3 = kappaRDfr * kappaRDfr2
+    kappaRDfr4 = kappaRDfr * kappaRDfr3
+    kappaRDfr5 = kappaRDfr4 * kappaRDfr
+    kappaRDfr6 = kappaRDfr4 * kappaRDfr2
+
+    # Fit coefficients for each mode (complex exponential form: coeff * exp(phase * 1j))
+    tmpRDfr = jnp.where(
+        modes == 21,
+        (0.589113 * jnp.exp(0.043525 * 1j) +
+         0.18896353 * jnp.exp(2.289868 * 1j) * kappaRDfr +
+         1.15012965 * jnp.exp(5.810057 * 1j) * kappaRDfr2 +
+         6.04585476 * jnp.exp(2.741967 * 1j) * kappaRDfr3 +
+         11.12627777 * jnp.exp(5.844130 * 1j) * kappaRDfr4 +
+         9.34711461 * jnp.exp(2.669372 * 1j) * kappaRDfr5 +
+         3.03838318 * jnp.exp(5.791518 * 1j) * kappaRDfr6),
+    jnp.where(
+        modes == 22,
+        (1.0 + kappaRDfr * (
+            1.557847 * jnp.exp(2.903124 * 1j) +
+            1.95097051 * jnp.exp(5.920970 * 1j) * kappaRDfr +
+            2.09971716 * jnp.exp(2.760585 * 1j) * kappaRDfr2 +
+            1.41094660 * jnp.exp(5.914340 * 1j) * kappaRDfr3 +
+            0.41063923 * jnp.exp(2.795235 * 1j) * kappaRDfr4)),
+    jnp.where(
+        modes == 32,
+        (1.022464 * jnp.exp(0.004870 * 1j) +
+         0.24731213 * jnp.exp(0.665292 * 1j) * kappaRDfr +
+         1.70468239 * jnp.exp(3.138283 * 1j) * kappaRDfr2 +
+         0.94604882 * jnp.exp(0.163247 * 1j) * kappaRDfr3 +
+         1.53189884 * jnp.exp(5.703573 * 1j) * kappaRDfr4 +
+         2.28052668 * jnp.exp(2.685231 * 1j) * kappaRDfr5 +
+         0.92150314 * jnp.exp(5.841704 * 1j) * kappaRDfr6),
+    jnp.where(
+        modes == 33,
+        (1.5 + kappaRDfr * (
+            2.095657 * jnp.exp(2.964973 * 1j) +
+            2.46964352 * jnp.exp(5.996734 * 1j) * kappaRDfr +
+            2.66552551 * jnp.exp(2.817591 * 1j) * kappaRDfr2 +
+            1.75836443 * jnp.exp(5.932693 * 1j) * kappaRDfr3 +
+            0.49905688 * jnp.exp(2.781658 * 1j) * kappaRDfr4)),
+        # Default case (mode 44)
+        (2.0 + kappaRDfr * (
+            2.658908 * jnp.exp(3.002787 * 1j) +
+            2.97825567 * jnp.exp(6.050955 * 1j) * kappaRDfr +
+            3.21842350 * jnp.exp(2.877514 * 1j) * kappaRDfr2 +
+            2.12764967 * jnp.exp(5.989669 * 1j) * kappaRDfr3 +
+            0.60338186 * jnp.exp(2.830031 * 1j) * kappaRDfr4))))))
+
+    # Extract real and imaginary parts, normalized by 2*pi*finMass
+    finMass_expanded = jnp.expand_dims(finMass, len(finMass.shape))
+    fringlm = jnp.real(tmpRDfr) / (2. * jnp.pi * finMass_expanded)
+    fdamplm = jnp.imag(tmpRDfr) / (2. * jnp.pi * finMass_expanded)
+
+    # Apply PhenomD correction to (2,2) mode if chip is provided
+
+    Sperp = chip * jnp.power(m1ByM, 2)
+    finspin_phenomD = jnp.sign(aeff) * jnp.sqrt(Sperp * Sperp + aeff * aeff)
+
+    fring_phenomD = jnp.interp(finspin_phenomD, jnp.array(QNMData_a), jnp.array(QNMData_fRD)) / finMass
+    fdamp_phenomD = jnp.interp(finspin_phenomD, jnp.array(QNMData_a), jnp.array(QNMData_fdamp)) / finMass
+
+    # Overwrite index 1 (the 22 mode) with PhenomD values
+    fringlm = fringlm.at[1].set(fring_phenomD)
+    fdamplm = fdamplm.at[1].set(fdamp_phenomD)
+
+    return fringlm, fdamplm
+
+
+@jit
 def compute_TF2_coefficients(eta, eta2, Seta, chi_s, chi_a, chi1, chi2,
                               chi1dotchi2, chi12, chi22,
                               m1ByM, m2ByM, QuadMon1, QuadMon2):
@@ -748,43 +866,20 @@ class IMRPhenomXPHM(WaveFormModel):
         #modes = jnp.array([21,22,32,33,43,44]) #
         modes = jnp.array([21, 22, 32, 33, 44])
         
-        
         ells = jnp.floor(modes/10).astype(jnp.int32)
         mms = modes - ells*10
         # Domain mapping for dimnesionless BH spin
-        alphaRDfr = jnp.log(2. - aeff) / jnp.log(3.)
-        # beta = 1. / (2. + l - abs(m))
-        betaRDfr = jnp.where(modes==21, 1./3., jnp.where(modes==22, 0.5, jnp.where(modes==32, 1./3., jnp.where(modes==33, 0.5, jnp.where(modes==43, 1./3., 0.5)))))
-        kappaRDfr  = jnp.expand_dims(alphaRDfr,len(alphaRDfr.shape))**betaRDfr
-        kappaRDfr2 = kappaRDfr*kappaRDfr
-        kappaRDfr3 = kappaRDfr*kappaRDfr2
-        kappaRDfr4 = kappaRDfr*kappaRDfr3
         
-        tmpRDfr = jnp.where(modes==21, 0.589113 * jnp.exp(0.043525 * 1j) + 0.18896353 * jnp.exp(2.289868 * 1j) * kappaRDfr + 1.15012965 * jnp.exp(5.810057 * 1j) * kappaRDfr2 + 6.04585476 * jnp.exp(2.741967 * 1j) * kappaRDfr3 + 11.12627777 * jnp.exp(5.844130 * 1j) * kappaRDfr4 + 9.34711461 * jnp.exp(2.669372 * 1j) * kappaRDfr4*kappaRDfr + 3.03838318 * jnp.exp(5.791518 * 1j) * kappaRDfr4*kappaRDfr2, jnp.where(modes==22, 1.0 + kappaRDfr * (1.557847 * jnp.exp(2.903124 * 1j) + 1.95097051 * jnp.exp(5.920970 * 1j) * kappaRDfr + 2.09971716 * jnp.exp(2.760585 * 1j) * kappaRDfr2 + 1.41094660 * jnp.exp(5.914340 * 1j) * kappaRDfr3 + 0.41063923 * jnp.exp(2.795235 * 1j) * kappaRDfr4), jnp.where(modes==32, 1.022464 * jnp.exp(0.004870 * 1j) + 0.24731213 * jnp.exp(0.665292 * 1j) * kappaRDfr + 1.70468239 * jnp.exp(3.138283 * 1j) * kappaRDfr2 + 0.94604882 * jnp.exp(0.163247 * 1j) * kappaRDfr3 + 1.53189884 * jnp.exp(5.703573 * 1j) * kappaRDfr4 + 2.28052668 * jnp.exp(2.685231 * 1j) * kappaRDfr4*kappaRDfr + 0.92150314 * jnp.exp(5.841704 * 1j) * kappaRDfr4*kappaRDfr2, jnp.where(modes==33, 1.5 + kappaRDfr * (2.095657 * jnp.exp(2.964973 * 1j) + 2.46964352 * jnp.exp(5.996734 * 1j) * kappaRDfr + 2.66552551 * jnp.exp(2.817591 * 1j) * kappaRDfr2 + 1.75836443 * jnp.exp(5.932693 * 1j) * kappaRDfr3 + 0.49905688 * jnp.exp(2.781658 * 1j) * kappaRDfr4), jnp.where(modes==43, 1.5 + kappaRDfr * (0.205046 * jnp.exp(0.595328 * 1j) + 3.10333396 * jnp.exp(3.016200 * 1j) * kappaRDfr + 4.23612166 * jnp.exp(6.038842 * 1j) * kappaRDfr2 + 3.02890198 * jnp.exp(2.826239 * 1j) * kappaRDfr3 + 0.90843949 * jnp.exp(5.915164 * 1j) * kappaRDfr4), 2.0 + kappaRDfr * (2.658908 * jnp.exp(3.002787 * 1j) + 2.97825567 * jnp.exp(6.050955 * 1j) * kappaRDfr + 3.21842350 * jnp.exp(2.877514 * 1j) * kappaRDfr2 + 2.12764967 * jnp.exp(5.989669 * 1j) * kappaRDfr3 + 0.60338186 * jnp.exp(2.830031 * 1j) * kappaRDfr4))))))
-
-        fringlm = (jnp.real(tmpRDfr)/(2.*jnp.pi*jnp.expand_dims(finMass, len(finMass.shape))))
-        fdamplm = (jnp.imag(tmpRDfr)/(2.*jnp.pi*jnp.expand_dims(finMass, len(finMass.shape))))
-        
-        # This recomputation is needed for JAX derivatives
-
-        
-
         chip = XLALSimPhenomUtilsChiP(mass_1, mass_2, 
                                       kwargs['chi1x'], kwargs['chi1y'], 
                                       kwargs['chi2x'], kwargs['chi2y'])
-        
-        #np.where(ASp2 > ASp1, ASp2 / (A2 * m2ByM * m2ByM), ASp1 / (A1 * m1ByM * m1ByM))
-        # Compute final spin with chip contribution as in XLALSimPhenomUtilsPhenomPv2FinalSpin
-        q_factor = jnp.where(m1ByM >= m2ByM, m1ByM, m2ByM)
-        Sperp = chip * q_factor * q_factor
-        finspin_phenomD = jnp.sign(aeff) * jnp.sqrt(Sperp * Sperp + aeff * aeff)
-   
-        #FIXME fringlm and fring_phenomD difference? Why are we overwriting
-        fring_phenomD = jnp.interp(finspin_phenomD, jnp.array(QNMData_a), jnp.array(QNMData_fRD)) / finMass
-        fdamp_phenomD = jnp.interp(finspin_phenomD, jnp.array(QNMData_a), jnp.array(QNMData_fdamp)) / finMass
 
-        fringlm = fringlm.at[1].set(fring_phenomD)
-        fdamplm = fdamplm.at[1].set(fdamp_phenomD)
+        fringlm, fdamplm = compute_fring_and_fdamp(aeff = aeff,
+                                                   finMass = finMass,
+                                                   chip = chip,
+                                                   m1ByM = m1ByM,
+                                                   modes = modes)
+        
         #print(f"values of fringlm {fringlm} fring {fring} and fring_phenomD {fring_phenomD}")
         #fringlm[1] = fringlm[1]
         #fdamplm[1] = fdamplm[1]
