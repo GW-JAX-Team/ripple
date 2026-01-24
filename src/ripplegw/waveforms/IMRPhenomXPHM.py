@@ -2319,44 +2319,6 @@ class IMRPhenomXPHM(WaveFormModel):
         return hlm
 
 
-    
-    def tau_star(self, f, **kwargs):
-        """
-        Compute the time to coalescence (in seconds) as a function of frequency (in :math:`\\rm Hz`), given the events parameters.
-        
-        We use the expression in `arXiv:0907.0700 <https://arxiv.org/abs/0907.0700>`_ eq. (3.8b).
-        
-        :param array f: Frequency grid on which the time to coalescence will be computed, in :math:`\\rm Hz`.
-        :param dict(array, array, ...) kwargs: Dictionary with arrays containing the parameters of the events to compute the time to coalescence of, as in :py:data:`events`.
-        :return: time to coalescence for the chosen events evaluated on the frequency grid, in seconds.
-        :rtype: array
-        
-        """
-        Mtot_sec = kwargs['chirp_mass']*MTSUN_SI/(kwargs['eta']**(3./5.))
-        v = (jnp.pi*Mtot_sec*f)**(1./3.)
-        eta  = kwargs['eta']
-        eta2 = eta*eta
-        
-        OverallFac = 5./256 * Mtot_sec/(eta*(v**8.))
-        
-        t05 = 1. + (743./252. + 11./3.*eta)*(v*v) - 32./5.*jnp.pi*(v*v*v) + (3058673./508032. + 5429./504.*eta + 617./72.*eta2)*(v**4) - (7729./252. - 13./3.*eta)*jnp.pi*(v**5)
-        t6  = (-10052469856691./23471078400. + 128./3.*jnp.pi*jnp.pi + 6848./105.*np.euler_gamma + (3147553127./3048192. - 451./12.*jnp.pi*jnp.pi)*eta - 15211./1728.*eta2 + 25565./1296.*eta2*eta + 3424./105.*jnp.log(16.*v*v))*(v**6)
-        t7  = (- 15419335./127008. - 75703./756.*eta + 14809./378.*eta2)*jnp.pi*(v**7)
-        
-        return OverallFac*(t05 + t6 + t7)
-    
-    def fcut(self, **kwargs):
-        """
-        Compute the cut frequency of the waveform as a function of the events parameters, in :math:`\\rm Hz`.
-        
-        :param dict(array, array, ...) kwargs: Dictionary with arrays containing the parameters of the events to compute the cut frequency of, as in :py:data:`events`.
-        :return: Cut frequency of the waveform for the chosen events, in :math:`\\rm Hz`.
-        :rtype: array
-        
-        """
-        return self.fcutPar/(kwargs['chirp_mass']*MTSUN_SI/(kwargs['eta']**(3./5.)))
-
-
 
     def generate_precession_struct(self, pWF, m1, m2, 
                                    chi1x, chi1y, chi1z, 
@@ -2470,9 +2432,6 @@ class IMRPhenomXPHM(WaveFormModel):
         _hc = jnp.sum(hlm * hc_twist_all_modes.T * jnp.exp(-1j * epsilon_all_modes.T) / 2, axis=1)
         
         return _hp, _hc
-
-
-
     
     def generate_xphm(self, m1, m2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, distance, inclination, phi0, duration, minimum_frequency, maximum_frequency, reference_frequency):
 
