@@ -707,10 +707,10 @@ class IMRPhenomXPHM(WaveFormModel):
         C1Int = PhiInsJoin - PhiIntJoin/eta - C2Int*fInsJoinPh
         
         # Now the same for Intermediate - Merger-Ringdown: we also need a temporary Intermediate Phase function
-        PhiIntTempVal  = (beta1*fMRDJoinPh - beta3/(3.*fMRDJoinPh*fMRDJoinPh*fMRDJoinPh) + beta2*np.log(fMRDJoinPh))/eta + C1Int + C2Int*fMRDJoinPh
+        PhiIntTempVal  = (beta1*fMRDJoinPh - beta3/(3.*fMRDJoinPh*fMRDJoinPh*fMRDJoinPh) + beta2*jnp.log(fMRDJoinPh))/eta + C1Int + C2Int*fMRDJoinPh
         DPhiIntTempVal = C2Int + (beta1 + beta3/(fMRDJoinPh**4) + beta2/fMRDJoinPh)/eta
         DPhiMRDVal     = (alpha1 + alpha2/(fMRDJoinPh*fMRDJoinPh) + alpha3/(fMRDJoinPh**(1./4.)) + alpha4/(fdamp*(1. + (fMRDJoinPh - alpha5*fring)*(fMRDJoinPh - alpha5*fring)/(fdamp*fdamp))))/eta
-        PhiMRJoinTemp  = -(alpha2/fMRDJoinPh) + (4.0/3.0) * (alpha3 * (fMRDJoinPh**(3./4.))) + alpha1 * fMRDJoinPh + alpha4 * np.arctan((fMRDJoinPh - alpha5 * fring)/fdamp)
+        PhiMRJoinTemp  = -(alpha2/fMRDJoinPh) + (4.0/3.0) * (alpha3 * (fMRDJoinPh**(3./4.))) + alpha1 * fMRDJoinPh + alpha4 * jnp.arctan((fMRDJoinPh - alpha5 * fring)/fdamp)
         
         C2MRD = DPhiIntTempVal - DPhiMRDVal
         C1MRD = PhiIntTempVal - PhiMRJoinTemp/eta - C2MRD*fMRDJoinPh
@@ -720,9 +720,9 @@ class IMRPhenomXPHM(WaveFormModel):
         gamma2 = 1.010344404799477 + 0.0008993122007234548*eta + (0.283949116804459 - 4.049752962958005*eta + 13.207828172665366*eta2 + (0.10396278486805426 - 7.025059158961947*eta + 24.784892370130475*eta2)*xi + (0.03093202475605892 - 2.6924023896851663*eta + 9.609374464684983*eta2)*xi*xi)*xi
         gamma3 = 1.3081615607036106 - 0.005537729694807678*eta +(-0.06782917938621007 - 0.6689834970767117*eta + 3.403147966134083*eta2 + (-0.05296577374411866 - 0.9923793203111362*eta + 4.820681208409587*eta2)*xi + (-0.006134139870393713 - 0.38429253308696365*eta + 1.7561754421985984*eta2)*xi*xi)*xi
         # Compute fpeak, from arXiv:1508.07253 eq. (20), we remove the square root term in case it is complex
-        fpeak = np.where(gamma2 >= 1.0, np.fabs(fring - (fdamp*gamma3)/gamma2), np.fabs(fring + (fdamp*(-1.0 + np.sqrt(1.0 - gamma2*gamma2))*gamma3)/gamma2))
+        fpeak = jnp.where(gamma2 >= 1.0, jnp.fabs(fring - (fdamp*gamma3)/gamma2), jnp.fabs(fring + (fdamp*(-1.0 + jnp.sqrt(1.0 - gamma2*gamma2))*gamma3)/gamma2))
         # Compute fpeak using PhenomD-style fring/fdamp for t0 calculation (to match LALSim's IMRPhenomDComputet0)
-        fpeak_phenomD = np.where(gamma2 >= 1.0, np.fabs(fring_phenomD - (fdamp_phenomD*gamma3)/gamma2), np.fabs(fring_phenomD + (fdamp_phenomD*(-1.0 + np.sqrt(1.0 - gamma2*gamma2))*gamma3)/gamma2))
+        fpeak_phenomD = jnp.where(gamma2 >= 1.0, jnp.fabs(fring_phenomD - (fdamp_phenomD*gamma3)/gamma2), jnp.fabs(fring_phenomD + (fdamp_phenomD*(-1.0 + jnp.sqrt(1.0 - gamma2*gamma2))*gamma3)/gamma2))
         # Compute coefficients rho appearing in arXiv:1508.07253 eq. (30), the numerical coefficients are in Tab. 5
         rho1 = 3931.8979897196696 - 17395.758706812805*eta + (3132.375545898835 + 343965.86092361377*eta - 1.2162565819981997e6*eta2 + (-70698.00600428853 + 1.383907177859705e6*eta - 3.9662761890979446e6*eta2)*xi + (-60017.52423652596 + 803515.1181825735*eta - 2.091710365941658e6*eta2)*xi*xi)*xi
         rho2 = -40105.47653771657 + 112253.0169706701*eta + (23561.696065836168 - 3.476180699403351e6*eta + 1.137593670849482e7*eta2 + (754313.1127166454 - 1.308476044625268e7*eta + 3.6444584853928134e7*eta2)*xi + (596226.612472288 - 7.4277901143564405e6*eta + 1.8928977514040343e7*eta2)*xi*xi)*xi
@@ -733,7 +733,7 @@ class IMRPhenomXPHM(WaveFormModel):
         dfInterm = 0.5*(f3Interm - f1Interm)
         f2Interm = f1Interm + dfInterm
         # First write the inspiral coefficients, we put them in a dictionary and label with the power in front of which they appear
-        amp0 = np.sqrt(2.0*eta/3.0)*(jnp.pi**(-1./6.))
+        amp0 = jnp.sqrt(2.0*eta/3.0)*(np.pi**(-1./6.))
         Acoeffs = {}
         Acoeffs['two_thirds'] = ((-969. + 1804.*eta)*(jnp.pi**(2./3.)))/672.
         Acoeffs['one'] = ((chi1*(81.*SetaPlus1 - 44.*eta) + chi2*(81. - 81.*Seta - 44.*eta))*jnp.pi)/48.
@@ -748,9 +748,9 @@ class IMRPhenomXPHM(WaveFormModel):
         # d1 is the derivative of the inspiral model evaluated at f1
         d1 = ((-969. + 1804.*eta)*(jnp.pi**(2./3.)))/(1008.*(f1Interm**(1./3.))) + ((chi1*(81.*SetaPlus1 - 44.*eta) + chi2*(81. - 81.*Seta - 44.*eta))*jnp.pi)/48. + ((-27312085. - 10287648.*chi22 - 10287648.*chi12*SetaPlus1 + 10287648.*chi22*Seta + 24.*(-1975055. + 857304.*chi12 - 994896.*chi1*chi2 + 857304.*chi22)*eta + 35371056.*eta2)*(f1Interm**(1./3.))*(jnp.pi**(4./3.)))/6.096384e6 + (5.*(f1Interm**(2./3.))*(jnp.pi**(5./3.))*(chi2*(-285197.*(-1 + Seta)+ 4.*(-91902. + 1579.*Seta)*eta - 35632.*eta2) + chi1*(285197.*SetaPlus1- 4.*(91902. + 1579.*Seta)*eta - 35632.*eta2) + 42840.*(-1 + 4*eta)*jnp.pi))/96768.- (f1Interm*jnp.pi*jnp.pi*(-336.*(-3248849057.0 + 2943675504.*chi12 - 3339284256.*chi1*chi2 + 2943675504.*chi22)*eta2 - 324322727232.*eta2*eta - 7.*(-177520268561. + 107414046432.*chi22 + 107414046432.*chi12*SetaPlus1 - 107414046432.*chi22*Seta+ 11087290368*(chi1 + chi2 + chi1*Seta - chi2*Seta)*jnp.pi)+ 12.*eta*(-545384828789.0 - 176491177632.*chi1*chi2 + 202603761360.*chi22 + 77616.*chi12*(2610335. + 995766.*Seta)- 77287373856.*chi22*Seta + 5841690624.*(chi1 + chi2)*jnp.pi + 21384760320*jnp.pi*jnp.pi)))/3.0042980352e10+ (7.0/3.0)*(f1Interm**(4./3.))*rho1 + (8.0/3.0)*(f1Interm**(5./3.))*rho2 + 3.*(f1Interm*f1Interm)*rho3
         # v3 is the merger-ringdown model (eq. (19) of arXiv:1508.07253) evaluated at f3
-        v3 = np.exp(-(f3Interm - fring)*gamma2/(fdamp*gamma3))* (fdamp*gamma3*gamma1) / ((f3Interm - fring)*(f3Interm - fring) + fdamp*gamma3*fdamp*gamma3)
+        v3 = jnp.exp(-(f3Interm - fring)*gamma2/(fdamp*gamma3))* (fdamp*gamma3*gamma1) / ((f3Interm - fring)*(f3Interm - fring) + fdamp*gamma3*fdamp*gamma3)
         # d2 is the derivative of the merger-ringdown model evaluated at f3
-        d2 = ((-2.*fdamp*(f3Interm - fring)*gamma3*gamma1) / ((f3Interm - fring)*(f3Interm - fring) + fdamp*gamma3*fdamp*gamma3) - (gamma2*gamma1))/(np.exp((f3Interm - fring)*gamma2/(fdamp*gamma3)) * ((f3Interm - fring)*(f3Interm - fring) + fdamp*gamma3*fdamp*gamma3))
+        d2 = ((-2.*fdamp*(f3Interm - fring)*gamma3*gamma1) / ((f3Interm - fring)*(f3Interm - fring) + fdamp*gamma3*fdamp*gamma3) - (gamma2*gamma1))/(jnp.exp((f3Interm - fring)*gamma2/(fdamp*gamma3)) * ((f3Interm - fring)*(f3Interm - fring) + fdamp*gamma3*fdamp*gamma3))
         # v2 is the value of the amplitude evaluated at f2. They come from the fit of the collocation points in the intermediate region
         v2 = 0.8149838730507785 + 2.5747553517454658*eta + (1.1610198035496786 - 2.3627771785551537*eta + 6.771038707057573*eta2 + (0.7570782938606834 - 2.7256896890432474*eta + 7.1140380397149965*eta2)*xi + (0.1766934149293479 - 0.7978690983168183*eta + 2.1162391502005153*eta2)*xi*xi)*xi
         # Now some definitions to speed up
@@ -782,7 +782,7 @@ class IMRPhenomXPHM(WaveFormModel):
         Overallamp = M * GMsun_over_c2_Gpc * M * MTSUN_SI / kwargs['dL']
         
         def completeAmpl(infreqs):
-            return Overallamp*amp0*(infreqs**(-7./6.))*np.where(infreqs < self.AMP_fJoin_INS, 1. + (infreqs**(2./3.))*Acoeffs['two_thirds'] + (infreqs**(4./3.)) * Acoeffs['four_thirds'] + (infreqs**(5./3.)) *  Acoeffs['five_thirds'] + (infreqs**(7./3.)) * Acoeffs['seven_thirds'] + (infreqs**(8./3.)) * Acoeffs['eight_thirds'] + infreqs * (Acoeffs['one'] + infreqs * Acoeffs['two'] + infreqs*infreqs * Acoeffs['three']), np.where(infreqs < fpeak, delta0 + infreqs*delta1 + infreqs*infreqs*(delta2 + infreqs*delta3 + infreqs*infreqs*delta4), np.where(infreqs < self.fcutPar,np.exp(-(infreqs - fring)*gamma2/(fdamp*gamma3))* (fdamp*gamma3*gamma1) / ((infreqs - fring)*(infreqs - fring) + fdamp*gamma3*fdamp*gamma3), 0.)))
+            return Overallamp*amp0*(infreqs**(-7./6.))*jnp.where(infreqs < self.AMP_fJoin_INS, 1. + (infreqs**(2./3.))*Acoeffs['two_thirds'] + (infreqs**(4./3.)) * Acoeffs['four_thirds'] + (infreqs**(5./3.)) *  Acoeffs['five_thirds'] + (infreqs**(7./3.)) * Acoeffs['seven_thirds'] + (infreqs**(8./3.)) * Acoeffs['eight_thirds'] + infreqs * (Acoeffs['one'] + infreqs * Acoeffs['two'] + infreqs*infreqs * Acoeffs['three']), jnp.where(infreqs < fpeak, delta0 + infreqs*delta1 + infreqs*infreqs*(delta2 + infreqs*delta3 + infreqs*infreqs*delta4), jnp.where(infreqs < self.fcutPar,jnp.exp(-(infreqs - fring)*gamma2/(fdamp*gamma3))* (fdamp*gamma3*gamma1) / ((infreqs - fring)*(infreqs - fring) + fdamp*gamma3*fdamp*gamma3), 0.)))
         
         def completePhase(infreqs, C1MRDuse, C2MRDuse, RhoUse, TauUse):
             #print(f"ripple debug end of insp {XLALSimIMRPhenomXUtilsMftoHz(self.PHI_fJoin_INS, mass_1+mass_2)}")
@@ -791,7 +791,7 @@ class IMRPhenomXPHM(WaveFormModel):
 
             # Compute phase for each frequency regime
             f = infreqs
-            log_pi_f = np.log(jnp.pi * f)
+            log_pi_f = jnp.log(jnp.pi * f)
 
             # Inspiral phase (f < PHI_fJoin_INS)
             phi_inspiral = (
@@ -816,7 +816,7 @@ class IMRPhenomXPHM(WaveFormModel):
 
             # Intermediate phase (PHI_fJoin_INS <= f < fMRDJoinPh)
             phi_intermediate = (
-                (beta1 * f - beta3 / (3. * f**3) + beta2 * np.log(f)) / eta
+                (beta1 * f - beta3 / (3. * f**3) + beta2 * jnp.log(f)) / eta
                 + C1Int + C2Int * f
             )
 
@@ -825,43 +825,43 @@ class IMRPhenomXPHM(WaveFormModel):
                 (-alpha2 / f
                     + (4./3.) * alpha3 * f**(3./4.)
                     + alpha1 * f
-                    + alpha4 * RhoUse * np.arctan((f - alpha5 * fring) / (fdamp * RhoUse * TauUse))
+                    + alpha4 * RhoUse * jnp.arctan((f - alpha5 * fring) / (fdamp * RhoUse * TauUse))
                 ) / eta
                 + C1MRDuse + C2MRDuse * f
             )
 
-            # Combine using nested np.where for frequency regime selection
-            return np.where(
+            # Combine using nested jnp.where for frequency regime selection
+            return jnp.where(
                 f < self.PHI_fJoin_INS,
                 phi_inspiral,
-                np.where(
+                jnp.where(
                     f < fMRDJoinPh,
                     phi_intermediate,
-                    np.where(f < self.fcutPar, phi_mrd, 0.)
+                    jnp.where(f < self.fcutPar, phi_mrd, 0.)
                 )
             )
 
         def OnePointFiveSpinPN(infreqs, ChiS, ChiA):
             # PN amplitudes function, needed to scale
-            
-            v  = np.moveaxis((2.*jnp.pi*infreqs/mms)**(1./3.), len(infreqs.shape)-1, len(infreqs.shape) - 2)
+
+            v  = jnp.moveaxis((2.*jnp.pi*infreqs/mms)**(1./3.), len(infreqs.shape)-1, len(infreqs.shape) - 2)
             v2 = v*v
             v3 = v2*v
-            
-            reshModes = np.expand_dims(modes, len(modes.shape))
-            Hlm = np.where(reshModes==21, (np.sqrt(2.0) / 3.0) * (v * Seta - v2 * 1.5 * (ChiA + Seta * ChiS) + v3 * Seta * ((335.0 / 672.0) + (eta * 117.0 / 56.0)) + v3*v * (ChiA * (3427.0 / 1344. - eta * 2101.0 / 336.) + Seta * ChiS * (3427.0 / 1344 - eta * 965 / 336) + Seta * (-1j * 0.5 - jnp.pi - 2 * 1j * 0.69314718056))), np.where(reshModes==22, 1., np.where(reshModes==32, (1.0 / 3.0) * np.sqrt(5.0 / 7.0) * (v2 * (1.0 - 3.0 * eta)), np.where(reshModes==33, 0.75 * np.sqrt(5.0 / 7.0) * (v * Seta), np.where(reshModes==43, 0.75 * np.sqrt(3.0 / 35.0) * v3 * Seta * (1.0 - 2.0 * eta), (4.0 / 9.0) * np.sqrt(10.0 / 7.0) * v2 * (1.0 - 3.0 * eta))))))
-            
+
+            reshModes = jnp.expand_dims(modes, len(modes.shape))
+            Hlm = jnp.where(reshModes==21, (jnp.sqrt(2.0) / 3.0) * (v * Seta - v2 * 1.5 * (ChiA + Seta * ChiS) + v3 * Seta * ((335.0 / 672.0) + (eta * 117.0 / 56.0)) + v3*v * (ChiA * (3427.0 / 1344. - eta * 2101.0 / 336.) + Seta * ChiS * (3427.0 / 1344 - eta * 965 / 336) + Seta * (-1j * 0.5 - jnp.pi - 2 * 1j * 0.69314718056))), jnp.where(reshModes==22, 1., jnp.where(reshModes==32, (1.0 / 3.0) * jnp.sqrt(5.0 / 7.0) * (v2 * (1.0 - 3.0 * eta)), jnp.where(reshModes==33, 0.75 * jnp.sqrt(5.0 / 7.0) * (v * Seta), jnp.where(reshModes==43, 0.75 * jnp.sqrt(3.0 / 35.0) * v3 * Seta * (1.0 - 2.0 * eta), (4.0 / 9.0) * jnp.sqrt(10.0 / 7.0) * v2 * (1.0 - 3.0 * eta))))))
+
             # Compute the final PN Amplitude at Leading Order in Mf
-            
-            return jnp.pi * np.sqrt(eta * 2. / 3.) * (v**(-3.5)) * abs(Hlm)
+
+            return jnp.pi * jnp.sqrt(eta * 2. / 3.) * (v**(-3.5)) * abs(Hlm)
         
         def SpinWeighted_SphericalHarmonic(theta, phi=0.):
             # Taken from arXiv:0709.0093v3 eq. (II.7), (II.8) and LALSimulation for the s=-2 case and up to l=4.
             # We assume already phi=0 and s=-2 to simplify the function
-            
-            Ylm    = np.where(modes==21, np.sqrt( 5.0 / ( 16.0 * jnp.pi ) ) * np.sin( theta )*( 1.0 + np.cos( theta )), np.where(modes==22, np.sqrt( 5.0 / ( 64.0 * jnp.pi ) ) * ( 1.0 + np.cos( theta ))*( 1.0 + np.cos( theta )), np.where(modes==32, np.sqrt(7.0/jnp.pi)*((np.cos(theta*0.5))**(4.0))*(-2.0 + 3.0*np.cos(theta))*0.5, np.where(modes==33, -np.sqrt(21.0/(2.0*jnp.pi))*((np.cos(theta/2.0))**(5.0))*np.sin(theta*0.5), np.where(modes==43, -3.0*np.sqrt(7.0/(2.0*jnp.pi))*((np.cos(theta*0.5))**5.0)*(-1.0 + 2.0*np.cos(theta))*np.sin(theta*0.5), 3.0*np.sqrt(7.0/jnp.pi)*((np.cos(theta*0.5))**6.0)*(np.sin(theta*0.5)*np.sin(theta*0.5)))))))
-            Ylminm = np.where(modes==21, np.sqrt( 5.0 / ( 16.0 * jnp.pi ) ) * np.sin( theta )*( 1.0 - np.cos( theta )), np.where(modes==22, np.sqrt( 5.0 / ( 64.0 * jnp.pi ) ) * ( 1.0 - np.cos( theta ))*( 1.0 - np.cos( theta )), np.where(modes==32, np.sqrt(7.0/(4.0*jnp.pi))*(2.0 + 3.0*np.cos(theta))*((np.sin(theta*0.5))**(4.0)), np.where(modes==33, np.sqrt(21.0/(2.0*jnp.pi))*np.cos(theta*0.5)*((np.sin(theta*0.5))**(5.)), np.where(modes==43, 3.0*np.sqrt(7.0/(2.0*jnp.pi))*np.cos(theta*0.5)*(1.0 + 2.0*np.cos(theta))*((np.sin(theta*0.5))**5.0), 3.0*np.sqrt(7.0/jnp.pi)*(np.cos(theta*0.5)*np.cos(theta*0.5))*((np.sin(theta*0.5))**6.0))))))
-            
+
+            Ylm    = jnp.where(modes==21, jnp.sqrt( 5.0 / ( 16.0 * jnp.pi ) ) * jnp.sin( theta )*( 1.0 + jnp.cos( theta )), jnp.where(modes==22, jnp.sqrt( 5.0 / ( 64.0 * jnp.pi ) ) * ( 1.0 + jnp.cos( theta ))*( 1.0 + jnp.cos( theta )), jnp.where(modes==32, jnp.sqrt(7.0/jnp.pi)*((jnp.cos(theta*0.5))**(4.0))*(-2.0 + 3.0*jnp.cos(theta))*0.5, jnp.where(modes==33, -jnp.sqrt(21.0/(2.0*jnp.pi))*((jnp.cos(theta/2.0))**(5.0))*jnp.sin(theta*0.5), jnp.where(modes==43, -3.0*jnp.sqrt(7.0/(2.0*jnp.pi))*((jnp.cos(theta*0.5))**5.0)*(-1.0 + 2.0*jnp.cos(theta))*jnp.sin(theta*0.5), 3.0*jnp.sqrt(7.0/jnp.pi)*((jnp.cos(theta*0.5))**6.0)*(jnp.sin(theta*0.5)*jnp.sin(theta*0.5)))))))
+            Ylminm = jnp.where(modes==21, jnp.sqrt( 5.0 / ( 16.0 * jnp.pi ) ) * jnp.sin( theta )*( 1.0 - jnp.cos( theta )), jnp.where(modes==22, jnp.sqrt( 5.0 / ( 64.0 * jnp.pi ) ) * ( 1.0 - jnp.cos( theta ))*( 1.0 - jnp.cos( theta )), jnp.where(modes==32, jnp.sqrt(7.0/(4.0*jnp.pi))*(2.0 + 3.0*jnp.cos(theta))*((jnp.sin(theta*0.5))**(4.0)), jnp.where(modes==33, jnp.sqrt(21.0/(2.0*jnp.pi))*jnp.cos(theta*0.5)*((jnp.sin(theta*0.5))**(5.)), jnp.where(modes==43, 3.0*jnp.sqrt(7.0/(2.0*jnp.pi))*jnp.cos(theta*0.5)*(1.0 + 2.0*jnp.cos(theta))*((jnp.sin(theta*0.5))**5.0), 3.0*jnp.sqrt(7.0/jnp.pi)*(jnp.cos(theta*0.5)*jnp.cos(theta*0.5))*((jnp.sin(theta*0.5))**6.0))))))
+
             return Ylm, Ylminm
         
         # Time shift so that peak amplitude is approximately at t=0
@@ -881,7 +881,7 @@ class IMRPhenomXPHM(WaveFormModel):
         Rholm, Taulm = (fring/fringlm.T), (fdamplm.T/fdamp)
         # Rholm and Taulm only figure in the MRD part, the rest of the coefficients is the same, recompute only this
         DPhiMRDVal    = (alpha1 + alpha2/(fMRDJoinPh*fMRDJoinPh) + alpha3/(fMRDJoinPh**(1./4.)) + alpha4/(fdamp*Taulm*(1. + (fMRDJoinPh - alpha5*fring)*(fMRDJoinPh - alpha5*fring)/(fdamp*Taulm*Rholm*fdamp*Taulm*Rholm))))/eta
-        PhiMRJoinTemp = -(alpha2/fMRDJoinPh) + (4.0/3.0) * (alpha3 * (fMRDJoinPh**(3./4.))) + alpha1 * fMRDJoinPh + alpha4 * Rholm* np.arctan((fMRDJoinPh - alpha5 * fring)/(fdamp*Rholm*Taulm))
+        PhiMRJoinTemp = -(alpha2/fMRDJoinPh) + (4.0/3.0) * (alpha3 * (fMRDJoinPh**(3./4.))) + alpha1 * fMRDJoinPh + alpha4 * Rholm* jnp.arctan((fMRDJoinPh - alpha5 * fring)/(fdamp*Rholm*Taulm))
         C2MRDHM = DPhiIntTempVal - DPhiMRDVal
         C1MRDHM = (PhiIntTempVal - PhiMRJoinTemp/eta - C2MRDHM*fMRDJoinPh).T
         Rholm, Taulm, DPhiMRDVal, PhiMRJoinTemp, C2MRDHM = Rholm.T, Taulm.T, DPhiMRDVal.T, PhiMRJoinTemp.T, C2MRDHM.T
@@ -896,7 +896,7 @@ class IMRPhenomXPHM(WaveFormModel):
         
         Map_ai, Map_bi = 2./mms, 0.
 
-        Map_TrdAmp = Map_fr - fringlm + np.expand_dims(fring, len(fring.shape))
+        Map_TrdAmp = Map_fr - fringlm + jnp.expand_dims(fring, len(fring.shape))
         Map_TiAmp  = 2. * Map_fiAmp / mms
         Map_amAmp  = (Map_TrdAmp - Map_TiAmp) / (Map_fr - Map_fiAmp)
         Map_bmAmp  = Map_TiAmp - Map_fiAmp * Map_amAmp
@@ -906,28 +906,28 @@ class IMRPhenomXPHM(WaveFormModel):
         Map_amPhi  = (Map_TrdPhi - Map_TiPhi) / (Map_fr - Map_fiPhi)
         Map_bmPhi  = Map_TiPhi - Map_fiPhi * Map_amPhi
 
-        Map_arAmp, Map_brAmp = 1., - Map_fr + np.expand_dims(fring, len(fring.shape))
+        Map_arAmp, Map_brAmp = 1., - Map_fr + jnp.expand_dims(fring, len(fring.shape))
         Map_arPhi, Map_brPhi = Rholm, 0.
         
         # Now scale as f -> f*a+b for each regime
-        fgrid = np.expand_dims(fgrid, len(fgrid.shape))# Need a new axis to do all the 6 calculations together
+        fgrid = jnp.expand_dims(fgrid, len(fgrid.shape))# Need a new axis to do all the 6 calculations together
 
-        fgridScaled = np.where(fgrid < Map_fiAmp, fgrid*Map_ai + Map_bi, np.where(fgrid < Map_fr, fgrid*Map_amAmp + Map_bmAmp, fgrid*Map_arAmp + Map_brAmp))
+        fgridScaled = jnp.where(fgrid < Map_fiAmp, fgrid*Map_ai + Map_bi, jnp.where(fgrid < Map_fr, fgrid*Map_amAmp + Map_bmAmp, fgrid*Map_arAmp + Map_brAmp))
         # Map the ampliude's range
         # We divide by the leading order l=m=2 behavior, and then scale in the expected PN behavior for the multipole of interest.
               
         beta_term1  = OnePointFiveSpinPN(fgrid, chi_s, chi_a)
         beta_term2  = OnePointFiveSpinPN(2.*fgrid/mms, chi_s, chi_a)
         HMamp_term1 = OnePointFiveSpinPN(fgridScaled, chi_s, chi_a)
-        fgridScaled = np.moveaxis(fgridScaled, len(fgridScaled.shape)-1, len(fgridScaled.shape) - 2)
+        fgridScaled = jnp.moveaxis(fgridScaled, len(fgridScaled.shape)-1, len(fgridScaled.shape) - 2)
         #fgridScaled = fgridScaled.transpose(0,2,1)
-        HMamp_term2 = jnp.pi * np.sqrt(eta * 2. / 3.) * ((jnp.pi*fgridScaled)**(-7./6.))
-        
+        HMamp_term2 = jnp.pi * jnp.sqrt(eta * 2. / 3.) * ((jnp.pi*fgridScaled)**(-7./6.))
+
         # The (3,3) and (4,3) modes vanish if eta=0.25 (equal mass case) and the (2,1) mode vanishes if both eta=0.25 and chi1z=chi2z
-        # This results in NaNs having 0/0, correct for this using np.nan_to_num()
-                
-        AmplsAllModes = np.nan_to_num(completeAmpl(fgridScaled) * (beta_term1 / beta_term2) * HMamp_term1 / HMamp_term2)
-        AmplsAllModes = np.moveaxis(AmplsAllModes, len(AmplsAllModes.shape)-1, len(AmplsAllModes.shape) - 2)
+        # This results in NaNs having 0/0, correct for this using jnp.nan_to_num()
+
+        AmplsAllModes = jnp.nan_to_num(completeAmpl(fgridScaled) * (beta_term1 / beta_term2) * HMamp_term1 / HMamp_term2)
+        AmplsAllModes = jnp.moveaxis(AmplsAllModes, len(AmplsAllModes.shape)-1, len(AmplsAllModes.shape) - 2)
         #AmplsAllModes = AmplsAllModes.transpose(0,2,1)
         C1MRDHM, C2MRDHM, Rholm, Taulm = C1MRDHM.T, C2MRDHM.T, Rholm.T, Taulm.T
         
@@ -946,7 +946,7 @@ class IMRPhenomXPHM(WaveFormModel):
                         
         C1MRDHM, C2MRDHM, Rholm, Taulm = C1MRDHM.T, C2MRDHM.T, Rholm.T, Taulm.T
         PhDBconst, PhDCconst, PhDBAterm, tmpphaseC = PhDBconst.T, PhDCconst.T, PhDBAterm.T, tmpphaseC.T
-        PhisAllModes = np.where(fgrid < Map_fiPhi, completePhase((fgrid*Map_ai + Map_bi), C1MRDHM, C2MRDHM, Rholm, Taulm)/Map_ai, np.where(fgrid < Map_fr, - PhDBconst + PhDBAterm + completePhase((fgrid*Map_amPhi + Map_bmPhi), C1MRDHM, C2MRDHM, Rholm, Taulm)/Map_amPhi, - PhDCconst + tmpphaseC + completePhase((fgrid*Map_arPhi + Map_brPhi), C1MRDHM, C2MRDHM, Rholm, Taulm)/Map_arPhi))
+        PhisAllModes = jnp.where(fgrid < Map_fiPhi, completePhase((fgrid*Map_ai + Map_bi), C1MRDHM, C2MRDHM, Rholm, Taulm)/Map_ai, jnp.where(fgrid < Map_fr, - PhDBconst + PhDBAterm + completePhase((fgrid*Map_amPhi + Map_bmPhi), C1MRDHM, C2MRDHM, Rholm, Taulm)/Map_amPhi, - PhDCconst + tmpphaseC + completePhase((fgrid*Map_arPhi + Map_brPhi), C1MRDHM, C2MRDHM, Rholm, Taulm)/Map_arPhi))
     
         # override  #FIXME
         #t0 = np.array([2.6023655427e+02])
@@ -959,21 +959,21 @@ class IMRPhenomXPHM(WaveFormModel):
         #np.savetxt('PhisAllModes_ripple.dat', save_data, header='f 21 22 32 33 43')
 
 
-        PhisAllModes = PhisAllModes - np.expand_dims(t0, len(t0.shape))*(fgrid - np.expand_dims(fRef, len(fRef.shape))) - mms*np.expand_dims(phi0, len(phi0.shape)) + self.complShiftm[mms]
+        PhisAllModes = PhisAllModes - jnp.expand_dims(t0, len(t0.shape))*(fgrid - jnp.expand_dims(fRef, len(fRef.shape))) - mms*jnp.expand_dims(phi0, len(phi0.shape)) + self.complShiftm[mms]
 
         #print(f"ripple debug t0 value {t0}")
         #print(f"ripple debug phi0 {phi0}")
         #print(f"ripple debug self.complShiftm[mms] {self.complShiftm[mms]}")
 
 
-        modes = np.expand_dims(modes, len(modes.shape))
+        modes = jnp.expand_dims(modes, len(modes.shape))
         Y, Ymstar = SpinWeighted_SphericalHarmonic(iota)
-        Y, Ymstar = Y.T, np.conj(Ymstar).T
+        Y, Ymstar = Y.T, jnp.conj(Ymstar).T
 
-        hp = np.sum(AmplsAllModes*np.exp(-1j*PhisAllModes)*(0.5*(Y + ((-1)**ells)*Ymstar)), axis=-1)
-        hc = -np.sum(AmplsAllModes*np.exp(-1j*PhisAllModes)*(-1j* 0.5 * (Y - ((-1)**ells)* Ymstar)), axis=-1)
-        
-        hlm = AmplsAllModes * np.exp(-1j*PhisAllModes) * np.power(-1, ells)
+        hp = jnp.sum(AmplsAllModes*jnp.exp(-1j*PhisAllModes)*(0.5*(Y + ((-1)**ells)*Ymstar)), axis=-1)
+        hc = -jnp.sum(AmplsAllModes*jnp.exp(-1j*PhisAllModes)*(-1j* 0.5 * (Y - ((-1)**ells)* Ymstar)), axis=-1)
+
+        hlm = AmplsAllModes * jnp.exp(-1j*PhisAllModes) * jnp.power(-1, ells)
 
         return hlm
 
@@ -990,7 +990,7 @@ class IMRPhenomXPHM(WaveFormModel):
         
         """
         # This is needed to stabilize JAX derivatives
-        Seta = np.sqrt(np.where(eta<0.25, 1.0 - 4.0*eta, 0.))
+        Seta = jnp.sqrt(jnp.where(eta<0.25, 1.0 - 4.0*eta, 0.))
         m1 = 0.5 * (1.0 + Seta)
         m2 = 0.5 * (1.0 - Seta)
         s  = (m1*m1 * chi1 + m2*m2 * chi2)
@@ -998,7 +998,7 @@ class IMRPhenomXPHM(WaveFormModel):
         af2 = eta*(s*((1.0/eta - 0.0850917821418767 - 5.837029316602263*eta) + (0.1014665242971878 - 2.0967746996832157*eta)*s))
         af3 = eta*(s*((-1.3546806617824356 + 4.108962025369336*eta)*s*s + (-0.8676969352555539 + 2.064046835273906*eta)*s*s*s))
         return af1 + af2 + af3
-        
+
     def _radiatednrg(self, eta, chi1, chi2):
         """
         Compute the total radiated energy, as in `arXiv:1508.07250 <https://arxiv.org/abs/1508.07250>`_ eq. (3.7) and (3.8).
@@ -1011,13 +1011,13 @@ class IMRPhenomXPHM(WaveFormModel):
         
         """
         # This is needed to stabilize JAX derivatives
-        Seta = np.sqrt(np.where(eta<0.25, 1.0 - 4.0*eta, 0.))
+        Seta = jnp.sqrt(jnp.where(eta<0.25, 1.0 - 4.0*eta, 0.))
         m1 = 0.5 * (1.0 + Seta)
         m2 = 0.5 * (1.0 - Seta)
         s  = (m1*m1 * chi1 + m2*m2 * chi2) / (m1*m1 + m2*m2)
-        
+
         EradNS = eta * (0.055974469826360077 + 0.5809510763115132 * eta - 0.9606726679372312 * eta*eta + 3.352411249771192 * eta*eta*eta)
-        
+
         return (EradNS * (1. + (-0.0030302335878845507 - 2.0066110851351073 * eta + 7.7050567802399215 * eta*eta) * s)) / (1. + (-0.6714403054720589 - 1.4756929437702908 * eta + 7.304676214885011 * eta*eta) * s)
     
     def _RDfreqCalc(self, finalmass, finalspin, l, m):
@@ -1034,40 +1034,40 @@ class IMRPhenomXPHM(WaveFormModel):
         """
         
         # Domain mapping for dimnesionless BH spin
-        alpha = np.log(2. - finalspin) / np.log(3.);
+        alpha = jnp.log(2. - finalspin) / jnp.log(3.);
         beta = 1. / (2. + l - abs(m));
         kappa  = alpha**beta
         kappa2 = kappa*kappa
         kappa3 = kappa*kappa2
         kappa4 = kappa*kappa3
-        
+
         if (2 == l) and (2 == m):
-            res = 1.0 + kappa * (1.557847 * np.exp(2.903124 * 1j) + 1.95097051 * np.exp(5.920970 * 1j) * kappa + 2.09971716 * np.exp(2.760585 * 1j) * kappa2 + 1.41094660 * np.exp(5.914340 * 1j) * kappa3 + 0.41063923 * np.exp(2.795235 * 1j) * kappa4)
-        
+            res = 1.0 + kappa * (1.557847 * jnp.exp(2.903124 * 1j) + 1.95097051 * jnp.exp(5.920970 * 1j) * kappa + 2.09971716 * jnp.exp(2.760585 * 1j) * kappa2 + 1.41094660 * jnp.exp(5.914340 * 1j) * kappa3 + 0.41063923 * jnp.exp(2.795235 * 1j) * kappa4)
+
         elif (3 == l) and (2 == m):
-            res = 1.022464 * np.exp(0.004870 * 1j) + 0.24731213 * np.exp(0.665292 * 1j) * kappa + 1.70468239 * np.exp(3.138283 * 1j) * kappa2 + 0.94604882 * np.exp(0.163247 * 1j) * kappa3 + 1.53189884 * np.exp(5.703573 * 1j) * kappa4 + 2.28052668 * np.exp(2.685231 * 1j) * kappa4*kappa + 0.92150314 * np.exp(5.841704 * 1j) * kappa4*kappa2
-        
+            res = 1.022464 * jnp.exp(0.004870 * 1j) + 0.24731213 * jnp.exp(0.665292 * 1j) * kappa + 1.70468239 * jnp.exp(3.138283 * 1j) * kappa2 + 0.94604882 * jnp.exp(0.163247 * 1j) * kappa3 + 1.53189884 * jnp.exp(5.703573 * 1j) * kappa4 + 2.28052668 * jnp.exp(2.685231 * 1j) * kappa4*kappa + 0.92150314 * jnp.exp(5.841704 * 1j) * kappa4*kappa2
+
         elif (4 == l) and (4 == m):
-            res = 2.0 + kappa * (2.658908 * np.exp(3.002787 * 1j) + 2.97825567 * np.exp(6.050955 * 1j) * kappa + 3.21842350 * np.exp(2.877514 * 1j) * kappa2 + 2.12764967 * np.exp(5.989669 * 1j) * kappa3 + 0.60338186 * np.exp(2.830031 * 1j) * kappa4)
-        
+            res = 2.0 + kappa * (2.658908 * jnp.exp(3.002787 * 1j) + 2.97825567 * jnp.exp(6.050955 * 1j) * kappa + 3.21842350 * jnp.exp(2.877514 * 1j) * kappa2 + 2.12764967 * jnp.exp(5.989669 * 1j) * kappa3 + 0.60338186 * jnp.exp(2.830031 * 1j) * kappa4)
+
         elif (2 == l) and (1 == m):
-            res = 0.589113 * np.exp(0.043525 * 1j) + 0.18896353 * np.exp(2.289868 * 1j) * kappa + 1.15012965 * np.exp(5.810057 * 1j) * kappa2 + 6.04585476 * np.exp(2.741967 * 1j) * kappa3 + 11.12627777 * np.exp(5.844130 * 1j) * kappa4 + 9.34711461 * np.exp(2.669372 * 1j) * kappa4*kappa + 3.03838318 * np.exp(5.791518 * 1j) * kappa4*kappa2
-        
+            res = 0.589113 * jnp.exp(0.043525 * 1j) + 0.18896353 * jnp.exp(2.289868 * 1j) * kappa + 1.15012965 * jnp.exp(5.810057 * 1j) * kappa2 + 6.04585476 * jnp.exp(2.741967 * 1j) * kappa3 + 11.12627777 * jnp.exp(5.844130 * 1j) * kappa4 + 9.34711461 * jnp.exp(2.669372 * 1j) * kappa4*kappa + 3.03838318 * jnp.exp(5.791518 * 1j) * kappa4*kappa2
+
         elif (3 == l) and (3 == m):
-            res = 1.5 + kappa * (2.095657 * np.exp(2.964973 * 1j) + 2.46964352 * np.exp(5.996734 * 1j) * kappa + 2.66552551 * np.exp(2.817591 * 1j) * kappa2 + 1.75836443 * np.exp(5.932693 * 1j) * kappa3 + 0.49905688 * np.exp(2.781658 * 1j) * kappa4)
-        
+            res = 1.5 + kappa * (2.095657 * jnp.exp(2.964973 * 1j) + 2.46964352 * jnp.exp(5.996734 * 1j) * kappa + 2.66552551 * jnp.exp(2.817591 * 1j) * kappa2 + 1.75836443 * jnp.exp(5.932693 * 1j) * kappa3 + 0.49905688 * jnp.exp(2.781658 * 1j) * kappa4)
+
         elif (4 == l) and (3 == m):
-            res = 1.5 + kappa * (0.205046 * np.exp(0.595328 * 1j) + 3.10333396 * np.exp(3.016200 * 1j) * kappa + 4.23612166 * np.exp(6.038842 * 1j) * kappa2 + 3.02890198 * np.exp(2.826239 * 1j) * kappa3 + 0.90843949 * np.exp(5.915164 * 1j) * kappa4)
-        
+            res = 1.5 + kappa * (0.205046 * jnp.exp(0.595328 * 1j) + 3.10333396 * jnp.exp(3.016200 * 1j) * kappa + 4.23612166 * jnp.exp(6.038842 * 1j) * kappa2 + 3.02890198 * jnp.exp(2.826239 * 1j) * kappa3 + 0.90843949 * jnp.exp(5.915164 * 1j) * kappa4)
+
         else:
             raise ValueError('Mode not present in IMRPhenomHM waveform model.')
-        
+
         if m < 0:
-            res = -np.conj(res)
-        
-        fring = np.real(res)/(2.*jnp.pi*finalmass)
-        
-        fdamp = np.imag(res)/(2.*jnp.pi*finalmass)
+            res = -jnp.conj(res)
+
+        fring = jnp.real(res)/(2.*np.pi*finalmass)
+
+        fdamp = jnp.imag(res)/(2.*np.pi*finalmass)
         
         return fring, fdamp
         
@@ -1091,7 +1091,7 @@ class IMRPhenomXPHM(WaveFormModel):
         OverallFac = 5./256 * Mtot_sec/(eta*(v**8.))
         
         t05 = 1. + (743./252. + 11./3.*eta)*(v*v) - 32./5.*jnp.pi*(v*v*v) + (3058673./508032. + 5429./504.*eta + 617./72.*eta2)*(v**4) - (7729./252. - 13./3.*eta)*jnp.pi*(v**5)
-        t6  = (-10052469856691./23471078400. + 128./3.*jnp.pi*jnp.pi + 6848./105.*np.euler_gamma + (3147553127./3048192. - 451./12.*jnp.pi*jnp.pi)*eta - 15211./1728.*eta2 + 25565./1296.*eta2*eta + 3424./105.*np.log(16.*v*v))*(v**6)
+        t6  = (-10052469856691./23471078400. + 128./3.*jnp.pi*jnp.pi + 6848./105.*np.euler_gamma + (3147553127./3048192. - 451./12.*jnp.pi*jnp.pi)*eta - 15211./1728.*eta2 + 25565./1296.*eta2*eta + 3424./105.*jnp.log(16.*v*v))*(v**6)
         t7  = (- 15419335./127008. - 75703./756.*eta + 14809./378.*eta2)*jnp.pi*(v**7)
         
         return OverallFac*(t05 + t6 + t7)
@@ -1245,7 +1245,7 @@ class IMRPhenomXPHM(WaveFormModel):
         Mf = XLALSimIMRPhenomXUtilsHztoMf(f, m1+m2)
 
         Mc = component_masses_to_chirp_mass(m1, m2)
-        eta = m1 * m2 / np.power(m1+m2, 2)
+        eta = m1 * m2 / jnp.power(m1+m2, 2)
 
         hlm = self.hphc(f,
                          Mc = Mc,
@@ -1254,7 +1254,7 @@ class IMRPhenomXPHM(WaveFormModel):
                          theta = None,
                          phi = None,
                          iota = inclination,
-                         tcoal = np.array([GPSt_to_LMST(3600, lat=0.,   long=0.)]), ## FIXME
+                         tcoal = jnp.array([GPSt_to_LMST(3600, lat=0.,   long=0.)]), ## FIXME
                          Phicoal = phi0,
                          chi1x = chi1x,
                          chi1y = chi1y,
