@@ -767,8 +767,7 @@ class IMRPhenomXPHM(WaveFormModel):
         
         # This recomputation is needed for JAX derivatives
 
-        fring = fringlm[1]
-        fdamp = fdamplm[1]
+        
 
         chip = XLALSimPhenomUtilsChiP(mass_1, mass_2, 
                                       kwargs['chi1x'], kwargs['chi1y'], 
@@ -780,11 +779,14 @@ class IMRPhenomXPHM(WaveFormModel):
         Sperp = chip * q_factor * q_factor
         finspin_phenomD = jnp.sign(aeff) * jnp.sqrt(Sperp * Sperp + aeff * aeff)
    
-
+        #FIXME fring and fring_phenomD difference?
         fring_phenomD = jnp.interp(finspin_phenomD, jnp.array(QNMData_a), jnp.array(QNMData_fRD)) / finMass
         fdamp_phenomD = jnp.interp(finspin_phenomD, jnp.array(QNMData_a), jnp.array(QNMData_fdamp)) / finMass
-        print(f"values of fringlm {fringlm} fring {fring} and fring_phenomD {fring_phenomD}")
-
+        fringlm = fringlm.at[1].set(fring_phenomD)
+        fdamplm = fdamplm.at[1].set(fdamp_phenomD)
+        #print(f"values of fringlm {fringlm} fring {fring} and fring_phenomD {fring_phenomD}")
+        fring = fringlm[1]
+        fdamp = fdamplm[1]
         # Compute sigma coefficients as a JAX array (JIT-compatible)
         sigma_coeffs = compute_sigma_coefficients(eta, eta2, xi)
         sigma1 = sigma_coeffs[..., SIGMA_1]
@@ -861,7 +863,7 @@ class IMRPhenomXPHM(WaveFormModel):
         # Compute fpeak using PhenomD-style fring/fdamp for t0 calculation (to match LALSim's IMRPhenomDComputet0)
         fpeak_phenomD = jnp.where(gamma2 >= 1.0, jnp.fabs(fring_phenomD - (fdamp_phenomD*gamma3)/gamma2), jnp.fabs(fring_phenomD + (fdamp_phenomD*(-1.0 + jnp.sqrt(1.0 - gamma2*gamma2))*gamma3)/gamma2))
 
-        print(f'ripple debug fpeak {fpeak} and fpeak_phenomD {fpeak_phenomD}')
+        #print(f'ripple debug fpeak {fpeak} and fpeak_phenomD {fpeak_phenomD}')
 
         # Compute coefficients rho appearing in arXiv:1508.07253 eq. (30), the numerical coefficients are in Tab. 5
         rho1 = 3931.8979897196696 - 17395.758706812805*eta + (3132.375545898835 + 343965.86092361377*eta - 1.2162565819981997e6*eta2 + (-70698.00600428853 + 1.383907177859705e6*eta - 3.9662761890979446e6*eta2)*xi + (-60017.52423652596 + 803515.1181825735*eta - 2.091710365941658e6*eta2)*xi*xi)*xi
