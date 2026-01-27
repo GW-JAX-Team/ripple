@@ -194,20 +194,22 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     )
 
     #Line 2500
-
+    Spl2 = vRoots[2]
+    Smi2 = vRoots[1]
+    S32 = vRoots[0]
     object.__setattr__(pPrec, 'Spl2', vRoots[2])
     object.__setattr__(pPrec, 'Smi2', vRoots[1])
     object.__setattr__(pPrec, 'S32', vRoots[0])
 
     # S^2_+ + S^2_-
-    object.__setattr__(pPrec, 'Spl2pSmi2', pPrec.Spl2 + pPrec.Smi2)
+    object.__setattr__(pPrec, 'Spl2pSmi2', Spl2 + Smi2)
 
     # S^2_+ - S^2_-
-    object.__setattr__(pPrec, 'Spl2mSmi2', pPrec.Spl2 - pPrec.Smi2)
+    object.__setattr__(pPrec, 'Spl2mSmi2', Spl2 - Smi2)
 
     # S_+ and S_-
-    object.__setattr__(pPrec, 'Spl', jnp.sqrt(pPrec.Spl2))
-    object.__setattr__(pPrec, 'Smi', jnp.sqrt(pPrec.Smi2))
+    object.__setattr__(pPrec, 'Spl', jnp.sqrt(Spl2))
+    object.__setattr__(pPrec, 'Smi', jnp.sqrt(Smi2))
 
     # Eq. 45 of PRD 95, 104004, (2017), arXiv:1703.03967, set from initial conditions
     object.__setattr__(pPrec, 'SAv2', 0.5 * (pPrec.Spl2pSmi2))
@@ -399,12 +401,12 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
 
 
     # Eq. D1 of PRD, 95, 104004, (2017), arXiv:1703.03967
-    Rm = pPrec.Spl2 - pPrec.Smi2
+    Rm = Spl2 - Smi2
     Rm_2 = Rm * Rm
 
     # Eq. D2 and D3 Appendix D of PRD, 95, 104004, (2017), arXiv:1703.03967
-    cp = pPrec.Spl2 * eta2 - c1_2
-    cm = pPrec.Smi2 * eta2 - c1_2
+    cp = Spl2 * eta2 - c1_2
+    cm = Smi2 * eta2 - c1_2
 
     # Check if cm goes negative, this is likely pathological. If so, set MSA_ERROR to 1, so that waveform generator can handle
     # the error appropriately
@@ -528,7 +530,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     #vol_sign = 0.0
 
     object.__setattr__(pPrec, 'psi0', compute_psi0(
-        pPrec.Smi2, pPrec.Spl2, pPrec.S32, pPrec.S_0_norm,
+        Smi2, Spl2, S32, pPrec.S_0_norm,
         v_0, v_0_2, pPrec.psi1, pPrec.psi2,
         pPrec.g0, pPrec.delta_qq, L_0, S1v, S2v))
 
@@ -541,7 +543,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     #zeta_0_MSA = 0.0  # UNUSED in original
 
     # Tolerance chosen to be consistent with implementation in LALSimInspiralFDPrecAngles
-    condition = jnp.abs(pPrec.Spl2 - pPrec.Smi2) > 1e-5
+    condition = jnp.abs(Spl2 - Smi2) > 1e-5
 
     def compute_msa_corrections():
         return IMRPhenomX_Return_MSA_Corrections_MSA(
@@ -553,12 +555,12 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
             pPrec.eta3,
             pPrec.inveta,
             pPrec.Spl,
-            pPrec.Spl2,
-            pPrec.Smi2,
+            Spl2,
+            Smi2,
             pPrec.Spl2mSmi2,
             pPrec.S1_norm_2,
             pPrec.S2_norm_2,
-            pPrec.S32,
+            S32,
             pPrec.delta_qq,
             pPrec.g0,
             pPrec.psi0,
