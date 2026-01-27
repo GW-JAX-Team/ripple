@@ -189,17 +189,6 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     object.__setattr__(pPrec, 'J_0_norm_2', pPrec.J_0_norm * pPrec.J_0_norm)
     object.__setattr__(pPrec, 'L_0_norm_2', pPrec.L_0_norm * pPrec.L_0_norm)
 
-    # Vector for obtaining B, C, D coefficients
-    vBCD = IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(
-        pPrec.L_0_norm,
-        pPrec.J_0_norm,
-        pPrec.S1_norm_2,
-        pPrec.S2_norm_2,
-        pPrec.qq,
-        pPrec.eta,
-        pPrec.delta_qq,
-        pPrec.Seff,
-    )
 
 
     vRoots = jnp.array([0.0, 0.0, 0.0])
