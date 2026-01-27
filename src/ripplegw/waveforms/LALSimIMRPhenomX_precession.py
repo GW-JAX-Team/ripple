@@ -929,11 +929,6 @@ class IMRPhenomXGetAndSetPrecessionVariables:
             self.Omegazeta0_coeff, self.Omegazeta1_coeff, self.Omegazeta2_coeff, self.Omegazeta3_coeff, self.Omegazeta4_coeff, self.Omegazeta5_coeff, self.zeta_0)
 
 
-        cexp_i_alpha   = 0.
-        cexp_i_epsilon = 0.
-        cexp_i_betah   = 0.
-
-
         object.__setattr__(self, 'alpha_offset', alpha_offset)
         object.__setattr__(self, 'epsilon_offset', epsilon_offset)
         object.__setattr__(self, 'alpha_offset_1', alpha_offset_1)
@@ -943,9 +938,9 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         object.__setattr__(self, 'alpha_offset_4', alpha_offset_4)
         object.__setattr__(self, 'epsilon_offset_4', epsilon_offset_4)
 
-        object.__setattr__(self, 'cexp_i_alpha', cexp_i_alpha)
-        object.__setattr__(self, 'cexp_i_epsilon', cexp_i_epsilon)
-        object.__setattr__(self, 'cexp_i_betah', cexp_i_betah)
+        #object.__setattr__(self, 'cexp_i_alpha', cexp_i_alpha)
+        #object.__setattr__(self, 'cexp_i_epsilon', cexp_i_epsilon)
+        #object.__setattr__(self, 'cexp_i_betah', cexp_i_betah)
 
 
         # When L + SL < 0 and q>7, we disable multibanding NH: I will skip this function
@@ -1052,7 +1047,7 @@ def convention_five_or_seven_false(piM, fRef, alpha0, epsilon0,
                                    Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, phiz_0,
                                    Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, zeta_0):
     # Get initial Get \alpha and \epsilon offsets at \omega = pi * M * f_{Ref} */
-    mprime = 2 #FIXME
+    mprime = 2 #FIXME why always 2?
 
     alpha_offset, epsilon_offset = Get_alphaepsilon_atfref(
         mprime, piM, fRef, alpha0, epsilon0,

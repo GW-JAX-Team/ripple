@@ -2420,7 +2420,7 @@ class IMRPhenomXPHM(WaveFormModel):
             alpha = vangles[0] - alpha_offset_emm
             epsilon = vangles[1] - epsilon_offset_emm
             cos_beta = vangles[2]
-
+            #print("what is the value of offset:", alpha_offset_emm, epsilon_offset_emm)
             cBetah, sBetah = IMRPhenomXWignerdCoefficients_cosbeta(cos_beta)
 
             cexp_i_alpha = jnp.exp(1j * alpha)
