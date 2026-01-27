@@ -880,6 +880,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         object.__setattr__(self, 'alpha_offset_4', alpha_offset_4)
         object.__setattr__(self, 'epsilon_offset_4', epsilon_offset_4)
 
+        
         return None
 
     def compute_and_set_spherical_harmonics(self):
