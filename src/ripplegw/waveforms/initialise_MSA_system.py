@@ -207,8 +207,8 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
 
 
     # S_+ and S_-
-    object.__setattr__(pPrec, 'Spl', jnp.sqrt(Spl2))
-    object.__setattr__(pPrec, 'Smi', jnp.sqrt(Smi2))
+    Spl = jnp.sqrt(Spl2)
+
 
     # Eq. 45 of PRD 95, 104004, (2017), arXiv:1703.03967, set from initial conditions
     object.__setattr__(pPrec, 'SAv2', 0.5 * (Spl2pSmi2))
@@ -553,7 +553,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
             pPrec.eta,
             pPrec.eta3,
             pPrec.inveta,
-            pPrec.Spl,
+            Spl,
             Spl2,
             Smi2,
             Spl2mSmi2,
