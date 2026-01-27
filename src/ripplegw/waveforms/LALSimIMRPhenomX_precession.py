@@ -464,38 +464,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
             self.chi2_norm
         )
 
-    def compute_evolved_spin_using_spintaylor(self):
-        """Setup evolved spins - either via SpinTaylor or use initial values."""
-        # Check if we need to run SpinTaylor prescription (versions 300+)
-        use_spintaylor = (self.IMRPhenomXPrecVersion // 100 == 3)
-        if use_spintaylor:
-            self._setup_spintaylor_prescription()
-        else:
-            # For non-SpinTaylor versions, evolved spins are just the initial spins
-            object.__setattr__(self, 'chi1x_evolved', self.chi1x)
-            object.__setattr__(self, 'chi1y_evolved', self.chi1y)
-            object.__setattr__(self, 'chi1z_evolved', self.chi1z)
-            object.__setattr__(self, 'chi2x_evolved', self.chi2x)
-            object.__setattr__(self, 'chi2y_evolved', self.chi2y)
-            object.__setattr__(self, 'chi2z_evolved', self.chi2z)
 
-    def _setup_spintaylor_prescription(self):
-        """
-        Setup SpinTaylor prescription for self.IMRPhenomXPrecVersion//100 == 3.
-        Reference: Lines 242-389 in raw_LALSimIMRPhenomX_precession.py
-        """
-        self._initialize_mode_arrays_and_frequencies()
-
-        integration_buffer_path1, flow_path1 = self._compute_path1_parameters()
-        integration_buffer_path2, flow_path2 = self._compute_path2_parameters()
-
-        integration_buffer, flow = self._select_integration_path(
-            integration_buffer_path1, integration_buffer_path2,
-            flow_path1, flow_path2
-        )
-
-        PNarrays, fmin_integration = self._run_spintaylor_evolution(flow)
-        self._extract_and_set_evolved_spins(PNarrays)
 
     def _initialize_mode_arrays_and_frequencies(self):
         """Initialize mode arrays and handle deltaF."""
