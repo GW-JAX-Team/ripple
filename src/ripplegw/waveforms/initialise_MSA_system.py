@@ -285,7 +285,8 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
 
     # Calculate g coefficients as in Appendix A of Chatziioannou et al, PRD, 95, 104004, (2017), arXiv:1703.03967.
     # These constants are used in TaylorT2 where domega/dt is expressed as an inverse polynomial
-    object.__setattr__(pPrec, 'g0', 1.0 / pPrec.a0)
+    g0 = 1/pPrec.a0
+
 
     # Eq. A2 (1703.03967)
     object.__setattr__(pPrec, 'g2', -(pPrec.a2 / pPrec.a0_2))
@@ -349,7 +350,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     # Line 2706
 
     if pflag == 222 or pflag == 223:
-        u1 = 3.0 * pPrec.g2 / pPrec.g0
+        u1 = 3.0 * pPrec.g2 / g0
         u2 = 0.75 * one_p_q_sq / one_m_q_4
         u3 = -20.0 * c_1_over_nu_2 * q_2 * one_p_q_sq
         u4 = 2.0 * one_m_q2_2 * (q * (2.0 + q) * pPrec.S1_norm_2 + (1.0 + 2.0 * q) * pPrec.S2_norm_2 - 2.0 * q * pPrec.SAv2)
@@ -361,7 +362,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
         object.__setattr__(pPrec, 'psi2', u1 + u2 * (u3 + u4 + u5 - u6 + u7))
     else:
         # \psi_2 is defined in Eq. C2 of Appendix C in PRD, 95, 104004, (2017). Here we implement system of equations as in paper.pdf
-        term1 = 3.0 * pPrec.g2 / pPrec.g0
+        term1 = 3.0 * pPrec.g2 / g0
         
         # q^2 or no q^2 in term2? Consensus on retaining q^2 term: https://git.ligo.org/waveforms/reviews/phenompv3hm/issues/7
         term2 = 3.0 * q * q / (2.0 * eta3)
@@ -458,7 +459,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
         object.__setattr__(pPrec, 'MSA_ERROR', 1)
         print(f"Warning, |Omegaz5| = {pPrec.Omegaz5:.16f}, which is larger than expected and may be pathological. Triggering MSA failure.")
 
-    g0 = pPrec.g0
+    g0 = g0
     # Coefficients of Eq. 65, as defined in Equations D16 - D21 of PRD, 95, 104004, (2017), arXiv:1703.03967
     object.__setattr__(pPrec, 'Omegaz0_coeff', 3.0 * g0 * pPrec.Omegaz0)
     object.__setattr__(pPrec, 'Omegaz1_coeff', 3.0 * g0 * pPrec.Omegaz1)
@@ -477,22 +478,22 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     object.__setattr__(pPrec, 'Omegazeta4', pPrec.Omegaz4 + pPrec.Omegaz3 * c1oveta2 - gdD*Seff - gdD*hdD)
     object.__setattr__(pPrec, 'Omegazeta5', pPrec.Omegaz5 + pPrec.Omegaz4 * c1oveta2 + gdD*hdD*Seff + gdD*(hdD_2 - fdD))
 
-    Omegazeta0_coeff = -pPrec.g0 * pPrec.Omegazeta0
-    Omegazeta1_coeff = -1.5 * pPrec.g0 * pPrec.Omegazeta1
-    Omegazeta2_coeff = -3.0*(pPrec.g0 * pPrec.Omegazeta2 + pPrec.g2*pPrec.Omegazeta0)
-    Omegazeta3_coeff = 3.0*(pPrec.g0 * pPrec.Omegazeta3 + pPrec.g2*pPrec.Omegazeta1 + pPrec.g3*pPrec.Omegazeta0)
-    Omegazeta4_coeff = 3.0*(pPrec.g0 * pPrec.Omegazeta4 + pPrec.g2*pPrec.Omegazeta2 + pPrec.g3*pPrec.Omegazeta1 + pPrec.g4*pPrec.Omegazeta0)
-    #Omegazeta5_coeff = 1.5*(pPrec.g0*pPrec.Omegazeta5 + pPrec.g2*pPrec.Omegazeta3 + pPrec.g3*pPrec.Omegazeta2 + pPrec.g4*pPrec.Omegazeta1 + pPrec.g5*pPrec.Omegazeta0)
+    Omegazeta0_coeff = -g0 * pPrec.Omegazeta0
+    Omegazeta1_coeff = -1.5 * g0 * pPrec.Omegazeta1
+    Omegazeta2_coeff = -3.0*(g0 * pPrec.Omegazeta2 + pPrec.g2*pPrec.Omegazeta0)
+    Omegazeta3_coeff = 3.0*(g0 * pPrec.Omegazeta3 + pPrec.g2*pPrec.Omegazeta1 + pPrec.g3*pPrec.Omegazeta0)
+    Omegazeta4_coeff = 3.0*(g0 * pPrec.Omegazeta4 + pPrec.g2*pPrec.Omegazeta2 + pPrec.g3*pPrec.Omegazeta1 + pPrec.g4*pPrec.Omegazeta0)
+    #Omegazeta5_coeff = 1.5*(g0*pPrec.Omegazeta5 + pPrec.g2*pPrec.Omegazeta3 + pPrec.g3*pPrec.Omegazeta2 + pPrec.g4*pPrec.Omegazeta1 + pPrec.g5*pPrec.Omegazeta0)
     Omegazeta5_coeff = 0.0 #FIXME
 
     '''
-    Omegazeta0_coeff = -pPrec.g0 * pPrec.Omegazeta0
-    Omegazeta1_coeff = -1.5 * pPrec.g0 * pPrec.Omegazeta1
-    Omegazeta2_coeff = -3.0*(pPrec.g0 * pPrec.Omegazeta2 + pPrec.g2*pPrec.Omegazeta0)
-    Omegazeta3_coeff = 3.0*(pPrec.g0 * pPrec.Omegazeta3 + pPrec.g2*pPrec.Omegazeta1 + pPrec.g3*pPrec.Omegazeta0)
-    Omegazeta4_coeff = 3.0*(pPrec.g0 * pPrec.Omegazeta4 + pPrec.g2*pPrec.Omegazeta2 + pPrec.g3*pPrec.Omegazeta1 + pPrec.g4*pPrec.Omegazeta0)
+    Omegazeta0_coeff = -g0 * pPrec.Omegazeta0
+    Omegazeta1_coeff = -1.5 * g0 * pPrec.Omegazeta1
+    Omegazeta2_coeff = -3.0*(g0 * pPrec.Omegazeta2 + pPrec.g2*pPrec.Omegazeta0)
+    Omegazeta3_coeff = 3.0*(g0 * pPrec.Omegazeta3 + pPrec.g2*pPrec.Omegazeta1 + pPrec.g3*pPrec.Omegazeta0)
+    Omegazeta4_coeff = 3.0*(g0 * pPrec.Omegazeta4 + pPrec.g2*pPrec.Omegazeta2 + pPrec.g3*pPrec.Omegazeta1 + pPrec.g4*pPrec.Omegazeta0)
 
-    Omegazeta5_coeff = 1.5*(pPrec.g0*pPrec.Omegazeta5 + pPrec.g2*pPrec.Omegazeta3 + pPrec.g3*pPrec.Omegazeta2 + pPrec.g4*pPrec.Omegazeta1 + pPrec.g5*pPrec.Omegazeta0)
+    Omegazeta5_coeff = 1.5*(g0*pPrec.Omegazeta5 + pPrec.g2*pPrec.Omegazeta3 + pPrec.g3*pPrec.Omegazeta2 + pPrec.g4*pPrec.Omegazeta1 + pPrec.g5*pPrec.Omegazeta0)
     '''    
     #Line 2887 - 2943 compressed
     #pPrec = apply_expansion_order(pPrec, ExpansionOrder)
@@ -508,7 +509,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     object.__setattr__(pPrec, 'psi0', compute_psi0(
         Smi2, Spl2, S32, pPrec.S_0_norm,
         v_0, v_0_2, pPrec.psi1, pPrec.psi2,
-        pPrec.g0, pPrec.delta_qq, L_0, S1v, S2v))
+        g0, pPrec.delta_qq, L_0, S1v, S2v))
 
     #vMSA = jnp.array([0.0, 0.0, 0.0])
 
@@ -538,7 +539,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
             pPrec.S2_norm_2,
             S32,
             pPrec.delta_qq,
-            pPrec.g0,
+            g0,
             pPrec.psi0,
             pPrec.psi1,
             pPrec.psi2,
@@ -582,7 +583,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     object.__setattr__(pPrec, 'phiz_0', -phiz_0 - vMSA[0])
     object.__setattr__(pPrec, 'zeta_0', -zeta_0 - vMSA[1])
 
-    return pPrec, Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff 
+    return pPrec, Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, g0 
 
 
 

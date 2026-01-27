@@ -232,11 +232,6 @@ class IMRPhenomXGetAndSetPrecessionVariables:
     a0_2: float = field(init=False, default=0.0)
     a0_3: float = field(init=False, default=0.0)
     a2_2: float = field(init=False, default=0.0)
-    g0: float = field(init=False, default=0.0)
-    g2: float = field(init=False, default=0.0)
-    g3: float = field(init=False, default=0.0)
-    g4: float = field(init=False, default=0.0)
-    g5: float = field(init=False, default=0.0)
     psi0: float = field(init=False, default=0.0)
     psi1: float = field(init=False, default=0.0)
     psi2: float = field(init=False, default=0.0)
@@ -761,7 +756,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
 
         #if pflag in 220, 221, 222, 223, 224...
         #Line 597
-        self, Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff = IMRPhenomX_Initialize_MSA_System(self, self.pWF, self.lalParams['ExpansionOrder'])
+        self, Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, g0 = IMRPhenomX_Initialize_MSA_System(self, self.pWF, self.lalParams['ExpansionOrder'])
 
 
         object.__setattr__(self, 'Omegazeta0_coeff', Omegazeta0_coeff)
@@ -770,6 +765,8 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         object.__setattr__(self, 'Omegazeta3_coeff', Omegazeta3_coeff)
         object.__setattr__(self, 'Omegazeta4_coeff', Omegazeta4_coeff)
         object.__setattr__(self, 'Omegazeta5_coeff', Omegazeta5_coeff)
+        object.__setattr__(self, 'Omegazeta5_coeff', Omegazeta5_coeff)
+        object.__setattr__(self, 'g0', g0)
         #TODO if MSA_ERROR: switch to NNLO
 
 
