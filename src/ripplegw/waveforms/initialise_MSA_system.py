@@ -532,7 +532,10 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     #volume_element = 0.0
     #vol_sign = 0.0
 
-    object.__setattr__(pPrec, 'psi0', compute_psi0(pPrec, L_0, S1v, S2v) )
+    object.__setattr__(pPrec, 'psi0', compute_psi0(
+        pPrec.Smi2, pPrec.Spl2, pPrec.S32, pPrec.S_0_norm,
+        pPrec.v_0, pPrec.v_0_2, pPrec.psi1, pPrec.psi2,
+        pPrec.g0, pPrec.delta_qq, L_0, S1v, S2v))
 
     #vMSA = jnp.array([0.0, 0.0, 0.0])
 
@@ -900,66 +903,57 @@ def IMRPhenomX_Get_PN_beta(
 
 
 
-
-def apply_expansion_order(pPrec: dict, ExpansionOrder: int) -> dict:
+def compute_psi0(
+    Smi2: float,
+    Spl2: float,
+    S32: float,
+    S_0_norm: float,
+    v_0: float,
+    v_0_2: float,
+    psi1: float,
+    psi2: float,
+    g0: float,
+    delta_qq: float,
+    L_0: jnp.ndarray,
+    S1v: jnp.ndarray,
+    S2v: jnp.ndarray,
+) -> float:
     """
-    Apply expansion order corrections in a JAX-friendly way
-    
+    Compute initial psi0 value for MSA approximation.
+
     Args:
-        pPrec: Precession structure dictionary (dict)
-        ExpansionOrder: Order of expansion (-1 for all orders, 1-5 for specific cutoffs) (int)
-        
+        Smi2: S_minus squared root (float)
+        Spl2: S_plus squared root (float)
+        S32: S_3 squared root (float)
+        S_0_norm: Initial total spin norm (float)
+        v_0: Initial velocity parameter (float)
+        v_0_2: v_0 squared (float)
+        psi1: Psi coefficient 1 (float)
+        psi2: Psi coefficient 2 (float)
+        g0: g0 coefficient (float)
+        delta_qq: Delta mass ratio term (float)
+        L_0: Initial orbital angular momentum vector (array)
+        S1v: Spin 1 vector (array)
+        S2v: Spin 2 vector (array)
+
     Returns:
-        dict: Updated pPrec dictionary
+        float: Initial psi0 value
     """
-    
-    # Create masks for which coefficients to zero out based on expansion order
-    zero_1_and_higher = ExpansionOrder <= 1
-    zero_2_and_higher = ExpansionOrder <= 2
-    zero_3_and_higher = ExpansionOrder <= 3
-    zero_4_and_higher = ExpansionOrder <= 4
-    zero_5_and_higher = ExpansionOrder <= 5
-    
-    # Apply corrections based on expansion order
-    # For expansion order -1, keep all coefficients (no changes)
-    # For higher orders, zero out coefficients beyond the specified order
-    '''
-    object.__setattr__(pPrec, 'Omegaz1_coeff', jnp.where(zero_1_and_higher, 0.0, pPrec.Omegaz1_coeff))
-    object.__setattr__(pPrec, 'Omegazeta1_coeff', jnp.where(zero_1_and_higher, 0.0, pPrec.Omegazeta1_coeff))
-    
-    object.__setattr__(pPrec, 'Omegaz2_coeff', jnp.where(zero_2_and_higher, 0.0, pPrec.Omegaz2_coeff))
-    object.__setattr__(pPrec, 'Omegazeta2_coeff', jnp.where(zero_2_and_higher, 0.0, pPrec.Omegazeta2_coeff))
-    
-    object.__setattr__(pPrec, 'Omegaz3_coeff', jnp.where(zero_3_and_higher, 0.0, pPrec.Omegaz3_coeff))
-    object.__setattr__(pPrec, 'Omegazeta3_coeff', jnp.where(zero_3_and_higher, 0.0, pPrec.Omegazeta3_coeff))
-    
-    object.__setattr__(pPrec, 'Omegaz4_coeff', jnp.where(zero_4_and_higher, 0.0, pPrec.Omegaz4_coeff))
-    object.__setattr__(pPrec, 'Omegazeta4_coeff', jnp.where(zero_4_and_higher, 0.0, pPrec.Omegazeta4_coeff))
-    
-    object.__setattr__(pPrec, 'Omegaz5_coeff', jnp.where(zero_5_and_higher, 0.0, pPrec.Omegaz5_coeff))
-    object.__setattr__(pPrec, 'Omegazeta5_coeff', jnp.where(zero_5_and_higher, 0.0, pPrec.Omegazeta5_coeff))
-    '''
-    return pPrec
+    condition = jnp.abs(Smi2 - Spl2) < 1.0e-5
 
-
-
-
-def compute_psi0(pPrec, L_0, S1v, S2v):
-    condition = jnp.abs(pPrec.Smi2 - pPrec.Spl2) < 1.0e-5
-    
     def psi0_zero():
         return 0.0
-    
+
     def psi0_nonzero():
-        mm = jnp.sqrt((pPrec.Smi2 - pPrec.Spl2) / (pPrec.S32 - pPrec.Spl2))
-        tmpB = (pPrec.S_0_norm*pPrec.S_0_norm - pPrec.Spl2) / (pPrec.Smi2 - pPrec.Spl2)
-        
+        mm = jnp.sqrt((Smi2 - Spl2) / (S32 - Spl2))
+        tmpB = (S_0_norm * S_0_norm - Spl2) / (Smi2 - Spl2)
+
         volume_element = IMRPhenomX_vector_dot_product(
-            IMRPhenomX_vector_cross_product(L_0, S1v), S2v  
+            IMRPhenomX_vector_cross_product(L_0, S1v), S2v
         )
         vol_sign = jnp.sign(volume_element)  # equivalent to (volume_element > 0) - (volume_element < 0)
-        
-        psi_of_v0 = IMRPhenomX_psiofv(pPrec.v_0, pPrec.v_0_2, 0.0, pPrec.psi1, pPrec.psi2, pPrec.g0, pPrec.delta_qq)  
+
+        psi_of_v0 = IMRPhenomX_psiofv(v_0, v_0_2, 0.0, psi1, psi2, g0, delta_qq)  
         
         # Handle boundary cases for tmpB
         def handle_boundary_cases():
@@ -991,7 +985,7 @@ def compute_psi0(pPrec, L_0, S1v, S2v):
     return jax.lax.cond(condition, psi0_zero, psi0_nonzero)
 
 
-
+#DONE
 def IMRPhenomX_psiofv(v, v2, psi0, psi1, psi2, g0, delta_qq):
     """
     Compute psi(v) for the MSA approximation.
@@ -1019,6 +1013,7 @@ def IMRPhenomX_psiofv(v, v2, psi0, psi1, psi2, g0, delta_qq):
     return psi0 - 0.75 * g0 * delta_qq * (1.0 + psi1 * v + psi2 * v2) / (v2 * v)
 
 
+#DONE
 def IMRPhenomX_vector_cross_product(v1: jnp.ndarray, v2: jnp.ndarray) -> jnp.ndarray:
     """
     Calculate cross product of two 3D vectors
@@ -1033,7 +1028,7 @@ def IMRPhenomX_vector_cross_product(v1: jnp.ndarray, v2: jnp.ndarray) -> jnp.nda
     return jnp.cross(v1, v2)
 
 
-
+#DONE
 def IMRPhenomX_Return_Constants_c_MSA(
     v: float,
     JNorm: float,
@@ -1113,6 +1108,7 @@ def IMRPhenomX_Return_Constants_c_MSA(
     return jnp.array([x, y, z])
 
 
+#DONE
 def IMRPhenomX_Return_Constants_d_MSA(
     LNorm: float,
     JNorm: float,
@@ -1155,6 +1151,7 @@ def IMRPhenomX_Return_Constants_d_MSA(
     return jnp.array([x, y, z])
 
 
+#DONE
 def IMRPhenomX_Return_Psi_MSA(
     v: float,
     v2: float,
@@ -1191,7 +1188,7 @@ def IMRPhenomX_Return_Psi_MSA(
 
 
 
-
+#DONE
 def IMRPhenomX_Return_Psi_dot_MSA(
     v: float,
     Seff: float,
@@ -1229,7 +1226,7 @@ def IMRPhenomX_Return_Psi_dot_MSA(
 
 
 
-
+#DONE
 def IMRPhenomX_Return_MSA_Corrections_MSA(
     v: float,
     LNorm: float,
@@ -1408,7 +1405,7 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
 
 
 
-
+#DONE
 def IMRPhenomX_Return_phiz_MSA(
     v: float,
     JNorm: float,
@@ -1536,7 +1533,9 @@ def IMRPhenomX_Return_phiz_MSA(
 
     return phiz_out
 
-   
+
+
+#DONE  
 def IMRPhenomX_Return_zeta_MSA(
     v: float,
     eta: float,
@@ -1599,6 +1598,7 @@ def IMRPhenomX_Return_zeta_MSA(
     return zeta_out
 
 
+#DONE
 def IMRPhenomX_vector_sum(v1: jnp.ndarray, v2: jnp.ndarray) -> jnp.ndarray:
     """
     Calculate sum of two 3D vectors
@@ -1613,7 +1613,7 @@ def IMRPhenomX_vector_sum(v1: jnp.ndarray, v2: jnp.ndarray) -> jnp.ndarray:
     return v1 + v2
 
 
-
+#DONE
 def IMRPhenomX_vector_L2_norm(v1: jnp.ndarray) -> float:
     """
     Calculate L2 norm of a 3D vector
@@ -1627,7 +1627,7 @@ def IMRPhenomX_vector_L2_norm(v1: jnp.ndarray) -> float:
     return jnp.linalg.norm(v1)
 
 
-
+#DONE
 def IMRPhenomX_vector_scalar(v1: jnp.ndarray, a: float) -> jnp.ndarray:
     """
     Multiply a vector by a scalar
@@ -1644,14 +1644,14 @@ def IMRPhenomX_vector_scalar(v1: jnp.ndarray, a: float) -> jnp.ndarray:
 
 
 
-
+#DONE
 def IMRPhenomX_JNorm_MSA(LNorm:float, c1_over_eta:float, SAv2:float)->float:
     JNorm2 = (LNorm * LNorm + 2.0 * LNorm * c1_over_eta + SAv2)
     return jnp.sqrt(JNorm2)
 
 
 
-
+#DONE
 def IMRPhenomX_L_norm_3PN_of_v(
     v: jax.Array,
     L_norm: float,
@@ -1833,7 +1833,7 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(pPrec, pWF, v):
 
 
 
-
+#DONE
 def IMRPhenomX_costhetaLJ(
     L_norm: float, 
     J_norm: float, 
@@ -1846,6 +1846,8 @@ def IMRPhenomX_costhetaLJ(
 
     return costhetaLJ
 
+
+#DONE
 def IMRPhenomX_Return_SNorm_MSA(
     v: float,
     Smi2: float,
