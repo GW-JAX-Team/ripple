@@ -99,18 +99,18 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
 
     # Initial dimensionful spin vectors at reference frequency
     # S1 = {S1x,S1y,S1z}
-    object.__setattr__(pPrec, 'S1_0', jnp.array([S1v[0], S1v[1], S1v[2]]))
 
     # S2 = {S2x,S2y,S2z}
-    object.__setattr__(pPrec, 'S2_0', jnp.array([S2v[0], S2v[1], S2v[2]]))
 
     # Reference velocity v and v^2
-    object.__setattr__(pPrec, 'v_0', jnp.power(pPrec.piGM * pWF['fRef'], 1.0/3.0))
-    object.__setattr__(pPrec, 'v_0_2', pPrec.v_0 * pPrec.v_0)
+    v_0 = jnp.power(pPrec.piGM * pWF['fRef'], 1.0/3.0)
+    v_0_2 = v_0 * v_0
+
+    object.__setattr__(pPrec, 'v_0_2', v_0 * v_0)
 
     # Reference orbital angular momenta
     L_0 = jnp.array([0.0, 0.0, 0.0])
-    L_0 = IMRPhenomX_vector_scalar(Lhat, pPrec.eta / pPrec.v_0)  # stub
+    L_0 = IMRPhenomX_vector_scalar(Lhat, pPrec.eta / v_0)  # stub
     object.__setattr__(pPrec, 'L_0', L_0)    
 
     # Inner products used in MSA system
@@ -234,11 +234,11 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     object.__setattr__(pPrec, 'S2L_pav', -q * (c_1 * (1.0 + q) - eta * Seff) / (eta * omq2))
     object.__setattr__(pPrec, 'S1S2_pav', 0.5 * pPrec.SAv2 - 0.5 * (pPrec.S1_norm_2 + pPrec.S2_norm_2))
     object.__setattr__(pPrec, 'S1Lsq_pav', (pPrec.S1L_pav*pPrec.S1L_pav +
-                        ((pPrec.Spl2mSmi2)*(pPrec.Spl2mSmi2) * pPrec.v_0_2) / (32.0 * eta2 * omqsq)))
+                        ((pPrec.Spl2mSmi2)*(pPrec.Spl2mSmi2) * v_0_2) / (32.0 * eta2 * omqsq)))
     object.__setattr__(pPrec, 'S2Lsq_pav', (pPrec.S2L_pav*pPrec.S2L_pav +
-                        (q*q*(pPrec.Spl2mSmi2)*(pPrec.Spl2mSmi2) * pPrec.v_0_2) / (32.0 * eta2 * omqsq)))
+                        (q*q*(pPrec.Spl2mSmi2)*(pPrec.Spl2mSmi2) * v_0_2) / (32.0 * eta2 * omqsq)))
     object.__setattr__(pPrec, 'S1LS2L_pav', (pPrec.S1L_pav*pPrec.S2L_pav -
-                        q * (pPrec.Spl2mSmi2)*(pPrec.Spl2mSmi2)*pPrec.v_0_2 / (32.0 * eta2 * omqsq)))
+                        q * (pPrec.Spl2mSmi2)*(pPrec.Spl2mSmi2)*v_0_2 / (32.0 * eta2 * omqsq)))
     
     # Spin couplings in arXiv:1703.03967
     object.__setattr__(pPrec, 'beta3', (((113./12.) + (25./4.)*(m2/m1)) * pPrec.S1L_pav +
@@ -520,7 +520,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
 
     object.__setattr__(pPrec, 'psi0', compute_psi0(
         pPrec.Smi2, pPrec.Spl2, pPrec.S32, pPrec.S_0_norm,
-        pPrec.v_0, pPrec.v_0_2, pPrec.psi1, pPrec.psi2,
+        v_0, v_0_2, pPrec.psi1, pPrec.psi2,
         pPrec.g0, pPrec.delta_qq, L_0, S1v, S2v))
 
     #vMSA = jnp.array([0.0, 0.0, 0.0])
@@ -536,7 +536,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
 
     def compute_msa_corrections():
         return IMRPhenomX_Return_MSA_Corrections_MSA(
-            pPrec.v_0,
+            v_0,
             pPrec.L_0_norm,
             pPrec.J_0_norm,
             pPrec.Seff,
@@ -567,10 +567,10 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
 
     # Initial \phi_z
     object.__setattr__(pPrec, 'phiz_0', 0.0)
-    #phiz_0 = IMRPhenomX_Return_phiz_MSA(pPrec.v_0, pPrec.J_0_norm, pPrec)  # stub
+    #phiz_0 = IMRPhenomX_Return_phiz_MSA(v_0, pPrec.J_0_norm, pPrec)  # stub
 
 
-    phiz_0 =IMRPhenomX_Return_phiz_MSA(pPrec.v_0, pPrec.J_0_norm,
+    phiz_0 =IMRPhenomX_Return_phiz_MSA(v_0, pPrec.J_0_norm,
                                         pPrec.eta, pPrec.inveta, pPrec.eta2, pPrec.eta4,
                                         pPrec.c1, pPrec.SAv, pPrec.SAv2, pPrec.invSAv, pPrec.invSAv2,
                                         pPrec.Omegaz0_coeff, pPrec.Omegaz1_coeff, pPrec.Omegaz2_coeff,
@@ -581,7 +581,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     # Initial \zeta
     object.__setattr__(pPrec, 'zeta_0', 0.0)
     zeta_0 = IMRPhenomX_Return_zeta_MSA(
-        pPrec.v_0,
+        v_0,
         pPrec.eta,
         pPrec.Omegazeta0_coeff,
         pPrec.Omegazeta1_coeff,
