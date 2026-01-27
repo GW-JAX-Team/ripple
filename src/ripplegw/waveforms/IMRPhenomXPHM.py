@@ -2410,7 +2410,12 @@ class IMRPhenomXPHM(WaveFormModel):
                                                                pPrec.Omegaz0_coeff, pPrec.Omegaz1_coeff, pPrec.Omegaz2_coeff, pPrec.Omegaz3_coeff, pPrec.Omegaz4_coeff, pPrec.Omegaz5_coeff, pPrec.phiz_0,
                                                                pPrec.Omegazeta0_coeff, pPrec.Omegazeta1_coeff, pPrec.Omegazeta2_coeff, pPrec.Omegazeta3_coeff, pPrec.Omegazeta4_coeff, pPrec.Omegazeta5_coeff, pPrec.zeta_0)
 
-            alpha_offset_emm, epsilon_offset_emm = Get_alpha_epsilon_offset(emm, pPrec)
+            alpha_offset_emm, epsilon_offset_emm = Get_alpha_epsilon_offset(
+                emm,
+                pPrec.alpha_offset_1, pPrec.epsilon_offset_1,
+                pPrec.alpha_offset, pPrec.epsilon_offset,
+                pPrec.alpha_offset_3, pPrec.epsilon_offset_3,
+                pPrec.alpha_offset_4, pPrec.epsilon_offset_4)
 
             alpha = vangles[0] - alpha_offset_emm
             epsilon = vangles[1] - epsilon_offset_emm
@@ -3195,7 +3200,14 @@ def symmetric_mass_ratio_to_mass_ratio(symmetric_mass_ratio):
 
 def Get_alpha_epsilon_offset(
     mprime: int,                      # Second index of the non-precessing mode (l, mprime)
-    pPrec                             # IMRPhenomXP Precessing structure
+    alpha_offset_1,
+    epsilon_offset_1,
+    alpha_offset,
+    epsilon_offset,
+    alpha_offset_3,
+    epsilon_offset_3,
+    alpha_offset_4,
+    epsilon_offset_4
 ):
     """
     Get offset alpha and epsilon angles at reference frequency.
@@ -3208,16 +3220,16 @@ def Get_alpha_epsilon_offset(
 
     # Use jax.lax.switch for the case statement
     def case_1():
-        return pPrec.alpha_offset_1, pPrec.epsilon_offset_1
+        return alpha_offset_1, epsilon_offset_1
 
     def case_2():
-        return pPrec.alpha_offset, pPrec.epsilon_offset  # Already used in XP code, no _2 suffix
+        return alpha_offset, epsilon_offset  # Already used in XP code, no _2 suffix
 
     def case_3():
-        return pPrec.alpha_offset_3, pPrec.epsilon_offset_3
+        return alpha_offset_3, epsilon_offset_3
 
     def case_4():
-        return pPrec.alpha_offset_4, pPrec.epsilon_offset_4
+        return alpha_offset_4, epsilon_offset_4
 
     # Use jax.lax.switch with mprime-1 as index (since switch uses 0-based indexing)
     alpha_offset_mprime, epsilon_offset_mprime = jax.lax.switch(
