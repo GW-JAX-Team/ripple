@@ -127,7 +127,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     object.__setattr__(pPrec, 'dotS1Ln', dotS1Ln)
     object.__setattr__(pPrec, 'dotS2Ln', dotS2Ln)
 
-
+    '''
     # Coefficients for PN orbital angular momentum at 3PN, as per LALSimInspiralFDPrecAngles_internals.c
     constants_L = jnp.zeros(5)  # Initialize array for 5 coefficients
 
@@ -150,6 +150,18 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     constants_L = constants_L.at[4].set(
         L_csts_nonspin[5] + L_csts_nonspin[6] * eta + L_csts_nonspin[7] * eta * eta + L_csts_nonspin[8] * eta * eta * eta
     )
+    '''
+    constants_L_0 =  L_csts_nonspin[0] + eta * L_csts_nonspin[1]
+    constants_L_1 = IMRPhenomX_Get_PN_beta(L_csts_spinorbit[0], L_csts_spinorbit[1], pPrec.dotS1L, pPrec.dotS2L, pPrec.qq)
+    constants_L_2 =  L_csts_nonspin[2] + eta * L_csts_nonspin[3] + eta * eta * L_csts_nonspin[4]
+    constants_L_3 =  IMRPhenomX_Get_PN_beta(
+            (L_csts_spinorbit[2] + L_csts_spinorbit[3] * eta),
+            (L_csts_spinorbit[4] + L_csts_spinorbit[5] * eta),
+            pPrec.dotS1L, pPrec.dotS2L, pPrec.qq)
+    constants_L_4 = L_csts_nonspin[5] + L_csts_nonspin[6] * eta + L_csts_nonspin[7] * eta * eta + L_csts_nonspin[8] * eta * eta * eta
+
+    constants_L = jnp.array([constants_L_0, constants_L_1, constants_L_2, constants_L_3, constants_L_4])
+
     object.__setattr__(pPrec, 'constants_L', constants_L)
 
     # Effective total spin
