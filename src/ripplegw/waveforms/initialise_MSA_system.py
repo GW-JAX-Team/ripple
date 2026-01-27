@@ -790,7 +790,7 @@ def compute_psi0(pPrec, L_0, S1v, S2v):
         )
         vol_sign = jnp.sign(volume_element)  # equivalent to (volume_element > 0) - (volume_element < 0)
         
-        psi_of_v0 = IMRPhenomX_psiofv(pPrec.v_0, pPrec.v_0_2, 0.0, pPrec.psi1, pPrec.psi2, pPrec)  
+        psi_of_v0 = IMRPhenomX_psiofv(pPrec.v_0, pPrec.v_0_2, 0.0, pPrec.psi1, pPrec.psi2, pPrec.g0, pPrec.delta_qq)  
         
         # Handle boundary cases for tmpB
         def handle_boundary_cases():
@@ -823,9 +823,31 @@ def compute_psi0(pPrec, L_0, S1v, S2v):
 
 
 
-def IMRPhenomX_psiofv(v, v2, psi0, psi1, psi2, pPrec):
-    # Equation 51 in arXiv:1703.03967
-    return psi0 - 0.75 * pPrec.g0 * pPrec.delta_qq * (1.0 + psi1 * v + psi2 * v2) / (v2 * v)
+def IMRPhenomX_psiofv(v, v2, psi0, psi1, psi2, g0, delta_qq):
+    """
+    Compute psi(v) for the MSA approximation.
+
+    Based on Equation 51 in arXiv:1703.03967.
+
+    Parameters
+    ----------
+    v : float
+        Orbital velocity parameter.
+    v2 : float
+        v squared.
+    psi0, psi1, psi2 : float
+        Psi expansion coefficients.
+    g0 : float
+        Precession coefficient g0.
+    delta_qq : float
+        Mass difference parameter delta_qq.
+
+    Returns
+    -------
+    psi : float
+        The psi angle at velocity v.
+    """
+    return psi0 - 0.75 * g0 * delta_qq * (1.0 + psi1 * v + psi2 * v2) / (v2 * v)
 
 
 def IMRPhenomX_vector_cross_product(v1: jnp.ndarray, v2: jnp.ndarray) -> jnp.ndarray:
@@ -1205,15 +1227,50 @@ def IMRPhenomX_JNorm_MSA(LNorm:float, pPrec)->float:
 
 
 
-def IMRPhenomX_L_norm_3PN_of_v(v: jax.Array, L_norm: float, pPrec)->float:
-    v2 = v*v
-    term_4 = pPrec.constants_L[4]
-    term_3 = pPrec.constants_L[3]
-    term_2 = pPrec.constants_L[2]
-    term_1 = pPrec.constants_L[1]
-    term_0 = pPrec.constants_L[0]
-    L_norm3PN = L_norm*(1. + v2*(term_0 + v*term_1 + v2*(term_2 + v*term_3 + v2*(term_4))))
+def IMRPhenomX_L_norm_3PN_of_v(
+    v: jax.Array,
+    L_norm: float,
+    constants_L_0: float,
+    constants_L_1: float,
+    constants_L_2: float,
+    constants_L_3: float,
+    constants_L_4: float,
+) -> float:
+    """
+    Compute L_norm at 3PN order.
 
+    Parameters
+    ----------
+    v : jax.Array
+        Orbital velocity parameter.
+    L_norm : float
+        Normalized orbital angular momentum.
+    constants_L_0 : float
+        L polynomial coefficient (index 0).
+    constants_L_1 : float
+        L polynomial coefficient (index 1).
+    constants_L_2 : float
+        L polynomial coefficient (index 2).
+    constants_L_3 : float
+        L polynomial coefficient (index 3).
+    constants_L_4 : float
+        L polynomial coefficient (index 4).
+
+    Returns
+    -------
+    float
+        L_norm at 3PN order.
+    """
+    v2 = v * v
+    L_norm3PN = L_norm * (
+        1.0
+        + v2
+        * (
+            constants_L_0
+            + v * constants_L_1
+            + v2 * (constants_L_2 + v * constants_L_3 + v2 * constants_L_4)
+        )
+    )
     return L_norm3PN
 
 
@@ -1229,7 +1286,15 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(pPrec, pWF, v):
     J_norm = IMRPhenomX_JNorm_MSA(L_norm, pPrec)
 
     # Compressing line 2212 - 2220
-    L_norm3PN = IMRPhenomX_L_norm_3PN_of_v(v, L_norm, pPrec)
+    L_norm3PN = IMRPhenomX_L_norm_3PN_of_v(
+        v,
+        L_norm,
+        pPrec.constants_L[0],
+        pPrec.constants_L[1],
+        pPrec.constants_L[2],
+        pPrec.constants_L[3],
+        pPrec.constants_L[4],
+    )
 
     '''
     if (pPrec.IMRPhenomXPrecVersion == 222) | (pPrec.IMRPhenomXPrecVersion == 223):
@@ -1252,7 +1317,12 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(pPrec, pWF, v):
     object.__setattr__(pPrec, 'Spl', jnp.sqrt(pPrec.Spl2))
     object.__setattr__(pPrec, 'Smi', jnp.sqrt(pPrec.Smi2))
 
-    SNorm = IMRPhenomX_Return_SNorm_MSA(v, pPrec)
+    SNorm = IMRPhenomX_Return_SNorm_MSA(
+        v,
+        pPrec.Smi2, pPrec.Spl2, pPrec.S32,
+        pPrec.psi0, pPrec.psi1, pPrec.psi2,
+        pPrec.g0, pPrec.delta_qq
+    )
     object.__setattr__(pPrec, 'S_norm', SNorm)
     object.__setattr__(pPrec, 'S_norm_2', SNorm * SNorm)
 
@@ -1309,36 +1379,63 @@ def IMRPhenomX_costhetaLJ(
 
     return costhetaLJ
 
-def IMRPhenomX_Return_SNorm_MSA(v, pPrec):
+def IMRPhenomX_Return_SNorm_MSA(
+    v: float,
+    Smi2: float,
+    Spl2: float,
+    S32: float,
+    psi0: float,
+    psi1: float,
+    psi2: float,
+    g0: float,
+    delta_qq: float,
+) -> float:
+    """
+    Compute the spin magnitude SNorm using the MSA approximation.
 
+    Based on Equations 23 and 25 of Chatziioannou et al, PRD 95, 104004, (2017),
+    arXiv:1703.03967.
+
+    Parameters
+    ----------
+    v : float
+        Orbital velocity parameter.
+    Smi2 : float
+        S_minus squared.
+    Spl2 : float
+        S_plus squared.
+    S32 : float
+        S_3 squared.
+    psi0, psi1, psi2 : float
+        Psi expansion coefficients.
+    g0 : float
+        Precession coefficient g0.
+    delta_qq : float
+        Mass difference parameter delta_qq.
+
+    Returns
+    -------
+    SNorm : float
+        The spin magnitude.
+    """
     v2 = v * v
 
-    cancel_condition = jnp.abs(pPrec.Smi2 - pPrec.Spl2) < 1e-5
-
-
-    def sn_zero(_):
-        sn = jnp.array(0.0)
-        return sn
+    cancel_condition = jnp.abs(Smi2 - Spl2) < 1e-5
 
     def sn_jacobi(_):
         # Equation 25 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
-        m = (pPrec.Smi2 - pPrec.Spl2) / (pPrec.S32 - pPrec.Spl2)
+        m = (Smi2 - Spl2) / (S32 - Spl2)
 
-
-        psi = IMRPhenomX_psiofv(
-            v, v2,
-            pPrec.psi0, pPrec.psi1, pPrec.psi2,
-            pPrec
-        )
+        psi = IMRPhenomX_psiofv(v, v2, psi0, psi1, psi2, g0, delta_qq)
 
         # Jacobi elliptic functions
-        sn, cn, dn = gsl_sf_elljac_e(psi, m) # FIXME
+        sn, cn, dn = gsl_sf_elljac_e(psi, m)  # FIXME
         return sn
 
     sn = jnp.where(cancel_condition, 0.0, sn_jacobi(None))
 
     # Equation 23 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
-    SNorm2 = pPrec.Spl2 + (pPrec.Smi2 - pPrec.Spl2) * sn * sn
+    SNorm2 = Spl2 + (Smi2 - Spl2) * sn * sn
 
     return jnp.sqrt(SNorm2)
 
