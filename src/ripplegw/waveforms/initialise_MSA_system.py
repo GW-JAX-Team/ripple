@@ -127,45 +127,26 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     object.__setattr__(pPrec, 'dotS1Ln', dotS1Ln)
     object.__setattr__(pPrec, 'dotS2Ln', dotS2Ln)
 
-    '''
-    # Coefficients for PN orbital angular momentum at 3PN, as per LALSimInspiralFDPrecAngles_internals.c
-    constants_L = jnp.zeros(5)  # Initialize array for 5 coefficients
 
-    constants_L = constants_L.at[0].set(
-        L_csts_nonspin[0] + eta * L_csts_nonspin[1]
-    )
-    constants_L = constants_L.at[1].set(
-        IMRPhenomX_Get_PN_beta(L_csts_spinorbit[0], L_csts_spinorbit[1], pPrec.dotS1L, pPrec.dotS2L, pPrec.qq)  # stub
-    )
-    constants_L = constants_L.at[2].set(
-        L_csts_nonspin[2] + eta * L_csts_nonspin[3] + eta * eta * L_csts_nonspin[4]
-    )
-    constants_L = constants_L.at[3].set(
-        IMRPhenomX_Get_PN_beta(
-            (L_csts_spinorbit[2] + L_csts_spinorbit[3] * eta),
-            (L_csts_spinorbit[4] + L_csts_spinorbit[5] * eta),
-            pPrec.dotS1L, pPrec.dotS2L, pPrec.qq
-        )  # stub
-    )
-    constants_L = constants_L.at[4].set(
-        L_csts_nonspin[5] + L_csts_nonspin[6] * eta + L_csts_nonspin[7] * eta * eta + L_csts_nonspin[8] * eta * eta * eta
-    )
-    '''
+    # Coefficients for PN orbital angular momentum at 3PN, as per LALSimInspiralFDPrecAngles_internals.c
+
     constants_L_0 =  L_csts_nonspin[0] + eta * L_csts_nonspin[1]
-    constants_L_1 = IMRPhenomX_Get_PN_beta(L_csts_spinorbit[0], L_csts_spinorbit[1], pPrec.dotS1L, pPrec.dotS2L, pPrec.qq)
+    constants_L_1 = IMRPhenomX_Get_PN_beta(L_csts_spinorbit[0], L_csts_spinorbit[1], dotS1L, dotS2L, pPrec.qq)
     constants_L_2 =  L_csts_nonspin[2] + eta * L_csts_nonspin[3] + eta * eta * L_csts_nonspin[4]
     constants_L_3 =  IMRPhenomX_Get_PN_beta(
             (L_csts_spinorbit[2] + L_csts_spinorbit[3] * eta),
             (L_csts_spinorbit[4] + L_csts_spinorbit[5] * eta),
-            pPrec.dotS1L, pPrec.dotS2L, pPrec.qq)
+            dotS1L, dotS2L, pPrec.qq)
     constants_L_4 = L_csts_nonspin[5] + L_csts_nonspin[6] * eta + L_csts_nonspin[7] * eta * eta + L_csts_nonspin[8] * eta * eta * eta
 
     constants_L = jnp.array([constants_L_0, constants_L_1, constants_L_2, constants_L_3, constants_L_4])
 
+
+
     object.__setattr__(pPrec, 'constants_L', constants_L)
 
     # Effective total spin
-    Seff = (1.0 + q) * pPrec.dotS1L + (1 + (1.0/q)) * pPrec.dotS2L
+    Seff = (1.0 + q) * dotS1L + (1 + (1.0/q)) * dotS2L
     Seff2 = Seff * Seff
 
     object.__setattr__(pPrec, 'Seff', Seff)
@@ -211,8 +192,8 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
         pPrec.eta,
         pPrec.delta_qq,
         pPrec.Seff,
-        pPrec.dotS1Ln,
-        pPrec.dotS2Ln,
+        dotS1Ln,
+        dotS2Ln,
         pPrec.S_0_norm,
     )
 
@@ -312,14 +293,14 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
         object.__setattr__(pPrec, 'a0', eta * domegadt_constants_NS[0])
         object.__setattr__(pPrec, 'a2', eta * (domegadt_constants_NS[1] + eta * (domegadt_constants_NS[2])))
         object.__setattr__(pPrec, 'a3', eta * (domegadt_constants_NS[3] +
-                            IMRPhenomX_Get_PN_beta(domegadt_constants_SO[0], domegadt_constants_SO[1], pPrec.dotS1L, pPrec.dotS2L, pPrec.qq)))
+                            IMRPhenomX_Get_PN_beta(domegadt_constants_SO[0], domegadt_constants_SO[1], dotS1L, dotS2L, pPrec.qq)))
         object.__setattr__(pPrec, 'a4', eta * (domegadt_constants_NS[4] + eta * (domegadt_constants_NS[5] + eta * (domegadt_constants_NS[6])) +
-                            IMRPhenomX_Get_PN_sigma(domegadt_constants_SS[0], domegadt_constants_SS[1], pPrec.inveta, pPrec.dotS1S2, pPrec.dotS1L, pPrec.dotS2L) +  # stub
-                            IMRPhenomX_Get_PN_tau(domegadt_constants_SS[2], domegadt_constants_SS[3], pPrec.qq, pPrec.S1_norm_2, pPrec.S2_norm_2, pPrec.dotS1L, pPrec.dotS2L, pPrec.eta)))    # stub
+                            IMRPhenomX_Get_PN_sigma(domegadt_constants_SS[0], domegadt_constants_SS[1], pPrec.inveta, pPrec.dotS1S2, dotS1L, dotS2L) +  # stub
+                            IMRPhenomX_Get_PN_tau(domegadt_constants_SS[2], domegadt_constants_SS[3], pPrec.qq, pPrec.S1_norm_2, pPrec.S2_norm_2, dotS1L, dotS2L, pPrec.eta)))    # stub
         object.__setattr__(pPrec, 'a5', eta * (domegadt_constants_NS[7] + eta * (domegadt_constants_NS[8]) +
                             IMRPhenomX_Get_PN_beta((domegadt_constants_SO[2] + eta * (domegadt_constants_SO[3])),
                                                     (domegadt_constants_SO[4] + eta * (domegadt_constants_SO[5])),
-                                                    pPrec.dotS1L, pPrec.dotS2L, pPrec.qq)))
+                                                    dotS1L, dotS2L, pPrec.qq)))
 
     
 
