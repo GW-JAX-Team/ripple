@@ -522,7 +522,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     object.__setattr__(pPrec, 'Omegazeta5_coeff', 0.0) #FIXME
         
     #Line 2887 - 2943 compressed
-    pPrec = apply_expansion_order(pPrec, ExpansionOrder)
+    #pPrec = apply_expansion_order(pPrec, ExpansionOrder)
 
     #Line 2960 - 3004 compressed
     # Get psi0 term
@@ -816,7 +816,7 @@ def IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(
 
 
 
-
+#DONE
 def IMRPhenomX_Get_PN_sigma(
     a: float,
     b: float,
@@ -841,7 +841,7 @@ def IMRPhenomX_Get_PN_sigma(
     """
     return inveta * (a * dotS1S2 - b * dotS1L * dotS2L)
 
-
+#DONE
 def IMRPhenomX_Get_PN_tau(
     a: float,
     b: float,
@@ -874,7 +874,7 @@ def IMRPhenomX_Get_PN_tau(
 
 
 
-
+#DONE
 def IMRPhenomX_Get_PN_beta(
     a: float,
     b: float,
