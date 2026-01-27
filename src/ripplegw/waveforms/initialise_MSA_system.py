@@ -875,54 +875,123 @@ def IMRPhenomX_vector_cross_product(v1: jnp.ndarray, v2: jnp.ndarray) -> jnp.nda
 
 
 
-def IMRPhenomX_Return_Constants_c_MSA(v, JNorm, pPrec):
+def IMRPhenomX_Return_Constants_c_MSA(
+    v: float,
+    JNorm: float,
+    Seff: float,
+    eta: float,
+    eta3: float,
+    inveta: float,
+    Spl2: float,
+    Smi2: float,
+    S1_norm_2: float,
+    S2_norm_2: float,
+    delta_qq: float,
+) -> jnp.ndarray:
+    """
+    Compute c constants for MSA approximation.
+
+    Parameters
+    ----------
+    v : float
+        Orbital velocity parameter.
+    JNorm : float
+        Normalized total angular momentum.
+    Seff : float
+        Effective spin parameter.
+    eta : float
+        Symmetric mass ratio.
+    eta3 : float
+        eta cubed.
+    inveta : float
+        Inverse of eta (1/eta).
+    Spl2 : float
+        S_plus squared.
+    Smi2 : float
+        S_minus squared.
+    S1_norm_2 : float
+        Spin 1 magnitude squared.
+    S2_norm_2 : float
+        Spin 2 magnitude squared.
+    delta_qq : float
+        MSA coefficient delta_qq.
+
+    Returns
+    -------
+    jnp.ndarray
+        Array of [c0, c2, c4] constants.
+    """
     v2 = v * v
     v3 = v * v2
     v4 = v2 * v2
     v6 = v3 * v3
     JNorm2 = JNorm * JNorm
-    Seff = pPrec.Seff
-
 
     x = JNorm * (
-        0.75 * (1.0 - Seff * v) * v2 * (
-            pPrec.eta3
-            + 4.0 * pPrec.eta3 * Seff * v
-            - 2.0 * pPrec.eta * (
-                JNorm2 - pPrec.Spl2 + 2.0 * (pPrec.S1_norm_2 - pPrec.S2_norm_2) * pPrec.delta_qq
-            ) * v2
-            - 4.0 * pPrec.eta * Seff * (JNorm2 - pPrec.Spl2) * v3
-            + (JNorm2 - pPrec.Spl2) ** 2 * v4 * pPrec.inveta
+        0.75
+        * (1.0 - Seff * v)
+        * v2
+        * (
+            eta3
+            + 4.0 * eta3 * Seff * v
+            - 2.0 * eta * (JNorm2 - Spl2 + 2.0 * (S1_norm_2 - S2_norm_2) * delta_qq) * v2
+            - 4.0 * eta * Seff * (JNorm2 - Spl2) * v3
+            + (JNorm2 - Spl2) ** 2 * v4 * inveta
         )
     )
 
     y = JNorm * (
-        -1.5 * pPrec.eta * (pPrec.Spl2 - pPrec.Smi2)
-        * (1.0 + 2.0 * Seff * v - (JNorm2 - pPrec.Spl2) * v2 * pPrec.inveta**2)
-        * (1.0 - Seff * v) * v4
+        -1.5
+        * eta
+        * (Spl2 - Smi2)
+        * (1.0 + 2.0 * Seff * v - (JNorm2 - Spl2) * v2 * inveta**2)
+        * (1.0 - Seff * v)
+        * v4
     )
 
-    z = JNorm * (
-        0.75 * pPrec.inveta * (pPrec.Spl2 - pPrec.Smi2) ** 2
-        * (1.0 - Seff * v) * v6
-    )
+    z = JNorm * (0.75 * inveta * (Spl2 - Smi2) ** 2 * (1.0 - Seff * v) * v6)
 
     return jnp.array([x, y, z])
 
 
+def IMRPhenomX_Return_Constants_d_MSA(
+    LNorm: float,
+    JNorm: float,
+    Spl: float,
+    Spl2: float,
+    Smi2: float,
+) -> jnp.ndarray:
+    """
+    Compute d constants for MSA approximation.
 
-def IMRPhenomX_Return_Constants_d_MSA(LNorm, JNorm, pPrec):
+    Parameters
+    ----------
+    LNorm : float
+        Normalized orbital angular momentum.
+    JNorm : float
+        Normalized total angular momentum.
+    Spl : float
+        S_plus.
+    Spl2 : float
+        S_plus squared.
+    Smi2 : float
+        S_minus squared.
+
+    Returns
+    -------
+    jnp.ndarray
+        Array of [d0, d2, d4] constants.
+    """
     LNorm2 = LNorm * LNorm
     JNorm2 = JNorm * JNorm
 
-    #x = - (JNorm2 - (LNorm + pPrec.Spl)) ** 2 * (JNorm2 - (LNorm - pPrec.Spl)) ** 2
+    x = -(JNorm2 - (LNorm + Spl) * (LNorm + Spl)) * (
+        JNorm2 - (LNorm - Spl) * (LNorm - Spl)
+    )
 
-    x = -(JNorm2 - (LNorm + pPrec.Spl) * (LNorm + pPrec.Spl)) * (JNorm2 - (LNorm - pPrec.Spl) * (LNorm - pPrec.Spl))
+    y = -2.0 * (Spl2 - Smi2) * (JNorm2 + LNorm2 - Spl2)
 
-
-    y = -2.0 * (pPrec.Spl2 - pPrec.Smi2) * (JNorm2 + LNorm2 - pPrec.Spl2)
-
-    z = -(pPrec.Spl2 - pPrec.Smi2) ** 2
+    z = -(Spl2 - Smi2) ** 2
 
     return jnp.array([x, y, z])
 
@@ -1012,9 +1081,23 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
     v2 = v * v
 
     # Sets c0, c2 and c4 in pPrec as per Eq. B6-B8 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
-    c_vec = IMRPhenomX_Return_Constants_c_MSA(v, JNorm, pPrec)
+    c_vec = IMRPhenomX_Return_Constants_c_MSA(
+        v,
+        JNorm,
+        pPrec.Seff,
+        pPrec.eta,
+        pPrec.eta3,
+        pPrec.inveta,
+        pPrec.Spl2,
+        pPrec.Smi2,
+        pPrec.S1_norm_2,
+        pPrec.S2_norm_2,
+        pPrec.delta_qq,
+    )
     # Sets d0, d2 and d4 in pPrec as per Eq. B9-B11 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
-    d_vec = IMRPhenomX_Return_Constants_d_MSA(LNorm, JNorm, pPrec)  
+    d_vec = IMRPhenomX_Return_Constants_d_MSA(
+        LNorm, JNorm, pPrec.Spl, pPrec.Spl2, pPrec.Smi2
+    )  
 
     c0, c2, c4 = c_vec
     d0, d2, d4 = d_vec
