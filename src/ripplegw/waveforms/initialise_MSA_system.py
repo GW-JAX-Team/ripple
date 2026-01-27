@@ -1220,8 +1220,8 @@ def IMRPhenomX_vector_scalar(v1: jnp.ndarray, a: float) -> jnp.ndarray:
 
 
 
-def IMRPhenomX_JNorm_MSA(LNorm:float, pPrec)->float:
-    JNorm2 = (LNorm * LNorm + 2.0 * LNorm * pPrec.c1_over_eta + pPrec.SAv2)
+def IMRPhenomX_JNorm_MSA(LNorm:float, c1_over_eta:float, SAv2:float)->float:
+    JNorm2 = (LNorm * LNorm + 2.0 * LNorm * c1_over_eta + SAv2)
     return jnp.sqrt(JNorm2)
 
 
@@ -1283,7 +1283,7 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(pPrec, pWF, v):
 
     L_norm = pWF['eta']/v
 
-    J_norm = IMRPhenomX_JNorm_MSA(L_norm, pPrec)
+    J_norm = IMRPhenomX_JNorm_MSA(L_norm, pPrec.c1_over_eta, pPrec.SAv2)
 
     # Compressing line 2212 - 2220
     L_norm3PN = IMRPhenomX_L_norm_3PN_of_v(
@@ -1305,7 +1305,7 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(pPrec, pWF, v):
     '''
     
 
-    J_norm3PN = IMRPhenomX_JNorm_MSA(L_norm3PN, pPrec)
+    J_norm3PN = IMRPhenomX_JNorm_MSA(L_norm3PN, pPrec.c1_over_eta, pPrec.SAv2)
     vRoots    = IMRPhenomX_Return_Roots_MSA(L_norm, J_norm, pPrec)
 
     object.__setattr__(pPrec, 'S32', vRoots[0])
