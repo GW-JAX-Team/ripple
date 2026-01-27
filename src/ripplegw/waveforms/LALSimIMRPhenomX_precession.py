@@ -1041,22 +1041,39 @@ def convention_five_or_seven_false(pPrec, pWF, piM, fRef, alpha0, epsilon0):
 def Get_alphaepsilon_atfref(pPrec, mprime, piM, fRef, alpha0, epsilon0):
     omega_ref = piM * fRef * 2 / mprime
 
-    alpha_offset, epsilon_offset = Get_alphaepsilon_atfref_pflag_true(pPrec, omega_ref, alpha0, epsilon0)
-    
+    alpha_offset, epsilon_offset = Get_alphaepsilon_atfref_pflag_true(
+        omega_ref, alpha0, epsilon0,
+        pPrec.eta, pPrec.eta2, pPrec.eta3, pPrec.eta4,
+        pPrec.inveta, pPrec.c1, pPrec.c1_over_eta,
+        pPrec.SAv, pPrec.SAv2, pPrec.invSAv, pPrec.invSAv2,
+        pPrec.constants_L, pPrec.S1_norm_2, pPrec.S2_norm_2,
+        pPrec.qq, pPrec.delta_qq, pPrec.Seff, pPrec.dotS1Ln, pPrec.dotS2Ln, pPrec.S_0_norm,
+        pPrec.psi0, pPrec.psi1, pPrec.psi2, pPrec.g0,
+        pPrec.Omegaz0_coeff, pPrec.Omegaz1_coeff, pPrec.Omegaz2_coeff, pPrec.Omegaz3_coeff, pPrec.Omegaz4_coeff, pPrec.Omegaz5_coeff, pPrec.phiz_0,
+        pPrec.Omegazeta0_coeff, pPrec.Omegazeta1_coeff, pPrec.Omegazeta2_coeff, pPrec.Omegazeta3_coeff, pPrec.Omegazeta4_coeff, pPrec.Omegazeta5_coeff, pPrec.zeta_0)
+
     return alpha_offset, epsilon_offset
 
 
-def Get_alphaepsilon_atfref_pflag_true(pPrec, omega_ref, alpha0, epsilon0):
+def Get_alphaepsilon_atfref_pflag_true(omega_ref, alpha0, epsilon0,
+                                       eta, eta2, eta3, eta4,
+                                       inveta, c1, c1_over_eta,
+                                       SAv, SAv2, invSAv, invSAv2,
+                                       constants_L, S1_norm_2, S2_norm_2,
+                                       qq, delta_qq, Seff, dotS1Ln, dotS2Ln, S_0_norm,
+                                       psi0, psi1, psi2, g0,
+                                       Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, phiz_0,
+                                       Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, zeta_0):
 
     v = jnp.cbrt(omega_ref)
-    vangles  = IMRPhenomX_Return_phi_zeta_costhetaL_MSA(v, pPrec.eta, pPrec.eta2, pPrec.eta3, pPrec.eta4,
-                                                               pPrec.inveta, pPrec.c1, pPrec.c1_over_eta,
-                                                               pPrec.SAv, pPrec.SAv2, pPrec.invSAv, pPrec.invSAv2,
-                                                               pPrec.constants_L, pPrec.S1_norm_2, pPrec.S2_norm_2,
-                                                               pPrec.qq, pPrec.delta_qq, pPrec.Seff, pPrec.dotS1Ln, pPrec.dotS2Ln, pPrec.S_0_norm, 
-                                                               pPrec.psi0, pPrec.psi1, pPrec.psi2, pPrec.g0, 
-                                                               pPrec.Omegaz0_coeff, pPrec.Omegaz1_coeff, pPrec.Omegaz2_coeff, pPrec.Omegaz3_coeff, pPrec.Omegaz4_coeff, pPrec.Omegaz5_coeff, pPrec.phiz_0,
-                                                               pPrec.Omegazeta0_coeff, pPrec.Omegazeta1_coeff, pPrec.Omegazeta2_coeff, pPrec.Omegazeta3_coeff, pPrec.Omegazeta4_coeff, pPrec.Omegazeta5_coeff, pPrec.zeta_0) # FIXME
+    vangles = IMRPhenomX_Return_phi_zeta_costhetaL_MSA(v, eta, eta2, eta3, eta4,
+                                                       inveta, c1, c1_over_eta,
+                                                       SAv, SAv2, invSAv, invSAv2,
+                                                       constants_L, S1_norm_2, S2_norm_2,
+                                                       qq, delta_qq, Seff, dotS1Ln, dotS2Ln, S_0_norm,
+                                                       psi0, psi1, psi2, g0,
+                                                       Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, phiz_0,
+                                                       Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, zeta_0)
 
     alpha_offset = vangles[0] - alpha0
     epsilon_offset = vangles[1] - epsilon0
