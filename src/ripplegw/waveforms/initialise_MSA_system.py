@@ -76,8 +76,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     object.__setattr__(pPrec, 'delta4_qq', pPrec.delta_qq * pPrec.delta3_qq)
 
     # Initialize empty vectors (using dictionaries to represent vectors)
-    S1v = jnp.array([0.0, 0.0, 0.0])
-    S2v =jnp.array([0.0, 0.0, 0.0])
+
 
     # Define source frame such that \hat{L} = {0,0,1} with L_z pointing along \hat{z}
     Lhat =jnp.array([0.0, 0.0, 1.0])
@@ -88,13 +87,11 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     object.__setattr__(pPrec, 'Lhat_theta', 0.0)      # Polar angle of orbital angular momentum
 
     # Dimensionful spin vectors, note eta = m1 * m2 and q = m2/m1
-    S1v = S1v.at[0].set(pPrec.chi1x * eta/q)  # eta / q = m1^2
-    S1v = S1v.at[1].set(pPrec.chi1y * eta/q)
-    S1v = S1v.at[2].set(pPrec.chi1z * eta/q)
 
-    S2v = S2v.at[0].set(pPrec.chi2x * eta*q)  # eta * q = m2^2
-    S2v = S2v.at[1].set(pPrec.chi2y * eta*q)
-    S2v = S2v.at[2].set(pPrec.chi2z * eta*q)
+    S1v = jnp.array([pPrec.chi1x * eta/q, pPrec.chi1y * eta/q, pPrec.chi1z * eta/q])
+
+
+    S2v = jnp.array([pPrec.chi2x * eta*q, pPrec.chi2y * eta*q, pPrec.chi2z * eta*q])
 
     S1_0_norm = IMRPhenomX_vector_L2_norm(S1v)  # stub
     S2_0_norm = IMRPhenomX_vector_L2_norm(S2v)  # stub
@@ -1700,7 +1697,7 @@ def IMRPhenomX_L_norm_3PN_of_v(
 
 
 
-
+#DONE
 def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
     v: float,
     eta: float,
