@@ -562,7 +562,17 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
 
     # Initial \zeta
     object.__setattr__(pPrec, 'zeta_0', 0.0)
-    zeta_0 = IMRPhenomX_Return_zeta_MSA(pPrec.v_0, pPrec)  # stub
+    zeta_0 = IMRPhenomX_Return_zeta_MSA(
+        pPrec.v_0,
+        pPrec.eta,
+        pPrec.Omegazeta0_coeff,
+        pPrec.Omegazeta1_coeff,
+        pPrec.Omegazeta2_coeff,
+        pPrec.Omegazeta3_coeff,
+        pPrec.Omegazeta4_coeff,
+        pPrec.Omegazeta5_coeff,
+        pPrec.zeta_0,
+    )  # stub
 
     object.__setattr__(pPrec, 'phiz_0', -phiz_0 - vMSA[0])
     object.__setattr__(pPrec, 'zeta_0', -zeta_0 - vMSA[1])
@@ -924,11 +934,38 @@ def IMRPhenomX_Return_Psi_MSA(v, v2, pPrec):
 
 
 
-def IMRPhenomX_Return_Psi_dot_MSA(v, pPrec):
+def IMRPhenomX_Return_Psi_dot_MSA(
+    v: float,
+    Seff: float,
+    inveta: float,
+    Spl2: float,
+    S32: float,
+) -> float:
+    """
+    Compute the time derivative of psi for MSA approximation.
+
+    Parameters
+    ----------
+    v : float
+        Orbital velocity parameter.
+    Seff : float
+        Effective spin parameter.
+    inveta : float
+        Inverse of symmetric mass ratio (1/eta).
+    Spl2 : float
+        S_plus squared.
+    S32 : float
+        S_3 squared.
+
+    Returns
+    -------
+    float
+        Time derivative of psi.
+    """
     v2 = v * v
 
-    A_coeff = -1.5 * v2 * v2 * v2 * (1.0 - v * pPrec.Seff) * jnp.sqrt(pPrec.inveta)
-    psi_dot = 0.5 * A_coeff * jnp.sqrt(pPrec.Spl2 - pPrec.S32)
+    A_coeff = -1.5 * v2 * v2 * v2 * (1.0 - v * Seff) * jnp.sqrt(inveta)
+    psi_dot = 0.5 * A_coeff * jnp.sqrt(Spl2 - S32)
 
     return psi_dot
 
@@ -973,7 +1010,9 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
     sqrt_nd = jnp.sqrt(jnp.abs(nd))
 
     psi = IMRPhenomX_Return_Psi_MSA(v, v2, pPrec) + pPrec.psi0
-    psi_dot = IMRPhenomX_Return_Psi_dot_MSA(v, pPrec) 
+    psi_dot = IMRPhenomX_Return_Psi_dot_MSA(
+        v, pPrec.Seff, pPrec.inveta, pPrec.Spl2, pPrec.S32
+    ) 
 
     tan_psi = jnp.tan(psi)
     atan_psi = jnp.arctan(tan_psi)
@@ -1149,9 +1188,45 @@ def IMRPhenomX_Return_phiz_MSA(
 
    
 def IMRPhenomX_Return_zeta_MSA(
-    v: float, 
-    pPrec
-    ) -> float:
+    v: float,
+    eta: float,
+    Omegazeta0_coeff: float,
+    Omegazeta1_coeff: float,
+    Omegazeta2_coeff: float,
+    Omegazeta3_coeff: float,
+    Omegazeta4_coeff: float,
+    Omegazeta5_coeff: float,
+    zeta_0: float,
+) -> float:
+    """
+    Compute zeta angle for MSA approximation.
+
+    Parameters
+    ----------
+    v : float
+        Orbital velocity parameter.
+    eta : float
+        Symmetric mass ratio.
+    Omegazeta0_coeff : float
+        Zeta precession coefficient (order 0).
+    Omegazeta1_coeff : float
+        Zeta precession coefficient (order 1).
+    Omegazeta2_coeff : float
+        Zeta precession coefficient (order 2).
+    Omegazeta3_coeff : float
+        Zeta precession coefficient (order 3).
+    Omegazeta4_coeff : float
+        Zeta precession coefficient (order 4).
+    Omegazeta5_coeff : float
+        Zeta precession coefficient (order 5).
+    zeta_0 : float
+        Initial zeta value.
+
+    Returns
+    -------
+    float
+        Zeta angle.
+    """
     invv = 1.0 / v
     invv2 = invv * invv
     invv3 = invv * invv2
@@ -1159,14 +1234,14 @@ def IMRPhenomX_Return_zeta_MSA(
     logv = jnp.log(v)
 
     # Compute zeta using precession coefficients
-    zeta_out = pPrec.eta * (
-        pPrec.Omegazeta0_coeff * invv3 +
-        pPrec.Omegazeta1_coeff * invv2 +
-        pPrec.Omegazeta2_coeff * invv +
-        pPrec.Omegazeta3_coeff * logv +
-        pPrec.Omegazeta4_coeff * v +
-        pPrec.Omegazeta5_coeff * v2
-    ) + pPrec.zeta_0
+    zeta_out = eta * (
+        Omegazeta0_coeff * invv3
+        + Omegazeta1_coeff * invv2
+        + Omegazeta2_coeff * invv
+        + Omegazeta3_coeff * logv
+        + Omegazeta4_coeff * v
+        + Omegazeta5_coeff * v2
+    ) + zeta_0
 
     # Replace NaNs with 0 using jnp.nan_to_num
     zeta_out = jnp.nan_to_num(zeta_out, nan=0.0)
@@ -1352,7 +1427,17 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(pPrec, pWF, v):
         pPrec.Omegaz3_coeff, pPrec.Omegaz4_coeff, pPrec.Omegaz5_coeff,
         pPrec.phiz_0
     )
-    zeta         = IMRPhenomX_Return_zeta_MSA(v, pPrec)
+    zeta         = IMRPhenomX_Return_zeta_MSA(
+        v,
+        pPrec.eta,
+        pPrec.Omegazeta0_coeff,
+        pPrec.Omegazeta1_coeff,
+        pPrec.Omegazeta2_coeff,
+        pPrec.Omegazeta3_coeff,
+        pPrec.Omegazeta4_coeff,
+        pPrec.Omegazeta5_coeff,
+        pPrec.zeta_0,
+    )
     cos_theta_L        = IMRPhenomX_costhetaLJ(L_norm3PN, J_norm3PN, SNorm)
 
     vout1 = phiz + phiz_MSA
