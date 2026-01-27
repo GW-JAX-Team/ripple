@@ -499,14 +499,23 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     object.__setattr__(pPrec, 'Omegazeta4', pPrec.Omegaz4 + pPrec.Omegaz3 * c1oveta2 - gdD*Seff - gdD*hdD)
     object.__setattr__(pPrec, 'Omegazeta5', pPrec.Omegaz5 + pPrec.Omegaz4 * c1oveta2 + gdD*hdD*Seff + gdD*(hdD_2 - fdD))
 
-    object.__setattr__(pPrec, 'Omegazeta0_coeff', -pPrec.g0 * pPrec.Omegazeta0)
-    object.__setattr__(pPrec, 'Omegazeta1_coeff', -1.5 * pPrec.g0 * pPrec.Omegazeta1)
-    object.__setattr__(pPrec, 'Omegazeta2_coeff', -3.0*(pPrec.g0 * pPrec.Omegazeta2 + pPrec.g2*pPrec.Omegazeta0))
-    object.__setattr__(pPrec, 'Omegazeta3_coeff', 3.0*(pPrec.g0 * pPrec.Omegazeta3 + pPrec.g2*pPrec.Omegazeta1 + pPrec.g3*pPrec.Omegazeta0))
-    object.__setattr__(pPrec, 'Omegazeta4_coeff', 3.0*(pPrec.g0 * pPrec.Omegazeta4 + pPrec.g2*pPrec.Omegazeta2 + pPrec.g3*pPrec.Omegazeta1 + pPrec.g4*pPrec.Omegazeta0))
-    #object.__setattr__(pPrec, 'Omegazeta5_coeff', 1.5*(pPrec.g0*pPrec.Omegazeta5 + pPrec.g2*pPrec.Omegazeta3 + pPrec.g3*pPrec.Omegazeta2 + pPrec.g4*pPrec.Omegazeta1 + pPrec.g5*pPrec.Omegazeta0))
-    object.__setattr__(pPrec, 'Omegazeta5_coeff', 0.0) #FIXME
-        
+    Omegazeta0_coeff = -pPrec.g0 * pPrec.Omegazeta0
+    Omegazeta1_coeff = -1.5 * pPrec.g0 * pPrec.Omegazeta1
+    Omegazeta2_coeff = -3.0*(pPrec.g0 * pPrec.Omegazeta2 + pPrec.g2*pPrec.Omegazeta0)
+    Omegazeta3_coeff = 3.0*(pPrec.g0 * pPrec.Omegazeta3 + pPrec.g2*pPrec.Omegazeta1 + pPrec.g3*pPrec.Omegazeta0)
+    Omegazeta4_coeff = 3.0*(pPrec.g0 * pPrec.Omegazeta4 + pPrec.g2*pPrec.Omegazeta2 + pPrec.g3*pPrec.Omegazeta1 + pPrec.g4*pPrec.Omegazeta0)
+    #Omegazeta5_coeff = 1.5*(pPrec.g0*pPrec.Omegazeta5 + pPrec.g2*pPrec.Omegazeta3 + pPrec.g3*pPrec.Omegazeta2 + pPrec.g4*pPrec.Omegazeta1 + pPrec.g5*pPrec.Omegazeta0)
+    Omegazeta5_coeff = 0.0 #FIXME
+
+    '''
+    Omegazeta0_coeff = -pPrec.g0 * pPrec.Omegazeta0
+    Omegazeta1_coeff = -1.5 * pPrec.g0 * pPrec.Omegazeta1
+    Omegazeta2_coeff = -3.0*(pPrec.g0 * pPrec.Omegazeta2 + pPrec.g2*pPrec.Omegazeta0)
+    Omegazeta3_coeff = 3.0*(pPrec.g0 * pPrec.Omegazeta3 + pPrec.g2*pPrec.Omegazeta1 + pPrec.g3*pPrec.Omegazeta0)
+    Omegazeta4_coeff = 3.0*(pPrec.g0 * pPrec.Omegazeta4 + pPrec.g2*pPrec.Omegazeta2 + pPrec.g3*pPrec.Omegazeta1 + pPrec.g4*pPrec.Omegazeta0)
+
+    Omegazeta5_coeff = 1.5*(pPrec.g0*pPrec.Omegazeta5 + pPrec.g2*pPrec.Omegazeta3 + pPrec.g3*pPrec.Omegazeta2 + pPrec.g4*pPrec.Omegazeta1 + pPrec.g5*pPrec.Omegazeta0)
+    '''    
     #Line 2887 - 2943 compressed
     #pPrec = apply_expansion_order(pPrec, ExpansionOrder)
 
@@ -583,19 +592,19 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     zeta_0 = IMRPhenomX_Return_zeta_MSA(
         v_0,
         pPrec.eta,
-        pPrec.Omegazeta0_coeff,
-        pPrec.Omegazeta1_coeff,
-        pPrec.Omegazeta2_coeff,
-        pPrec.Omegazeta3_coeff,
-        pPrec.Omegazeta4_coeff,
-        pPrec.Omegazeta5_coeff,
+        Omegazeta0_coeff,
+        Omegazeta1_coeff,
+        Omegazeta2_coeff,
+        Omegazeta3_coeff,
+        Omegazeta4_coeff,
+        Omegazeta5_coeff,
         pPrec.zeta_0,
     )  # stub
 
     object.__setattr__(pPrec, 'phiz_0', -phiz_0 - vMSA[0])
     object.__setattr__(pPrec, 'zeta_0', -zeta_0 - vMSA[1])
 
-    return pPrec
+    return pPrec, Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff 
 
 
 

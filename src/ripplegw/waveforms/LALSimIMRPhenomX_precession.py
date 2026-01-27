@@ -775,10 +775,15 @@ class IMRPhenomXGetAndSetPrecessionVariables:
 
         #if pflag in 220, 221, 222, 223, 224...
         #Line 597
-        self = IMRPhenomX_Initialize_MSA_System(self, self.pWF, self.lalParams['ExpansionOrder'])
+        self, Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff = IMRPhenomX_Initialize_MSA_System(self, self.pWF, self.lalParams['ExpansionOrder'])
 
 
-
+        object.__setattr__(self, 'Omegazeta0_coeff', Omegazeta0_coeff)
+        object.__setattr__(self, 'Omegazeta1_coeff', Omegazeta1_coeff)
+        object.__setattr__(self, 'Omegazeta2_coeff', Omegazeta2_coeff)
+        object.__setattr__(self, 'Omegazeta3_coeff', Omegazeta3_coeff)
+        object.__setattr__(self, 'Omegazeta4_coeff', Omegazeta4_coeff)
+        object.__setattr__(self, 'Omegazeta5_coeff', Omegazeta5_coeff)
         #TODO if MSA_ERROR: switch to NNLO
 
 
@@ -928,6 +933,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         cexp_i_epsilon = 0.
         cexp_i_betah   = 0.
 
+
         object.__setattr__(self, 'alpha_offset', alpha_offset)
         object.__setattr__(self, 'epsilon_offset', epsilon_offset)
         object.__setattr__(self, 'alpha_offset_1', alpha_offset_1)
@@ -941,9 +947,6 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         object.__setattr__(self, 'cexp_i_epsilon', cexp_i_epsilon)
         object.__setattr__(self, 'cexp_i_betah', cexp_i_betah)
 
-
-
-       
 
         # When L + SL < 0 and q>7, we disable multibanding NH: I will skip this function
         #self.IMRPhenomXPCheckMaxOpeningAngle()
@@ -1050,6 +1053,7 @@ def convention_five_or_seven_false(piM, fRef, alpha0, epsilon0,
                                    Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, zeta_0):
     # Get initial Get \alpha and \epsilon offsets at \omega = pi * M * f_{Ref} */
     mprime = 2 #FIXME
+
     alpha_offset, epsilon_offset = Get_alphaepsilon_atfref(
         mprime, piM, fRef, alpha0, epsilon0,
         eta, eta2, eta3, eta4,
