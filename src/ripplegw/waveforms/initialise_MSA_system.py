@@ -261,31 +261,8 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
                     (1.0/(m2*m2)) * ((233./96.)*pPrec.S2_norm_2 - (719./96.)*pPrec.S2Lsq_pav)))
     
 
-    # Compute PN coefficients using precession-averaged spin couplings
-    object.__setattr__(pPrec, 'a0', 96.0 * eta / 5.0)
-
-    # These are all normalized by a factor of a0
-    object.__setattr__(pPrec, 'a2', -(743./336.) - (11.0/4.)*eta)
-    object.__setattr__(pPrec, 'a3', 4.0 * jnp.pi - pPrec.beta3)
-    object.__setattr__(pPrec, 'a4', (34103./18144.) + (13661./2016.)*eta + (59./18.)*eta2 - pPrec.sigma4)
-    object.__setattr__(pPrec, 'a5', -(4159./672.)*jnp.pi - (189./8.)*jnp.pi*eta - pPrec.beta5)
-    object.__setattr__(pPrec, 'a6', ((16447322263./139708800.) + (16./3.)*jnp.pi*jnp.pi - (856./105)*jnp.log(16.) -
-                (1712./105.)*GAMMA - pPrec.beta6 +
-                eta*((451./48)*jnp.pi*jnp.pi - (56198689./217728.)) +
-                eta2*(541./896.) - eta3*(5605./2592.)))
-    object.__setattr__(pPrec, 'a7', (-(4415./4032.)*jnp.pi + (358675./6048.)*jnp.pi*eta +
-                (91495./1512.)*jnp.pi*eta2 - pPrec.beta7))
-
-    # Coefficients are weighted by an additional factor of a_0
-    object.__setattr__(pPrec, 'a2', pPrec.a2 * pPrec.a0)
-    object.__setattr__(pPrec, 'a3', pPrec.a3 * pPrec.a0)
-    object.__setattr__(pPrec, 'a4', pPrec.a4 * pPrec.a0)
-    object.__setattr__(pPrec, 'a5', pPrec.a5 * pPrec.a0)
-    object.__setattr__(pPrec, 'a6', pPrec.a6 * pPrec.a0)
-    object.__setattr__(pPrec, 'a7', pPrec.a7 * pPrec.a0)
-
-
     #Line 2597
+
     if pflag == 222 or pflag == 223:
         object.__setattr__(pPrec, 'a0', eta * domegadt_constants_NS[0])
         object.__setattr__(pPrec, 'a2', eta * (domegadt_constants_NS[1] + eta * (domegadt_constants_NS[2])))
