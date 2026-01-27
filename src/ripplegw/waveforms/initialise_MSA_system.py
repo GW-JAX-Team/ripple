@@ -193,7 +193,19 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
 
     vRoots = jnp.array([0.0, 0.0, 0.0])
 
-    vRoots = IMRPhenomX_Return_Roots_MSA(pPrec.L_0_norm, pPrec.J_0_norm, pPrec)
+    vRoots = IMRPhenomX_Return_Roots_MSA(
+        pPrec.L_0_norm,
+        pPrec.J_0_norm,
+        pPrec.S1_norm_2,
+        pPrec.S2_norm_2,
+        pPrec.qq,
+        pPrec.eta,
+        pPrec.delta_qq,
+        pPrec.Seff,
+        pPrec.dotS1Ln,
+        pPrec.dotS2Ln,
+        pPrec.S_0_norm,
+    )
 
     #Line 2500
 
@@ -600,17 +612,62 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
 
 
 
-def IMRPhenomX_Return_Roots_MSA(LNorm, JNorm, pPrec):
+def IMRPhenomX_Return_Roots_MSA(
+    LNorm: float,
+    JNorm: float,
+    S1_norm_2: float,
+    S2_norm_2: float,
+    qq: float,
+    eta: float,
+    delta_qq: float,
+    Seff: float,
+    dotS1Ln: float,
+    dotS2Ln: float,
+    S_0_norm: float,
+) -> jnp.ndarray:
+    """
+    Compute roots S32, Smi2, Spl2 for MSA approximation.
+
+    Parameters
+    ----------
+    LNorm : float
+        Normalized orbital angular momentum.
+    JNorm : float
+        Normalized total angular momentum.
+    S1_norm_2 : float
+        Spin 1 magnitude squared.
+    S2_norm_2 : float
+        Spin 2 magnitude squared.
+    qq : float
+        Mass ratio q = m2/m1.
+    eta : float
+        Symmetric mass ratio.
+    delta_qq : float
+        Mass difference parameter (m1-m2)/(m1+m2).
+    Seff : float
+        Effective spin parameter.
+    dotS1Ln : float
+        Dot product of S1 with L_hat.
+    dotS2Ln : float
+        Dot product of S2 with L_hat.
+    S_0_norm : float
+        Initial total spin magnitude.
+
+    Returns
+    -------
+    jnp.ndarray
+        Array of [S32, Smi2, Spl2] roots.
+    """
     vBCD = IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(
         LNorm,
         JNorm,
-        pPrec.S1_norm_2,
-        pPrec.S2_norm_2,
-        pPrec.qq,
-        pPrec.eta,
-        pPrec.delta_qq,
-        pPrec.Seff,
-    )  
+        S1_norm_2,
+        S2_norm_2,
+        qq,
+        eta,
+        delta_qq,
+        Seff,
+    )
     B, C, D = vBCD[0], vBCD[1], vBCD[2]
 
     B2 = B * B
@@ -626,17 +683,20 @@ def IMRPhenomX_Return_Roots_MSA(LNorm, JNorm, pPrec):
 
     theta = jnp.arccos(acosarg) / 3.0
     cos_theta = jnp.cos(theta)
-    
-    #print(f'{p=}, {sqrtarg=}, {theta=}, {B=}, {B2=}, {C=}')
-    
-    vector_condition = jnp.logical_or(jnp.isnan(theta),
-                                                   (jnp.isnan(sqrtarg)))
-    scalar_condition = jnp.any(jnp.array([(pPrec.dotS1Ln == 1.0),
-                                       (pPrec.dotS2Ln == 1.0),
-                                       (pPrec.dotS1Ln == -1.0),
-                                       (pPrec.dotS2Ln == -1.0),
-                                       (pPrec.S1_norm_2 == 0.0),
-                                       (pPrec.S2_norm_2 == 0.0)]))
+
+    vector_condition = jnp.logical_or(jnp.isnan(theta), (jnp.isnan(sqrtarg)))
+    scalar_condition = jnp.any(
+        jnp.array(
+            [
+                (dotS1Ln == 1.0),
+                (dotS2Ln == 1.0),
+                (dotS1Ln == -1.0),
+                (dotS2Ln == -1.0),
+                (S1_norm_2 == 0.0),
+                (S2_norm_2 == 0.0),
+            ]
+        )
+    )
 
     invalid_case = jnp.logical_or(vector_condition, scalar_condition)
 
@@ -651,7 +711,7 @@ def IMRPhenomX_Return_Roots_MSA(LNorm, JNorm, pPrec):
         tmp6 = jnp.where(
             (tmp4 - tmp3 > 0.0) & (tmp5 - tmp3 < 0.0),
             tmp3,
-            jnp.where((tmp4 - tmp1 > 0.0) & (tmp5 - tmp1 < 0.0), tmp1, tmp2)
+            jnp.where((tmp4 - tmp1 > 0.0) & (tmp5 - tmp1 < 0.0), tmp1, tmp2),
         )
 
         S32 = tmp5
@@ -660,7 +720,7 @@ def IMRPhenomX_Return_Roots_MSA(LNorm, JNorm, pPrec):
         return jnp.array([S32, Smi2, Spl2])
 
     def roots_when_invalid():
-        Smi2 = pPrec.S_0_norm**2 * jnp.ones_like(LNorm)
+        Smi2 = S_0_norm**2 * jnp.ones_like(LNorm)
         Spl2 = Smi2 + 1e-9
         S32 = jnp.zeros_like(LNorm)
         return jnp.array([S32, Smi2, Spl2])
@@ -668,15 +728,14 @@ def IMRPhenomX_Return_Roots_MSA(LNorm, JNorm, pPrec):
     roots_array = jnp.where(
         jnp.atleast_1d(invalid_case),
         roots_when_invalid(),
-        roots_when_valid()
+        roots_when_valid(),
     )
-    
 
     return roots_array
 
 
 
-
+#DONE
 def IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(
     LNorm: float,
     JNorm: float,
@@ -1639,7 +1698,19 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(pPrec, pWF, v):
     
 
     J_norm3PN = IMRPhenomX_JNorm_MSA(L_norm3PN, pPrec.c1_over_eta, pPrec.SAv2)
-    vRoots    = IMRPhenomX_Return_Roots_MSA(L_norm, J_norm, pPrec)
+    vRoots = IMRPhenomX_Return_Roots_MSA(
+        L_norm,
+        J_norm,
+        pPrec.S1_norm_2,
+        pPrec.S2_norm_2,
+        pPrec.qq,
+        pPrec.eta,
+        pPrec.delta_qq,
+        pPrec.Seff,
+        pPrec.dotS1Ln,
+        pPrec.dotS2Ln,
+        pPrec.S_0_norm,
+    )
 
     object.__setattr__(pPrec, 'S32', vRoots[0])
     object.__setattr__(pPrec, 'Smi2', vRoots[1])
