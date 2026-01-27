@@ -912,7 +912,16 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         epsilon0 = set_epsilon0(phenom_xp_convention, phiJ_Sf)
 
         ## Compression line 1178-1202
-        alpha_offset, epsilon_offset, alpha_offset_1, epsilon_offset_1, alpha_offset_3, epsilon_offset_3, alpha_offset_4, epsilon_offset_4 = convention_five_or_seven_false(self, self.pWF, self.pWF['piM'], self.pWF['fRef'], alpha0, epsilon0)
+        alpha_offset, epsilon_offset, alpha_offset_1, epsilon_offset_1, alpha_offset_3, epsilon_offset_3, alpha_offset_4, epsilon_offset_4 = convention_five_or_seven_false(
+            self.pWF['piM'], self.pWF['fRef'], alpha0, epsilon0,
+            self.eta, self.eta2, self.eta3, self.eta4,
+            self.inveta, self.c1, self.c1_over_eta,
+            self.SAv, self.SAv2, self.invSAv, self.invSAv2,
+            self.constants_L, self.S1_norm_2, self.S2_norm_2,
+            self.qq, self.delta_qq, self.Seff, self.dotS1Ln, self.dotS2Ln, self.S_0_norm,
+            self.psi0, self.psi1, self.psi2, self.g0,
+            self.Omegaz0_coeff, self.Omegaz1_coeff, self.Omegaz2_coeff, self.Omegaz3_coeff, self.Omegaz4_coeff, self.Omegaz5_coeff, self.phiz_0,
+            self.Omegazeta0_coeff, self.Omegazeta1_coeff, self.Omegazeta2_coeff, self.Omegazeta3_coeff, self.Omegazeta4_coeff, self.Omegazeta5_coeff, self.zeta_0)
 
 
         cexp_i_alpha   = 0.
@@ -1030,27 +1039,52 @@ def get_phiJ_Sf(tol_condition, J0_Sf):
     return phiJ_Sf
 
 
-def convention_five_or_seven_false(pPrec, pWF, piM, fRef, alpha0, epsilon0):
+def convention_five_or_seven_false(piM, fRef, alpha0, epsilon0,
+                                   eta, eta2, eta3, eta4,
+                                   inveta, c1, c1_over_eta,
+                                   SAv, SAv2, invSAv, invSAv2,
+                                   constants_L, S1_norm_2, S2_norm_2,
+                                   qq, delta_qq, Seff, dotS1Ln, dotS2Ln, S_0_norm,
+                                   psi0, psi1, psi2, g0,
+                                   Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, phiz_0,
+                                   Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, zeta_0):
     # Get initial Get \alpha and \epsilon offsets at \omega = pi * M * f_{Ref} */
     mprime = 2 #FIXME
-    alpha_offset, epsilon_offset = Get_alphaepsilon_atfref(pPrec, mprime, piM, fRef, alpha0, epsilon0)
+    alpha_offset, epsilon_offset = Get_alphaepsilon_atfref(
+        mprime, piM, fRef, alpha0, epsilon0,
+        eta, eta2, eta3, eta4,
+        inveta, c1, c1_over_eta,
+        SAv, SAv2, invSAv, invSAv2,
+        constants_L, S1_norm_2, S2_norm_2,
+        qq, delta_qq, Seff, dotS1Ln, dotS2Ln, S_0_norm,
+        psi0, psi1, psi2, g0,
+        Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, phiz_0,
+        Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, zeta_0)
     return alpha_offset, epsilon_offset, alpha_offset, epsilon_offset, alpha_offset, epsilon_offset, alpha_offset, epsilon_offset
 
 
 
-def Get_alphaepsilon_atfref(pPrec, mprime, piM, fRef, alpha0, epsilon0):
+def Get_alphaepsilon_atfref(mprime, piM, fRef, alpha0, epsilon0,
+                            eta, eta2, eta3, eta4,
+                            inveta, c1, c1_over_eta,
+                            SAv, SAv2, invSAv, invSAv2,
+                            constants_L, S1_norm_2, S2_norm_2,
+                            qq, delta_qq, Seff, dotS1Ln, dotS2Ln, S_0_norm,
+                            psi0, psi1, psi2, g0,
+                            Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, phiz_0,
+                            Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, zeta_0):
     omega_ref = piM * fRef * 2 / mprime
 
     alpha_offset, epsilon_offset = Get_alphaepsilon_atfref_pflag_true(
         omega_ref, alpha0, epsilon0,
-        pPrec.eta, pPrec.eta2, pPrec.eta3, pPrec.eta4,
-        pPrec.inveta, pPrec.c1, pPrec.c1_over_eta,
-        pPrec.SAv, pPrec.SAv2, pPrec.invSAv, pPrec.invSAv2,
-        pPrec.constants_L, pPrec.S1_norm_2, pPrec.S2_norm_2,
-        pPrec.qq, pPrec.delta_qq, pPrec.Seff, pPrec.dotS1Ln, pPrec.dotS2Ln, pPrec.S_0_norm,
-        pPrec.psi0, pPrec.psi1, pPrec.psi2, pPrec.g0,
-        pPrec.Omegaz0_coeff, pPrec.Omegaz1_coeff, pPrec.Omegaz2_coeff, pPrec.Omegaz3_coeff, pPrec.Omegaz4_coeff, pPrec.Omegaz5_coeff, pPrec.phiz_0,
-        pPrec.Omegazeta0_coeff, pPrec.Omegazeta1_coeff, pPrec.Omegazeta2_coeff, pPrec.Omegazeta3_coeff, pPrec.Omegazeta4_coeff, pPrec.Omegazeta5_coeff, pPrec.zeta_0)
+        eta, eta2, eta3, eta4,
+        inveta, c1, c1_over_eta,
+        SAv, SAv2, invSAv, invSAv2,
+        constants_L, S1_norm_2, S2_norm_2,
+        qq, delta_qq, Seff, dotS1Ln, dotS2Ln, S_0_norm,
+        psi0, psi1, psi2, g0,
+        Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, phiz_0,
+        Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, zeta_0)
 
     return alpha_offset, epsilon_offset
 
