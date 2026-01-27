@@ -537,7 +537,27 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     condition = jnp.abs(pPrec.Spl2 - pPrec.Smi2) > 1e-5
 
     def compute_msa_corrections():
-        return IMRPhenomX_Return_MSA_Corrections_MSA(pPrec.v_0, pPrec.L_0_norm, pPrec.J_0_norm, pPrec)  # stub
+        return IMRPhenomX_Return_MSA_Corrections_MSA(
+            pPrec.v_0,
+            pPrec.L_0_norm,
+            pPrec.J_0_norm,
+            pPrec.Seff,
+            pPrec.eta,
+            pPrec.eta3,
+            pPrec.inveta,
+            pPrec.Spl,
+            pPrec.Spl2,
+            pPrec.Smi2,
+            pPrec.Spl2mSmi2,
+            pPrec.S1_norm_2,
+            pPrec.S2_norm_2,
+            pPrec.S32,
+            pPrec.delta_qq,
+            pPrec.g0,
+            pPrec.psi0,
+            pPrec.psi1,
+            pPrec.psi2,
+        )  # stub
 
     def no_msa_corrections():
         return jnp.array([0.0, 0.0, 0.0])
@@ -1072,46 +1092,105 @@ def IMRPhenomX_Return_Psi_dot_MSA(
 
 
 def IMRPhenomX_Return_MSA_Corrections_MSA(
-    v, 
-    LNorm, 
-    JNorm, 
-    pPrec
-    ):
-    
+    v: float,
+    LNorm: float,
+    JNorm: float,
+    Seff: float,
+    eta: float,
+    eta3: float,
+    inveta: float,
+    Spl: float,
+    Spl2: float,
+    Smi2: float,
+    Spl2mSmi2: float,
+    S1_norm_2: float,
+    S2_norm_2: float,
+    S32: float,
+    delta_qq: float,
+    g0: float,
+    psi0: float,
+    psi1: float,
+    psi2: float,
+) -> jnp.ndarray:
+    """
+    Compute MSA corrections for precession angles.
+
+    Parameters
+    ----------
+    v : float
+        Orbital velocity parameter.
+    LNorm : float
+        Normalized orbital angular momentum.
+    JNorm : float
+        Normalized total angular momentum.
+    Seff : float
+        Effective spin parameter.
+    eta : float
+        Symmetric mass ratio.
+    eta3 : float
+        eta cubed.
+    inveta : float
+        Inverse of eta (1/eta).
+    Spl : float
+        S_plus.
+    Spl2 : float
+        S_plus squared.
+    Smi2 : float
+        S_minus squared.
+    Spl2mSmi2 : float
+        Spl2 - Smi2.
+    S1_norm_2 : float
+        Spin 1 magnitude squared.
+    S2_norm_2 : float
+        Spin 2 magnitude squared.
+    S32 : float
+        S_3 squared.
+    delta_qq : float
+        MSA coefficient delta_qq.
+    g0 : float
+        MSA coefficient g0.
+    psi0 : float
+        Initial psi value.
+    psi1 : float
+        MSA coefficient psi1.
+    psi2 : float
+        MSA coefficient psi2.
+
+    Returns
+    -------
+    jnp.ndarray
+        Array of MSA corrections [vMSA_x, vMSA_y, 0].
+    """
     v2 = v * v
 
-    # Sets c0, c2 and c4 in pPrec as per Eq. B6-B8 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
+    # Sets c0, c2 and c4 as per Eq. B6-B8 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
     c_vec = IMRPhenomX_Return_Constants_c_MSA(
         v,
         JNorm,
-        pPrec.Seff,
-        pPrec.eta,
-        pPrec.eta3,
-        pPrec.inveta,
-        pPrec.Spl2,
-        pPrec.Smi2,
-        pPrec.S1_norm_2,
-        pPrec.S2_norm_2,
-        pPrec.delta_qq,
+        Seff,
+        eta,
+        eta3,
+        inveta,
+        Spl2,
+        Smi2,
+        S1_norm_2,
+        S2_norm_2,
+        delta_qq,
     )
-    # Sets d0, d2 and d4 in pPrec as per Eq. B9-B11 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
-    d_vec = IMRPhenomX_Return_Constants_d_MSA(
-        LNorm, JNorm, pPrec.Spl, pPrec.Spl2, pPrec.Smi2
-    )  
+    # Sets d0, d2 and d4 as per Eq. B9-B11 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
+    d_vec = IMRPhenomX_Return_Constants_d_MSA(LNorm, JNorm, Spl, Spl2, Smi2)
 
     c0, c2, c4 = c_vec
     d0, d2, d4 = d_vec
 
-    #jax.debug.print("jax D vector {} {} {}", d0, d2, d4)
-
     two_d0 = 2.0 * d0
-    
+
     # Eq. B20 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
     sd = jnp.sqrt(jnp.abs(d2 * d2 - 4.0 * d0 * d4))
 
     # Eq. F20-21 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
-    A_theta_L = 0.5 * ((JNorm / LNorm) + (LNorm / JNorm) - (pPrec.Spl2 / (JNorm * LNorm)))
-    B_theta_L = 0.5 * pPrec.Spl2mSmi2 / (JNorm * LNorm)
+    A_theta_L = 0.5 * ((JNorm / LNorm) + (LNorm / JNorm) - (Spl2 / (JNorm * LNorm)))
+    B_theta_L = 0.5 * Spl2mSmi2 / (JNorm * LNorm)
 
     nc_num = 2.0 * (d0 + d2 + d4)
     nc_denom = two_d0 + d2 + sd
@@ -1122,20 +1201,18 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
     sqrt_nc = jnp.sqrt(jnp.abs(nc))
     sqrt_nd = jnp.sqrt(jnp.abs(nd))
 
-    psi = IMRPhenomX_Return_Psi_MSA(
-        v, v2, pPrec.g0, pPrec.delta_qq, pPrec.psi1, pPrec.psi2
-    ) + pPrec.psi0
-    psi_dot = IMRPhenomX_Return_Psi_dot_MSA(
-        v, pPrec.Seff, pPrec.inveta, pPrec.Spl2, pPrec.S32
-    ) 
+    psi = IMRPhenomX_Return_Psi_MSA(v, v2, g0, delta_qq, psi1, psi2) + psi0
+    psi_dot = IMRPhenomX_Return_Psi_dot_MSA(v, Seff, inveta, Spl2, S32)
 
     tan_psi = jnp.tan(psi)
     atan_psi = jnp.arctan(tan_psi)
 
     C1 = -0.5 * (c0 / d0 - 2.0 * (c0 + c2 + c4) / nc_num)
-    C2num = (c0 * (-2.0 * d0 * d4 + d2 * d2 + d2 * d4) -
-             c2 * d0 * (d2 + 2.0 * d4) +
-             c4 * d0 * (two_d0 + d2))
+    C2num = (
+        c0 * (-2.0 * d0 * d4 + d2 * d2 + d2 * d4)
+        - c2 * d0 * (d2 + 2.0 * d4)
+        + c4 * d0 * (two_d0 + d2)
+    )
     C2den = 2.0 * d0 * sd * (d0 + d2 + d4)
     C2 = C2num / C2den
 
@@ -1143,28 +1220,47 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
     Dphi = C1 - C2
 
     def compute_Cphi_term():
-        
-        return jnp.abs((
-            (c4 * d0 * ((2 * d0 + d2) + sd) -
-                c2 * d0 * ((d2 + 2.0 * d4) - sd) -
-                c0 * ((2 * d0 * d4) - (d2 + d4) * (d2 - 
-                sd))) / C2den) * (sqrt_nc / (nc - 1.0)) * (atan_psi - jnp.arctan(sqrt_nc * tan_psi))) / psi_dot
-        
+        return (
+            jnp.abs(
+                (
+                    (
+                        c4 * d0 * ((2 * d0 + d2) + sd)
+                        - c2 * d0 * ((d2 + 2.0 * d4) - sd)
+                        - c0 * ((2 * d0 * d4) - (d2 + d4) * (d2 - sd))
+                    )
+                    / C2den
+                )
+                * (sqrt_nc / (nc - 1.0))
+                * (atan_psi - jnp.arctan(sqrt_nc * tan_psi))
+            )
+            / psi_dot
+        )
+
     def compute_Dphi_term():
-            return jnp.abs((
-                (-c4 * d0 * ((2 * d0 + d2) - sd) +
-                 c2 * d0 * ((d2 + 2.0 * d4) + sd) -
-                 c0 * (-(2 * d0 * d4) + (d2 + d4) * (d2 + sd))) / C2den
-            ) * (sqrt_nd / (nd - 1.0)) * (atan_psi - jnp.arctan(sqrt_nd * tan_psi))) / psi_dot
+        return (
+            jnp.abs(
+                (
+                    (
+                        -c4 * d0 * ((2 * d0 + d2) - sd)
+                        + c2 * d0 * ((d2 + 2.0 * d4) + sd)
+                        - c0 * (-(2 * d0 * d4) + (d2 + d4) * (d2 + sd))
+                    )
+                    / C2den
+                )
+                * (sqrt_nd / (nd - 1.0))
+                * (atan_psi - jnp.arctan(sqrt_nd * tan_psi))
+            )
+            / psi_dot
+        )
 
     phiz_0_MSA_Cphi_term = jnp.where(nc == 1.0, 0.0, compute_Cphi_term())
     phiz_0_MSA_Dphi_term = jnp.where(nd == 1.0, 0.0, compute_Dphi_term())
 
     vMSA_x = phiz_0_MSA_Cphi_term + phiz_0_MSA_Dphi_term
 
-    #####  restart from here
     vMSA_y = A_theta_L * vMSA_x + 2.0 * B_theta_L * d0 * (
-                phiz_0_MSA_Cphi_term / (sd - d2) - phiz_0_MSA_Dphi_term / (sd + d2))
+        phiz_0_MSA_Cphi_term / (sd - d2) - phiz_0_MSA_Dphi_term / (sd + d2)
+    )
 
     vMSA_x = jnp.where(jnp.isnan(vMSA_x), 0.0, vMSA_x)
     vMSA_y = jnp.where(jnp.isnan(vMSA_y), 0.0, vMSA_y)
@@ -1517,7 +1613,27 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(pPrec, pWF, v):
     object.__setattr__(pPrec, 'S_norm_2', SNorm * SNorm)
 
     # Compressing line 2245-2249
-    vMSA_correction = IMRPhenomX_Return_MSA_Corrections_MSA(v, L_norm, J_norm, pPrec)
+    vMSA_correction = IMRPhenomX_Return_MSA_Corrections_MSA(
+        v,
+        L_norm,
+        J_norm,
+        pPrec.Seff,
+        pPrec.eta,
+        pPrec.eta3,
+        pPrec.inveta,
+        pPrec.Spl,
+        pPrec.Spl2,
+        pPrec.Smi2,
+        pPrec.Spl2mSmi2,
+        pPrec.S1_norm_2,
+        pPrec.S2_norm_2,
+        pPrec.S32,
+        pPrec.delta_qq,
+        pPrec.g0,
+        pPrec.psi0,
+        pPrec.psi1,
+        pPrec.psi2,
+    )
     cond = (jnp.abs(pPrec.Smi2 - pPrec.Spl2) > 1.e-5)
 
     # Create vMSA with zeros matching the shape of vMSA_correction
