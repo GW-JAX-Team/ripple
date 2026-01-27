@@ -2400,7 +2400,15 @@ class IMRPhenomXPHM(WaveFormModel):
 
             v = jnp.cbrt(jnp.pi * Mf * 2.0 / emm)
             ##
-            vangles = IMRPhenomX_Return_phi_zeta_costhetaL_MSA(pPrec, pWF, v)
+            #vangles = IMRPhenomX_Return_phi_zeta_costhetaL_MSA(pPrec, pWF, v)
+            vangles = IMRPhenomX_Return_phi_zeta_costhetaL_MSA(v, pPrec.eta, pPrec.eta2, pPrec.eta3, pPrec.eta4,
+                                                               pPrec.inveta, pPrec.c1, pPrec.c1_over_eta,
+                                                               pPrec.SAv, pPrec.SAv2, pPrec.invSAv, pPrec.invSAv2,
+                                                               pPrec.constants_L, pPrec.S1_norm_2, pPrec.S2_norm_2,
+                                                               pPrec.qq, pPrec.delta_qq, pPrec.Seff, pPrec.dotS1Ln, pPrec.dotS2Ln, pPrec.S_0_norm, 
+                                                               pPrec.psi0, pPrec.psi1, pPrec.psi2, pPrec.g0, 
+                                                               pPrec.Omegaz0_coeff, pPrec.Omegaz1_coeff, pPrec.Omegaz2_coeff, pPrec.Omegaz3_coeff, pPrec.Omegaz4_coeff, pPrec.Omegaz5_coeff, pPrec.phiz_0,
+                                                               pPrec.Omegazeta0_coeff, pPrec.Omegazeta1_coeff, pPrec.Omegazeta2_coeff, pPrec.Omegazeta3_coeff, pPrec.Omegazeta4_coeff, pPrec.Omegazeta5_coeff, pPrec.zeta_0)
 
             alpha_offset_emm, epsilon_offset_emm = Get_alpha_epsilon_offset(emm, pPrec)
 

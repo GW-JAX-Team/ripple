@@ -1701,133 +1701,183 @@ def IMRPhenomX_L_norm_3PN_of_v(
 
 
 
-def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(pPrec, pWF, v):
-    # Wrapper to generate \f$\phi_z\f$, \f$\zeta\f$ and \f$\cos \theta_L\f$ at a given frequency
+def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
+    v: float,
+    eta: float,
+    eta2: float,
+    eta3: float,
+    eta4: float,
+    inveta: float,
+    c1: float,
+    c1_over_eta: float,
+    SAv: float,
+    SAv2: float,
+    invSAv: float,
+    invSAv2: float,
+    constants_L: jnp.ndarray,
+    S1_norm_2: float,
+    S2_norm_2: float,
+    qq: float,
+    delta_qq: float,
+    Seff: float,
+    dotS1Ln: float,
+    dotS2Ln: float,
+    S_0_norm: float,
+    psi0: float,
+    psi1: float,
+    psi2: float,
+    g0: float,
+    Omegaz0_coeff: float,
+    Omegaz1_coeff: float,
+    Omegaz2_coeff: float,
+    Omegaz3_coeff: float,
+    Omegaz4_coeff: float,
+    Omegaz5_coeff: float,
+    phiz_0: float,
+    Omegazeta0_coeff: float,
+    Omegazeta1_coeff: float,
+    Omegazeta2_coeff: float,
+    Omegazeta3_coeff: float,
+    Omegazeta4_coeff: float,
+    Omegazeta5_coeff: float,
+    zeta_0: float,
+) -> jnp.ndarray:
+    """
+    Wrapper to generate phi_z, zeta and cos(theta_L) at a given frequency.
 
-    
+    Args:
+        v: Velocity parameter (float)
+        eta: Symmetric mass ratio (float)
+        eta2: eta squared (float)
+        eta3: eta cubed (float)
+        eta4: eta to the fourth (float)
+        inveta: Inverse of eta (float)
+        c1: c1 coefficient (float)
+        c1_over_eta: c1 divided by eta (float)
+        SAv: Spin average (float)
+        SAv2: Spin average squared (float)
+        invSAv: Inverse of SAv (float)
+        invSAv2: Inverse of SAv squared (float)
+        constants_L: Array of L constants [L0, L1, L2, L3, L4] (array)
+        S1_norm_2: Squared norm of spin 1 (float)
+        S2_norm_2: Squared norm of spin 2 (float)
+        qq: Mass ratio q = m1/m2 (float)
+        delta_qq: Delta mass ratio term (float)
+        Seff: Effective spin (float)
+        dotS1Ln: Dot product of S1 and Lhat (float)
+        dotS2Ln: Dot product of S2 and Lhat (float)
+        S_0_norm: Initial total spin norm (float)
+        psi0: Psi coefficient 0 (float)
+        psi1: Psi coefficient 1 (float)
+        psi2: Psi coefficient 2 (float)
+        g0: g0 coefficient (float)
+        Omegaz0_coeff through Omegaz5_coeff: Omega_z coefficients (floats)
+        phiz_0: Initial phi_z value (float)
+        Omegazeta0_coeff through Omegazeta5_coeff: Omega_zeta coefficients (floats)
+        zeta_0: Initial zeta value (float)
 
-    L_norm = pWF['eta']/v
+    Returns:
+        jnp.ndarray: Array containing [phi_z + phi_z_MSA, zeta + zeta_MSA, cos(theta_L)]
+    """
+    L_norm = eta / v
 
-    J_norm = IMRPhenomX_JNorm_MSA(L_norm, pPrec.c1_over_eta, pPrec.SAv2)
+    J_norm = IMRPhenomX_JNorm_MSA(L_norm, c1_over_eta, SAv2)
 
     # Compressing line 2212 - 2220
     L_norm3PN = IMRPhenomX_L_norm_3PN_of_v(
         v,
         L_norm,
-        pPrec.constants_L[0],
-        pPrec.constants_L[1],
-        pPrec.constants_L[2],
-        pPrec.constants_L[3],
-        pPrec.constants_L[4],
+        constants_L[0],
+        constants_L[1],
+        constants_L[2],
+        constants_L[3],
+        constants_L[4],
     )
 
-    '''
-    if (pPrec.IMRPhenomXPrecVersion == 222) | (pPrec.IMRPhenomXPrecVersion == 223):
-        L_norm3PN = IMRPhenomX_L_norm_3PN_of_v(v, v*v, L_norm, pPrec)
-
-    else:
-        L_norm3PN = XLALSimIMRPhenomXLPNAnsatz(v, L_norm, pPrec.L0, pPrec.L1, pPrec.L2, pPrec.L3, pPrec.L4, pPrec.L5, pPrec.L6, pPrec.L7, pPrec.L8, pPrec.L8L)
-    '''
-    
-
-    J_norm3PN = IMRPhenomX_JNorm_MSA(L_norm3PN, pPrec.c1_over_eta, pPrec.SAv2)
+    J_norm3PN = IMRPhenomX_JNorm_MSA(L_norm3PN, c1_over_eta, SAv2)
     vRoots = IMRPhenomX_Return_Roots_MSA(
         L_norm,
         J_norm,
-        pPrec.S1_norm_2,
-        pPrec.S2_norm_2,
-        pPrec.qq,
-        pPrec.eta,
-        pPrec.delta_qq,
-        pPrec.Seff,
-        pPrec.dotS1Ln,
-        pPrec.dotS2Ln,
-        pPrec.S_0_norm,
+        S1_norm_2,
+        S2_norm_2,
+        qq,
+        eta,
+        delta_qq,
+        Seff,
+        dotS1Ln,
+        dotS2Ln,
+        S_0_norm,
     )
 
-    object.__setattr__(pPrec, 'S32', vRoots[0])
-    object.__setattr__(pPrec, 'Smi2', vRoots[1])
-    object.__setattr__(pPrec, 'Spl2', vRoots[2])
+    S32 = vRoots[0]
+    Smi2 = vRoots[1]
+    Spl2 = vRoots[2]
 
-    object.__setattr__(pPrec, 'Spl2mSmi2', pPrec.Spl2 - pPrec.Smi2)
-    object.__setattr__(pPrec, 'Spl2pSmi2', pPrec.Spl2 + pPrec.Smi2)
-    object.__setattr__(pPrec, 'Spl', jnp.sqrt(pPrec.Spl2))
-    object.__setattr__(pPrec, 'Smi', jnp.sqrt(pPrec.Smi2))
+    Spl2mSmi2 = Spl2 - Smi2
+    Spl = jnp.sqrt(Spl2)
 
     SNorm = IMRPhenomX_Return_SNorm_MSA(
         v,
-        pPrec.Smi2, pPrec.Spl2, pPrec.S32,
-        pPrec.psi0, pPrec.psi1, pPrec.psi2,
-        pPrec.g0, pPrec.delta_qq
+        Smi2, Spl2, S32,
+        psi0, psi1, psi2,
+        g0, delta_qq
     )
-    object.__setattr__(pPrec, 'S_norm', SNorm)
-    object.__setattr__(pPrec, 'S_norm_2', SNorm * SNorm)
 
     # Compressing line 2245-2249
     vMSA_correction = IMRPhenomX_Return_MSA_Corrections_MSA(
         v,
         L_norm,
         J_norm,
-        pPrec.Seff,
-        pPrec.eta,
-        pPrec.eta3,
-        pPrec.inveta,
-        pPrec.Spl,
-        pPrec.Spl2,
-        pPrec.Smi2,
-        pPrec.Spl2mSmi2,
-        pPrec.S1_norm_2,
-        pPrec.S2_norm_2,
-        pPrec.S32,
-        pPrec.delta_qq,
-        pPrec.g0,
-        pPrec.psi0,
-        pPrec.psi1,
-        pPrec.psi2,
+        Seff,
+        eta,
+        eta3,
+        inveta,
+        Spl,
+        Spl2,
+        Smi2,
+        Spl2mSmi2,
+        S1_norm_2,
+        S2_norm_2,
+        S32,
+        delta_qq,
+        g0,
+        psi0,
+        psi1,
+        psi2,
     )
-    cond = (jnp.abs(pPrec.Smi2 - pPrec.Spl2) > 1.e-5)
+    cond = (jnp.abs(Smi2 - Spl2) > 1.e-5)
 
     # Create vMSA with zeros matching the shape of vMSA_correction
     vMSA_zeros = jnp.zeros_like(vMSA_correction)
     vMSA = jnp.where(cond, vMSA_correction, vMSA_zeros)
-    
-    '''
-    if(jnp.abs(pPrec.Smi2 - pPrec.Spl2) > 1.e-5):
 
-        #Get phiz_0_MSA and zeta_0_MSA
-        vMSA = IMRPhenomX_Return_MSA_Corrections_MSA(v, L_norm, J_norm, pPrec)
-    '''
+    phiz_MSA = vMSA[0]
+    zeta_MSA = vMSA[1]
 
-    phiz_MSA     = vMSA[0]
-    zeta_MSA     = vMSA[1]
-
-    phiz         = IMRPhenomX_Return_phiz_MSA(
+    phiz = IMRPhenomX_Return_phiz_MSA(
         v, J_norm,
-        pPrec.eta, pPrec.inveta, pPrec.eta2, pPrec.eta4,
-        pPrec.c1, pPrec.SAv, pPrec.SAv2, pPrec.invSAv, pPrec.invSAv2,
-        pPrec.Omegaz0_coeff, pPrec.Omegaz1_coeff, pPrec.Omegaz2_coeff,
-        pPrec.Omegaz3_coeff, pPrec.Omegaz4_coeff, pPrec.Omegaz5_coeff,
-        pPrec.phiz_0
+        eta, inveta, eta2, eta4,
+        c1, SAv, SAv2, invSAv, invSAv2,
+        Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff,
+        Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff,
+        phiz_0
     )
-    zeta         = IMRPhenomX_Return_zeta_MSA(
+    zeta = IMRPhenomX_Return_zeta_MSA(
         v,
-        pPrec.eta,
-        pPrec.Omegazeta0_coeff,
-        pPrec.Omegazeta1_coeff,
-        pPrec.Omegazeta2_coeff,
-        pPrec.Omegazeta3_coeff,
-        pPrec.Omegazeta4_coeff,
-        pPrec.Omegazeta5_coeff,
-        pPrec.zeta_0,
+        eta,
+        Omegazeta0_coeff,
+        Omegazeta1_coeff,
+        Omegazeta2_coeff,
+        Omegazeta3_coeff,
+        Omegazeta4_coeff,
+        Omegazeta5_coeff,
+        zeta_0,
     )
-    cos_theta_L        = IMRPhenomX_costhetaLJ(L_norm3PN, J_norm3PN, SNorm)
+    cos_theta_L = IMRPhenomX_costhetaLJ(L_norm3PN, J_norm3PN, SNorm)
 
     vout1 = phiz + phiz_MSA
     vout2 = zeta + zeta_MSA
     vout3 = cos_theta_L
-
-    #jax.debug.print("JAX debug v {} cos_theta_L {} ", v, cos_theta_L)
-
 
     return jnp.array([vout1, vout2, vout3])
 
@@ -1923,3 +1973,6 @@ def IMRPhenomX_vector_dot_product(v1: jnp.ndarray, v2: jnp.ndarray) -> float:
         float: Dot product
     """
     return jnp.dot(v1, v2)
+
+
+

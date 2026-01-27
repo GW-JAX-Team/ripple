@@ -1032,7 +1032,7 @@ def get_phiJ_Sf(tol_condition, J0_Sf):
 
 def convention_five_or_seven_false(pPrec, pWF, piM, fRef, alpha0, epsilon0):
     # Get initial Get \alpha and \epsilon offsets at \omega = pi * M * f_{Ref} */
-    mprime = 2
+    mprime = 2 #FIXME
     alpha_offset, epsilon_offset = Get_alphaepsilon_atfref(pPrec, pWF, mprime, piM, fRef, alpha0, epsilon0)
     return alpha_offset, epsilon_offset, alpha_offset, epsilon_offset, alpha_offset, epsilon_offset, alpha_offset, epsilon_offset
 
@@ -1049,7 +1049,14 @@ def Get_alphaepsilon_atfref(pPrec, pWF, mprime, piM, fRef, alpha0, epsilon0):
 def Get_alphaepsilon_atfref_pflag_true(pPrec, pWF, omega_ref, alpha0, epsilon0):
 
     v = jnp.cbrt(omega_ref)
-    vangles  = IMRPhenomX_Return_phi_zeta_costhetaL_MSA(pPrec, pWF, v) # FIXME
+    vangles  = IMRPhenomX_Return_phi_zeta_costhetaL_MSA(v, pPrec.eta, pPrec.eta2, pPrec.eta3, pPrec.eta4,
+                                                               pPrec.inveta, pPrec.c1, pPrec.c1_over_eta,
+                                                               pPrec.SAv, pPrec.SAv2, pPrec.invSAv, pPrec.invSAv2,
+                                                               pPrec.constants_L, pPrec.S1_norm_2, pPrec.S2_norm_2,
+                                                               pPrec.qq, pPrec.delta_qq, pPrec.Seff, pPrec.dotS1Ln, pPrec.dotS2Ln, pPrec.S_0_norm, 
+                                                               pPrec.psi0, pPrec.psi1, pPrec.psi2, pPrec.g0, 
+                                                               pPrec.Omegaz0_coeff, pPrec.Omegaz1_coeff, pPrec.Omegaz2_coeff, pPrec.Omegaz3_coeff, pPrec.Omegaz4_coeff, pPrec.Omegaz5_coeff, pPrec.phiz_0,
+                                                               pPrec.Omegazeta0_coeff, pPrec.Omegazeta1_coeff, pPrec.Omegazeta2_coeff, pPrec.Omegazeta3_coeff, pPrec.Omegazeta4_coeff, pPrec.Omegazeta5_coeff, pPrec.zeta_0) # FIXME
 
     alpha_offset = vangles[0] - alpha0
     epsilon_offset = vangles[1] - epsilon0
@@ -1093,110 +1100,6 @@ def XLALSimIMRPhenomXLPNAnsatz(v: float, LNorm: float, L0: float, L1: float, L2:
     
     return LNorm * (L0 + L1*sqx + L2*x + L3*(x*sqx) + L4*x2 + L5*(x2*sqx) + 
                     L6*x3 + L7*(x3*sqx) + L8*x4 + L8L*x4*jnp.log(x))
-
-
-
-
-def IMRPhenomX_Return_Roots_MSA(LNorm, JNorm, pPrec):
-    vBCD = IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(LNorm, JNorm, pPrec)  
-    B, C, D = vBCD[0], vBCD[1], vBCD[2]
-
-    B2 = B * B
-    B3 = B2 * B
-    BC = B * C
-
-    p = C - B2 / 3.0
-    qc = (2.0 / 27.0) * B3 - BC / 3.0 + D
-
-    sqrtarg = jnp.sqrt(-p / 3.0)
-    acosarg = 1.5 * qc / (p * sqrtarg)
-    acosarg = jnp.clip(acosarg, -1.0, 1.0)
-
-    theta = jnp.arccos(acosarg) / 3.0
-    cos_theta = jnp.cos(theta)
-
-    vector_condition = jnp.logical_or(jnp.isnan(theta),
-                                                   (jnp.isnan(sqrtarg)))
-    scalar_condition = jnp.any(jnp.array([(pPrec.dotS1Ln == 1.0),
-                                                   (pPrec.dotS2Ln == 1.0),
-                                                   (pPrec.dotS1Ln == -1.0),
-                                                   (pPrec.dotS2Ln == -1.0),
-                                                   (pPrec.S1_norm_2 == 0.0),
-                                                   (pPrec.S2_norm_2 == 0.0)]))
-    invalid_case = jnp.logical_or(vector_condition, scalar_condition)
-
-    def roots_when_valid():
-        tmp1 = 2.0 * sqrtarg * jnp.cos(theta - 4.0 * jnp.pi / 3.0) - B / 3.0
-        tmp2 = 2.0 * sqrtarg * jnp.cos(theta - 2.0 * jnp.pi / 3.0) - B / 3.0
-        tmp3 = 2.0 * sqrtarg * cos_theta - B / 3.0
-
-        tmp4 = jnp.maximum(jnp.maximum(tmp1, tmp2), tmp3)
-        tmp5 = jnp.minimum(jnp.minimum(tmp1, tmp2), tmp3)
-
-        tmp6 = jnp.where(
-            (tmp4 - tmp3 > 0.0) & (tmp5 - tmp3 < 0.0),
-            tmp3,
-            jnp.where((tmp4 - tmp1 > 0.0) & (tmp5 - tmp1 < 0.0), tmp1, tmp2)
-        )
-
-        S32 = tmp5
-        Smi2 = jnp.abs(tmp6)
-        Spl2 = jnp.abs(tmp4)
-        return jnp.array([S32, Smi2, Spl2])
-
-    def roots_when_invalid():
-        Smi2 = pPrec.S_0_norm**2 * jnp.ones_like(LNorm)
-        Spl2 = Smi2 + 1e-9
-        S32 = jnp.zeros_like(LNorm)
-        return jnp.array([S32, Smi2, Spl2])
-
-    roots_array = jnp.where(
-        jnp.atleast_1d(invalid_case),
-        roots_when_invalid(),
-        roots_when_valid()
-    )
-    
-
-    return roots_array
-
-
-
-def IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(LNorm, JNorm, pPrec):
-    JNorm2 = JNorm * JNorm
-    LNorm2 = LNorm * LNorm
-
-    S1Norm2 = pPrec.S1_norm_2
-    S2Norm2 = pPrec.S2_norm_2
-    q       = pPrec.qq
-    eta     = pPrec.eta
-    delta   = pPrec.delta_qq
-    deltaSq = delta * delta
-    Seff    = pPrec.Seff
-
-    J2mL2   = JNorm2 - LNorm2
-    J2mL2Sq = J2mL2 * J2mL2
-
-    # B coefficient (Eq. B2)
-    B_coeff = ((LNorm2 + S1Norm2) * q +
-               2.0 * LNorm * Seff -
-               2.0 * JNorm2 -
-               S1Norm2 - S2Norm2 +
-               (LNorm2 + S2Norm2) / q)
-
-    # C coefficient (Eq. B3)
-    C_coeff = (J2mL2Sq -
-               2.0 * LNorm * Seff * J2mL2 -
-               2.0 * ((1.0 - q) / q) * LNorm2 * (S1Norm2 - q * S2Norm2) +
-               4.0 * eta * LNorm2 * Seff * Seff -
-               2.0 * delta * (S1Norm2 - S2Norm2) * Seff * LNorm +
-               2.0 * ((1.0 - q) / q) * (q * S1Norm2 - S2Norm2) * JNorm2)
-
-    # D coefficient (Eq. B4)
-    D_coeff = (((1.0 - q) / q) * (S2Norm2 - q * S1Norm2) * J2mL2Sq +
-               deltaSq * (S1Norm2 - S2Norm2)**2 * LNorm2 / eta +
-               2.0 * delta * LNorm * Seff * (S1Norm2 - S2Norm2) * J2mL2)
-
-    return jnp.array([B_coeff, C_coeff, D_coeff])
 
 
 
