@@ -286,6 +286,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     # Calculate g coefficients as in Appendix A of Chatziioannou et al, PRD, 95, 104004, (2017), arXiv:1703.03967.
     # These constants are used in TaylorT2 where domega/dt is expressed as an inverse polynomial
     g0 = 1/pPrec.a0
+    g2 = -(pPrec.a2 / pPrec.a0_2)
 
 
     # Eq. A2 (1703.03967)
@@ -350,7 +351,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     # Line 2706
 
     if pflag == 222 or pflag == 223:
-        u1 = 3.0 * pPrec.g2 / g0
+        u1 = 3.0 * g2 / g0
         u2 = 0.75 * one_p_q_sq / one_m_q_4
         u3 = -20.0 * c_1_over_nu_2 * q_2 * one_p_q_sq
         u4 = 2.0 * one_m_q2_2 * (q * (2.0 + q) * pPrec.S1_norm_2 + (1.0 + 2.0 * q) * pPrec.S2_norm_2 - 2.0 * q * pPrec.SAv2)
@@ -362,7 +363,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
         object.__setattr__(pPrec, 'psi2', u1 + u2 * (u3 + u4 + u5 - u6 + u7))
     else:
         # \psi_2 is defined in Eq. C2 of Appendix C in PRD, 95, 104004, (2017). Here we implement system of equations as in paper.pdf
-        term1 = 3.0 * pPrec.g2 / g0
+        term1 = 3.0 * g2 / g0
         
         # q^2 or no q^2 in term2? Consensus on retaining q^2 term: https://git.ligo.org/waveforms/reviews/phenompv3hm/issues/7
         term2 = 3.0 * q * q / (2.0 * eta3)
@@ -463,10 +464,10 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     # Coefficients of Eq. 65, as defined in Equations D16 - D21 of PRD, 95, 104004, (2017), arXiv:1703.03967
     object.__setattr__(pPrec, 'Omegaz0_coeff', 3.0 * g0 * pPrec.Omegaz0)
     object.__setattr__(pPrec, 'Omegaz1_coeff', 3.0 * g0 * pPrec.Omegaz1)
-    object.__setattr__(pPrec, 'Omegaz2_coeff', 3.0 * (g0 * pPrec.Omegaz2 + pPrec.g2*pPrec.Omegaz0))
-    object.__setattr__(pPrec, 'Omegaz3_coeff', 3.0 * (g0 * pPrec.Omegaz3 + pPrec.g2*pPrec.Omegaz1 + pPrec.g3*pPrec.Omegaz0))
-    object.__setattr__(pPrec, 'Omegaz4_coeff', 3.0 * (g0 * pPrec.Omegaz4 + pPrec.g2*pPrec.Omegaz2 + pPrec.g3*pPrec.Omegaz1 + pPrec.g4*pPrec.Omegaz0))
-    #object.__setattr__(pPrec, 'Omegaz5_coeff', 3.0 * (g0 * pPrec.Omegaz5 + pPrec.g2*pPrec.Omegaz3 + pPrec.g3*pPrec.Omegaz2 + pPrec.g4*pPrec.Omegaz1 + pPrec.g5*pPrec.Omegaz0))
+    object.__setattr__(pPrec, 'Omegaz2_coeff', 3.0 * (g0 * pPrec.Omegaz2 + g2*pPrec.Omegaz0))
+    object.__setattr__(pPrec, 'Omegaz3_coeff', 3.0 * (g0 * pPrec.Omegaz3 + g2*pPrec.Omegaz1 + pPrec.g3*pPrec.Omegaz0))
+    object.__setattr__(pPrec, 'Omegaz4_coeff', 3.0 * (g0 * pPrec.Omegaz4 + g2*pPrec.Omegaz2 + pPrec.g3*pPrec.Omegaz1 + pPrec.g4*pPrec.Omegaz0))
+    #object.__setattr__(pPrec, 'Omegaz5_coeff', 3.0 * (g0 * pPrec.Omegaz5 + g2*pPrec.Omegaz3 + pPrec.g3*pPrec.Omegaz2 + pPrec.g4*pPrec.Omegaz1 + pPrec.g5*pPrec.Omegaz0))
     object.__setattr__(pPrec, 'Omegaz5_coeff', 0.0) #FIXME
     
     # Coefficients of zeta: in Appendix E of PRD, 95, 104004, (2017), arXiv:1703.03967
@@ -480,20 +481,20 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
 
     Omegazeta0_coeff = -g0 * pPrec.Omegazeta0
     Omegazeta1_coeff = -1.5 * g0 * pPrec.Omegazeta1
-    Omegazeta2_coeff = -3.0*(g0 * pPrec.Omegazeta2 + pPrec.g2*pPrec.Omegazeta0)
-    Omegazeta3_coeff = 3.0*(g0 * pPrec.Omegazeta3 + pPrec.g2*pPrec.Omegazeta1 + pPrec.g3*pPrec.Omegazeta0)
-    Omegazeta4_coeff = 3.0*(g0 * pPrec.Omegazeta4 + pPrec.g2*pPrec.Omegazeta2 + pPrec.g3*pPrec.Omegazeta1 + pPrec.g4*pPrec.Omegazeta0)
-    #Omegazeta5_coeff = 1.5*(g0*pPrec.Omegazeta5 + pPrec.g2*pPrec.Omegazeta3 + pPrec.g3*pPrec.Omegazeta2 + pPrec.g4*pPrec.Omegazeta1 + pPrec.g5*pPrec.Omegazeta0)
+    Omegazeta2_coeff = -3.0*(g0 * pPrec.Omegazeta2 + g2*pPrec.Omegazeta0)
+    Omegazeta3_coeff = 3.0*(g0 * pPrec.Omegazeta3 + g2*pPrec.Omegazeta1 + pPrec.g3*pPrec.Omegazeta0)
+    Omegazeta4_coeff = 3.0*(g0 * pPrec.Omegazeta4 + g2*pPrec.Omegazeta2 + pPrec.g3*pPrec.Omegazeta1 + pPrec.g4*pPrec.Omegazeta0)
+    #Omegazeta5_coeff = 1.5*(g0*pPrec.Omegazeta5 + g2*pPrec.Omegazeta3 + pPrec.g3*pPrec.Omegazeta2 + pPrec.g4*pPrec.Omegazeta1 + pPrec.g5*pPrec.Omegazeta0)
     Omegazeta5_coeff = 0.0 #FIXME
 
     '''
     Omegazeta0_coeff = -g0 * pPrec.Omegazeta0
     Omegazeta1_coeff = -1.5 * g0 * pPrec.Omegazeta1
-    Omegazeta2_coeff = -3.0*(g0 * pPrec.Omegazeta2 + pPrec.g2*pPrec.Omegazeta0)
-    Omegazeta3_coeff = 3.0*(g0 * pPrec.Omegazeta3 + pPrec.g2*pPrec.Omegazeta1 + pPrec.g3*pPrec.Omegazeta0)
-    Omegazeta4_coeff = 3.0*(g0 * pPrec.Omegazeta4 + pPrec.g2*pPrec.Omegazeta2 + pPrec.g3*pPrec.Omegazeta1 + pPrec.g4*pPrec.Omegazeta0)
+    Omegazeta2_coeff = -3.0*(g0 * pPrec.Omegazeta2 + g2*pPrec.Omegazeta0)
+    Omegazeta3_coeff = 3.0*(g0 * pPrec.Omegazeta3 + g2*pPrec.Omegazeta1 + pPrec.g3*pPrec.Omegazeta0)
+    Omegazeta4_coeff = 3.0*(g0 * pPrec.Omegazeta4 + g2*pPrec.Omegazeta2 + pPrec.g3*pPrec.Omegazeta1 + pPrec.g4*pPrec.Omegazeta0)
 
-    Omegazeta5_coeff = 1.5*(g0*pPrec.Omegazeta5 + pPrec.g2*pPrec.Omegazeta3 + pPrec.g3*pPrec.Omegazeta2 + pPrec.g4*pPrec.Omegazeta1 + pPrec.g5*pPrec.Omegazeta0)
+    Omegazeta5_coeff = 1.5*(g0*pPrec.Omegazeta5 + g2*pPrec.Omegazeta3 + pPrec.g3*pPrec.Omegazeta2 + pPrec.g4*pPrec.Omegazeta1 + pPrec.g5*pPrec.Omegazeta0)
     '''    
     #Line 2887 - 2943 compressed
     #pPrec = apply_expansion_order(pPrec, ExpansionOrder)
