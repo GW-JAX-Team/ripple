@@ -298,10 +298,6 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     delta3 = delta * delta2
     delta4 = delta * delta3
 
-    # These are the phase coefficients of Eq. 51 of PRD, 95, 104004, (2017), arXiv:1703.03967
-    psi0 = 0.0
-    psi1 = 0.0
-    psi2 = 0.0
 
 
     # \psi_1 is defined in Eq. C1 of Appendix C in PRD, 95, 104004, (2017), arXiv:1703.03967
