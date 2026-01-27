@@ -191,7 +191,15 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
 
     # Vector for obtaining B, C, D coefficients
     vBCD = IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(
-        pPrec.L_0_norm, pPrec.J_0_norm, pPrec)
+        pPrec.L_0_norm,
+        pPrec.J_0_norm,
+        pPrec.S1_norm_2,
+        pPrec.S2_norm_2,
+        pPrec.qq,
+        pPrec.eta,
+        pPrec.delta_qq,
+        pPrec.Seff,
+    )
 
 
     vRoots = jnp.array([0.0, 0.0, 0.0])
@@ -604,7 +612,16 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
 
 
 def IMRPhenomX_Return_Roots_MSA(LNorm, JNorm, pPrec):
-    vBCD = IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(LNorm, JNorm, pPrec)  
+    vBCD = IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(
+        LNorm,
+        JNorm,
+        pPrec.S1_norm_2,
+        pPrec.S2_norm_2,
+        pPrec.qq,
+        pPrec.eta,
+        pPrec.delta_qq,
+        pPrec.Seff,
+    )  
     B, C, D = vBCD[0], vBCD[1], vBCD[2]
 
     B2 = B * B
@@ -671,40 +688,81 @@ def IMRPhenomX_Return_Roots_MSA(LNorm, JNorm, pPrec):
 
 
 
-def IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(LNorm, JNorm, pPrec):
+def IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(
+    LNorm: float,
+    JNorm: float,
+    S1_norm_2: float,
+    S2_norm_2: float,
+    qq: float,
+    eta: float,
+    delta_qq: float,
+    Seff: float,
+) -> jnp.ndarray:
+    """
+    Compute spin evolution coefficients B, C, D for MSA approximation.
+
+    Parameters
+    ----------
+    LNorm : float
+        Normalized orbital angular momentum.
+    JNorm : float
+        Normalized total angular momentum.
+    S1_norm_2 : float
+        Spin 1 magnitude squared.
+    S2_norm_2 : float
+        Spin 2 magnitude squared.
+    qq : float
+        Mass ratio q = m2/m1.
+    eta : float
+        Symmetric mass ratio.
+    delta_qq : float
+        Mass difference parameter (m1-m2)/(m1+m2).
+    Seff : float
+        Effective spin parameter.
+
+    Returns
+    -------
+    jnp.ndarray
+        Array of [B_coeff, C_coeff, D_coeff].
+    """
     JNorm2 = JNorm * JNorm
     LNorm2 = LNorm * LNorm
 
-    S1Norm2 = pPrec.S1_norm_2
-    S2Norm2 = pPrec.S2_norm_2
-    q       = pPrec.qq
-    eta     = pPrec.eta
-    delta   = pPrec.delta_qq
+    S1Norm2 = S1_norm_2
+    S2Norm2 = S2_norm_2
+    q = qq
+    delta = delta_qq
     deltaSq = delta * delta
-    Seff    = pPrec.Seff
 
-    J2mL2   = JNorm2 - LNorm2
+    J2mL2 = JNorm2 - LNorm2
     J2mL2Sq = J2mL2 * J2mL2
 
     # B coefficient (Eq. B2)
-    B_coeff = ((LNorm2 + S1Norm2) * q +
-               2.0 * LNorm * Seff -
-               2.0 * JNorm2 -
-               S1Norm2 - S2Norm2 +
-               (LNorm2 + S2Norm2) / q)
+    B_coeff = (
+        (LNorm2 + S1Norm2) * q
+        + 2.0 * LNorm * Seff
+        - 2.0 * JNorm2
+        - S1Norm2
+        - S2Norm2
+        + (LNorm2 + S2Norm2) / q
+    )
 
     # C coefficient (Eq. B3)
-    C_coeff = (J2mL2Sq -
-               2.0 * LNorm * Seff * J2mL2 -
-               2.0 * ((1.0 - q) / q) * LNorm2 * (S1Norm2 - q * S2Norm2) +
-               4.0 * eta * LNorm2 * Seff * Seff -
-               2.0 * delta * (S1Norm2 - S2Norm2) * Seff * LNorm +
-               2.0 * ((1.0 - q) / q) * (q * S1Norm2 - S2Norm2) * JNorm2)
+    C_coeff = (
+        J2mL2Sq
+        - 2.0 * LNorm * Seff * J2mL2
+        - 2.0 * ((1.0 - q) / q) * LNorm2 * (S1Norm2 - q * S2Norm2)
+        + 4.0 * eta * LNorm2 * Seff * Seff
+        - 2.0 * delta * (S1Norm2 - S2Norm2) * Seff * LNorm
+        + 2.0 * ((1.0 - q) / q) * (q * S1Norm2 - S2Norm2) * JNorm2
+    )
 
     # D coefficient (Eq. B4)
-    D_coeff = (((1.0 - q) / q) * (S2Norm2 - q * S1Norm2) * J2mL2Sq +
-               deltaSq * (S1Norm2 - S2Norm2)**2 * LNorm2 / eta +
-               2.0 * delta * LNorm * Seff * (S1Norm2 - S2Norm2) * J2mL2)
+    D_coeff = (
+        ((1.0 - q) / q) * (S2Norm2 - q * S1Norm2) * J2mL2Sq
+        + deltaSq * (S1Norm2 - S2Norm2) ** 2 * LNorm2 / eta
+        + 2.0 * delta * LNorm * Seff * (S1Norm2 - S2Norm2) * J2mL2
+    )
 
     return jnp.array([B_coeff, C_coeff, D_coeff])
 
