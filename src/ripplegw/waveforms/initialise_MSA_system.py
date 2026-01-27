@@ -927,8 +927,38 @@ def IMRPhenomX_Return_Constants_d_MSA(LNorm, JNorm, pPrec):
     return jnp.array([x, y, z])
 
 
-def IMRPhenomX_Return_Psi_MSA(v, v2, pPrec):
-    return -0.75 * pPrec.g0 * pPrec.delta_qq * (1.0 + pPrec.psi1 * v + pPrec.psi2 * v2) / (v2 * v)
+def IMRPhenomX_Return_Psi_MSA(
+    v: float,
+    v2: float,
+    g0: float,
+    delta_qq: float,
+    psi1: float,
+    psi2: float,
+) -> float:
+    """
+    Compute psi for MSA approximation.
+
+    Parameters
+    ----------
+    v : float
+        Orbital velocity parameter.
+    v2 : float
+        v squared.
+    g0 : float
+        MSA coefficient g0.
+    delta_qq : float
+        MSA coefficient delta_qq.
+    psi1 : float
+        MSA coefficient psi1.
+    psi2 : float
+        MSA coefficient psi2.
+
+    Returns
+    -------
+    float
+        Psi value.
+    """
+    return -0.75 * g0 * delta_qq * (1.0 + psi1 * v + psi2 * v2) / (v2 * v)
 
 
 
@@ -1009,7 +1039,9 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
     sqrt_nc = jnp.sqrt(jnp.abs(nc))
     sqrt_nd = jnp.sqrt(jnp.abs(nd))
 
-    psi = IMRPhenomX_Return_Psi_MSA(v, v2, pPrec) + pPrec.psi0
+    psi = IMRPhenomX_Return_Psi_MSA(
+        v, v2, pPrec.g0, pPrec.delta_qq, pPrec.psi1, pPrec.psi2
+    ) + pPrec.psi0
     psi_dot = IMRPhenomX_Return_Psi_dot_MSA(
         v, pPrec.Seff, pPrec.inveta, pPrec.Spl2, pPrec.S32
     ) 
