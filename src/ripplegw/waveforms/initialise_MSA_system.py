@@ -121,11 +121,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     dotS2Ln = dotS2L / S2_0_norm
 
     # Add dot products to struct
-    object.__setattr__(pPrec, 'dotS1L', dotS1L)
-    object.__setattr__(pPrec, 'dotS2L', dotS2L)
-    object.__setattr__(pPrec, 'dotS1S2', dotS1S2)
-    object.__setattr__(pPrec, 'dotS1Ln', dotS1Ln)
-    object.__setattr__(pPrec, 'dotS2Ln', dotS2Ln)
+
 
 
     # Coefficients for PN orbital angular momentum at 3PN, as per LALSimInspiralFDPrecAngles_internals.c
@@ -295,7 +291,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
         object.__setattr__(pPrec, 'a3', eta * (domegadt_constants_NS[3] +
                             IMRPhenomX_Get_PN_beta(domegadt_constants_SO[0], domegadt_constants_SO[1], dotS1L, dotS2L, pPrec.qq)))
         object.__setattr__(pPrec, 'a4', eta * (domegadt_constants_NS[4] + eta * (domegadt_constants_NS[5] + eta * (domegadt_constants_NS[6])) +
-                            IMRPhenomX_Get_PN_sigma(domegadt_constants_SS[0], domegadt_constants_SS[1], pPrec.inveta, pPrec.dotS1S2, dotS1L, dotS2L) +  # stub
+                            IMRPhenomX_Get_PN_sigma(domegadt_constants_SS[0], domegadt_constants_SS[1], pPrec.inveta, dotS1S2, dotS1L, dotS2L) +  # stub
                             IMRPhenomX_Get_PN_tau(domegadt_constants_SS[2], domegadt_constants_SS[3], pPrec.qq, pPrec.S1_norm_2, pPrec.S2_norm_2, dotS1L, dotS2L, pPrec.eta)))    # stub
         object.__setattr__(pPrec, 'a5', eta * (domegadt_constants_NS[7] + eta * (domegadt_constants_NS[8]) +
                             IMRPhenomX_Get_PN_beta((domegadt_constants_SO[2] + eta * (domegadt_constants_SO[3])),
