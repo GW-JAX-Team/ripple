@@ -81,10 +81,6 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     # Define source frame such that \hat{L} = {0,0,1} with L_z pointing along \hat{z}
     Lhat =jnp.array([0.0, 0.0, 1.0])
 
-    # Set LHat variables - these are fixed
-    object.__setattr__(pPrec, 'Lhat_cos_theta', 1.0)  # Cosine of Polar angle of orbital angular momentum
-    object.__setattr__(pPrec, 'Lhat_phi', 0.0)        # Azimuthal angle of orbital angular momentum
-    object.__setattr__(pPrec, 'Lhat_theta', 0.0)      # Polar angle of orbital angular momentum
 
     # Dimensionful spin vectors, note eta = m1 * m2 and q = m2/m1
 
@@ -96,11 +92,6 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     S1_0_norm = IMRPhenomX_vector_L2_norm(S1v)  # stub
     S2_0_norm = IMRPhenomX_vector_L2_norm(S2v)  # stub
 
-
-    # Initial dimensionful spin vectors at reference frequency
-    # S1 = {S1x,S1y,S1z}
-
-    # S2 = {S2x,S2y,S2z}
 
     # Reference velocity v and v^2
     v_0 = jnp.power(pPrec.piGM * pWF['fRef'], 1.0/3.0)

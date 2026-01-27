@@ -693,18 +693,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
 
 
 
-    def flag_222_223_twoPN_non_spinning_orbitan_angular_momentum(self):
-        L0   = 1.0
-        L1   = 0.0
-        L2   = 3.0/2. + self.eta/6.0
-        L3   = (-7*(self.chi1L + self.chi2L + self.chi1L*self.delta - self.chi2L*self.delta) + 5*(self.chi1L + self.chi2L)*self.eta)/6.
-        L4   = (81 + (-57 + self.eta)*self.eta)/24.
-        L5   = (-1650*(self.chi1L + self.chi2L + self.chi1L*self.delta - self.chi2L*self.delta) + 1336*(self.chi1L + self.chi2L)*self.eta + 511*(self.chi1L - self.chi2L)*self.delta*self.eta + 28*(self.chi1L + self.chi2L)*self.eta2)/600.
-        L6   = (10935 + self.eta*(-62001 + 1674*self.eta + 7*self.eta2 + 2214*self.common_constants.power_of_lalpi_2))/1296.
-        L7   = 0.0
-        L8   = 0.0
-        L8L = 0.0
-        return L0, L1, L2, L3, L4, L5, L6, L7, L8, L8L
+
 
 
     def compute_evolved_spin_using_msa(self):
@@ -745,7 +734,8 @@ class IMRPhenomXGetAndSetPrecessionVariables:
 
 
         # case 223: Line 691 compute orbital angular momentum
-        L0, L1, L2, L3, L4, L5, L6, L7, L8, L8L = self.flag_222_223_twoPN_non_spinning_orbitan_angular_momentum()
+        L0, L1, L2, L3, L4, L5, L6, L7, L8, L8L = flag_222_223_twoPN_non_spinning_orbitan_angular_momentum(
+            self.eta, self.eta2, self.chi1L, self.chi2L, self.delta, self.common_constants.power_of_lalpi_2)
 
         LRef = self.M * self.M * XLALSimIMRPhenomXLPNAnsatz(self.pWF['v_ref'], self.pWF['eta'] / self.pWF['v_ref'], L0, L1, L2, L3, L4, L5, L6, L7, L8, L8L) 
 
@@ -862,7 +852,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
 
         #/* ********** PN Euler Angle Coefficients ********** */
         # Compress line 1050-1143
-        alpha1, alpha2, alpha3, alpha4L, alpha5, epsilon1, epsilon2, epsilon3, epsilon4L, epsilon5 = 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,  
+        #alpha1, alpha2, alpha3, alpha4L, alpha5, epsilon1, epsilon2, epsilon3, epsilon4L, epsilon5 = 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,  
         #self.compute_alpha_epsilon_220_330()
 
         # Compressed line 1163-1177
@@ -889,22 +879,6 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         object.__setattr__(self, 'epsilon_offset_3', epsilon_offset_3)
         object.__setattr__(self, 'alpha_offset_4', alpha_offset_4)
         object.__setattr__(self, 'epsilon_offset_4', epsilon_offset_4)
-
-        #object.__setattr__(self, 'cexp_i_alpha', cexp_i_alpha)
-        #object.__setattr__(self, 'cexp_i_epsilon', cexp_i_epsilon)
-        #object.__setattr__(self, 'cexp_i_betah', cexp_i_betah)
-
-
-        # When L + SL < 0 and q>7, we disable multibanding NH: I will skip this function
-        #self.IMRPhenomXPCheckMaxOpeningAngle()
-
-        # Activate multibanding for Euler angles it threshold !=0. Only for PhenomXPHM. */
-        #MBandPrecVersion = jax.lax.cond(self.lalParams['PhenomXPHMThresholdMband']==0, lambda _: 0, lambda _: 1, operand = None)
-        ## NH: I do not implement PhenomXPHMThresholdMband==1 option. The output of the above line will always be self.MBandPrecVersion = 0. 
-
-
-        # At high mass ratios, we find there can be numerical instabilities in the model, although the waveforms continue to be well behaved.
-        # We warn to user of the possibility of these instabilities.
 
         return None
 
@@ -1105,6 +1079,19 @@ def XLALSimIMRPhenomXLPNAnsatz(v: float, LNorm: float, L0: float, L1: float, L2:
 
 
 
+
+def flag_222_223_twoPN_non_spinning_orbitan_angular_momentum(eta, eta2, chi1L, chi2L, delta, power_of_lalpi_2):
+        L0   = 1.0
+        L1   = 0.0
+        L2   = 3.0/2. + eta/6.0
+        L3   = (-7*(chi1L + chi2L + chi1L*delta - chi2L*delta) + 5*(chi1L + chi2L)*eta)/6.
+        L4   = (81 + (-57 + eta)*eta)/24.
+        L5   = (-1650*(chi1L + chi2L + chi1L*delta - chi2L*delta) + 1336*(chi1L + chi2L)*eta + 511*(chi1L - chi2L)*delta*eta + 28*(chi1L + chi2L)*eta2)/600.
+        L6   = (10935 + eta*(-62001 + 1674*eta + 7*eta2 + 2214*power_of_lalpi_2))/1296.
+        L7   = 0.0
+        L8   = 0.0
+        L8L = 0.0
+        return L0, L1, L2, L3, L4, L5, L6, L7, L8, L8L
 
 
 
