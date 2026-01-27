@@ -197,22 +197,21 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     Spl2 = vRoots[2]
     Smi2 = vRoots[1]
     S32 = vRoots[0]
-    object.__setattr__(pPrec, 'Spl2', vRoots[2])
-    object.__setattr__(pPrec, 'Smi2', vRoots[1])
-    object.__setattr__(pPrec, 'S32', vRoots[0])
 
-    # S^2_+ + S^2_-
-    object.__setattr__(pPrec, 'Spl2pSmi2', Spl2 + Smi2)
+    Spl2pSmi2 = Spl2 + Smi2
+    Spl2mSmi2 =  Spl2 - Smi2
+
+
 
     # S^2_+ - S^2_-
-    object.__setattr__(pPrec, 'Spl2mSmi2', Spl2 - Smi2)
+
 
     # S_+ and S_-
     object.__setattr__(pPrec, 'Spl', jnp.sqrt(Spl2))
     object.__setattr__(pPrec, 'Smi', jnp.sqrt(Smi2))
 
     # Eq. 45 of PRD 95, 104004, (2017), arXiv:1703.03967, set from initial conditions
-    object.__setattr__(pPrec, 'SAv2', 0.5 * (pPrec.Spl2pSmi2))
+    object.__setattr__(pPrec, 'SAv2', 0.5 * (Spl2pSmi2))
     object.__setattr__(pPrec, 'SAv', jnp.sqrt(pPrec.SAv2))
     object.__setattr__(pPrec, 'invSAv2', 1.0 / pPrec.SAv2)
     object.__setattr__(pPrec, 'invSAv', 1.0 / pPrec.SAv)
@@ -236,11 +235,11 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     object.__setattr__(pPrec, 'S2L_pav', -q * (c_1 * (1.0 + q) - eta * Seff) / (eta * omq2))
     object.__setattr__(pPrec, 'S1S2_pav', 0.5 * pPrec.SAv2 - 0.5 * (pPrec.S1_norm_2 + pPrec.S2_norm_2))
     object.__setattr__(pPrec, 'S1Lsq_pav', (pPrec.S1L_pav*pPrec.S1L_pav +
-                        ((pPrec.Spl2mSmi2)*(pPrec.Spl2mSmi2) * v_0_2) / (32.0 * eta2 * omqsq)))
+                        ((Spl2mSmi2)*(Spl2mSmi2) * v_0_2) / (32.0 * eta2 * omqsq)))
     object.__setattr__(pPrec, 'S2Lsq_pav', (pPrec.S2L_pav*pPrec.S2L_pav +
-                        (q*q*(pPrec.Spl2mSmi2)*(pPrec.Spl2mSmi2) * v_0_2) / (32.0 * eta2 * omqsq)))
+                        (q*q*(Spl2mSmi2)*(Spl2mSmi2) * v_0_2) / (32.0 * eta2 * omqsq)))
     object.__setattr__(pPrec, 'S1LS2L_pav', (pPrec.S1L_pav*pPrec.S2L_pav -
-                        q * (pPrec.Spl2mSmi2)*(pPrec.Spl2mSmi2)*v_0_2 / (32.0 * eta2 * omqsq)))
+                        q * (Spl2mSmi2)*(Spl2mSmi2)*v_0_2 / (32.0 * eta2 * omqsq)))
     
     # Spin couplings in arXiv:1703.03967
     object.__setattr__(pPrec, 'beta3', (((113./12.) + (25./4.)*(m2/m1)) * pPrec.S1L_pav +
@@ -557,7 +556,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
             pPrec.Spl,
             Spl2,
             Smi2,
-            pPrec.Spl2mSmi2,
+            Spl2mSmi2,
             pPrec.S1_norm_2,
             pPrec.S2_norm_2,
             S32,
