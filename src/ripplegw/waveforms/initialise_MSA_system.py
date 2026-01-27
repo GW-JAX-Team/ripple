@@ -305,7 +305,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
         object.__setattr__(pPrec, 'a3', eta * (domegadt_constants_NS[3] +
                             IMRPhenomX_Get_PN_beta(domegadt_constants_SO[0], domegadt_constants_SO[1], pPrec)))
         object.__setattr__(pPrec, 'a4', eta * (domegadt_constants_NS[4] + eta * (domegadt_constants_NS[5] + eta * (domegadt_constants_NS[6])) +
-                            IMRPhenomX_Get_PN_sigma(domegadt_constants_SS[0], domegadt_constants_SS[1], pPrec) +  # stub
+                            IMRPhenomX_Get_PN_sigma(domegadt_constants_SS[0], domegadt_constants_SS[1], pPrec.inveta, pPrec.dotS1S2, pPrec.dotS1L, pPrec.dotS2L) +  # stub
                             IMRPhenomX_Get_PN_tau(domegadt_constants_SS[2], domegadt_constants_SS[3], pPrec)))    # stub
         object.__setattr__(pPrec, 'a5', eta * (domegadt_constants_NS[7] + eta * (domegadt_constants_NS[8]) +
                             IMRPhenomX_Get_PN_beta((domegadt_constants_SO[2] + eta * (domegadt_constants_SO[3])),
@@ -611,7 +611,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
 
 
 
-
+#DONE
 def IMRPhenomX_Return_Roots_MSA(
     LNorm: float,
     JNorm: float,
@@ -817,19 +817,30 @@ def IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(
 
 
 
-def IMRPhenomX_Get_PN_sigma(a: float, b: float, pPrec: dict) -> float:
+def IMRPhenomX_Get_PN_sigma(
+    a: float,
+    b: float,
+    inveta: float,
+    dotS1S2: float,
+    dotS1L: float,
+    dotS2L: float,
+) -> float:
     """
     Calculate PN sigma coefficient
-    
+
     Args:
         a: First coefficient (float)
         b: Second coefficient (float)
-        pPrec: Precession structure dictionary (dict)
-        
+        inveta: Inverse of symmetric mass ratio (float)
+        dotS1S2: Dot product of S1 and S2 (float)
+        dotS1L: Dot product of S1 and L (float)
+        dotS2L: Dot product of S2 and L (float)
+
     Returns:
         float: PN sigma value
     """
-    return pPrec.inveta * (a * pPrec.dotS1S2 - b * pPrec.dotS1L * pPrec.dotS2L)
+    return inveta * (a * dotS1S2 - b * dotS1L * dotS2L)
+
 
 def IMRPhenomX_Get_PN_tau(a: float, b: float, pPrec: dict) -> float:
     """
