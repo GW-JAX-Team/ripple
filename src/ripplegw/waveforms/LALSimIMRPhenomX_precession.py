@@ -1033,20 +1033,20 @@ def get_phiJ_Sf(tol_condition, J0_Sf):
 def convention_five_or_seven_false(pPrec, pWF, piM, fRef, alpha0, epsilon0):
     # Get initial Get \alpha and \epsilon offsets at \omega = pi * M * f_{Ref} */
     mprime = 2 #FIXME
-    alpha_offset, epsilon_offset = Get_alphaepsilon_atfref(pPrec, pWF, mprime, piM, fRef, alpha0, epsilon0)
+    alpha_offset, epsilon_offset = Get_alphaepsilon_atfref(pPrec, mprime, piM, fRef, alpha0, epsilon0)
     return alpha_offset, epsilon_offset, alpha_offset, epsilon_offset, alpha_offset, epsilon_offset, alpha_offset, epsilon_offset
 
 
 
-def Get_alphaepsilon_atfref(pPrec, pWF, mprime, piM, fRef, alpha0, epsilon0):
+def Get_alphaepsilon_atfref(pPrec, mprime, piM, fRef, alpha0, epsilon0):
     omega_ref = piM * fRef * 2 / mprime
 
-    alpha_offset, epsilon_offset = Get_alphaepsilon_atfref_pflag_true(pPrec, pWF, omega_ref, alpha0, epsilon0)
+    alpha_offset, epsilon_offset = Get_alphaepsilon_atfref_pflag_true(pPrec, omega_ref, alpha0, epsilon0)
     
     return alpha_offset, epsilon_offset
 
 
-def Get_alphaepsilon_atfref_pflag_true(pPrec, pWF, omega_ref, alpha0, epsilon0):
+def Get_alphaepsilon_atfref_pflag_true(pPrec, omega_ref, alpha0, epsilon0):
 
     v = jnp.cbrt(omega_ref)
     vangles  = IMRPhenomX_Return_phi_zeta_costhetaL_MSA(v, pPrec.eta, pPrec.eta2, pPrec.eta3, pPrec.eta4,

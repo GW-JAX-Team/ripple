@@ -64,7 +64,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
 
     q = m2 / m1  # m2 / m1, q < 1, m1 > m2
     invq = 1.0 / q  # m1 / m2, invq > 1, m1 > m2
-
+    object.__setattr__(pPrec, 'qq', q)
     object.__setattr__(pPrec, 'invqq', invq)
 
     mu = (m1 * m2) / (m1 + m2)
