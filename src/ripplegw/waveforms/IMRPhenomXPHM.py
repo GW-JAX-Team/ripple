@@ -11,9 +11,10 @@ from ripplegw import Mc_eta_to_ms
 from .spherical_harmonics import (compute_sminus2_l2, compute_sminus2_l3, compute_sminus2_l4)
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from .LALSimIMRPhenomX_precession import (IMRPhenomX_Return_phi_zeta_costhetaL_MSA, IMRPhenomXGetAndSetPrecessionVariables)
+from .LALSimIMRPhenomX_precession import IMRPhenomXGetAndSetPrecessionVariables
+from .initialise_MSA_system import IMRPhenomX_Return_phi_zeta_costhetaL_MSA
 from .LALSimIMRPhenomX_internals import IMRPhenomXSetWaveformVariables
-from .LALSimIMRPhenomXPHM import Get_alpha_epsilon_offset
+
 from .LALSimIMRPhenomD_internals import DPhiMRD
 from .LALSimIMRPhenomUtils import XLALSimPhenomUtilsChiP
 
@@ -3180,3 +3181,40 @@ def symmetric_mass_ratio_to_mass_ratio(symmetric_mass_ratio):
     temp = (1 / symmetric_mass_ratio / 2 - 1)
     return temp - (temp ** 2 - 1) ** 0.5
 
+
+
+
+
+def Get_alpha_epsilon_offset(
+    mprime: int,                      # Second index of the non-precessing mode (l, mprime)
+    pPrec                             # IMRPhenomXP Precessing structure
+):
+    """
+    Get offset alpha and epsilon angles at reference frequency.
+    The angles are evaluated at frequency 2*pi*MfRef/mprime so the offset depends on mprime.
+
+    Returns:
+        alpha_offset_mprime: Offset alpha angle at reference frequency
+        epsilon_offset_mprime: Offset epsilon angle at reference frequency
+    """
+
+    # Use jax.lax.switch for the case statement
+    def case_1():
+        return pPrec.alpha_offset_1, pPrec.epsilon_offset_1
+
+    def case_2():
+        return pPrec.alpha_offset, pPrec.epsilon_offset  # Already used in XP code, no _2 suffix
+
+    def case_3():
+        return pPrec.alpha_offset_3, pPrec.epsilon_offset_3
+
+    def case_4():
+        return pPrec.alpha_offset_4, pPrec.epsilon_offset_4
+
+    # Use jax.lax.switch with mprime-1 as index (since switch uses 0-based indexing)
+    alpha_offset_mprime, epsilon_offset_mprime = jax.lax.switch(
+        mprime - 1,
+        [case_1, case_2, case_3, case_4]
+    )
+
+    return alpha_offset_mprime, epsilon_offset_mprime

@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from jax_dataclasses import pytree_dataclass
 
 from .LALSimIMRPhenomX_PNR_internals import (IMRPhenomX_PNR_HMInterpolationDeltaF, IMRPhenomX_PNR_GetAndSetPNRVariables, IMRPhenomX_PNR_GetAndSetCoPrecParams)
-from .initialise_MSA_system import IMRPhenomX_Initialize_MSA_System
+from .initialise_MSA_system import IMRPhenomX_Initialize_MSA_System, IMRPhenomX_Return_phi_zeta_costhetaL_MSA
 
 from .LALSimIMRPhenomX_PNR_alpha import IMRPhenomX_PNR_precompute_alpha_coefficients
 from .LALSimIMRPhenomX_PNR_beta import (
@@ -25,7 +25,6 @@ from .LALSimIMRPhenomX_PNR_internals import (XLALSimIMRPhenomXFinalSpin2017, XLA
 from .LALSimIMRPhenomTHM_fits import evaluate_QNMfit_fring21
 
 from .LALSimIMRPhenomX_qnm import (evaluate_QNMfit_fring22, evaluate_QNMfit_fdamp22)
-from .elliptic_integrals import gsl_sf_elljac_e
 
 @pytree_dataclass
 class CommonConstants:
@@ -772,18 +771,18 @@ class IMRPhenomXGetAndSetPrecessionVariables:
 
         #Line 580
         self = IMRPhenomX_PNR_GetAndSetCoPrecParams(self, self.pWF, self.lalParams)
-        # What is the output of this function?
+
 
         #if pflag in 220, 221, 222, 223, 224...
         #Line 597
         self = IMRPhenomX_Initialize_MSA_System(self, self.pWF, self.lalParams['ExpansionOrder'])
-        # What is the output of this function?
+
 
 
         #TODO if MSA_ERROR: switch to NNLO
 
 
-        Mfinal, afinal, fRING, fDAMP = IMRPhenomX_SetPrecessingRemnantParams(self, self.pWF, self.lalParams)
+        #Mfinal, afinal, fRING, fDAMP = IMRPhenomX_SetPrecessingRemnantParams(self, self.pWF, self.lalParams)
         # The output of this function should be Mfinal, afinal, fring, and fdamp
         # To be checked
 
@@ -1057,95 +1056,6 @@ def Get_alphaepsilon_atfref_pflag_true(pPrec, pWF, omega_ref, alpha0, epsilon0):
     return alpha_offset, epsilon_offset
     
 
-def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(pPrec, pWF, v):
-    # Wrapper to generate \f$\phi_z\f$, \f$\zeta\f$ and \f$\cos \theta_L\f$ at a given frequency
-
-    
-
-    L_norm = pWF['eta']/v
-
-    J_norm = IMRPhenomX_JNorm_MSA(L_norm, pPrec)
-
-    # Compressing line 2212 - 2220
-    L_norm3PN = IMRPhenomX_L_norm_3PN_of_v(v, L_norm, pPrec)
-
-    '''
-    if (pPrec.IMRPhenomXPrecVersion == 222) | (pPrec.IMRPhenomXPrecVersion == 223):
-        L_norm3PN = IMRPhenomX_L_norm_3PN_of_v(v, v*v, L_norm, pPrec)
-
-    else:
-        L_norm3PN = XLALSimIMRPhenomXLPNAnsatz(v, L_norm, pPrec.L0, pPrec.L1, pPrec.L2, pPrec.L3, pPrec.L4, pPrec.L5, pPrec.L6, pPrec.L7, pPrec.L8, pPrec.L8L)
-    '''
-    
-
-    J_norm3PN = IMRPhenomX_JNorm_MSA(L_norm3PN, pPrec)
-    vRoots    = IMRPhenomX_Return_Roots_MSA(L_norm, J_norm, pPrec)
-
-    object.__setattr__(pPrec, 'S32', vRoots[0])
-    object.__setattr__(pPrec, 'Smi2', vRoots[1])
-    object.__setattr__(pPrec, 'Spl2', vRoots[2])
-
-    object.__setattr__(pPrec, 'Spl2mSmi2', pPrec.Spl2 - pPrec.Smi2)
-    object.__setattr__(pPrec, 'Spl2pSmi2', pPrec.Spl2 + pPrec.Smi2)
-    object.__setattr__(pPrec, 'Spl', jnp.sqrt(pPrec.Spl2))
-    object.__setattr__(pPrec, 'Smi', jnp.sqrt(pPrec.Smi2))
-
-    SNorm = IMRPhenomX_Return_SNorm_MSA(v, pPrec)
-    object.__setattr__(pPrec, 'S_norm', SNorm)
-    object.__setattr__(pPrec, 'S_norm_2', SNorm * SNorm)
-
-    # Compressing line 2245-2249
-    vMSA_correction = IMRPhenomX_Return_MSA_Corrections_MSA(v, L_norm, J_norm, pPrec)
-    cond = (jnp.abs(pPrec.Smi2 - pPrec.Spl2) > 1.e-5)
-
-    # Create vMSA with zeros matching the shape of vMSA_correction
-    vMSA_zeros = jnp.zeros_like(vMSA_correction)
-    vMSA = jnp.where(cond, vMSA_correction, vMSA_zeros)
-    
-    '''
-    if(jnp.abs(pPrec.Smi2 - pPrec.Spl2) > 1.e-5):
-
-        #Get phiz_0_MSA and zeta_0_MSA
-        vMSA = IMRPhenomX_Return_MSA_Corrections_MSA(v, L_norm, J_norm, pPrec)
-    '''
-
-    phiz_MSA     = vMSA[0]
-    zeta_MSA     = vMSA[1]
-
-    phiz         = IMRPhenomX_Return_phiz_MSA(v, J_norm, pPrec)
-    zeta         = IMRPhenomX_Return_zeta_MSA(v, pPrec)
-    cos_theta_L        = IMRPhenomX_costhetaLJ(L_norm3PN, J_norm3PN, SNorm)
-
-    vout1 = phiz + phiz_MSA
-    vout2 = zeta + zeta_MSA
-    vout3 = cos_theta_L
-
-    #jax.debug.print("JAX debug v {} cos_theta_L {} ", v, cos_theta_L)
-
-
-    return jnp.array([vout1, vout2, vout3])
-
-
-
-
-def IMRPhenomX_JNorm_MSA(LNorm:float, pPrec)->float:
-    JNorm2 = (LNorm * LNorm + 2.0 * LNorm * pPrec.c1_over_eta + pPrec.SAv2)
-    return jnp.sqrt(JNorm2)
-
-
-
-
-def IMRPhenomX_L_norm_3PN_of_v(v: jax.Array, L_norm: float, pPrec)->float:
-    v2 = v*v
-    term_4 = pPrec.constants_L[4]
-    term_3 = pPrec.constants_L[3]
-    term_2 = pPrec.constants_L[2]
-    term_1 = pPrec.constants_L[1]
-    term_0 = pPrec.constants_L[0]
-    L_norm3PN = L_norm*(1. + v2*(term_0 + v*term_1 + v2*(term_2 + v*term_3 + v2*(term_4))))
-
-    return L_norm3PN
-
 
 def XLALSimIMRPhenomXLPNAnsatz(v: float, LNorm: float, L0: float, L1: float, L2: float, 
                                L3: float, L4: float, L5: float, L6: float, L7: float, 
@@ -1290,39 +1200,6 @@ def IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(LNorm, JNorm, pPrec):
 
 
 
-def IMRPhenomX_Return_SNorm_MSA(v, pPrec):
-
-    v2 = v * v
-
-    cancel_condition = jnp.abs(pPrec.Smi2 - pPrec.Spl2) < 1e-5
-
-
-    def sn_zero(_):
-        sn = jnp.array(0.0)
-        return sn
-
-    def sn_jacobi(_):
-        # Equation 25 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
-        m = (pPrec.Smi2 - pPrec.Spl2) / (pPrec.S32 - pPrec.Spl2)
-
-
-        psi = IMRPhenomX_psiofv(
-            v, v2,
-            pPrec.psi0, pPrec.psi1, pPrec.psi2,
-            pPrec
-        )
-
-        # Jacobi elliptic functions
-        sn, cn, dn = gsl_sf_elljac_e(psi, m) # FIXME
-        return sn
-
-    sn = jnp.where(cancel_condition, 0.0, sn_jacobi(None))
-
-    # Equation 23 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
-    SNorm2 = pPrec.Spl2 + (pPrec.Smi2 - pPrec.Spl2) * sn * sn
-
-    return jnp.sqrt(SNorm2)
-
 
 
 
@@ -1331,89 +1208,6 @@ def IMRPhenomX_psiofv(v, v2, psi0, psi1, psi2, pPrec):
     return psi0 - 0.75 * pPrec.g0 * pPrec.delta_qq * (1.0 + psi1 * v + psi2 * v2) / (v2 * v)
 
 
-
-
-def IMRPhenomX_Return_MSA_Corrections_MSA(
-    v, 
-    LNorm, 
-    JNorm, 
-    pPrec
-    ):
-    
-    v2 = v * v
-
-    # Sets c0, c2 and c4 in pPrec as per Eq. B6-B8 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
-    c_vec = IMRPhenomX_Return_Constants_c_MSA(v, JNorm, pPrec)
-    # Sets d0, d2 and d4 in pPrec as per Eq. B9-B11 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
-    d_vec = IMRPhenomX_Return_Constants_d_MSA(LNorm, JNorm, pPrec)  
-
-    c0, c2, c4 = c_vec
-    d0, d2, d4 = d_vec
-
-    #jax.debug.print("jax D vector {} {} {}", d0, d2, d4)
-
-    two_d0 = 2.0 * d0
-    
-    # Eq. B20 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
-    sd = jnp.sqrt(jnp.abs(d2 * d2 - 4.0 * d0 * d4))
-
-    # Eq. F20-21 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
-    A_theta_L = 0.5 * ((JNorm / LNorm) + (LNorm / JNorm) - (pPrec.Spl2 / (JNorm * LNorm)))
-    B_theta_L = 0.5 * pPrec.Spl2mSmi2 / (JNorm * LNorm)
-
-    nc_num = 2.0 * (d0 + d2 + d4)
-    nc_denom = two_d0 + d2 + sd
-
-    nc = nc_num / nc_denom
-    nd = nc_denom / two_d0
-
-    sqrt_nc = jnp.sqrt(jnp.abs(nc))
-    sqrt_nd = jnp.sqrt(jnp.abs(nd))
-
-    psi = IMRPhenomX_Return_Psi_MSA(v, v2, pPrec) + pPrec.psi0
-    psi_dot = IMRPhenomX_Return_Psi_dot_MSA(v, pPrec) 
-
-    tan_psi = jnp.tan(psi)
-    atan_psi = jnp.arctan(tan_psi)
-
-    C1 = -0.5 * (c0 / d0 - 2.0 * (c0 + c2 + c4) / nc_num)
-    C2num = (c0 * (-2.0 * d0 * d4 + d2 * d2 + d2 * d4) -
-             c2 * d0 * (d2 + 2.0 * d4) +
-             c4 * d0 * (two_d0 + d2))
-    C2den = 2.0 * d0 * sd * (d0 + d2 + d4)
-    C2 = C2num / C2den
-
-    Cphi = C1 + C2
-    Dphi = C1 - C2
-
-    def compute_Cphi_term():
-        
-        return jnp.abs((
-            (c4 * d0 * ((2 * d0 + d2) + sd) -
-                c2 * d0 * ((d2 + 2.0 * d4) - sd) -
-                c0 * ((2 * d0 * d4) - (d2 + d4) * (d2 - 
-                sd))) / C2den) * (sqrt_nc / (nc - 1.0)) * (atan_psi - jnp.arctan(sqrt_nc * tan_psi))) / psi_dot
-        
-    def compute_Dphi_term():
-            return jnp.abs((
-                (-c4 * d0 * ((2 * d0 + d2) - sd) +
-                 c2 * d0 * ((d2 + 2.0 * d4) + sd) -
-                 c0 * (-(2 * d0 * d4) + (d2 + d4) * (d2 + sd))) / C2den
-            ) * (sqrt_nd / (nd - 1.0)) * (atan_psi - jnp.arctan(sqrt_nd * tan_psi))) / psi_dot
-
-    phiz_0_MSA_Cphi_term = jnp.where(nc == 1.0, 0.0, compute_Cphi_term())
-    phiz_0_MSA_Dphi_term = jnp.where(nd == 1.0, 0.0, compute_Dphi_term())
-
-    vMSA_x = phiz_0_MSA_Cphi_term + phiz_0_MSA_Dphi_term
-
-    #####  restart from here
-    vMSA_y = A_theta_L * vMSA_x + 2.0 * B_theta_L * d0 * (
-                phiz_0_MSA_Cphi_term / (sd - d2) - phiz_0_MSA_Dphi_term / (sd + d2))
-
-    vMSA_x = jnp.where(jnp.isnan(vMSA_x), 0.0, vMSA_x)
-    vMSA_y = jnp.where(jnp.isnan(vMSA_y), 0.0, vMSA_y)
-
-    return jnp.stack([vMSA_x, vMSA_y, jnp.zeros_like(vMSA_x)], axis=0)
 
 
 
@@ -1486,96 +1280,6 @@ def IMRPhenomX_Return_Psi_dot_MSA(v, pPrec):
     return psi_dot
 
 
-
-def IMRPhenomX_costhetaLJ(
-    L_norm: float, 
-    J_norm: float, 
-    S_norm: float
-    ) -> float:
-    costhetaLJ = 0.5 * (J_norm**2 + L_norm**2 - S_norm**2) / (L_norm * J_norm)
-
-    # Clamp the value to the interval [-1.0, 1.0]
-    costhetaLJ = jnp.clip(costhetaLJ, -1.0, 1.0)
-
-    return costhetaLJ
-
-
-def IMRPhenomX_Return_phiz_MSA(
-    v: float, 
-    JNorm: float, 
-    pPrec
-    ) -> float:
-    
-    invv = 1.0 / v
-    invv2 = invv * invv
-    LNewt = pPrec.eta / v
-
-    c1 = pPrec.c1
-    c12 = c1 * c1
-
-    SAv2 = pPrec.SAv2
-    SAv = pPrec.SAv
-    invSAv = pPrec.invSAv
-    invSAv2 = pPrec.invSAv2
-
-    # These are log functions defined in Eq. D27 and D28 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
-    log1 = jnp.log(jnp.abs(c1 + JNorm * pPrec.eta + pPrec.eta * LNewt))
-    log2 = jnp.log(jnp.abs(c1 + JNorm * SAv * v + SAv2 * v))
-
-    # Eq. D22-D27 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
-    phiz_0_coeff = (JNorm * pPrec.inveta**4) * (
-        0.5 * c12 - (c1 * pPrec.eta2 * invv) / 6.0 - (SAv2 * pPrec.eta2) / 3.0 - (pPrec.eta4 * invv2) / 3.0
-    ) - (0.5 * c1 * pPrec.inveta) * (
-        c12 * pPrec.inveta**4 - SAv2 * pPrec.inveta**2
-    ) * log1
-
-    phiz_1_coeff = (
-        -0.5 * JNorm * pPrec.inveta**2 * (c1 + pPrec.eta * LNewt)
-        + 0.5 * pPrec.inveta**3 * (c12 - pPrec.eta2 * SAv2) * log1
-    )
-
-    phiz_2_coeff = -JNorm + SAv * log2 - c1 * log1 * pPrec.inveta
-
-    phiz_3_coeff = JNorm * v - pPrec.eta * log1 + c1 * log2 * invSAv
-
-    phiz_4_coeff = (
-        0.5 * JNorm * invSAv2 * v * (c1 + v * SAv2)
-        - 0.5 * invSAv2 * invSAv * (c12 - pPrec.eta2 * SAv2) * log2
-    )
-
-    phiz_5_coeff = (
-        -JNorm * v * (
-            0.5 * c12 * invSAv2 * invSAv2
-            - c1 * v * invSAv2 / 6.0
-            - v * v / 3.0
-            - pPrec.eta2 * invSAv2 / 3.0
-        )
-        + 0.5 * c1 * invSAv2 * invSAv2 * invSAv * (c12 - pPrec.eta2 * SAv2) * log2
-    )
-
-    # Eq. 66 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
- 
-    # \phi_{z,-1} = \sum^5_{n=0} <\Omega_z>^(n) \phi_z^(n) + \phi_{z,-1}^0
- 
-    # Note that the <\Omega_z>^(n) are given by Omegazn_coeff's as in Eqs. D15-D20
-    phiz_out = (
-        phiz_0_coeff * pPrec.Omegaz0_coeff
-        + phiz_1_coeff * pPrec.Omegaz1_coeff
-        + phiz_2_coeff * pPrec.Omegaz2_coeff
-        + phiz_3_coeff * pPrec.Omegaz3_coeff
-        + phiz_4_coeff * pPrec.Omegaz4_coeff
-        + phiz_5_coeff * pPrec.Omegaz5_coeff
-        + pPrec.phiz_0
-    )
-
-    #jax.debug.print("JAX debug velocity {} Omegaz0_coeff: {}, Omegaz1_coeff: {}, Omegaz2_coeff: {}, Omegaz3_coeff: {}, Omegaz4_coeff: {}, Omegaz5_coeff: {}, pPrec.phiz_0 {}", v, pPrec.Omegaz0_coeff, pPrec.Omegaz1_coeff, pPrec.Omegaz2_coeff, pPrec.Omegaz3_coeff, pPrec.Omegaz4_coeff, pPrec.Omegaz5_coeff, pPrec.phiz_0)
-    
-    #jax.debug.print("JAX debug velocity {} phiz_0_coeff: {}, phiz_1_coeff: {}, phiz_2_coeff: {}, phiz_3_coeff: {}, phiz_4_coeff: {}, phiz_5_coeff: {}\n\n", v, phiz_0_coeff, phiz_1_coeff, phiz_2_coeff, phiz_3_coeff, phiz_4_coeff, phiz_5_coeff)
-
-    # Ensure no NaN (replace with 0.0 if NaN)
-    phiz_out = jnp.nan_to_num(phiz_out, nan=0.0)
-
-    return phiz_out
 
 
     

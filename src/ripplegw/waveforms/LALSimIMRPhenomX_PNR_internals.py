@@ -183,7 +183,7 @@ def IMRPhenomX_PNR_GetAndSetPNRVariables(pPrec, pWF: dict):
     q = pWF['q']
 
     # Select spin values based on version
-    is_version_330 = (pPrec.IMRPhenomXPrecVersion == 330)
+    #is_version_330 = (pPrec.IMRPhenomXPrecVersion == 330)
     #FIXME
     '''
     chi1x = jnp.where(is_version_330, pPrec.chi1x_evolved, pPrec.chi1x)
