@@ -18,6 +18,7 @@ from .LALSimIMRPhenomX_internals import IMRPhenomXSetWaveformVariables
 from .LALSimIMRPhenomD_internals import DPhiMRD
 from .LALSimIMRPhenomUtils import XLALSimPhenomUtilsChiP
 
+#from .LALSimIMRPhenomX_precession import Get_alpha_epsilon_offset
 
 
 
@@ -2409,13 +2410,10 @@ class IMRPhenomXPHM(WaveFormModel):
                                                                pPrec.psi0, pPrec.psi1, pPrec.psi2, pPrec.g0, 
                                                                pPrec.Omegaz0_coeff, pPrec.Omegaz1_coeff, pPrec.Omegaz2_coeff, pPrec.Omegaz3_coeff, pPrec.Omegaz4_coeff, pPrec.Omegaz5_coeff, pPrec.phiz_0,
                                                                pPrec.Omegazeta0_coeff, pPrec.Omegazeta1_coeff, pPrec.Omegazeta2_coeff, pPrec.Omegazeta3_coeff, pPrec.Omegazeta4_coeff, pPrec.Omegazeta5_coeff, pPrec.zeta_0)
+            
 
-            alpha_offset_emm, epsilon_offset_emm = Get_alpha_epsilon_offset(
-                emm,
-                pPrec.alpha_offset_1, pPrec.epsilon_offset_1,
-                pPrec.alpha_offset, pPrec.epsilon_offset,
-                pPrec.alpha_offset_3, pPrec.epsilon_offset_3,
-                pPrec.alpha_offset_4, pPrec.epsilon_offset_4)
+            alpha_offset_emm = pPrec.alpha_offset_array[emm]
+            epsilon_offset_emm = pPrec.epsilon_offset_array[emm]
 
             alpha = vangles[0] - alpha_offset_emm
             epsilon = vangles[1] - epsilon_offset_emm

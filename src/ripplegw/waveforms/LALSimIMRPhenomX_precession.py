@@ -871,14 +871,17 @@ class IMRPhenomXGetAndSetPrecessionVariables:
             self.Omegazeta0_coeff, self.Omegazeta1_coeff, self.Omegazeta2_coeff, self.Omegazeta3_coeff, self.Omegazeta4_coeff, self.Omegazeta5_coeff, self.zeta_0)
 
 
-        object.__setattr__(self, 'alpha_offset', alpha_offset)
-        object.__setattr__(self, 'epsilon_offset', epsilon_offset)
-        object.__setattr__(self, 'alpha_offset_1', alpha_offset_1)
-        object.__setattr__(self, 'epsilon_offset_1', epsilon_offset_1)
-        object.__setattr__(self, 'alpha_offset_3', alpha_offset_3)
-        object.__setattr__(self, 'epsilon_offset_3', epsilon_offset_3)
-        object.__setattr__(self, 'alpha_offset_4', alpha_offset_4)
-        object.__setattr__(self, 'epsilon_offset_4', epsilon_offset_4)
+        
+        alpha_offset_array, epsilon_offset_array = Get_alpha_epsilon_offset(
+                alpha_offset_1, epsilon_offset_1,
+                alpha_offset, epsilon_offset,
+                alpha_offset_3, epsilon_offset_3,
+                alpha_offset_4, epsilon_offset_4)
+        
+        object.__setattr__(self, 'alpha_offset_array', alpha_offset_array)
+        object.__setattr__(self, 'epsilon_offset_array', epsilon_offset_array)
+
+        
 
         
         return None
@@ -1079,6 +1082,32 @@ def XLALSimIMRPhenomXLPNAnsatz(v: float, LNorm: float, L0: float, L1: float, L2:
                     L6*x3 + L7*(x3*sqx) + L8*x4 + L8L*x4*jnp.log(x))
 
 
+
+
+
+def Get_alpha_epsilon_offset(
+    alpha_offset_1,
+    epsilon_offset_1,
+    alpha_offset,
+    epsilon_offset,
+    alpha_offset_3,
+    epsilon_offset_3,
+    alpha_offset_4,
+    epsilon_offset_4
+):
+    """
+    Get offset alpha and epsilon angles at reference frequency for m = 1, 2, 3, 4.
+    The angles are evaluated at frequency 2*pi*MfRef/mprime so the offset depends on mprime.
+
+    Returns:
+        alpha_offsets: Array of alpha offsets for m = 1, 2, 3, 4
+        epsilon_offsets: Array of epsilon offsets for m = 1, 2, 3, 4
+    """
+
+    alpha_offsets = jnp.array([alpha_offset_1, alpha_offset, alpha_offset_3, alpha_offset_4])
+    epsilon_offsets = jnp.array([epsilon_offset_1, epsilon_offset, epsilon_offset_3, epsilon_offset_4])
+
+    return alpha_offsets, epsilon_offsets
 
 
 def flag_222_223_twoPN_non_spinning_orbitan_angular_momentum(eta, eta2, chi1L, chi2L, delta, power_of_lalpi_2):
