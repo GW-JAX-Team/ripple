@@ -287,19 +287,10 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     # These constants are used in TaylorT2 where domega/dt is expressed as an inverse polynomial
     g0 = 1/pPrec.a0
     g2 = -(pPrec.a2 / pPrec.a0_2)
+    g3 = -(pPrec.a3 / pPrec.a0_2)
+    g4 = -(pPrec.a4 * pPrec.a0 - pPrec.a2_2) / pPrec.a0_3
+    g5 = -(pPrec.a5 * pPrec.a0 - 2.0 * pPrec.a3 * pPrec.a2) / pPrec.a0_3
 
-
-    # Eq. A2 (1703.03967)
-    object.__setattr__(pPrec, 'g2', -(pPrec.a2 / pPrec.a0_2))
-
-    # Eq. A3 (1703.03967)
-    object.__setattr__(pPrec, 'g3', -(pPrec.a3 / pPrec.a0_2))
-
-    # Eq.A4 (1703.03967)
-    object.__setattr__(pPrec, 'g4', -(pPrec.a4 * pPrec.a0 - pPrec.a2_2) / pPrec.a0_3)
-
-    # Eq. A5 (1703.03967)
-    object.__setattr__(pPrec, 'g5', -(pPrec.a5 * pPrec.a0 - 2.0 * pPrec.a3 * pPrec.a2) / pPrec.a0_3)
 
     # Useful powers of delta
     delta = pPrec.delta_qq
@@ -465,9 +456,9 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     object.__setattr__(pPrec, 'Omegaz0_coeff', 3.0 * g0 * pPrec.Omegaz0)
     object.__setattr__(pPrec, 'Omegaz1_coeff', 3.0 * g0 * pPrec.Omegaz1)
     object.__setattr__(pPrec, 'Omegaz2_coeff', 3.0 * (g0 * pPrec.Omegaz2 + g2*pPrec.Omegaz0))
-    object.__setattr__(pPrec, 'Omegaz3_coeff', 3.0 * (g0 * pPrec.Omegaz3 + g2*pPrec.Omegaz1 + pPrec.g3*pPrec.Omegaz0))
-    object.__setattr__(pPrec, 'Omegaz4_coeff', 3.0 * (g0 * pPrec.Omegaz4 + g2*pPrec.Omegaz2 + pPrec.g3*pPrec.Omegaz1 + pPrec.g4*pPrec.Omegaz0))
-    #object.__setattr__(pPrec, 'Omegaz5_coeff', 3.0 * (g0 * pPrec.Omegaz5 + g2*pPrec.Omegaz3 + pPrec.g3*pPrec.Omegaz2 + pPrec.g4*pPrec.Omegaz1 + pPrec.g5*pPrec.Omegaz0))
+    object.__setattr__(pPrec, 'Omegaz3_coeff', 3.0 * (g0 * pPrec.Omegaz3 + g2*pPrec.Omegaz1 + g3*pPrec.Omegaz0))
+    object.__setattr__(pPrec, 'Omegaz4_coeff', 3.0 * (g0 * pPrec.Omegaz4 + g2*pPrec.Omegaz2 + g3*pPrec.Omegaz1 + g4*pPrec.Omegaz0))
+    #object.__setattr__(pPrec, 'Omegaz5_coeff', 3.0 * (g0 * pPrec.Omegaz5 + g2*pPrec.Omegaz3 + g3*pPrec.Omegaz2 + g4*pPrec.Omegaz1 + g5*pPrec.Omegaz0))
     object.__setattr__(pPrec, 'Omegaz5_coeff', 0.0) #FIXME
     
     # Coefficients of zeta: in Appendix E of PRD, 95, 104004, (2017), arXiv:1703.03967
@@ -482,19 +473,19 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     Omegazeta0_coeff = -g0 * pPrec.Omegazeta0
     Omegazeta1_coeff = -1.5 * g0 * pPrec.Omegazeta1
     Omegazeta2_coeff = -3.0*(g0 * pPrec.Omegazeta2 + g2*pPrec.Omegazeta0)
-    Omegazeta3_coeff = 3.0*(g0 * pPrec.Omegazeta3 + g2*pPrec.Omegazeta1 + pPrec.g3*pPrec.Omegazeta0)
-    Omegazeta4_coeff = 3.0*(g0 * pPrec.Omegazeta4 + g2*pPrec.Omegazeta2 + pPrec.g3*pPrec.Omegazeta1 + pPrec.g4*pPrec.Omegazeta0)
-    #Omegazeta5_coeff = 1.5*(g0*pPrec.Omegazeta5 + g2*pPrec.Omegazeta3 + pPrec.g3*pPrec.Omegazeta2 + pPrec.g4*pPrec.Omegazeta1 + pPrec.g5*pPrec.Omegazeta0)
+    Omegazeta3_coeff = 3.0*(g0 * pPrec.Omegazeta3 + g2*pPrec.Omegazeta1 + g3*pPrec.Omegazeta0)
+    Omegazeta4_coeff = 3.0*(g0 * pPrec.Omegazeta4 + g2*pPrec.Omegazeta2 + g3*pPrec.Omegazeta1 + g4*pPrec.Omegazeta0)
+    #Omegazeta5_coeff = 1.5*(g0*pPrec.Omegazeta5 + g2*pPrec.Omegazeta3 + g3*pPrec.Omegazeta2 + g4*pPrec.Omegazeta1 + g5*pPrec.Omegazeta0)
     Omegazeta5_coeff = 0.0 #FIXME
 
     '''
     Omegazeta0_coeff = -g0 * pPrec.Omegazeta0
     Omegazeta1_coeff = -1.5 * g0 * pPrec.Omegazeta1
     Omegazeta2_coeff = -3.0*(g0 * pPrec.Omegazeta2 + g2*pPrec.Omegazeta0)
-    Omegazeta3_coeff = 3.0*(g0 * pPrec.Omegazeta3 + g2*pPrec.Omegazeta1 + pPrec.g3*pPrec.Omegazeta0)
-    Omegazeta4_coeff = 3.0*(g0 * pPrec.Omegazeta4 + g2*pPrec.Omegazeta2 + pPrec.g3*pPrec.Omegazeta1 + pPrec.g4*pPrec.Omegazeta0)
+    Omegazeta3_coeff = 3.0*(g0 * pPrec.Omegazeta3 + g2*pPrec.Omegazeta1 + g3*pPrec.Omegazeta0)
+    Omegazeta4_coeff = 3.0*(g0 * pPrec.Omegazeta4 + g2*pPrec.Omegazeta2 + g3*pPrec.Omegazeta1 + g4*pPrec.Omegazeta0)
 
-    Omegazeta5_coeff = 1.5*(g0*pPrec.Omegazeta5 + g2*pPrec.Omegazeta3 + pPrec.g3*pPrec.Omegazeta2 + pPrec.g4*pPrec.Omegazeta1 + pPrec.g5*pPrec.Omegazeta0)
+    Omegazeta5_coeff = 1.5*(g0*pPrec.Omegazeta5 + g2*pPrec.Omegazeta3 + g3*pPrec.Omegazeta2 + g4*pPrec.Omegazeta1 + g5*pPrec.Omegazeta0)
     '''    
     #Line 2887 - 2943 compressed
     #pPrec = apply_expansion_order(pPrec, ExpansionOrder)
