@@ -138,7 +138,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
         L_csts_nonspin[0] + eta * L_csts_nonspin[1]
     )
     constants_L = constants_L.at[1].set(
-        IMRPhenomX_Get_PN_beta(L_csts_spinorbit[0], L_csts_spinorbit[1], pPrec)  # stub
+        IMRPhenomX_Get_PN_beta(L_csts_spinorbit[0], L_csts_spinorbit[1], pPrec.dotS1L, pPrec.dotS2L, pPrec.qq)  # stub
     )
     constants_L = constants_L.at[2].set(
         L_csts_nonspin[2] + eta * L_csts_nonspin[3] + eta * eta * L_csts_nonspin[4]
@@ -147,7 +147,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
         IMRPhenomX_Get_PN_beta(
             (L_csts_spinorbit[2] + L_csts_spinorbit[3] * eta),
             (L_csts_spinorbit[4] + L_csts_spinorbit[5] * eta),
-            pPrec
+            pPrec.dotS1L, pPrec.dotS2L, pPrec.qq
         )  # stub
     )
     constants_L = constants_L.at[4].set(
@@ -303,14 +303,14 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
         object.__setattr__(pPrec, 'a0', eta * domegadt_constants_NS[0])
         object.__setattr__(pPrec, 'a2', eta * (domegadt_constants_NS[1] + eta * (domegadt_constants_NS[2])))
         object.__setattr__(pPrec, 'a3', eta * (domegadt_constants_NS[3] +
-                            IMRPhenomX_Get_PN_beta(domegadt_constants_SO[0], domegadt_constants_SO[1], pPrec)))
+                            IMRPhenomX_Get_PN_beta(domegadt_constants_SO[0], domegadt_constants_SO[1], pPrec.dotS1L, pPrec.dotS2L, pPrec.qq)))
         object.__setattr__(pPrec, 'a4', eta * (domegadt_constants_NS[4] + eta * (domegadt_constants_NS[5] + eta * (domegadt_constants_NS[6])) +
                             IMRPhenomX_Get_PN_sigma(domegadt_constants_SS[0], domegadt_constants_SS[1], pPrec.inveta, pPrec.dotS1S2, pPrec.dotS1L, pPrec.dotS2L) +  # stub
-                            IMRPhenomX_Get_PN_tau(domegadt_constants_SS[2], domegadt_constants_SS[3], pPrec)))    # stub
+                            IMRPhenomX_Get_PN_tau(domegadt_constants_SS[2], domegadt_constants_SS[3], pPrec.qq, pPrec.S1_norm_2, pPrec.S2_norm_2, pPrec.dotS1L, pPrec.dotS2L, pPrec.eta)))    # stub
         object.__setattr__(pPrec, 'a5', eta * (domegadt_constants_NS[7] + eta * (domegadt_constants_NS[8]) +
                             IMRPhenomX_Get_PN_beta((domegadt_constants_SO[2] + eta * (domegadt_constants_SO[3])),
                                                     (domegadt_constants_SO[4] + eta * (domegadt_constants_SO[5])),
-                                                    pPrec)))
+                                                    pPrec.dotS1L, pPrec.dotS2L, pPrec.qq)))
 
     
 
@@ -842,39 +842,61 @@ def IMRPhenomX_Get_PN_sigma(
     return inveta * (a * dotS1S2 - b * dotS1L * dotS2L)
 
 
-def IMRPhenomX_Get_PN_tau(a: float, b: float, pPrec: dict) -> float:
+def IMRPhenomX_Get_PN_tau(
+    a: float,
+    b: float,
+    qq: float,
+    S1_norm_2: float,
+    S2_norm_2: float,
+    dotS1L: float,
+    dotS2L: float,
+    eta: float,
+) -> float:
     """
     Internal function to computes PN spin-spin couplings. As in LALSimInspiralFDPrecAngles.c
-    
+
     Args:
         a: First coefficient (float)
         b: Second coefficient (float)
-        pPrec: Precession structure dictionary (dict)
-        
+        qq: Mass ratio q = m1/m2 (float)
+        S1_norm_2: Squared norm of spin 1 (float)
+        S2_norm_2: Squared norm of spin 2 (float)
+        dotS1L: Dot product of S1 and L (float)
+        dotS2L: Dot product of S2 and L (float)
+        eta: Symmetric mass ratio (float)
+
     Returns:
         float: PN tau value
     """
-    return ((pPrec.qq * ((pPrec.S1_norm_2 * a) - b * pPrec.dotS1L * pPrec.dotS1L) + 
-             (a * pPrec.S2_norm_2 - b * pPrec.dotS2L * pPrec.dotS2L) / pPrec.qq) / 
-            pPrec.eta)
+    return ((qq * ((S1_norm_2 * a) - b * dotS1L * dotS1L) +
+             (a * S2_norm_2 - b * dotS2L * dotS2L) / qq) /
+            eta)
 
 
 
 
-def IMRPhenomX_Get_PN_beta(a: float, b: float, pPrec: dict) -> float:
+def IMRPhenomX_Get_PN_beta(
+    a: float,
+    b: float,
+    dotS1L: float,
+    dotS2L: float,
+    qq: float,
+) -> float:
     """
     Calculate PN beta coefficient
-    
+
     Args:
         a: First coefficient (float)
         b: Second coefficient (float)
-        pPrec: Precession structure dictionary (dict)
-        
+        dotS1L: Dot product of S1 and L (float)
+        dotS2L: Dot product of S2 and L (float)
+        qq: Mass ratio q = m1/m2 (float)
+
     Returns:
         float: PN beta value
     """
-    return (pPrec.dotS1L * (a + b * pPrec.qq) + 
-            pPrec.dotS2L * (a + b / pPrec.qq))
+    return (dotS1L * (a + b * qq) +
+            dotS2L * (a + b / qq))
 
 
 
