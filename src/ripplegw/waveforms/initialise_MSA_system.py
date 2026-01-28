@@ -7,6 +7,7 @@ from .elliptic_integrals import gsl_sf_elljac_e
 from jax import jit
 
 #/** This function initializes all the core variables required for the MSA system. This will be called first. */
+@jit
 def IMRPhenomX_Initialize_MSA_System(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, reference_frequency, pflag = 223):
 
     #Sanity check on the precession version
@@ -97,7 +98,7 @@ def IMRPhenomX_Initialize_MSA_System(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x,
 
     # Coefficients for PN orbital angular momentum at 3PN, as per LALSimInspiralFDPrecAngles_internals.c
 
-    constants_L = compute_constants_L(eta, dotS1L, dotS2L, q)
+    constants_L_0, constants_L_1, constants_L_2, constants_L_3, constants_L_4 = compute_constants_L(eta, dotS1L, dotS2L, q)
 
     # Effective total spin
     Seff = (1.0 + q) * dotS1L + (1 + (1.0/q)) * dotS2L
@@ -445,7 +446,7 @@ def IMRPhenomX_Initialize_MSA_System(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x,
     phiz_0 = -phiz_0 - vMSA[0]
     zeta_0 = -zeta_0 - vMSA[1]
 
-    return jnp.array([Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, g0, c_1, c_1_over_eta, SAv2, Seff, dotS1Ln, dotS2Ln, S_0_norm, psi0, psi1, psi2, phiz_0, zeta_0]), constants_L 
+    return jnp.array([Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, g0, c_1, c_1_over_eta, SAv2, Seff, dotS1Ln, dotS2Ln, S_0_norm, psi0, psi1, psi2, phiz_0, zeta_0, constants_L_0, constants_L_1, constants_L_2, constants_L_3, constants_L_4])
 
 
 
@@ -770,7 +771,7 @@ def compute_constants_L(eta, dotS1L, dotS2L, q):
             dotS1L, dotS2L, q)
     constants_L_4 = L_csts_nonspin[5] + L_csts_nonspin[6] * eta + L_csts_nonspin[7] * eta * eta + L_csts_nonspin[8] * eta * eta * eta
 
-    return jnp.array([constants_L_0, constants_L_1, constants_L_2, constants_L_3, constants_L_4])
+    return constants_L_0, constants_L_1, constants_L_2, constants_L_3, constants_L_4
 
 
 @jit
@@ -1616,7 +1617,11 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
     SAv2: float,
     invSAv: float,
     invSAv2: float,
-    constants_L: jnp.ndarray,
+    constants_L_0: float,
+    constants_L_1: float,
+    constants_L_2: float,
+    constants_L_3: float,
+    constants_L_4: float,
     S1_norm_2: float,
     S2_norm_2: float,
     qq: float,
@@ -1689,11 +1694,11 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
     L_norm3PN = IMRPhenomX_L_norm_3PN_of_v(
         v,
         L_norm,
-        constants_L[0],
-        constants_L[1],
-        constants_L[2],
-        constants_L[3],
-        constants_L[4],
+        constants_L_0,
+        constants_L_1,
+        constants_L_2,
+        constants_L_3,
+        constants_L_4,
     )
 
     J_norm3PN = IMRPhenomX_JNorm_MSA(L_norm3PN, c1_over_eta, SAv2)

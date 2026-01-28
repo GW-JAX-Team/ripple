@@ -701,7 +701,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         
         #if pflag in 220, 221, 222, 223, 224...
         #Line 597
-        msa_init, constants_L = IMRPhenomX_Initialize_MSA_System(mass_1=mass_1, mass_2 = mass_2,
+        msa_init = IMRPhenomX_Initialize_MSA_System(mass_1=mass_1, mass_2 = mass_2,
                                                                  chi1x=self.chi1x, chi1y = self.chi1y, chi1z = self.chi1z,
                                                                  chi2x=self.chi2x, chi2y = self.chi2y, chi2z = self.chi2z,
                                                                  reference_frequency=self.pWF["fRef"])
@@ -769,7 +769,6 @@ class IMRPhenomXGetAndSetPrecessionVariables:
                                                                 SAv2=SAv2,
                                                                 invSAv=invSAv,
                                                                 invSAv2=invSAv2,
-                                                                constants_L=constants_L,
                                                                 S1_norm_2=self.S1_norm_2,
                                                                 S2_norm_2=self.S2_norm_2,
                                                                 qq=qq,
@@ -801,7 +800,12 @@ class IMRPhenomXGetAndSetPrecessionVariables:
                                                                 psi2=msa_init[22],
 
                                                                 phiz_0=msa_init[23],
-                                                                zeta_0=msa_init[24])
+                                                                zeta_0=msa_init[24], 
+                                                                constants_L_0=msa_init[25],
+                                                                constants_L_1=msa_init[26],
+                                                                constants_L_2=msa_init[27],
+                                                                constants_L_3=msa_init[28],
+                                                                constants_L_4=msa_init[29])
 
 
         object.__setattr__(self, 'alpha_offset_array', jnp.ones(4)*alpha_offset)
@@ -820,7 +824,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
             SAv2=SAv2,
             invSAv=invSAv,
             invSAv2=invSAv2,
-            constants_L=constants_L,
+
             S1_norm_2=self.S1_norm_2,
             S2_norm_2=self.S2_norm_2,
             qq=qq,
@@ -851,7 +855,12 @@ class IMRPhenomXGetAndSetPrecessionVariables:
             psi2=msa_init[22],
 
             phiz_0=msa_init[23],
-            zeta_0=msa_init[24]
+            zeta_0=msa_init[24],
+            constants_L_0=msa_init[25],
+            constants_L_1=msa_init[26],
+            constants_L_2=msa_init[27],
+            constants_L_3=msa_init[28],
+            constants_L_4=msa_init[29]
         )
 
         #print("end...", vangles[0])
@@ -867,7 +876,7 @@ def compute_vangles(Mf, emm,
                     eta, eta2, eta3, eta4, inveta,
                     c1, c1_over_eta,
                     SAv, SAv2, invSAv, invSAv2,
-                    constants_L, S1_norm_2, S2_norm_2,
+                    constants_L_0, constants_L_1, constants_L_2, constants_L_3, constants_L_4, S1_norm_2, S2_norm_2,
                     qq, delta_qq, Seff, dotS1Ln, dotS2Ln, S_0_norm,
                     psi0, psi1, psi2, g0,
                     Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, phiz_0,
@@ -879,7 +888,7 @@ def compute_vangles(Mf, emm,
                                                         eta, eta2, eta3, eta4,
                                                         inveta, c1, c1_over_eta,
                                                         SAv, SAv2, invSAv, invSAv2,
-                                                        constants_L, S1_norm_2, S2_norm_2,
+                                                        constants_L_0, constants_L_1, constants_L_2, constants_L_3, constants_L_4, S1_norm_2, S2_norm_2,
                                                         qq, delta_qq, Seff, dotS1Ln, dotS2Ln, S_0_norm,
                                                         psi0, psi1, psi2, g0,
                                                         Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, phiz_0,
@@ -1075,7 +1084,8 @@ def Get_alphaepsilon_atfref(mprime, piM, fRef, alpha0, epsilon0,
                             eta, eta2, eta3, eta4,
                             inveta, c1, c1_over_eta,
                             SAv, SAv2, invSAv, invSAv2,
-                            constants_L, S1_norm_2, S2_norm_2,
+                            constants_L_0, constants_L_1, constants_L_2, constants_L_3, constants_L_4,
+                            S1_norm_2, S2_norm_2,
                             qq, delta_qq, Seff, dotS1Ln, dotS2Ln, S_0_norm,
                             psi0, psi1, psi2, g0,
                             Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, phiz_0,
@@ -1087,7 +1097,8 @@ def Get_alphaepsilon_atfref(mprime, piM, fRef, alpha0, epsilon0,
         eta, eta2, eta3, eta4,
         inveta, c1, c1_over_eta,
         SAv, SAv2, invSAv, invSAv2,
-        constants_L, S1_norm_2, S2_norm_2,
+        constants_L_0, constants_L_1, constants_L_2, constants_L_3, constants_L_4, 
+        S1_norm_2, S2_norm_2,
         qq, delta_qq, Seff, dotS1Ln, dotS2Ln, S_0_norm,
         psi0, psi1, psi2, g0,
         Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, phiz_0,
@@ -1100,7 +1111,8 @@ def Get_alphaepsilon_atfref_pflag_true(omega_ref, alpha0, epsilon0,
                                        eta, eta2, eta3, eta4,
                                        inveta, c1, c1_over_eta,
                                        SAv, SAv2, invSAv, invSAv2,
-                                       constants_L, S1_norm_2, S2_norm_2,
+                                       constants_L_0, constants_L_1, constants_L_2, constants_L_3, constants_L_4,
+                                       S1_norm_2, S2_norm_2,
                                        qq, delta_qq, Seff, dotS1Ln, dotS2Ln, S_0_norm,
                                        psi0, psi1, psi2, g0,
                                        Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, phiz_0,
@@ -1110,7 +1122,8 @@ def Get_alphaepsilon_atfref_pflag_true(omega_ref, alpha0, epsilon0,
     vangles = IMRPhenomX_Return_phi_zeta_costhetaL_MSA(v, eta, eta2, eta3, eta4,
                                                        inveta, c1, c1_over_eta,
                                                        SAv, SAv2, invSAv, invSAv2,
-                                                       constants_L, S1_norm_2, S2_norm_2,
+                                                       constants_L_0, constants_L_1, constants_L_2, constants_L_3, constants_L_4,
+                                                       S1_norm_2, S2_norm_2,
                                                        qq, delta_qq, Seff, dotS1Ln, dotS2Ln, S_0_norm,
                                                        psi0, psi1, psi2, g0,
                                                        Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, phiz_0,
