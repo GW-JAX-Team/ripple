@@ -2394,6 +2394,7 @@ class IMRPhenomXPHM(WaveFormModel):
         eta3 = jnp.power(eta, 3)
         eta4 = jnp.power(eta, 4)
         inveta = jnp.power(eta, -1)
+        
 
 
         def compute_twist_for_mode(mode_idx):
@@ -2474,6 +2475,7 @@ class IMRPhenomXPHM(WaveFormModel):
                          reference_frequency= reference_frequency)
         
         eta = m1*m2/jnp.power(m1+m2, 2)
+
         _hp, _hc = self.twistup(Mf, eta, pPrec, hlm)
 
 

@@ -255,12 +255,6 @@ class IMRPhenomXGetAndSetPrecessionVariables:
     Omegazeta3: float = field(init=False, default=0.0)
     Omegazeta4: float = field(init=False, default=0.0)
     Omegazeta5: float = field(init=False, default=0.0)
-    Omegazeta0_coeff: float = field(init=False, default=0.0)
-    Omegazeta1_coeff: float = field(init=False, default=0.0)
-    Omegazeta2_coeff: float = field(init=False, default=0.0)
-    Omegazeta3_coeff: float = field(init=False, default=0.0)
-    Omegazeta4_coeff: float = field(init=False, default=0.0)
-    Omegazeta5_coeff: float = field(init=False, default=0.0)
     phiz_0: float = field(init=False, default=0.0)
     zeta_0: float = field(init=False, default=0.0)
     zeta_polarization: float = field(init=False, default=0.0)
@@ -708,23 +702,10 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         self = IMRPhenomX_PNR_GetAndSetPNRVariables(self, self.pWF)
         #What is the output of this function?
 
-        #Line 580
-        self = IMRPhenomX_PNR_GetAndSetCoPrecParams(self, self.pWF, self.lalParams)
-
-
         #if pflag in 220, 221, 222, 223, 224...
         #Line 597
         self, Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, g0 = IMRPhenomX_Initialize_MSA_System(self, self.pWF, self.lalParams['ExpansionOrder'])
 
-
-        object.__setattr__(self, 'Omegazeta0_coeff', Omegazeta0_coeff)
-        object.__setattr__(self, 'Omegazeta1_coeff', Omegazeta1_coeff)
-        object.__setattr__(self, 'Omegazeta2_coeff', Omegazeta2_coeff)
-        object.__setattr__(self, 'Omegazeta3_coeff', Omegazeta3_coeff)
-        object.__setattr__(self, 'Omegazeta4_coeff', Omegazeta4_coeff)
-        object.__setattr__(self, 'Omegazeta5_coeff', Omegazeta5_coeff)
-        object.__setattr__(self, 'Omegazeta5_coeff', Omegazeta5_coeff)
-        object.__setattr__(self, 'g0', g0)
         #TODO if MSA_ERROR: switch to NNLO
 
 
@@ -739,124 +720,28 @@ class IMRPhenomXGetAndSetPrecessionVariables:
 
         LRef = self.M * self.M * XLALSimIMRPhenomXLPNAnsatz(self.pWF['v_ref'], self.pWF['eta'] / self.pWF['v_ref'], L0, L1, L2, L3, L4, L5, L6, L7, L8, L8L) 
 
-        J0x_Sf = (self.m1_2)*self.chi1x + (self.m2_2)*self.chi2x
-        J0y_Sf = (self.m1_2)*self.chi1y + (self.m2_2)*self.chi2y
-        J0z_Sf = (self.m1_2)*self.chi1z + (self.m2_2)*self.chi2z + LRef
-
-        J0_Sf = jnp.array([J0x_Sf, J0y_Sf, J0z_Sf])
-        J0     = jnp.sqrt(J0x_Sf*J0x_Sf + J0y_Sf*J0y_Sf + J0z_Sf*J0z_Sf)
-
-        # Compress line 772 - 781
-        #/* Get angle between J0 and LN (z-direction) */
-        thetaJ_Sf = jax.lax.cond(J0<1e-10, lambda _: 0.0, lambda _:jnp.acos(J0z_Sf / J0), operand = None)
-
-        # Line 783
-        phiRef = self.pWF['phiRef_In']
-        # Line 785
-        MAX_TOL_ATAN = 1.0e-15
-
-        tol_condition = (jnp.abs(J0x_Sf) < MAX_TOL_ATAN) & (jnp.abs(J0y_Sf) < MAX_TOL_ATAN)
-        # Compress line 797-825
-        #Get azimuthal angle of J0 in the source frame
-        phiJ_Sf = get_phiJ_Sf(tol_condition, J0_Sf)
-
-        #phi0_aligned = phiJ_Sf
-
-        #Compress line 828 - 846 #FIXME in function set_phi0 I am not sure what to do for cases 5, 6, 7. What is the old value?
-        phi0 = 0 #phenom_xp_convention=1 it is zero
-
-        #Determine kappa via rotations, as above */
-        Nx_Sf = jnp.sin(self.pWF['inclination'])*jnp.cos((jnp.pi / 2.0) - phiRef)
-        Ny_Sf = jnp.sin(self.pWF['inclination'])*jnp.sin((jnp.pi / 2.0) - phiRef)
-        Nz_Sf = jnp.cos(self.pWF['inclination'])
-        N_Sf = jnp.array([Nx_Sf, Ny_Sf, Nz_Sf])
-
-        v_in = jnp.array([Nx_Sf, Ny_Sf, Nz_Sf])
-
-        vout = IMRPhenomX_rotate_z(-phiJ_Sf, v_in)
-        vout = IMRPhenomX_rotate_y(-thetaJ_Sf, vout)
-
-        #/* Note difference in overall - sign w.r.t PhenomPv2 code */
-        kappa = XLALSimIMRPhenomXatan2tol(vout[1],vout[0], MAX_TOL_ATAN)
-
-        #/* Now determine alpha0 by rotating LN. In the source frame, LN = {0,0,1} */
-        tmp_x = 0.0
-        tmp_y = 0.0
-        tmp_z = 1.0
-        v_in = jnp.array([tmp_x, tmp_y, tmp_z])
-        vout = IMRPhenomX_rotate_z(-phiJ_Sf,   v_in)
-        vout = IMRPhenomX_rotate_y(-thetaJ_Sf, vout)
-        vout = IMRPhenomX_rotate_z(-kappa,     vout)
-
-        # Compress line 887 - 930
-        tol_condition = (jnp.abs(vout[0]) < MAX_TOL_ATAN) & (jnp.abs(vout[1]) < MAX_TOL_ATAN)
+        thetaJN, Nz_Jf, Nx_Jf, phiJ_Sf, kappa = compute_thetaJN_and_kappa(self.m1, self.m2, 
+                                                                self.chi1x, self.chi1y, self.chi1z, 
+                                                                self.chi2x, self.chi2y, self.chi2z, 
+                                                                LRef, self.pWF['phiRef_In'], self.pWF['inclination'])
+        
         alpha0 = jnp.pi - kappa # For phenom_xp_convention = 1
 
         
 
         # Compress line 931-966
-        thetaJN, Nz_Jf, Nx_Jf = thetaJN_Nz_Nx_1_6_7(N_Sf, J0_Sf, J0)
         object.__setattr__(self, 'thetaJN', thetaJN)
 
-        '''
-        Define the polarizations used. This follows the conventions adopted for IMRPhenomPv2.
+        zeta_polarization = compute_zeta_polarization(self.m1, self.m2, 
+                                                             self.chi1x, self.chi1y, self.chi1z, 
+                                                                self.chi2x, self.chi2y, self.chi2z, 
+                                                           LRef, self.pWF['phiRef_In'], self.pWF['inclination'], Nz_Jf, Nx_Jf, kappa)
 
-        The IMRPhenomP polarizations are defined following the conventions in Arun et al (arXiv:0810.5336),
-        i.e. projecting the metric onto the P, Q, N triad defining where: P = (N x J) / |N x J|.
 
-        However, the triad X,Y,N used in LAL (the "waveframe") follows the definition in the
-        NR Injection Infrastructure (Schmidt et al, arXiv:1703.01076).
 
-        The triads differ from each other by a rotation around N by an angle zeta. We therefore need to rotate 
-        the polarizations by an angle 2 zeta.
-        '''
 
-        Xx_Sf = -jnp.cos(self.pWF['inclination']) * jnp.sin(phiRef)
-        Xy_Sf = -jnp.cos(self.pWF['inclination']) * jnp.cos(phiRef)
-        Xz_Sf = +jnp.sin(self.pWF['inclination'])
-
-        v = jnp.array([Xx_Sf, Xy_Sf, Xz_Sf])
-        vout = IMRPhenomX_rotate_z(-phiJ_Sf, v)
-        vout = IMRPhenomX_rotate_y(-thetaJ_Sf, vout)
-        vout = IMRPhenomX_rotate_z(-kappa, vout)
-
-        '''
-
-            The components tmp_i are now the components of X in the J frame.
-
-            We now need the polar angle of this vector in the P, Q basis of Arun et al:
-
-                P = (N x J) / |NxJ|
-
-            Note, that we put N in the (pos x)z half plane of the J frame 
-
-        '''
-
-        #Compress line 1002-1034
-        PArun_Jf, QArun_Jf = PQ_Arun_1_6_7(Nx_Jf, Nz_Jf)
-
-        #As it is line 1035-1043
-        #(X . P)
-        XdotPArun = (vout[0] * PArun_Jf[0]) + (vout[1] * PArun_Jf[1]) + (vout[2] * PArun_Jf[2])
-
-        #(X . Q)
-        XdotQArun = (vout[0] * QArun_Jf[0]) + (vout[1] * QArun_Jf[1]) + (vout[2] * QArun_Jf[2])
-
-        #Now get the angle zeta
-        zeta_polarization = jnp.atan2(XdotQArun, XdotPArun)
         object.__setattr__(self, 'zeta_polarization', zeta_polarization)
 
-        #/* ********** PN Euler Angle Coefficients ********** */
-        #/*
-        #    This uses the single spin PN Euler angles as per IMRPhenomPv2
-        #*/  
-
-        #/* ********** PN Euler Angle Coefficients ********** */
-        # Compress line 1050-1143
-        #alpha1, alpha2, alpha3, alpha4L, alpha5, epsilon1, epsilon2, epsilon3, epsilon4L, epsilon5 = 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,  
-        #self.compute_alpha_epsilon_220_330()
-
-        # Compressed line 1163-1177
         epsilon0 = set_epsilon0(phenom_xp_convention, phiJ_Sf)
 
         ## Compression line 1178-1202
@@ -882,9 +767,9 @@ class IMRPhenomXGetAndSetPrecessionVariables:
                                                                 self.SAv, self.SAv2, self.invSAv, self.invSAv2,
                                                                 self.constants_L, self.S1_norm_2, self.S2_norm_2,
                                                                 self.qq, self.delta_qq, self.Seff, self.dotS1Ln, self.dotS2Ln, self.S_0_norm,
-                                                                self.psi0, self.psi1, self.psi2, self.g0,
+                                                                self.psi0, self.psi1, self.psi2, g0,
                                                                 self.Omegaz0_coeff, self.Omegaz1_coeff, self.Omegaz2_coeff, self.Omegaz3_coeff, self.Omegaz4_coeff, self.Omegaz5_coeff, self.phiz_0,
-                                                                self.Omegazeta0_coeff, self.Omegazeta1_coeff, self.Omegazeta2_coeff, self.Omegazeta3_coeff, self.Omegazeta4_coeff, self.Omegazeta5_coeff, self.zeta_0)
+                                                                Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, self.zeta_0)
 
 
         object.__setattr__(self, 'alpha_offset_array', jnp.ones(4)*alpha_offset)
@@ -894,9 +779,9 @@ class IMRPhenomXGetAndSetPrecessionVariables:
                                         self.SAv, self.SAv2, self.invSAv, self.invSAv2,
                                         self.constants_L, self.S1_norm_2, self.S2_norm_2,
                                         self.qq, self.delta_qq, self.Seff, self.dotS1Ln, self.dotS2Ln, self.S_0_norm,
-                                        self.psi0, self.psi1, self.psi2, self.g0,
+                                        self.psi0, self.psi1, self.psi2, g0,
                                         self.Omegaz0_coeff, self.Omegaz1_coeff, self.Omegaz2_coeff, self.Omegaz3_coeff, self.Omegaz4_coeff, self.Omegaz5_coeff, self.phiz_0,
-                                        self.Omegazeta0_coeff, self.Omegazeta1_coeff, self.Omegazeta2_coeff, self.Omegazeta3_coeff, self.Omegazeta4_coeff, self.Omegazeta5_coeff, self.zeta_0)
+                                        Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, self.zeta_0)
 
         #print("end...", vangles[0])
         alpha_out = vangles[0] - alpha_offset
@@ -934,6 +819,148 @@ def compute_vangles(Mf, emm,
 
 
 
+def compute_thetaJN_and_kappa(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, LRef, phiRef_In, inclination):
+    mass1_2 = jnp.power(mass_1, 2)
+    mass2_2 = jnp.power(mass_2, 2)
+
+    J0x_Sf = (mass1_2)*chi1x + (mass2_2)*chi2x
+    J0y_Sf = (mass1_2)*chi1y + (mass2_2)*chi2y
+    J0z_Sf = (mass1_2)*chi1z + (mass2_2)*chi2z + LRef
+
+    J0_Sf = jnp.array([J0x_Sf, J0y_Sf, J0z_Sf])
+    J0     = jnp.sqrt(J0x_Sf*J0x_Sf + J0y_Sf*J0y_Sf + J0z_Sf*J0z_Sf)
+
+    # Compress line 772 - 781
+    #/* Get angle between J0 and LN (z-direction) */
+    thetaJ_Sf = jax.lax.cond(J0<1e-10, lambda _: 0.0, lambda _:jnp.acos(J0z_Sf / J0), operand = None)
+
+    # Line 783
+    phiRef = phiRef_In
+    # Line 785
+    MAX_TOL_ATAN = 1.0e-15
+
+    tol_condition = (jnp.abs(J0x_Sf) < MAX_TOL_ATAN) & (jnp.abs(J0y_Sf) < MAX_TOL_ATAN)
+    # Compress line 797-825
+    #Get azimuthal angle of J0 in the source frame
+    phiJ_Sf = get_phiJ_Sf(tol_condition, J0_Sf) 
+
+    #Determine kappa via rotations, as above */
+    Nx_Sf = jnp.sin(inclination)*jnp.cos((jnp.pi / 2.0) - phiRef)
+    Ny_Sf = jnp.sin(inclination)*jnp.sin((jnp.pi / 2.0) - phiRef)
+    Nz_Sf = jnp.cos(inclination)
+    N_Sf = jnp.array([Nx_Sf, Ny_Sf, Nz_Sf])
+
+    v_in = jnp.array([Nx_Sf, Ny_Sf, Nz_Sf])
+
+    vout = IMRPhenomX_rotate_z(-phiJ_Sf, v_in)
+    vout = IMRPhenomX_rotate_y(-thetaJ_Sf, vout)
+
+    #/* Note difference in overall - sign w.r.t PhenomPv2 code */
+    kappa = XLALSimIMRPhenomXatan2tol(vout[1],vout[0], MAX_TOL_ATAN)
+
+    #/* Now determine alpha0 by rotating LN. In the source frame, LN = {0,0,1} */
+    tmp_x = 0.0
+    tmp_y = 0.0
+    tmp_z = 1.0
+    v_in = jnp.array([tmp_x, tmp_y, tmp_z])
+    vout = IMRPhenomX_rotate_z(-phiJ_Sf,   v_in)
+    vout = IMRPhenomX_rotate_y(-thetaJ_Sf, vout)
+    vout = IMRPhenomX_rotate_z(-kappa,     vout)
+
+    # Compress line 887 - 930
+    tol_condition = (jnp.abs(vout[0]) < MAX_TOL_ATAN) & (jnp.abs(vout[1]) < MAX_TOL_ATAN)
+   
+    # Compress line 931-966
+    thetaJN, Nz_Jf, Nx_Jf = thetaJN_Nz_Nx_1_6_7(N_Sf, J0_Sf, J0)
+
+
+    return thetaJN, Nz_Jf, Nx_Jf, phiJ_Sf, kappa
+
+def compute_zeta_polarization(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, LRef, phiRef_In, inclination, Nz_Jf, Nx_Jf, kappa):
+
+    mass1_2 = jnp.power(mass_1, 2)
+    mass2_2 = jnp.power(mass_2, 2)
+
+    J0x_Sf = (mass1_2)*chi1x + (mass2_2)*chi2x
+    J0y_Sf = (mass1_2)*chi1y + (mass2_2)*chi2y
+    J0z_Sf = (mass1_2)*chi1z + (mass2_2)*chi2z + LRef
+
+    J0_Sf = jnp.array([J0x_Sf, J0y_Sf, J0z_Sf])
+    J0     = jnp.sqrt(J0x_Sf*J0x_Sf + J0y_Sf*J0y_Sf + J0z_Sf*J0z_Sf)
+
+    # Compress line 772 - 781
+    #/* Get angle between J0 and LN (z-direction) */
+    thetaJ_Sf = jax.lax.cond(J0<1e-10, lambda _: 0.0, lambda _:jnp.acos(J0z_Sf / J0), operand = None)
+
+    # Line 783
+
+    # Line 785
+    MAX_TOL_ATAN = 1.0e-15
+
+    tol_condition = (jnp.abs(J0x_Sf) < MAX_TOL_ATAN) & (jnp.abs(J0y_Sf) < MAX_TOL_ATAN)
+    # Compress line 797-825
+    #Get azimuthal angle of J0 in the source frame
+    phiJ_Sf = get_phiJ_Sf(tol_condition, J0_Sf)
+
+
+    #/* Now determine alpha0 by rotating LN. In the source frame, LN = {0,0,1} */
+    tmp_x = 0.0
+    tmp_y = 0.0
+    tmp_z = 1.0
+
+    v_in = jnp.array([tmp_x, tmp_y, tmp_z])
+    vout = IMRPhenomX_rotate_z(-phiJ_Sf,   v_in)
+    vout = IMRPhenomX_rotate_y(-thetaJ_Sf, vout)
+    vout = IMRPhenomX_rotate_z(-kappa,     vout)
+       
+
+    '''
+    Define the polarizations used. This follows the conventions adopted for IMRPhenomPv2.
+
+    The IMRPhenomP polarizations are defined following the conventions in Arun et al (arXiv:0810.5336),
+    i.e. projecting the metric onto the P, Q, N triad defining where: P = (N x J) / |N x J|.
+
+    However, the triad X,Y,N used in LAL (the "waveframe") follows the definition in the
+    NR Injection Infrastructure (Schmidt et al, arXiv:1703.01076).
+
+    The triads differ from each other by a rotation around N by an angle zeta. We therefore need to rotate 
+    the polarizations by an angle 2 zeta.
+    '''
+
+    Xx_Sf = -jnp.cos(inclination) * jnp.sin(phiRef_In)
+    Xy_Sf = -jnp.cos(inclination) * jnp.cos(phiRef_In)
+    Xz_Sf = +jnp.sin(inclination)
+
+    v = jnp.array([Xx_Sf, Xy_Sf, Xz_Sf])
+    vout = IMRPhenomX_rotate_z(-phiJ_Sf, v)
+    vout = IMRPhenomX_rotate_y(-thetaJ_Sf, vout)
+    vout = IMRPhenomX_rotate_z(-kappa, vout)
+
+    '''
+
+        The components tmp_i are now the components of X in the J frame.
+
+        We now need the polar angle of this vector in the P, Q basis of Arun et al:
+
+            P = (N x J) / |NxJ|
+
+        Note, that we put N in the (pos x)z half plane of the J frame 
+
+    '''
+
+    #Compress line 1002-1034
+    PArun_Jf, QArun_Jf = PQ_Arun_1_6_7(Nx_Jf, Nz_Jf)
+
+    #As it is line 1035-1043
+    #(X . P)
+    XdotPArun = (vout[0] * PArun_Jf[0]) + (vout[1] * PArun_Jf[1]) + (vout[2] * PArun_Jf[2])
+
+    #(X . Q)
+    XdotQArun = (vout[0] * QArun_Jf[0]) + (vout[1] * QArun_Jf[1]) + (vout[2] * QArun_Jf[2])
+
+    #Now get the angle zeta
+    zeta_polarization = jnp.atan2(XdotQArun, XdotPArun)
+    return zeta_polarization
 
 def PQ_Arun_1_6_7(Nx_Jf, Nz_Jf):
     # Get polar angle of X vector in J frame in the P,Q basis of Arun et al
