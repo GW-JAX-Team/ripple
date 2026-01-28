@@ -2378,7 +2378,7 @@ class IMRPhenomXPHM(WaveFormModel):
         return pWF
     
 
-    def twistup(self, Mf, pWF, pPrec, hlm):
+    def twistup(self, Mf, eta, pPrec, hlm):
         "Copy of lalsimulation IMRPhenomXPHMTwistUp"
         "Function to twist up hlms"
 
@@ -2390,6 +2390,11 @@ class IMRPhenomXPHM(WaveFormModel):
         # I will use 223 which is default in lalsimulation
 
         # Modes 21, 22, 32, 33, 43, 44 in that order
+        eta2 = jnp.power(eta, 2)
+        eta3 = jnp.power(eta, 3)
+        eta4 = jnp.power(eta, 4)
+        inveta = jnp.power(eta, -1)
+
 
         def compute_twist_for_mode(mode_idx):
             # mode_idx: 0->21, 1->22, 2->32, 3->33, 4->43, 5->44
@@ -2402,8 +2407,8 @@ class IMRPhenomXPHM(WaveFormModel):
             v = jnp.cbrt(jnp.pi * Mf * 2.0 / emm)
             ##
             #vangles = IMRPhenomX_Return_phi_zeta_costhetaL_MSA(pPrec, pWF, v)
-            vangles = IMRPhenomX_Return_phi_zeta_costhetaL_MSA(v, pPrec.eta, pPrec.eta2, pPrec.eta3, pPrec.eta4,
-                                                               pPrec.inveta, pPrec.c1, pPrec.c1_over_eta,
+            vangles = IMRPhenomX_Return_phi_zeta_costhetaL_MSA(v, eta, eta2, eta3, eta4,
+                                                               inveta, pPrec.c1, pPrec.c1_over_eta,
                                                                pPrec.SAv, pPrec.SAv2, pPrec.invSAv, pPrec.invSAv2,
                                                                pPrec.constants_L, pPrec.S1_norm_2, pPrec.S2_norm_2,
                                                                pPrec.qq, pPrec.delta_qq, pPrec.Seff, pPrec.dotS1Ln, pPrec.dotS2Ln, pPrec.S_0_norm, 
@@ -2488,8 +2493,8 @@ class IMRPhenomXPHM(WaveFormModel):
                          chi2z = chi2z, 
                          reference_frequency= reference_frequency)
         
-
-        _hp, _hc = self.twistup(Mf, pWF, pPrec, hlm)
+        eta = m1*m2/jnp.power(m1+m2, 2)
+        _hp, _hc = self.twistup(Mf, eta, pPrec, hlm)
 
 
         zeta_polarization = pPrec.zeta_polarization

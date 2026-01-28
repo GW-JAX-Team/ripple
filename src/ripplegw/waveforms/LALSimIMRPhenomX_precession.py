@@ -859,6 +859,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         epsilon0 = set_epsilon0(phenom_xp_convention, phiJ_Sf)
 
         ## Compression line 1178-1202
+        """
         alpha_offset, epsilon_offset, alpha_offset_1, epsilon_offset_1, alpha_offset_3, epsilon_offset_3, alpha_offset_4, epsilon_offset_4 = convention_five_or_seven_false(
             self.pWF['piM'], self.pWF['fRef'], alpha0, epsilon0,
             self.eta, self.eta2, self.eta3, self.eta4,
@@ -870,9 +871,22 @@ class IMRPhenomXGetAndSetPrecessionVariables:
             self.Omegaz0_coeff, self.Omegaz1_coeff, self.Omegaz2_coeff, self.Omegaz3_coeff, self.Omegaz4_coeff, self.Omegaz5_coeff, self.phiz_0,
             self.Omegazeta0_coeff, self.Omegazeta1_coeff, self.Omegazeta2_coeff, self.Omegazeta3_coeff, self.Omegazeta4_coeff, self.Omegazeta5_coeff, self.zeta_0)
 
+        """
+        mprime = 2
+        # When convention five or seven are false...
+        alpha_offset, epsilon_offset, alpha_offset_1, epsilon_offset_1, alpha_offset_3, epsilon_offset_3, alpha_offset_4, epsilon_offset_4 = Get_alphaepsilon_atfref(mprime, self.pWF['piM'], self.pWF['fRef'], alpha0, epsilon0,
+                                                                self.eta, self.eta2, self.eta3, self.eta4,
+                                                                self.inveta, self.c1, self.c1_over_eta,
+                                                                self.SAv, self.SAv2, self.invSAv, self.invSAv2,
+                                                                self.constants_L, self.S1_norm_2, self.S2_norm_2,
+                                                                self.qq, self.delta_qq, self.Seff, self.dotS1Ln, self.dotS2Ln, self.S_0_norm,
+                                                                self.psi0, self.psi1, self.psi2, self.g0,
+                                                                self.Omegaz0_coeff, self.Omegaz1_coeff, self.Omegaz2_coeff, self.Omegaz3_coeff, self.Omegaz4_coeff, self.Omegaz5_coeff, self.phiz_0,
+                                                                self.Omegazeta0_coeff, self.Omegazeta1_coeff, self.Omegazeta2_coeff, self.Omegazeta3_coeff, self.Omegazeta4_coeff, self.Omegazeta5_coeff, self.zeta_0)
+
 
         
-        alpha_offset_array, epsilon_offset_array = Get_alpha_epsilon_offset(
+        alpha_offset_array, epsilon_offset_array = Get_alpha_epsilon_offset_based_on_m(
                 alpha_offset_1, epsilon_offset_1,
                 alpha_offset, epsilon_offset,
                 alpha_offset_3, epsilon_offset_3,
@@ -976,7 +990,7 @@ def Get_alphaepsilon_atfref(mprime, piM, fRef, alpha0, epsilon0,
         Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, phiz_0,
         Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, zeta_0)
 
-    return alpha_offset, epsilon_offset
+    return alpha_offset, epsilon_offset, alpha_offset, epsilon_offset, alpha_offset, epsilon_offset, alpha_offset, epsilon_offset
 
 
 def Get_alphaepsilon_atfref_pflag_true(omega_ref, alpha0, epsilon0,
@@ -1046,7 +1060,7 @@ def XLALSimIMRPhenomXLPNAnsatz(v: float, LNorm: float, L0: float, L1: float, L2:
 
 
 
-def Get_alpha_epsilon_offset(
+def Get_alpha_epsilon_offset_based_on_m(
     alpha_offset_1,
     epsilon_offset_1,
     alpha_offset,
