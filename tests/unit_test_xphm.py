@@ -7,7 +7,7 @@ import lal
 import matplotlib.pyplot as plt
 from ripplegw.waveforms import IMRPhenomXPHM
 import bilby
-from utils import GPSt_to_LMST
+
 print("Device", jax.devices())
 
 def compute_overlap(frequency_series_1, frequency_series_2, df):
@@ -221,7 +221,7 @@ for ell, m, col_idx in modes_info:
     #print(f"Saved {filename}")
 
 
-
+exit()
 ripple_phase = np.genfromtxt("./PhisAllModes_ripple.dat", skip_header=True)
 
 ripple_phase[:, 1] += np.pi/2

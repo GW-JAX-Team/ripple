@@ -2232,16 +2232,15 @@ def twistup(Mf, mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, phiRef
         )
 
         return hp_twist, hc_twist, epsilon*emm
-
+ 
     mode_indices = jnp.arange(5)  # 0 to 5 for modes 21, 22, 32, 33, 43, 44
-    hp_twist_all_modes, hc_twist_all_modes, epsilon_all_modes = jax.vmap(
-        compute_twist_for_mode
-    )(mode_indices)
+    hp_twist_all_modes, hc_twist_all_modes, epsilon_all_modes = jax.vmap(compute_twist_for_mode)(mode_indices)
 
 
     _hp = jnp.sum(hlm * hp_twist_all_modes.T * jnp.exp(-1j * epsilon_all_modes.T) / 2, axis=1)
     _hc = jnp.sum(hlm * hc_twist_all_modes.T * jnp.exp(-1j * epsilon_all_modes.T) / 2, axis=1)
 
+    
     hp, hc = apply_polarization_rotation(zeta_polarisations, _hp, _hc)
     
     return hp, hc

@@ -16,7 +16,7 @@ print("Default backend:", jax.default_backend())
 from ripplegw.waveforms import IMRPhenomXPHM
 from ripplegw.constants import MSUN
 
-N_WAVEFORMS = int(2e3)
+N_WAVEFORMS = int(5e3)
 
 
 # Waveform parameters
