@@ -439,7 +439,6 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
         object.__setattr__(pPrec, 'MSA_ERROR', 1)
         print(f"Warning, |Omegaz5| = {pPrec.Omegaz5:.16f}, which is larger than expected and may be pathological. Triggering MSA failure.")
 
-    g0 = g0
     # Coefficients of Eq. 65, as defined in Equations D16 - D21 of PRD, 95, 104004, (2017), arXiv:1703.03967
     Omegaz0_coeff = 3.0 * g0 * Omegaz0
     Omegaz1_coeff = 3.0 * g0 * Omegaz1
@@ -451,12 +450,12 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     
     # Coefficients of zeta: in Appendix E of PRD, 95, 104004, (2017), arXiv:1703.03967
     c1oveta2 = c_1 / eta2
-    Omegazeta0 = pPrec.Omegaz0
-    Omegazeta1 = pPrec.Omegaz1 + pPrec.Omegaz0 * c1oveta2
-    Omegazeta2 = pPrec.Omegaz2 + pPrec.Omegaz1 * c1oveta2
-    Omegazeta3 = pPrec.Omegaz3 + pPrec.Omegaz2 * c1oveta2 + gdD
-    Omegazeta4 = pPrec.Omegaz4 + pPrec.Omegaz3 * c1oveta2 - gdD * Seff - gdD * hdD
-    Omegazeta5 = pPrec.Omegaz5 + pPrec.Omegaz4 * c1oveta2 + gdD * hdD * Seff + gdD * (hdD_2 - fdD)
+    Omegazeta0 = Omegaz0
+    Omegazeta1 = Omegaz1 + Omegaz0 * c1oveta2
+    Omegazeta2 = Omegaz2 + Omegaz1 * c1oveta2
+    Omegazeta3 = Omegaz3 + Omegaz2 * c1oveta2 + gdD
+    Omegazeta4 = Omegaz4 + Omegaz3 * c1oveta2 - gdD * Seff - gdD * hdD
+    Omegazeta5 = Omegaz5 + Omegaz4 * c1oveta2 + gdD * hdD * Seff + gdD * (hdD_2 - fdD)
 
     Omegazeta0_coeff = -g0 * Omegazeta0
     Omegazeta1_coeff = -1.5 * g0 * Omegazeta1
