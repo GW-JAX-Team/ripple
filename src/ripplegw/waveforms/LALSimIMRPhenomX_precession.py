@@ -700,7 +700,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         
         #if pflag in 220, 221, 222, 223, 224...
         #Line 597
-        self, msa_init, constants_L = IMRPhenomX_Initialize_MSA_System(self, self.pWF, self.lalParams['ExpansionOrder'])
+        msa_init, constants_L = IMRPhenomX_Initialize_MSA_System(self, self.pWF, self.lalParams['ExpansionOrder'])
 
         #Mfinal, afinal, fRING, fDAMP = IMRPhenomX_SetPrecessingRemnantParams(self, self.pWF, self.lalParams)
         # The output of this function should be Mfinal, afinal, fring, and fdamp
