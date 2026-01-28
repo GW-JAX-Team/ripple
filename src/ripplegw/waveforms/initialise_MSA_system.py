@@ -1,13 +1,13 @@
 
 import jax.numpy as jnp
 import jax
-from ..constants import MTSUN, GAMMA
+from ..constants import MTSUN, GAMMA, MSUN, G, C
 from .elliptic_integrals import ellint_F
 from .elliptic_integrals import gsl_sf_elljac_e
 
 
 #/** This function initializes all the core variables required for the MSA system. This will be called first. */
-def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, pflag = 223):
+def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, reference_frequency, pflag = 223):
 
     #Sanity check on the precession version
    
@@ -83,8 +83,13 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, mass_1, mass_2, chi1x, ch
     S2_0_norm = IMRPhenomX_vector_L2_norm(S2v)
 
 
+    mass_1_SI = (mass_1 * MSUN)
+    mass_2_SI = (mass_2 * MSUN)
+
+    piGM = jnp.pi * (mass_1_SI + mass_2_SI) * (G / C) / (C * C)
+
     # Reference velocity v and v^2
-    v_0 = jnp.power(pPrec.piGM * pWF['fRef'], 1.0/3.0)
+    v_0 = jnp.power(piGM * reference_frequency, 1.0/3.0)
     v_0_2 = v_0 * v_0
 
     # Reference orbital angular momenta

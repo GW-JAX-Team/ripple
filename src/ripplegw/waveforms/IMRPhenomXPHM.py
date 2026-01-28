@@ -2378,7 +2378,7 @@ class IMRPhenomXPHM(WaveFormModel):
         return pWF
     
 
-    def twistup(self, Mf, eta, pPrec, hlm):
+    def twistup(self, mass_1, mass_2, Mf, pPrec, hlm):
         "Copy of lalsimulation IMRPhenomXPHMTwistUp"
         "Function to twist up hlms"
 
@@ -2391,7 +2391,7 @@ class IMRPhenomXPHM(WaveFormModel):
 
         # Modes 21, 22, 32, 33, 43, 44 in that order
 
-        mass_ratio = symmetric_mass_ratio_to_mass_ratio(eta)
+        mass_ratio = mass_2/mass_1
         
 
 
@@ -2402,7 +2402,7 @@ class IMRPhenomXPHM(WaveFormModel):
             emm = emms[mode_idx]
             
             #print("what is the value of offset:", alpha_offset_emm, epsilon_offset_emm)
-            alpha, epsilon, cos_beta = pPrec.compute_evolved_spin_using_msa(Mf, emm, mass_ratio)
+            alpha, epsilon, cos_beta = pPrec.compute_evolved_spin_using_msa(mass_1, mass_2, Mf, emm)
             cBetah, sBetah = IMRPhenomXWignerdCoefficients_cosbeta(cos_beta)
 
             cexp_i_alpha = jnp.exp(1j * alpha)
@@ -2474,7 +2474,7 @@ class IMRPhenomXPHM(WaveFormModel):
         
         eta = m1*m2/jnp.power(m1+m2, 2)
 
-        _hp, _hc = self.twistup(Mf, eta, pPrec, hlm)
+        _hp, _hc = self.twistup(m1, m2, Mf, pPrec, hlm)
 
 
         zeta_polarization = pPrec.zeta_polarization
