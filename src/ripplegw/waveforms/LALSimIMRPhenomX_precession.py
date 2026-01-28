@@ -281,7 +281,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         #self.compute_evolved_spin_using_spintaylor() # Function that uses Spin Taylor approximantion to evolve spins
         
         self.compute_evolved_spin_using_msa()
-        self.compute_and_set_spherical_harmonics()
+
         
 
     def _compute_masses(self):
@@ -885,45 +885,6 @@ class IMRPhenomXGetAndSetPrecessionVariables:
 
         
         return None
-
-    def compute_and_set_spherical_harmonics(self):
-        """
-        Compute all required spin-weighted spherical harmonics and assign them to self.
-
-        This method computes Y_{l,m}^{-2}(theta, phi=0) for:
-        - l=2, m in [-2, -1, 0, 1, 2]
-        - l=3, m in [-3, -2, -1, 0, 1, 2, 3]
-        - l=4, m in [-4, -3, -2, -1, 0, 1, 2, 3, 4]
-
-        The spherical harmonics are evaluated at theta = self.thetaJN and phi = 0.
-        """
-        # l=2 modes
-        object.__setattr__(self, 'Y2m2', compute_sminus2_l2(theta=self.thetaJN, m=-2))
-        object.__setattr__(self, 'Y2m1', compute_sminus2_l2(theta=self.thetaJN, m=-1))
-        object.__setattr__(self, 'Y20', compute_sminus2_l2(theta=self.thetaJN, m=0))
-        object.__setattr__(self, 'Y21', compute_sminus2_l2(theta=self.thetaJN, m=1))
-        object.__setattr__(self, 'Y22', compute_sminus2_l2(theta=self.thetaJN, m=2))
-
-        # l=3 modes
-        object.__setattr__(self, 'Y3m3', compute_sminus2_l3(theta=self.thetaJN, m=-3))
-        object.__setattr__(self, 'Y3m2', compute_sminus2_l3(theta=self.thetaJN, m=-2))
-        object.__setattr__(self, 'Y3m1', compute_sminus2_l3(theta=self.thetaJN, m=-1))
-        object.__setattr__(self, 'Y30', compute_sminus2_l3(theta=self.thetaJN, m=0))
-        object.__setattr__(self, 'Y31', compute_sminus2_l3(theta=self.thetaJN, m=1))
-        object.__setattr__(self, 'Y32', compute_sminus2_l3(theta=self.thetaJN, m=2))
-        object.__setattr__(self, 'Y33', compute_sminus2_l3(theta=self.thetaJN, m=3))
-
-        # l=4 modes
-        object.__setattr__(self, 'Y4m4', compute_sminus2_l4(theta=self.thetaJN, m=-4))
-        object.__setattr__(self, 'Y4m3', compute_sminus2_l4(theta=self.thetaJN, m=-3))
-        object.__setattr__(self, 'Y4m2', compute_sminus2_l4(theta=self.thetaJN, m=-2))
-        object.__setattr__(self, 'Y4m1', compute_sminus2_l4(theta=self.thetaJN, m=-1))
-        object.__setattr__(self, 'Y40', compute_sminus2_l4(theta=self.thetaJN, m=0))
-        object.__setattr__(self, 'Y41', compute_sminus2_l4(theta=self.thetaJN, m=1))
-        object.__setattr__(self, 'Y42', compute_sminus2_l4(theta=self.thetaJN, m=2))
-        object.__setattr__(self, 'Y43', compute_sminus2_l4(theta=self.thetaJN, m=3))
-        object.__setattr__(self, 'Y44', compute_sminus2_l4(theta=self.thetaJN, m=4))
-
 
 
 
