@@ -446,7 +446,8 @@ def IMRPhenomX_Initialize_MSA_System(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x,
     phiz_0 = -phiz_0 - vMSA[0]
     zeta_0 = -zeta_0 - vMSA[1]
 
-    return jnp.array([Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, g0, c_1, c_1_over_eta, SAv2, Seff, dotS1Ln, dotS2Ln, S_0_norm, psi0, psi1, psi2, phiz_0, zeta_0, constants_L_0, constants_L_1, constants_L_2, constants_L_3, constants_L_4])
+    return jnp.array([Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, g0, c_1, c_1_over_eta, SAv2, Seff, dotS1Ln, dotS2Ln, S_0_norm, psi0, psi1, psi2, phiz_0, zeta_0, constants_L_0, constants_L_1, constants_L_2, constants_L_3, constants_L_4,
+                      S1_norm_2, S2_norm_2])
 
 
 

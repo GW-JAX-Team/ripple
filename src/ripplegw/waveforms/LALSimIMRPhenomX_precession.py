@@ -203,7 +203,7 @@ def IMRPhenomXGetAndSetPrecessionVariables(pWF, mass_1, mass_2, chi1x, chi1y, ch
 
 
 
-def compute_evolved_spin_using_msa(self, mass_1, mass_2, Mf, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, emm, reference_frequency, phiRef_In, inclination, pWF):
+def compute_evolved_spin_using_msa(mass_1, mass_2, Mf, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, emm, reference_frequency, kappa, phiJ_Sf, pWF):
 
     """
     What is compute_evolved_spin_using_msa function supposed to return?
@@ -218,7 +218,7 @@ def compute_evolved_spin_using_msa(self, mass_1, mass_2, Mf, chi1x, chi1y, chi1z
     total_mass = mass_1 + mass_2
     mass_1_fraction = mass_1 / total_mass
     mass_2_fraction = mass_2 / total_mass
-    delta = mass_1_f - mass_2 #FIXME
+    delta = mass_1_fraction - mass_2_fraction #FIXME
 
     
     #if pflag in 220, 221, 222, 223, 224...
@@ -228,23 +228,6 @@ def compute_evolved_spin_using_msa(self, mass_1, mass_2, Mf, chi1x, chi1y, chi1z
                                                                 chi2x=chi2x, chi2y = chi2y, chi2z = chi2z,
                                                                 reference_frequency=reference_frequency)
 
-    #Mfinal, afinal, fRING, fDAMP = IMRPhenomX_SetPrecessingRemnantParams(self, self.pWF, self.lalParams)
-    # The output of this function should be Mfinal, afinal, fring, and fdamp
-    # To be checked
-
-
-    # case 223: Line 691 compute orbital angular momentum
-    L0, L1, L2, L3, L4, L5, L6, L7, L8, L8L = flag_222_223_twoPN_non_spinning_orbitan_angular_momentum(
-        eta, eta2, chi1L, chi2L, delta, jnp.power(jnp.pi, 2))
-
-    LRef = bigM * bigM * XLALSimIMRPhenomXLPNAnsatz(pWF['v_ref'], eta / pWF['v_ref'], L0, L1, L2, L3, L4, L5, L6, L7, L8, L8L) 
-
-    """
-    thetaJN, Nz_Jf, Nx_Jf, phiJ_Sf, kappa = compute_thetaJN_and_kappa(mass_1_fraction, mass_2_fraction, 
-                                                            chi1x, chi1y, chi1z, 
-                                                            chi2x, chi2y, chi2z, 
-                                                            LRef, phiRef_In, inclination)
-    """
     alpha0 = jnp.pi - kappa # For phenom_xp_convention = 1
     """    
     zeta_polarization = compute_zeta_polarization(mass_1_fraction, mass_2_fraction, 
@@ -253,21 +236,16 @@ def compute_evolved_spin_using_msa(self, mass_1, mass_2, Mf, chi1x, chi1y, chi1z
                                                         LRef, phiRef_In, inclination, Nz_Jf, Nx_Jf, kappa)
     """
 
-
-
-
-    #object.__setattr__(self, 'zeta_polarization', zeta_polarization)
-
     epsilon0 = set_epsilon0(phenom_xp_convention, phiJ_Sf)
 
     mprime = 2
     # When convention five or seven are false...
     #NH My understanding is that these are just vanlges at the reference frequency for the 22 mode. 
 
-    eta2 = jnp.power(self.eta, 2)
-    eta3 = jnp.power(self.eta, 3)
-    eta4 = jnp.power(self.eta, 4)
-    inveta = jnp.power(self.eta, -1)
+    eta2 = jnp.power(eta, 2)
+    eta3 = jnp.power(eta, 3)
+    eta4 = jnp.power(eta, 4)
+    inveta = jnp.power(eta, -1)
 
     SAv2 = msa_init[15]
     SAv = jnp.sqrt(SAv2)
@@ -278,7 +256,7 @@ def compute_evolved_spin_using_msa(self, mass_1, mass_2, Mf, chi1x, chi1y, chi1z
     delta_qq = (1-qq) / (1+qq)
 
     alpha_offset, epsilon_offset = Get_alphaepsilon_atfref(mprime, pWF['piM'], reference_frequency, alpha0, epsilon0,
-                                                            eta=self.eta,
+                                                            eta=eta,
                                                             eta2=eta2,
                                                             eta3=eta3,
                                                             eta4=eta4,
@@ -288,8 +266,6 @@ def compute_evolved_spin_using_msa(self, mass_1, mass_2, Mf, chi1x, chi1y, chi1z
                                                             SAv2=SAv2,
                                                             invSAv=invSAv,
                                                             invSAv2=invSAv2,
-                                                            S1_norm_2=self.S1_norm_2,
-                                                            S2_norm_2=self.S2_norm_2,
                                                             qq=qq,
                                                             delta_qq=delta_qq,
                                                             
@@ -324,13 +300,15 @@ def compute_evolved_spin_using_msa(self, mass_1, mass_2, Mf, chi1x, chi1y, chi1z
                                                             constants_L_1=msa_init[26],
                                                             constants_L_2=msa_init[27],
                                                             constants_L_3=msa_init[28],
-                                                            constants_L_4=msa_init[29])
+                                                            constants_L_4=msa_init[29],
+                                                            S1_norm_2=msa_init[30],
+                                                            S2_norm_2=msa_init[31],)
 
 
     vangles = compute_vangles(
         Mf=Mf,
         emm=emm,
-        eta=self.eta,
+        eta=eta,
         eta2=eta2,
         eta3=eta3,
         eta4=eta4,
@@ -341,8 +319,7 @@ def compute_evolved_spin_using_msa(self, mass_1, mass_2, Mf, chi1x, chi1y, chi1z
         invSAv=invSAv,
         invSAv2=invSAv2,
 
-        S1_norm_2=self.S1_norm_2,
-        S2_norm_2=self.S2_norm_2,
+      
         qq=qq,
         delta_qq=delta_qq,
         
@@ -376,7 +353,9 @@ def compute_evolved_spin_using_msa(self, mass_1, mass_2, Mf, chi1x, chi1y, chi1z
         constants_L_1=msa_init[26],
         constants_L_2=msa_init[27],
         constants_L_3=msa_init[28],
-        constants_L_4=msa_init[29]
+        constants_L_4=msa_init[29],
+        S1_norm_2=msa_init[30],
+        S2_norm_2=msa_init[31],
     )
 
     #print("end...", vangles[0])
@@ -728,7 +707,7 @@ def flag_222_223_twoPN_non_spinning_orbitan_angular_momentum(eta, eta2, chi1L, c
         L7   = 0.0
         L8   = 0.0
         L8L = 0.0
-        return L0, L1, L2, L3, L4, L5, L6, L7, L8, L8L
+        return jnp.array([L0, L1, L2, L3, L4, L5, L6, L7, L8, L8L])
 
 
 
