@@ -203,7 +203,7 @@ def IMRPhenomXGetAndSetPrecessionVariables(pWF, mass_1, mass_2, chi1x, chi1y, ch
 
 
 
-def compute_evolved_spin_using_msa(Mf, mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, emm, reference_frequency, kappa, phiJ_Sf, pWF):
+def compute_evolved_spin_using_msa(Mf, mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, emm, reference_frequency, kappa, phiJ_Sf):
 
     """
     What is compute_evolved_spin_using_msa function supposed to return?
@@ -211,7 +211,8 @@ def compute_evolved_spin_using_msa(Mf, mass_1, mass_2, chi1x, chi1y, chi1z, chi2
 
     phenom_xp_convention = 1
     eta = mass_1*mass_2/jnp.power(mass_1+mass_2, 2)
-
+    Msec = (mass_1 + mass_2) * MTSUN
+    piM = jnp.pi * Msec
 
     
     #if pflag in 220, 221, 222, 223, 224...
@@ -243,7 +244,8 @@ def compute_evolved_spin_using_msa(Mf, mass_1, mass_2, chi1x, chi1y, chi1z, chi2
 
     # When convention five or seven are false...
     #NH My understanding is that these are just vanlges at the reference frequency for the 22 mode. 
-    alpha_offset, epsilon_offset = Get_alphaepsilon_atfref(mprime, pWF['piM'], reference_frequency, alpha0, epsilon0,
+
+    alpha_offset, epsilon_offset = Get_alphaepsilon_atfref(mprime, piM, reference_frequency, alpha0, epsilon0,
                                                             eta=eta,
                                                             eta2=eta2,
                                                             eta3=eta3,

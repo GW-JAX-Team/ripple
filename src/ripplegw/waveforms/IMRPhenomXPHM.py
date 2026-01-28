@@ -5,7 +5,7 @@ import jax.numpy as jnp
 from jax import vmap
 import numpy as np
 from .IMRPhenomD_QNMdata import fM_CUT, QNMData_a, QNMData_fRD, QNMData_fdamp
-from ..constants import C, PI, MSUN, MTSUN_SI
+from ..constants import C, PI, MSUN, MTSUN_SI, MTSUN
 from ..typing import Array
 from ripplegw import Mc_eta_to_ms
 from .spherical_harmonics import (compute_sminus2_l2, compute_sminus2_l3, compute_sminus2_l4)
@@ -2386,7 +2386,10 @@ class IMRPhenomXPHM(WaveFormModel):
         
         orbital_angular_momentum = pPrec.flag_222_223_twoPN_non_spinning_orbitan_angular_momentum(
         eta, eta2, chi1L, chi2L, delta, jnp.power(jnp.pi, 2))
-        LRef = bigM * bigM * pPrec.XLALSimIMRPhenomXLPNAnsatz(pWF['v_ref'], eta / pWF['v_ref'], orbital_angular_momentum[0], orbital_angular_momentum[1], orbital_angular_momentum[2], orbital_angular_momentum[3], orbital_angular_momentum[4], orbital_angular_momentum[5], orbital_angular_momentum[6], orbital_angular_momentum[7], orbital_angular_momentum[8], orbital_angular_momentum[9]) 
+        Msec = (mass_1 + mass_2) * MTSUN
+        piM = jnp.pi * Msec
+        v_ref = jnp.cbrt(piM * reference_frequency)
+        LRef = bigM * bigM * pPrec.XLALSimIMRPhenomXLPNAnsatz(v_ref, eta / v_ref, orbital_angular_momentum[0], orbital_angular_momentum[1], orbital_angular_momentum[2], orbital_angular_momentum[3], orbital_angular_momentum[4], orbital_angular_momentum[5], orbital_angular_momentum[6], orbital_angular_momentum[7], orbital_angular_momentum[8], orbital_angular_momentum[9]) 
         
         theta_JN, Nz_Jf, Nx_Jf, phiJ_Sf, kappa = pPrec.compute_thetaJN_and_kappa(mass_1_fraction, mass_2_fraction, 
                                                             chi1x, chi1y, chi1z, 
@@ -2404,7 +2407,7 @@ class IMRPhenomXPHM(WaveFormModel):
             emm = emms[mode_idx]
             
             #print("what is the value of offset:", alpha_offset_emm, epsilon_offset_emm)
-            alpha, epsilon, cos_beta = pPrec.compute_evolved_spin_using_msa(Mf, mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, emm, reference_frequency, kappa, phiJ_Sf, pWF)
+            alpha, epsilon, cos_beta = pPrec.compute_evolved_spin_using_msa(Mf, mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, emm, reference_frequency, kappa, phiJ_Sf)
             cBetah, sBetah = IMRPhenomXWignerdCoefficients_cosbeta(cos_beta)
 
             cexp_i_alpha = jnp.exp(1j * alpha)
