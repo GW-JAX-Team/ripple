@@ -2133,274 +2133,32 @@ def hphc(frequency_array, chirp_mass, eta, chi1x, chi1y, chi1z, chi2x, chi2y, ch
     return hlm
 
 
-
-
-class WaveFormModel(ABC):
-    """
-    Abstract class to compute waveforms
+def generate_xphm(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, distance, inclination, phi0, duration, minimum_frequency, maximum_frequency, reference_frequency):
     
-    :param str objType: The kind of system the wf model is made for, can be ``'BBH'``, ``'BNS'`` or ``'NSBH'``.
-    :param float fcutPar: The cut frequency factor of the waveform. This can either be given in :math:`\\rm Hz`, as for :py:class:`gwfast.waveforms.TaylorF2_RestrictedPN`, or as an adimensional frequency (Mf), as for the IMR models.
-    :param bool, optional is_newtonian: Boolean specifying if the waveform is a simple Newtonian inspiral.
-    :param bool, optional is_tidal: Boolean specifying if the waveform includes tidal effects.
-    :param bool, optional is_HigherModes: Boolean specifying if the waveform includes the contribution of sub-dominant (higher-order) modes.
-    :param bool, optional is_chi1chi2: Boolean specifying if, in the aligned spins only case, the individual spins are used in place of the ``'chiS'`` and ``'chiA'`` combinations.
-    :param bool, optional is_Precessing: Boolean specifying if the waveform includes spin-precession effects.
-    :param bool, optional is_LAL: Boolean specifying if the waveform comes from the ``LAL`` library.
-    :param bool, optional is_prec_ang: Boolean specifying if, in the precessing spin case, the angular variables of the spins are used, namely ``'theta_JN'``, ``'chi1'``, ``'chi2'``, ``'tilt1'``, ``'tilt2'``, ``'phiJL'``, ``'phi12'``.
-    :param bool, optional is_eccentric: Boolean specifying if the waveform includes orbital eccentricity.
-    :param bool, optional is_holomorphic: Boolean specifying if the waveform function is holomorphic (needed for derivatives handling).
-    :param bool, optional apply_fcut: Boolean specifying if the waveform has to be cut at the chosen maximum frequency specified by ``fcutPar`` (as in ``LAL``) or not.
+    frequency_array = jnp.arange(minimum_frequency, maximum_frequency, 1/duration)
+
+    Mf = XLALSimIMRPhenomXUtilsHztoMf(frequency_array, mass_1+mass_2)
+
+    chirp_mass = component_masses_to_chirp_mass(mass_1, mass_2)
+    eta = mass_1 * mass_2 / jnp.power(mass_1+mass_2, 2)
+
+    hlm = hphc(frequency_array,
+                        chirp_mass = chirp_mass,
+                        eta = eta,
+                        luminosity_distance=distance,
+                        iota = inclination,
+                        initial_phase = phi0,
+                        chi1x = chi1x,
+                        chi1y = chi1y,
+                        chi1z = chi1z,
+                        chi2x = chi2x,
+                        chi2y = chi2y,
+                        chi2z = chi2z, 
+                        reference_frequency= reference_frequency)
+
+    hp, hc = twistup(Mf, mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, phi0, inclination, reference_frequency, hlm)
     
-    """
-    
-    def __init__(self, objType, fcutPar, is_newtonian=False, is_tidal=False, is_HigherModes=False, is_chi1chi2=True, is_Precessing=False, is_LAL=False, is_prec_ang=False, is_eccentric=False, is_holomorphic=False, apply_fcut=True):
-        """
-        Constructor method
-        """
-        # The kind of system the wf model is made for, can be 'BBH', 'BNS' or 'NSBH'
-        self.objType = objType 
-        # The cut frequency factor of the waveform, in Hz, to be divided by Mtot (in units of Msun). The method fcut can be redefined, as e.g. in the IMRPhenomD implementation, and fcutPar can be passed as an adimensional frequency (Mf)
-        fcutPar = fcutPar
-        
-        # Dictionary containing the order in which the parameters will appear in the Fisher matrix
-        self.ParNums = {'chirp_mass':0, 'eta':1, 'dL':2, 'theta':3, 'phi':4, 'iota':5, 'psi':6, 'tcoal':7, 'Phicoal':8, 'chiS':9,  'chiA':10}
-        """
-        Dictionary containing the number of the rows/columns in which the parameters will appear in the Fisher matrix.
-        
-        :type: dict(int)
-        """
-        self.is_newtonian=is_newtonian
-        self.is_tidal=is_tidal
-        self.is_HigherModes = is_HigherModes
-        self.nParams = 11
-        self.is_chi1chi2 = is_chi1chi2
-        self.is_Precessing = is_Precessing
-        self.is_LAL = is_LAL
-        self.is_eccentric=is_eccentric
-        self.is_holomorphic=is_holomorphic
-        self.apply_fcut = apply_fcut
-        
-        if is_newtonian:
-            # In the Newtonian case eta and the spins are not included in the Fisher, since they do not enter the signal
-            self.ParNums = {'chirp_mass':0, 'dL':1, 'theta':2, 'phi':3, 'iota':4, 'psi':5, 'tcoal':6, 'Phicoal':7}
-            self.nParams = 8
-        if (is_Precessing) and (is_tidal):
-            if not is_eccentric:
-                self.ParNums = {'chirp_mass':0, 'eta':1, 'dL':2, 'theta':3, 'phi':4, 'iota':5, 'psi':6, 'tcoal':7, 'Phicoal':8, 'chi1z':9,  'chi2z':10, 'chi1x':11, 'chi2x':12, 'chi1y':13, 'chi2y':14, 'LambdaTilde':15, 'deltaLambda':16}
-                self.nParams = 17
-            else:
-                self.ParNums = {'chirp_mass':0, 'eta':1, 'dL':2, 'theta':3, 'phi':4, 'iota':5, 'psi':6, 'tcoal':7, 'Phicoal':8, 'chi1z':9,  'chi2z':10, 'chi1x':11, 'chi2x':12, 'chi1y':13, 'chi2y':14, 'LambdaTilde':15, 'deltaLambda':16, 'ecc':17}
-                self.nParams = 18
-        elif (is_tidal) and (not is_Precessing):
-            # Note that the Fisher is computed for LabdaTilde and deltaLambda, but the waveforms accept as input only Lambda1 and Lambda2
-            self.ParNums['LambdaTilde']=11
-            self.ParNums['deltaLambda']=12
-            if not is_eccentric:
-                self.nParams = 13
-            else:
-                self.ParNums['ecc']=13
-                self.nParams = 14
-        elif (not is_tidal) and (is_Precessing):
-            if not is_eccentric:
-                self.ParNums = {'chirp_mass':0, 'eta':1, 'dL':2, 'theta':3, 'phi':4, 'iota':5, 'psi':6, 'tcoal':7, 'Phicoal':8, 'chi1z':9,  'chi2z':10, 'chi1x':11, 'chi2x':12, 'chi1y':13, 'chi2y':14}
-                self.nParams = 15
-            else:
-                self.ParNums = {'chirp_mass':0, 'eta':1, 'dL':2, 'theta':3, 'phi':4, 'iota':5, 'psi':6, 'tcoal':7, 'Phicoal':8, 'chi1z':9,  'chi2z':10, 'chi1x':11, 'chi2x':12, 'chi1y':13, 'chi2y':14, 'ecc':15}
-                self.nParams = 16
-        elif (not is_tidal) and (not is_Precessing) and (is_eccentric):
-            self.ParNums['ecc']=11
-            self.nParams = 12
-        if (not is_Precessing) and (is_chi1chi2):
-            self.ParNums['chi1z'] = self.ParNums['chiS']
-            self.ParNums['chi2z'] = self.ParNums['chiA']
-            self.ParNums.pop('chiS')
-            self.ParNums.pop('chiA')
-        if (is_Precessing) and (is_prec_ang):
-            self.ParNums['chi1']  = self.ParNums['chi1z']
-            self.ParNums['chi2']  = self.ParNums['chi2z']
-            self.ParNums['tilt1'] = self.ParNums['chi1x']
-            self.ParNums['tilt2'] = self.ParNums['chi2x']
-            self.ParNums['phiJL'] = self.ParNums['chi1y']
-            self.ParNums['phi12'] = self.ParNums['chi2y']
-            self.ParNums['theta_JN'] = self.ParNums['iota']
-            
-            self.ParNums.pop('chi1z')
-            self.ParNums.pop('chi2z')
-            self.ParNums.pop('chi1x')
-            self.ParNums.pop('chi2x')
-            self.ParNums.pop('chi1y')
-            self.ParNums.pop('chi2y')
-            self.ParNums.pop('iota')
-        
-        self.ParNums = dict(sorted(self.ParNums.items(), key=lambda item: item[1]))
-    @abstractmethod    
-    def Phi(self, f, **kwargs):
-        """
-        Compute the phase of the GW as a function of frequency, given the events parameters.
-
-        We compute here only the GW phase, not the full phase of the signal, which also includes the reference phase and the time of coalescence.
-        
-        :param array f: Frequency grid on which the phase will be computed, in :math:`\\rm Hz`.
-        :param dict(array, array, ...) kwargs: Dictionary with arrays containing the parameters of the events to compute the phase of, as in :py:data:`events`.
-        :return: GW phase for the chosen events evaluated on the frequency grid.
-        :rtype: array
-        
-        """
-        pass
-    
-    @abstractmethod
-    def Ampl(self, f, **kwargs):
-        """
-        Compute the amplitude of the GW as a function of frequency, given the events parameters.
-        
-        :param array f: Frequency grid on which the phase will be computed, in :math:`\\rm Hz`.
-        :param dict(array, array, ...) kwargs: Dictionary with arrays containing the parameters of the events to compute the amplitude of, as in :py:data:`events`.
-        :return: GW amplitude for the chosen events evaluated on the frequency grid.
-        :rtype: array
-        
-        """
-        pass
-        
-    def tau_star(self, f, **kwargs):
-        # The relation among the time to coalescence (in seconds) and the frequency (in Hz). We use as default 
-        # the expression in M. Maggiore - Gravitational Waves Vol. 1 eq. (4.21), valid in Newtonian and restricted PN approximation
-        """
-        Compute the time to coalescence (in seconds) as a function of frequency (in :math:`\\rm Hz`), given the events parameters.
-        
-        :param array f: Frequency grid on which the time to coalescence will be computed, in :math:`\\rm Hz`.
-        :param dict(array, array, ...) kwargs: Dictionary with arrays containing the parameters of the events to compute the time to coalescence of, as in :py:data:`events`.
-        :return: time to coalescence for the chosen events evaluated on the frequency grid, in seconds.
-        :rtype: array
-        
-        """
-        return 2.18567 * ((1.21/kwargs['chirp_mass'])**(5./3.)) * ((100/f)**(8./3.))
-    
-    def fcut(self, **kwargs):
-        """
-        Compute the cut frequency of the waveform as a function of the events parameters, in :math:`\\rm Hz`.
-        
-        :param dict(array, array, ...) kwargs: Dictionary with arrays containing the parameters of the events to compute the cut frequency of, as in :py:data:`events`.
-        :return: Cut frequency of the waveform for the chosen events, in :math:`\\rm Hz`.
-        :rtype: array
-        
-        """
-        return fcutPar/(kwargs['chirp_mass']/(kwargs['eta']**(3./5.)))
-
-
-class IMRPhenomXPHM(WaveFormModel):
-    """
-    IMRPhenomHM waveform model.
-    
-    Relevant references:
-        [1] `arXiv:1508.07250 <https://arxiv.org/abs/1508.07250>`_
-        
-        [2] `arXiv:1508.07253 <https://arxiv.org/abs/1508.07253>`_
-        
-        [3] `arXiv:1708.00404 <https://arxiv.org/abs/1708.00404>`_
-        
-        [4] `arXiv:1909.10010 <https://arxiv.org/abs/1909.10010>`_
-    
-    :param float, optional fRef: Reference frequency of the waveform, in :math:`\\rm Hz`. If not provided, the minimum of the frequency grid will be used.
-    :param kwargs: Optional arguments to be passed to the parent class :py:class:`WaveFormModel`, such as ``is_chi1chi2``.
-        
-    """
-    # All is taken from LALSimulation and arXiv:1508.07250, arXiv:1508.07253, arXiv:1708.00404, arXiv:1909.10010
-    def __init__(self, reference_frequency=None, **kwargs):
-        """
-        Constructor method
-        """
-        # Dimensionless frequency (Mf) at which the inspiral amplitude switches to the intermediate amplitude
-        AMP_fJoin_INS = 0.014
-        # Dimensionless frequency (Mf) at which the inspiral phase switches to the intermediate phase
-        PHI_fJoin_INS = 0.018
-        
-        
-        #super().__init__('BBH', fcutPar, is_HigherModes=True, **kwargs)
-        
-        # List of phase shifts: the index is the azimuthal number m
-
-        
-    def Phi(self, f, **kwargs):
-        return None
-    
-
-    def Ampl(self, f, **kwargs):
-        return None
-        
-    def generate_waveform_struct(self, m1, m2, chi1z, chi2z,
-                                 distance, inclination, phi0,  
-                                 duration, minimum_frequency, 
-                                 maximum_frequency, 
-                                 reference_frequency):
-        # distance input is in Gpc. Need to convert it to meters
-        lalParams = {}
-        m1_SI = m1*MSUN
-        m2_SI = m2*MSUN
-        deltaF = 1/duration
-        distance *= 3.08567758128e25
-
-
-        pWF = IMRPhenomXSetWaveformVariables(m1_SI,
-                                             m2_SI,
-                                             chi1z, 
-                                             chi2z,
-                                             deltaF,
-                                             reference_frequency, 
-                                             phi0,
-                                             minimum_frequency, 
-                                             maximum_frequency,
-                                             distance,
-                                             inclination,
-                                             lalParams,
-                                             debug = False)
-
-
-        return pWF
-    
-
-    def generate_xphm(self, m1, m2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, distance, inclination, phi0, duration, minimum_frequency, maximum_frequency, reference_frequency):
-
-        pWF = self.generate_waveform_struct(m1, m2, chi1z, chi2z,
-                                 distance, inclination, phi0,  
-                                 duration, minimum_frequency, 
-                                 maximum_frequency, 
-                                 reference_frequency)
-        
-        
-        frequency_array = jnp.arange(minimum_frequency, maximum_frequency, 1/duration)
-        Mf = XLALSimIMRPhenomXUtilsHztoMf(frequency_array, m1+m2)
-
-        chirp_mass = component_masses_to_chirp_mass(m1, m2)
-        eta = m1 * m2 / jnp.power(m1+m2, 2)
-
-        hlm = hphc(frequency_array,
-                         chirp_mass = chirp_mass,
-                         eta = eta,
-                         luminosity_distance=distance,
-                         iota = inclination,
-                         initial_phase = phi0,
-                         chi1x = chi1x,
-                         chi1y = chi1y,
-                         chi1z = chi1z,
-                         chi2x = chi2x,
-                         chi2y = chi2y,
-                         chi2z = chi2z, 
-                         reference_frequency= reference_frequency)
-        
-        eta = m1*m2/jnp.power(m1+m2, 2)
-
-        hp, hc = twistup(Mf, m1, m2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, phi0, inclination, reference_frequency, hlm)
-
-
-        #zeta_polarization = pPrec.zeta_polarization
-
-        #hp, hc = apply_polarization_rotation(zeta_polarization, _hp, _hc)
-       
-
-
-        
-        return  hp, hc
+    return  hp, hc
         
 
 
