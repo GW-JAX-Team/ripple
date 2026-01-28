@@ -874,7 +874,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         """
         mprime = 2
         # When convention five or seven are false...
-        alpha_offset, epsilon_offset, alpha_offset_1, epsilon_offset_1, alpha_offset_3, epsilon_offset_3, alpha_offset_4, epsilon_offset_4 = Get_alphaepsilon_atfref(mprime, self.pWF['piM'], self.pWF['fRef'], alpha0, epsilon0,
+        alpha_offset, epsilon_offset = Get_alphaepsilon_atfref(mprime, self.pWF['piM'], self.pWF['fRef'], alpha0, epsilon0,
                                                                 self.eta, self.eta2, self.eta3, self.eta4,
                                                                 self.inveta, self.c1, self.c1_over_eta,
                                                                 self.SAv, self.SAv2, self.invSAv, self.invSAv2,
@@ -885,15 +885,8 @@ class IMRPhenomXGetAndSetPrecessionVariables:
                                                                 self.Omegazeta0_coeff, self.Omegazeta1_coeff, self.Omegazeta2_coeff, self.Omegazeta3_coeff, self.Omegazeta4_coeff, self.Omegazeta5_coeff, self.zeta_0)
 
 
-        
-        alpha_offset_array, epsilon_offset_array = Get_alpha_epsilon_offset_based_on_m(
-                alpha_offset_1, epsilon_offset_1,
-                alpha_offset, epsilon_offset,
-                alpha_offset_3, epsilon_offset_3,
-                alpha_offset_4, epsilon_offset_4)
-        
-        object.__setattr__(self, 'alpha_offset_array', alpha_offset_array)
-        object.__setattr__(self, 'epsilon_offset_array', epsilon_offset_array)
+        object.__setattr__(self, 'alpha_offset_array', jnp.ones(4)*alpha_offset)
+        object.__setattr__(self, 'epsilon_offset_array', jnp.ones(4)*epsilon_offset)
 
         
 
@@ -942,32 +935,6 @@ def get_phiJ_Sf(tol_condition, J0_Sf):
     return phiJ_Sf
 
 
-def convention_five_or_seven_false(piM, fRef, alpha0, epsilon0,
-                                   eta, eta2, eta3, eta4,
-                                   inveta, c1, c1_over_eta,
-                                   SAv, SAv2, invSAv, invSAv2,
-                                   constants_L, S1_norm_2, S2_norm_2,
-                                   qq, delta_qq, Seff, dotS1Ln, dotS2Ln, S_0_norm,
-                                   psi0, psi1, psi2, g0,
-                                   Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, phiz_0,
-                                   Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, zeta_0):
-    # Get initial Get \alpha and \epsilon offsets at \omega = pi * M * f_{Ref} */
-    mprime = 2 #FIXME why always 2?
-
-    alpha_offset, epsilon_offset = Get_alphaepsilon_atfref(
-        mprime, piM, fRef, alpha0, epsilon0,
-        eta, eta2, eta3, eta4,
-        inveta, c1, c1_over_eta,
-        SAv, SAv2, invSAv, invSAv2,
-        constants_L, S1_norm_2, S2_norm_2,
-        qq, delta_qq, Seff, dotS1Ln, dotS2Ln, S_0_norm,
-        psi0, psi1, psi2, g0,
-        Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, phiz_0,
-        Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, zeta_0)
-    return alpha_offset, epsilon_offset, alpha_offset, epsilon_offset, alpha_offset, epsilon_offset, alpha_offset, epsilon_offset
-
-
-
 def Get_alphaepsilon_atfref(mprime, piM, fRef, alpha0, epsilon0,
                             eta, eta2, eta3, eta4,
                             inveta, c1, c1_over_eta,
@@ -990,7 +957,7 @@ def Get_alphaepsilon_atfref(mprime, piM, fRef, alpha0, epsilon0,
         Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, phiz_0,
         Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, zeta_0)
 
-    return alpha_offset, epsilon_offset, alpha_offset, epsilon_offset, alpha_offset, epsilon_offset, alpha_offset, epsilon_offset
+    return alpha_offset, epsilon_offset
 
 
 def Get_alphaepsilon_atfref_pflag_true(omega_ref, alpha0, epsilon0,
