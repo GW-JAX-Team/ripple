@@ -746,28 +746,97 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         eta4 = jnp.power(self.eta, 4)
         inveta = jnp.power(self.eta, -1)
 
+        SAv2 = msa_init[15]
+        SAv = jnp.sqrt(SAv2)
+        invSAv = jnp.power(SAv, -1)
+        invSAv2 = jnp.power(SAv2, -1)
+
         alpha_offset, epsilon_offset = Get_alphaepsilon_atfref(mprime, self.pWF['piM'], self.pWF['fRef'], alpha0, epsilon0,
-                                                                self.eta, eta2, eta3, eta4, inveta, 
-                                                                self.c1, self.c1_over_eta,
-                                                                self.SAv, self.SAv2, self.invSAv, self.invSAv2,
-                                                                constants_L, self.S1_norm_2, self.S2_norm_2,
-                                                                self.qq, self.delta_qq, self.Seff, self.dotS1Ln, self.dotS2Ln, self.S_0_norm,
-                                                                self.psi0, self.psi1, self.psi2, msa_init[-1],
-                                                                msa_init[0], msa_init[1], msa_init[2], msa_init[3], msa_init[4], msa_init[5], self.phiz_0,
-                                                                msa_init[6], msa_init[7], msa_init[8], msa_init[9], msa_init[10], msa_init[11], self.zeta_0)
+                                                               eta=self.eta,
+                                                                eta2=eta2,
+                                                                eta3=eta3,
+                                                                eta4=eta4,
+                                                                inveta=inveta,
+                                                                c1=msa_init[13],
+                                                                c1_over_eta=msa_init[14],
+                                                                SAv=SAv,
+                                                                SAv2=SAv2,
+                                                                invSAv=invSAv,
+                                                                invSAv2=invSAv2,
+                                                                constants_L=constants_L,
+                                                                S1_norm_2=self.S1_norm_2,
+                                                                S2_norm_2=self.S2_norm_2,
+                                                                qq=self.qq,
+                                                                delta_qq=self.delta_qq,
+                                                                Seff=self.Seff,
+                                                                dotS1Ln=self.dotS1Ln,
+                                                                dotS2Ln=self.dotS2Ln,
+                                                                S_0_norm=self.S_0_norm,
+                                                                psi0=self.psi0,
+                                                                psi1=self.psi1,
+                                                                psi2=self.psi2,
+                                                                Omegaz0_coeff=msa_init[0],
+                                                                Omegaz1_coeff=msa_init[1],
+                                                                Omegaz2_coeff=msa_init[2],
+                                                                Omegaz3_coeff=msa_init[3],
+                                                                Omegaz4_coeff=msa_init[4],
+                                                                Omegaz5_coeff=msa_init[5],
+                                                                phiz_0=self.phiz_0,
+                                                                Omegazeta0_coeff=msa_init[6],
+                                                                Omegazeta1_coeff=msa_init[7],
+                                                                Omegazeta2_coeff=msa_init[8],
+                                                                Omegazeta3_coeff=msa_init[9],
+                                                                Omegazeta4_coeff=msa_init[10],
+                                                                Omegazeta5_coeff=msa_init[11],
+                                                                g0=msa_init[12],
+                                                                zeta_0=self.zeta_0)
 
 
         object.__setattr__(self, 'alpha_offset_array', jnp.ones(4)*alpha_offset)
         object.__setattr__(self, 'epsilon_offset_array', jnp.ones(4)*epsilon_offset)
 
-        vangles = compute_vangles(Mf, emm, self.eta, eta2, eta3, eta4, inveta,
-                                    self.c1, self.c1_over_eta,
-                                        self.SAv, self.SAv2, self.invSAv, self.invSAv2,
-                                        constants_L, self.S1_norm_2, self.S2_norm_2,
-                                        self.qq, self.delta_qq, self.Seff, self.dotS1Ln, self.dotS2Ln, self.S_0_norm,
-                                        self.psi0, self.psi1, self.psi2, msa_init[-1],
-                                        msa_init[0], msa_init[1], msa_init[2], msa_init[3], msa_init[4], msa_init[5], self.phiz_0,
-                                        msa_init[6], msa_init[7], msa_init[8], msa_init[9], msa_init[10], msa_init[11], self.zeta_0)
+        vangles = compute_vangles(
+            Mf=Mf,
+            emm=emm,
+            eta=self.eta,
+            eta2=eta2,
+            eta3=eta3,
+            eta4=eta4,
+            inveta=inveta,
+            c1=msa_init[13],
+            c1_over_eta=msa_init[14],
+            SAv=SAv,
+            SAv2=SAv2,
+            invSAv=invSAv,
+            invSAv2=invSAv2,
+            constants_L=constants_L,
+            S1_norm_2=self.S1_norm_2,
+            S2_norm_2=self.S2_norm_2,
+            qq=self.qq,
+            delta_qq=self.delta_qq,
+            Seff=self.Seff,
+            dotS1Ln=self.dotS1Ln,
+            dotS2Ln=self.dotS2Ln,
+            S_0_norm=self.S_0_norm,
+            psi0=self.psi0,
+            psi1=self.psi1,
+            psi2=self.psi2,
+            Omegaz0_coeff=msa_init[0],
+            Omegaz1_coeff=msa_init[1],
+            Omegaz2_coeff=msa_init[2],
+            Omegaz3_coeff=msa_init[3],
+            Omegaz4_coeff=msa_init[4],
+            Omegaz5_coeff=msa_init[5],
+            phiz_0=self.phiz_0,
+            Omegazeta0_coeff=msa_init[6],
+            Omegazeta1_coeff=msa_init[7],
+            Omegazeta2_coeff=msa_init[8],
+            Omegazeta3_coeff=msa_init[9],
+            Omegazeta4_coeff=msa_init[10],
+            Omegazeta5_coeff=msa_init[11],
+            g0=msa_init[12],
+            zeta_0=self.zeta_0
+        )
 
         #print("end...", vangles[0])
         alpha_out = vangles[0] - alpha_offset

@@ -202,20 +202,23 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
 
 
     # Eq. 45 of PRD 95, 104004, (2017), arXiv:1703.03967, set from initial conditions
+    SAv2 = 0.5 * (Spl2pSmi2)
+
     object.__setattr__(pPrec, 'SAv2', 0.5 * (Spl2pSmi2))
-    object.__setattr__(pPrec, 'SAv', jnp.sqrt(pPrec.SAv2))
-    object.__setattr__(pPrec, 'invSAv2', 1.0 / pPrec.SAv2)
+    object.__setattr__(pPrec, 'SAv', jnp.sqrt(SAv2))
+    object.__setattr__(pPrec, 'invSAv2', 1.0 / SAv2)
     object.__setattr__(pPrec, 'invSAv', 1.0 / pPrec.SAv)
 
 
     # c_1 is determined by Eq. 41 of PRD, 95, 104004, (2017), arXiv:1703.03967
-    c_1 = 0.5 * (J0norm*J0norm - L0norm*L0norm - pPrec.SAv2) / pPrec.L_0_norm * eta
+    c_1 = 0.5 * (J0norm*J0norm - L0norm*L0norm - SAv2) / pPrec.L_0_norm * eta
     c1_2 = c_1 * c_1
 
     # Useful powers and combinations of c_1
     object.__setattr__(pPrec, 'c1', c_1)
     object.__setattr__(pPrec, 'c12', c_1 * c_1)
     object.__setattr__(pPrec, 'c1_over_eta', c_1 / eta)
+    c_1_over_eta = c_1 / eta
 
     # Average spin couplings over one precession cycle: A9 - A14 of arXiv:1703.03967
     omqsq = (1.0 - q) * (1.0 - q) + 1e-16
@@ -224,7 +227,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     # Precession averaged spin couplings, Eq. A9 - A14 of arXiv:1703.03967, note that we only use the initial values
     object.__setattr__(pPrec, 'S1L_pav', (c_1 * (1.0 + q) - q * eta * Seff) / (eta * omq2))
     object.__setattr__(pPrec, 'S2L_pav', -q * (c_1 * (1.0 + q) - eta * Seff) / (eta * omq2))
-    object.__setattr__(pPrec, 'S1S2_pav', 0.5 * pPrec.SAv2 - 0.5 * (pPrec.S1_norm_2 + pPrec.S2_norm_2))
+    object.__setattr__(pPrec, 'S1S2_pav', 0.5 * SAv2 - 0.5 * (pPrec.S1_norm_2 + pPrec.S2_norm_2))
     object.__setattr__(pPrec, 'S1Lsq_pav', (pPrec.S1L_pav*pPrec.S1L_pav +
                         ((Spl2mSmi2)*(Spl2mSmi2) * v_0_2) / (32.0 * eta2 * omqsq)))
     object.__setattr__(pPrec, 'S2Lsq_pav', (pPrec.S2L_pav*pPrec.S2L_pav +
@@ -333,7 +336,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
         u1 = 3.0 * g2 / g0
         u2 = 0.75 * one_p_q_sq / one_m_q_4
         u3 = -20.0 * c_1_over_nu_2 * q_2 * one_p_q_sq
-        u4 = 2.0 * one_m_q2_2 * (q * (2.0 + q) * pPrec.S1_norm_2 + (1.0 + 2.0 * q) * pPrec.S2_norm_2 - 2.0 * q * pPrec.SAv2)
+        u4 = 2.0 * one_m_q2_2 * (q * (2.0 + q) * pPrec.S1_norm_2 + (1.0 + 2.0 * q) * pPrec.S2_norm_2 - 2.0 * q * SAv2)
         u5 = 2.0 * q_2 * (7.0 + 6.0 * q + 7.0 * q_2) * 2.0 * c_1_over_nu * Seff
         u6 = 2.0 * q_2 * (3.0 + 4.0 * q + 3.0 * q_2) * Seff_2
         u7 = q * pPrec.Delta
@@ -347,7 +350,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
         # q^2 or no q^2 in term2? Consensus on retaining q^2 term: https://git.ligo.org/waveforms/reviews/phenompv3hm/issues/7
         term2 = 3.0 * q * q / (2.0 * eta3)
         term3 = 2.0 * pPrec.Delta
-        term4 = -2.0 * eta2 * pPrec.SAv2 / delta2
+        term4 = -2.0 * eta2 * SAv2 / delta2
         term5 = -10.0 * eta * c1_2 / delta4
         term6 = 2.0 * eta2 * (7.0 + 6.0 * q + 7.0 * q * q) * c_1 * Seff / (omqsq * delta2)
         term7 = -eta3 * (3.0 + 4.0 * q + 3.0 * q * q) * Seff_2 / (omqsq * delta2)
@@ -531,7 +534,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
 
     phiz_0 =IMRPhenomX_Return_phiz_MSA(v_0, pPrec.J_0_norm,
                                         pPrec.eta, pPrec.inveta, pPrec.eta2, pPrec.eta4,
-                                        pPrec.c1, pPrec.SAv, pPrec.SAv2, pPrec.invSAv, pPrec.invSAv2,
+                                        pPrec.c1, pPrec.SAv, SAv2, pPrec.invSAv, pPrec.invSAv2,
                                         pPrec.Omegaz0_coeff, pPrec.Omegaz1_coeff, pPrec.Omegaz2_coeff,
                                         pPrec.Omegaz3_coeff, pPrec.Omegaz4_coeff, pPrec.Omegaz5_coeff,
                                         pPrec.phiz_0
@@ -554,7 +557,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     object.__setattr__(pPrec, 'phiz_0', -phiz_0 - vMSA[0])
     object.__setattr__(pPrec, 'zeta_0', -zeta_0 - vMSA[1])
 
-    return pPrec, jnp.array([Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, g0]), constants_L 
+    return pPrec, jnp.array([Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, g0, c_1, c_1_over_eta, SAv2]), constants_L 
 
 
 
