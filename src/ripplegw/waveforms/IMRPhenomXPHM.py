@@ -2390,10 +2390,8 @@ class IMRPhenomXPHM(WaveFormModel):
         # I will use 223 which is default in lalsimulation
 
         # Modes 21, 22, 32, 33, 43, 44 in that order
-        eta2 = jnp.power(eta, 2)
-        eta3 = jnp.power(eta, 3)
-        eta4 = jnp.power(eta, 4)
-        inveta = jnp.power(eta, -1)
+
+        mass_ratio = symmetric_mass_ratio_to_mass_ratio(eta)
         
 
 
@@ -2404,7 +2402,7 @@ class IMRPhenomXPHM(WaveFormModel):
             emm = emms[mode_idx]
             
             #print("what is the value of offset:", alpha_offset_emm, epsilon_offset_emm)
-            alpha, epsilon, cos_beta = pPrec.compute_evolved_spin_using_msa(Mf, emm)
+            alpha, epsilon, cos_beta = pPrec.compute_evolved_spin_using_msa(Mf, emm, mass_ratio)
             cBetah, sBetah = IMRPhenomXWignerdCoefficients_cosbeta(cos_beta)
 
             cexp_i_alpha = jnp.exp(1j * alpha)

@@ -690,7 +690,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
 
 
 
-    def compute_evolved_spin_using_msa(self, Mf, emm):
+    def compute_evolved_spin_using_msa(self, Mf, emm, mass_ratio):
 
         """
         What is compute_evolved_spin_using_msa function supposed to return?
@@ -750,6 +750,9 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         SAv = jnp.sqrt(SAv2)
         invSAv = jnp.power(SAv, -1)
         invSAv2 = jnp.power(SAv2, -1)
+
+        qq = mass_ratio
+        delta_qq = (1-qq) / (1+qq)
 
         alpha_offset, epsilon_offset = Get_alphaepsilon_atfref(mprime, self.pWF['piM'], self.pWF['fRef'], alpha0, epsilon0,
                                                                eta=self.eta,
