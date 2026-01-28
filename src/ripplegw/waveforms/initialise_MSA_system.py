@@ -441,28 +441,28 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
 
     g0 = g0
     # Coefficients of Eq. 65, as defined in Equations D16 - D21 of PRD, 95, 104004, (2017), arXiv:1703.03967
-    object.__setattr__(pPrec, 'Omegaz0_coeff', 3.0 * g0 * pPrec.Omegaz0)
-    object.__setattr__(pPrec, 'Omegaz1_coeff', 3.0 * g0 * pPrec.Omegaz1)
-    object.__setattr__(pPrec, 'Omegaz2_coeff', 3.0 * (g0 * pPrec.Omegaz2 + g2*pPrec.Omegaz0))
-    object.__setattr__(pPrec, 'Omegaz3_coeff', 3.0 * (g0 * pPrec.Omegaz3 + g2*pPrec.Omegaz1 + g3*pPrec.Omegaz0))
-    object.__setattr__(pPrec, 'Omegaz4_coeff', 3.0 * (g0 * pPrec.Omegaz4 + g2*pPrec.Omegaz2 + g3*pPrec.Omegaz1 + g4*pPrec.Omegaz0))
-    #object.__setattr__(pPrec, 'Omegaz5_coeff', 3.0 * (g0 * pPrec.Omegaz5 + g2*pPrec.Omegaz3 + g3*pPrec.Omegaz2 + g4*pPrec.Omegaz1 + g5*pPrec.Omegaz0))
-    object.__setattr__(pPrec, 'Omegaz5_coeff', 0.0) #FIXME
+    Omegaz0_coeff = 3.0 * g0 * pPrec.Omegaz0
+    Omegaz1_coeff = 3.0 * g0 * pPrec.Omegaz1
+    Omegaz2_coeff = 3.0 * (g0 * pPrec.Omegaz2 + g2 * pPrec.Omegaz0)
+    Omegaz3_coeff = 3.0 * (g0 * pPrec.Omegaz3 + g2 * pPrec.Omegaz1 + g3 * pPrec.Omegaz0)
+    Omegaz4_coeff = 3.0 * (g0 * pPrec.Omegaz4 + g2 * pPrec.Omegaz2 + g3 * pPrec.Omegaz1 + g4 * pPrec.Omegaz0)
+    #Omegaz5_coeff = 3.0 * (g0 * pPrec.Omegaz5 + g2 * pPrec.Omegaz3 + g3 * pPrec.Omegaz2 + g4 * pPrec.Omegaz1 + g5 * pPrec.Omegaz0)
+    Omegaz5_coeff = 0.0  # FIXME
     
     # Coefficients of zeta: in Appendix E of PRD, 95, 104004, (2017), arXiv:1703.03967
     c1oveta2 = c_1 / eta2
-    object.__setattr__(pPrec, 'Omegazeta0', pPrec.Omegaz0)
-    object.__setattr__(pPrec, 'Omegazeta1', pPrec.Omegaz1 + pPrec.Omegaz0 * c1oveta2)
-    object.__setattr__(pPrec, 'Omegazeta2', pPrec.Omegaz2 + pPrec.Omegaz1 * c1oveta2)
-    object.__setattr__(pPrec, 'Omegazeta3', pPrec.Omegaz3 + pPrec.Omegaz2 * c1oveta2 + gdD)
-    object.__setattr__(pPrec, 'Omegazeta4', pPrec.Omegaz4 + pPrec.Omegaz3 * c1oveta2 - gdD*Seff - gdD*hdD)
-    object.__setattr__(pPrec, 'Omegazeta5', pPrec.Omegaz5 + pPrec.Omegaz4 * c1oveta2 + gdD*hdD*Seff + gdD*(hdD_2 - fdD))
+    Omegazeta0 = pPrec.Omegaz0
+    Omegazeta1 = pPrec.Omegaz1 + pPrec.Omegaz0 * c1oveta2
+    Omegazeta2 = pPrec.Omegaz2 + pPrec.Omegaz1 * c1oveta2
+    Omegazeta3 = pPrec.Omegaz3 + pPrec.Omegaz2 * c1oveta2 + gdD
+    Omegazeta4 = pPrec.Omegaz4 + pPrec.Omegaz3 * c1oveta2 - gdD * Seff - gdD * hdD
+    Omegazeta5 = pPrec.Omegaz5 + pPrec.Omegaz4 * c1oveta2 + gdD * hdD * Seff + gdD * (hdD_2 - fdD)
 
-    Omegazeta0_coeff = -g0 * pPrec.Omegazeta0
-    Omegazeta1_coeff = -1.5 * g0 * pPrec.Omegazeta1
-    Omegazeta2_coeff = -3.0*(g0 * pPrec.Omegazeta2 + g2*pPrec.Omegazeta0)
-    Omegazeta3_coeff = 3.0*(g0 * pPrec.Omegazeta3 + g2*pPrec.Omegazeta1 + g3*pPrec.Omegazeta0)
-    Omegazeta4_coeff = 3.0*(g0 * pPrec.Omegazeta4 + g2*pPrec.Omegazeta2 + g3*pPrec.Omegazeta1 + g4*pPrec.Omegazeta0)
+    Omegazeta0_coeff = -g0 * Omegazeta0
+    Omegazeta1_coeff = -1.5 * g0 * Omegazeta1
+    Omegazeta2_coeff = -3.0*(g0 * Omegazeta2 + g2*Omegazeta0)
+    Omegazeta3_coeff = 3.0*(g0 * Omegazeta3 + g2*Omegazeta1 + g3*Omegazeta0)
+    Omegazeta4_coeff = 3.0*(g0 * Omegazeta4 + g2*Omegazeta2 + g3*Omegazeta1 + g4*Omegazeta0)
     #Omegazeta5_coeff = 1.5*(g0*pPrec.Omegazeta5 + g2*pPrec.Omegazeta3 + g3*pPrec.Omegazeta2 + g4*pPrec.Omegazeta1 + g5*pPrec.Omegazeta0)
     Omegazeta5_coeff = 0.0 #FIXME
 
@@ -563,7 +563,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     object.__setattr__(pPrec, 'phiz_0', -phiz_0 - vMSA[0])
     object.__setattr__(pPrec, 'zeta_0', -zeta_0 - vMSA[1])
 
-    return pPrec, Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, g0 
+    return pPrec, Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, g0 
 
 
 

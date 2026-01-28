@@ -697,17 +697,10 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         """
 
         phenom_xp_convention = 1
-
-        #Line 569
-        self = IMRPhenomX_PNR_GetAndSetPNRVariables(self, self.pWF)
-        #What is the output of this function?
-
+        
         #if pflag in 220, 221, 222, 223, 224...
         #Line 597
-        self, Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, g0 = IMRPhenomX_Initialize_MSA_System(self, self.pWF, self.lalParams['ExpansionOrder'])
-
-        #TODO if MSA_ERROR: switch to NNLO
-
+        self, Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, g0 = IMRPhenomX_Initialize_MSA_System(self, self.pWF, self.lalParams['ExpansionOrder'])
 
         #Mfinal, afinal, fRING, fDAMP = IMRPhenomX_SetPrecessingRemnantParams(self, self.pWF, self.lalParams)
         # The output of this function should be Mfinal, afinal, fring, and fdamp
@@ -768,7 +761,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
                                                                 self.constants_L, self.S1_norm_2, self.S2_norm_2,
                                                                 self.qq, self.delta_qq, self.Seff, self.dotS1Ln, self.dotS2Ln, self.S_0_norm,
                                                                 self.psi0, self.psi1, self.psi2, g0,
-                                                                self.Omegaz0_coeff, self.Omegaz1_coeff, self.Omegaz2_coeff, self.Omegaz3_coeff, self.Omegaz4_coeff, self.Omegaz5_coeff, self.phiz_0,
+                                                                Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, self.phiz_0,
                                                                 Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, self.zeta_0)
 
 
@@ -780,7 +773,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
                                         self.constants_L, self.S1_norm_2, self.S2_norm_2,
                                         self.qq, self.delta_qq, self.Seff, self.dotS1Ln, self.dotS2Ln, self.S_0_norm,
                                         self.psi0, self.psi1, self.psi2, g0,
-                                        self.Omegaz0_coeff, self.Omegaz1_coeff, self.Omegaz2_coeff, self.Omegaz3_coeff, self.Omegaz4_coeff, self.Omegaz5_coeff, self.phiz_0,
+                                        Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, self.phiz_0,
                                         Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, self.zeta_0)
 
         #print("end...", vangles[0])
