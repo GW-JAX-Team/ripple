@@ -4,10 +4,10 @@ import jax
 from ..constants import MTSUN, GAMMA, MSUN, G, C
 from .elliptic_integrals import ellint_F
 from .elliptic_integrals import gsl_sf_elljac_e
-
+from jax import jit
 
 #/** This function initializes all the core variables required for the MSA system. This will be called first. */
-def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, reference_frequency, pflag = 223):
+def IMRPhenomX_Initialize_MSA_System(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, reference_frequency, pflag = 223):
 
     #Sanity check on the precession version
    
@@ -235,14 +235,16 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, mass_1, mass_2, chi1x, ch
 
     # This implements the Delta term as in LALSimInspiralFDPrecAngles.c
     # c.f. https://git.ligo.org/lscsoft/lalsuite/-/blob/master/lalsimulation/lib/LALSimInspiralFDPrecAngles_internals.c#L145
-    if pflag == 222 or pflag == 223:
-        Del1 = 4.0 * c_1_over_nu_2 * one_p_q_sq
-        Del2 = 8.0 * c_1_over_nu * q * (1.0 + q) * Seff
-        Del3 = 4.0 * (one_m_q2_2 * S1_norm_2 - q_2 * Seff_2)
-        Del4 = 4.0 * c_1_over_nu_2 * q_2 * one_p_q_sq
-        Del5 = 8.0 * c_1_over_nu * q_2 * (1.0 + q) * Seff
-        Del6 = 4.0 * (one_m_q2_2 * S2_norm_2 - q_2 * Seff_2)
-        Delta = jnp.sqrt(jnp.abs((Del1 - Del2 - Del3) * (Del4 - Del5 - Del6)))
+    #if pflag == 222 or pflag == 223:
+    Del1 = 4.0 * c_1_over_nu_2 * one_p_q_sq
+    Del2 = 8.0 * c_1_over_nu * q * (1.0 + q) * Seff
+    Del3 = 4.0 * (one_m_q2_2 * S1_norm_2 - q_2 * Seff_2)
+    Del4 = 4.0 * c_1_over_nu_2 * q_2 * one_p_q_sq
+    Del5 = 8.0 * c_1_over_nu * q_2 * (1.0 + q) * Seff
+    Del6 = 4.0 * (one_m_q2_2 * S2_norm_2 - q_2 * Seff_2)
+    Delta = jnp.sqrt(jnp.abs((Del1 - Del2 - Del3) * (Del4 - Del5 - Del6)))
+
+    """
     else:
         # Coefficients of \Delta as defined in Eq. C3 of Appendix C in PRD, 95, 104004, (2017), arXiv:1703.03967.
         term1 = c1_2 * eta / (q * delta4)
@@ -256,20 +258,21 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, mass_1, mass_2, chi1x, ch
         term5 = -2.0 * c_1 * eta3 * (1.0 + q) * Seff / delta4
         term6 = -eta2 * (delta2 * S2_norm_2 - eta2 * Seff_2) / delta4
         Delta = jnp.sqrt(jnp.abs((term1 + term2 + term3) * (term4 + term5 + term6)))
-
+    """
     # Line 2706
 
-    if pflag == 222 or pflag == 223:
-        u1 = 3.0 * g2 / g0
-        u2 = 0.75 * one_p_q_sq / one_m_q_4
-        u3 = -20.0 * c_1_over_nu_2 * q_2 * one_p_q_sq
-        u4 = 2.0 * one_m_q2_2 * (q * (2.0 + q) * S1_norm_2 + (1.0 + 2.0 * q) * S2_norm_2 - 2.0 * q * SAv2)
-        u5 = 2.0 * q_2 * (7.0 + 6.0 * q + 7.0 * q_2) * 2.0 * c_1_over_nu * Seff
-        u6 = 2.0 * q_2 * (3.0 + 4.0 * q + 3.0 * q_2) * Seff_2
-        u7 = q * Delta
+    #if pflag == 222 or pflag == 223:
+    u1 = 3.0 * g2 / g0
+    u2 = 0.75 * one_p_q_sq / one_m_q_4
+    u3 = -20.0 * c_1_over_nu_2 * q_2 * one_p_q_sq
+    u4 = 2.0 * one_m_q2_2 * (q * (2.0 + q) * S1_norm_2 + (1.0 + 2.0 * q) * S2_norm_2 - 2.0 * q * SAv2)
+    u5 = 2.0 * q_2 * (7.0 + 6.0 * q + 7.0 * q_2) * 2.0 * c_1_over_nu * Seff
+    u6 = 2.0 * q_2 * (3.0 + 4.0 * q + 3.0 * q_2) * Seff_2
+    u7 = q * Delta
 
-        # Eq. C2 (1703.03967)
-        psi2 = u1 + u2 * (u3 + u4 + u5 - u6 + u7)
+    # Eq. C2 (1703.03967)
+    psi2 = u1 + u2 * (u3 + u4 + u5 - u6 + u7)
+    """
     else:
         # \psi_2 is defined in Eq. C2 of Appendix C in PRD, 95, 104004, (2017). Here we implement system of equations as in paper.pdf
         term1 = 3.0 * g2 / g0
@@ -285,7 +288,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, mass_1, mass_2, chi1x, ch
 
         # \psi_2, C2 of Appendix C of PRD, 95, 104004, (2017)
         psi2 = term1 + term2 * (term3 + term4 + term5 + term6 + term7 + term8)
-
+    """
     # Eq. D1 of PRD, 95, 104004, (2017), arXiv:1703.03967
     Rm = Spl2 - Smi2
     Rm_2 = Rm * Rm
@@ -1432,6 +1435,7 @@ def IMRPhenomX_Return_phiz_MSA(
 
 
 #DONE  
+@jit
 def IMRPhenomX_Return_zeta_MSA(
     v: float,
     eta: float,

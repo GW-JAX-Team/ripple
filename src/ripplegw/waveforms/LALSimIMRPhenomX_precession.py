@@ -701,7 +701,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         
         #if pflag in 220, 221, 222, 223, 224...
         #Line 597
-        msa_init, constants_L = IMRPhenomX_Initialize_MSA_System(self, self.pWF, mass_1=mass_1, mass_2 = mass_2,
+        msa_init, constants_L = IMRPhenomX_Initialize_MSA_System(mass_1=mass_1, mass_2 = mass_2,
                                                                  chi1x=self.chi1x, chi1y = self.chi1y, chi1z = self.chi1z,
                                                                  chi2x=self.chi2x, chi2y = self.chi2y, chi2z = self.chi2z,
                                                                  reference_frequency=self.pWF["fRef"])
