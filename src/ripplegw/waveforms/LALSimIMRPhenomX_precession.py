@@ -195,12 +195,6 @@ class IMRPhenomXGetAndSetPrecessionVariables:
     v_0: float = field(init=False, default=0.0)
     v_0_2: float = field(init=False, default=0.0)
     L_0: Any = field(init=False, default=None)
-    dotS1L: float = field(init=False, default=0.0)
-    dotS2L: float = field(init=False, default=0.0)
-    dotS1S2: float = field(init=False, default=0.0)
-    dotS1Ln: float = field(init=False, default=0.0)
-    dotS2Ln: float = field(init=False, default=0.0)
-    constants_L: Any = field(init=False, default=None)
     Seff: float = field(init=False, default=0.0)
     Seff2: float = field(init=False, default=0.0)
     S_0: Any = field(init=False, default=None)
@@ -211,10 +205,6 @@ class IMRPhenomXGetAndSetPrecessionVariables:
     J_0_norm: float = field(init=False, default=0.0)
     J_0_norm_2: float = field(init=False, default=0.0)
     L_0_norm_2: float = field(init=False, default=0.0)
-    SAv2: float = field(init=False, default=0.0)
-    SAv: float = field(init=False, default=0.0)
-    invSAv2: float = field(init=False, default=0.0)
-    invSAv: float = field(init=False, default=0.0)
     c1: float = field(init=False, default=0.0)
     c12: float = field(init=False, default=0.0)
     c1_over_eta: float = field(init=False, default=0.0)
@@ -232,37 +222,14 @@ class IMRPhenomXGetAndSetPrecessionVariables:
     a0_2: float = field(init=False, default=0.0)
     a0_3: float = field(init=False, default=0.0)
     a2_2: float = field(init=False, default=0.0)
-    psi0: float = field(init=False, default=0.0)
-    psi1: float = field(init=False, default=0.0)
-    psi2: float = field(init=False, default=0.0)
     Delta: float = field(init=False, default=0.0)
-    Omegaz0: float = field(init=False, default=0.0)
-    Omegaz1: float = field(init=False, default=0.0)
-    Omegaz2: float = field(init=False, default=0.0)
-    Omegaz3: float = field(init=False, default=0.0)
-    Omegaz4: float = field(init=False, default=0.0)
-    Omegaz5: float = field(init=False, default=0.0)
     MSA_ERROR: int = field(init=False, default=0)
-    Omegaz0_coeff: float = field(init=False, default=0.0)
-    Omegaz1_coeff: float = field(init=False, default=0.0)
-    Omegaz2_coeff: float = field(init=False, default=0.0)
-    Omegaz3_coeff: float = field(init=False, default=0.0)
-    Omegaz4_coeff: float = field(init=False, default=0.0)
-    Omegaz5_coeff: float = field(init=False, default=0.0)
-    Omegazeta0: float = field(init=False, default=0.0)
-    Omegazeta1: float = field(init=False, default=0.0)
-    Omegazeta2: float = field(init=False, default=0.0)
-    Omegazeta3: float = field(init=False, default=0.0)
-    Omegazeta4: float = field(init=False, default=0.0)
-    Omegazeta5: float = field(init=False, default=0.0)
-    phiz_0: float = field(init=False, default=0.0)
-    zeta_0: float = field(init=False, default=0.0)
     zeta_polarization: float = field(init=False, default=0.0)
 
 
     def __post_init__(self):
         """Compute all derived quantities."""
-        self._setup_version_flags()
+        #self._setup_version_flags()
         self._compute_masses()
         self._compute_mass_powers()
         self._update_pWF_dict()
@@ -375,45 +342,6 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         # Store chiTot_perp to pWF for use in XCP modifications (PNRUseTunedCoprec)
         self.pWF['chiTot_perp'] = self.chiTot_perp
 
-    def _setup_version_flags(self):
-        """Setup version-specific flags and configuration parameters."""
-        # Get IMRPhenomX precession version from LAL dictionary
-        object.__setattr__(self, 'IMRPhenomXPrecVersion', self.lalParams['IMRPhenomXPrecVersion'])
-
-        # Convert version 300 to 223
-        version = jnp.where(self.IMRPhenomXPrecVersion == 300, 223, self.IMRPhenomXPrecVersion)
-        object.__setattr__(self, 'IMRPhenomXPrecVersion', version)
-
-        # Calculate in-plane spin magnitude
-        chi_in_plane = jnp.sqrt(
-            self.chi1x * self.chi1x + self.chi1y * self.chi1y +
-            self.chi2x * self.chi2x + self.chi2y * self.chi2y
-        )
-
-        # Default to NNLO angles if in-plane spins are negligible and version 330 is selected
-        # The solutions would be dominated by numerical noise
-        version = jnp.where(
-            (chi_in_plane < 1e-6) & (self.IMRPhenomXPrecVersion == 330),
-            102,
-            self.IMRPhenomXPrecVersion
-        )
-        object.__setattr__(self, 'IMRPhenomXPrecVersion', version)
-
-        # Default to NNLO if in-plane spins are negligible and SpinTaylor option is selected
-        version = jnp.where(
-            (chi_in_plane < 1e-7) & (self.IMRPhenomXPrecVersion//100 == 3),
-            102,
-            self.IMRPhenomXPrecVersion
-        )
-        object.__setattr__(self, 'IMRPhenomXPrecVersion', version)
-        object.__setattr__(self, 'PolarizationSymmetry', 1.0)
-
-        #Line 245-255
-        # Disable tuned PNR angles, tuned coprec and mode asymmetries in low in-plane spin limit
-        cond = (chi_in_plane<1e-7) & (self.lalParams['PNRUseTunedAngles'] == 1) & (self.pWF['PNR_SINGLE_SPIN']!=1)
-        self.lalParams['PNRUseTunedAngles'] = jnp.where(cond, False, self.lalParams['PNRUseTunedAngles'])
-        self.lalParams['AntisymmetricWaveform'] = jnp.where(cond, False, self.lalParams['AntisymmetricWaveform'])
-        self.lalParams['PNRUseTunedCoprec'] = jnp.where(cond, False, self.lalParams['PNRUseTunedCoprec'])
 
     def _compute_effective_spin_parameters(self):
         """
@@ -807,9 +735,6 @@ class IMRPhenomXGetAndSetPrecessionVariables:
                                                                 constants_L_3=msa_init[28],
                                                                 constants_L_4=msa_init[29])
 
-
-        object.__setattr__(self, 'alpha_offset_array', jnp.ones(4)*alpha_offset)
-        object.__setattr__(self, 'epsilon_offset_array', jnp.ones(4)*epsilon_offset)
 
         vangles = compute_vangles(
             Mf=Mf,
@@ -1699,3 +1624,47 @@ def IMRPhenomX_PNR_GenerateRingdownPNRBeta(pWF: dict, pPrec) -> float:
     betaRD = betaParams.B0 + betaParams.B1 * Mf_RD + betaParams.B2 * Mf_RD**2
 
     return betaRD
+
+
+##############################################################################
+######################         UNUSED FUNCTION     ###########################
+##############################################################################
+def _setup_version_flags(self):
+    """Setup version-specific flags and configuration parameters."""
+    # Get IMRPhenomX precession version from LAL dictionary
+    object.__setattr__(self, 'IMRPhenomXPrecVersion', self.lalParams['IMRPhenomXPrecVersion'])
+
+    # Convert version 300 to 223
+    version = jnp.where(self.IMRPhenomXPrecVersion == 300, 223, self.IMRPhenomXPrecVersion)
+    object.__setattr__(self, 'IMRPhenomXPrecVersion', version)
+
+    # Calculate in-plane spin magnitude
+    chi_in_plane = jnp.sqrt(
+        self.chi1x * self.chi1x + self.chi1y * self.chi1y +
+        self.chi2x * self.chi2x + self.chi2y * self.chi2y
+    )
+
+    # Default to NNLO angles if in-plane spins are negligible and version 330 is selected
+    # The solutions would be dominated by numerical noise
+    version = jnp.where(
+        (chi_in_plane < 1e-6) & (self.IMRPhenomXPrecVersion == 330),
+        102,
+        self.IMRPhenomXPrecVersion
+    )
+    object.__setattr__(self, 'IMRPhenomXPrecVersion', version)
+
+    # Default to NNLO if in-plane spins are negligible and SpinTaylor option is selected
+    version = jnp.where(
+        (chi_in_plane < 1e-7) & (self.IMRPhenomXPrecVersion//100 == 3),
+        102,
+        self.IMRPhenomXPrecVersion
+    )
+    object.__setattr__(self, 'IMRPhenomXPrecVersion', version)
+    object.__setattr__(self, 'PolarizationSymmetry', 1.0)
+
+    #Line 245-255
+    # Disable tuned PNR angles, tuned coprec and mode asymmetries in low in-plane spin limit
+    cond = (chi_in_plane<1e-7) & (self.lalParams['PNRUseTunedAngles'] == 1) & (self.pWF['PNR_SINGLE_SPIN']!=1)
+    self.lalParams['PNRUseTunedAngles'] = jnp.where(cond, False, self.lalParams['PNRUseTunedAngles'])
+    self.lalParams['AntisymmetricWaveform'] = jnp.where(cond, False, self.lalParams['AntisymmetricWaveform'])
+    self.lalParams['PNRUseTunedCoprec'] = jnp.where(cond, False, self.lalParams['PNRUseTunedCoprec'])
