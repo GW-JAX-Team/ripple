@@ -1,16 +1,14 @@
 import jax.numpy as jnp
-import math
-from typing import Any
-from ..typing import Array
 from ..constants import G, MSUN, C, MTSUN, GAMMA
 import jax
-from .spherical_harmonics import *
+
 from .IMRPhenomXPHM_utils import *
 from .LALSimInspiralSpinTaylor import XLALSimInspiralSpinTaylorPNEvolveOrbit
 from dataclasses import dataclass, field
 from jax_dataclasses import pytree_dataclass
+from jax import jit
 
-from .LALSimIMRPhenomX_PNR_internals import (IMRPhenomX_PNR_HMInterpolationDeltaF, IMRPhenomX_PNR_GetAndSetPNRVariables, IMRPhenomX_PNR_GetAndSetCoPrecParams)
+from .LALSimIMRPhenomX_PNR_internals import (IMRPhenomX_PNR_HMInterpolationDeltaF, IMRPhenomX_PNR_GetAndSetPNRVariables)
 from .initialise_MSA_system import IMRPhenomX_Initialize_MSA_System, IMRPhenomX_Return_phi_zeta_costhetaL_MSA
 
 from .LALSimIMRPhenomX_PNR_alpha import IMRPhenomX_PNR_precompute_alpha_coefficients
@@ -21,10 +19,7 @@ from .LALSimIMRPhenomX_PNR_beta import (
 
 from .LALSimIMRPhenomXHM_internals import IMRPhenomXHM_GenerateRingdownFrequency
 
-from .LALSimIMRPhenomX_PNR_internals import (XLALSimIMRPhenomXFinalSpin2017, XLALSimIMRPhenomXFinalMass2017)
-from .LALSimIMRPhenomTHM_fits import evaluate_QNMfit_fring21
-
-from .LALSimIMRPhenomX_qnm import (evaluate_QNMfit_fring22, evaluate_QNMfit_fdamp22)
+from .LALSimIMRPhenomX_PNR_internals import XLALSimIMRPhenomXFinalSpin2017
 
 @pytree_dataclass
 class CommonConstants:
@@ -42,7 +37,7 @@ class CommonConstants:
     power_of_lalpi_2: float = 9.869604401089358
     MAX_TOL_ATAN: float = 1.0e-15
 
-
+#Unused
 def IMRPhenomXGetAndSetPrecessionVariables(pWF, mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, lalParams, debug_flag):
     """
     lalsuite: https://lscsoft.docs.ligo.org/lalsuite/lalsimulation/_l_a_l_sim_i_m_r_phenom_x__precession_8c.html#af089ef2586c52b12016c0d791b176121
@@ -202,11 +197,19 @@ def IMRPhenomXGetAndSetPrecessionVariables(pWF, mass_1, mass_2, chi1x, chi1y, ch
     
 
 
-
+@jit
 def compute_evolved_spin_using_msa(Mf, mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, emm, reference_frequency, kappa, phiJ_Sf):
 
     """
-    What is compute_evolved_spin_using_msa function supposed to return?
+    Mf: 
+    mass_1: Heavier black hole mass in solar mass units
+    mass_2: lighter black hole mass in solar mass units
+    chi1x, chi1y, chi1z: dimensionless spins of first black hole 
+    chi2x, chi2y, chi2z: dimensionless spins of second black hole 
+    emm: the index m of the mode (l, m)
+    reference_frequency:
+    kappa:
+    phiJ_Sf:
     """
 
     phenom_xp_convention = 1
@@ -356,7 +359,7 @@ def compute_evolved_spin_using_msa(Mf, mass_1, mass_2, chi1x, chi1y, chi1z, chi2
 
     return alpha_out, epsilon_out, cos_beta_out
 
-
+@jit
 def compute_vangles(Mf, emm,
                     eta, eta2, eta3, eta4, inveta,
                     c1, c1_over_eta,
@@ -381,7 +384,7 @@ def compute_vangles(Mf, emm,
     return vangles
 
 
-
+@jit
 def compute_thetaJN_and_kappa(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, LRef, phiRef_In, inclination):
     mass1_2 = jnp.power(mass_1, 2)
     mass2_2 = jnp.power(mass_2, 2)
@@ -439,6 +442,8 @@ def compute_thetaJN_and_kappa(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y,
 
     return thetaJN, Nz_Jf, Nx_Jf, phiJ_Sf, kappa
 
+
+@jit
 def compute_zeta_polarization(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, LRef, phiRef_In, inclination, Nz_Jf, Nx_Jf, kappa):
 
     mass1_2 = jnp.power(mass_1, 2)
@@ -525,6 +530,8 @@ def compute_zeta_polarization(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y,
     zeta_polarization = jnp.atan2(XdotQArun, XdotPArun)
     return zeta_polarization
 
+
+@jit
 def PQ_Arun_1_6_7(Nx_Jf, Nz_Jf):
     # Get polar angle of X vector in J frame in the P,Q basis of Arun et al
     PArunx_Jf = Nz_Jf
@@ -537,6 +544,7 @@ def PQ_Arun_1_6_7(Nx_Jf, Nz_Jf):
 
     return jnp.array([PArunx_Jf, PAruny_Jf, PArunz_Jf]), jnp.array([QArunx_Jf, QAruny_Jf, QArunz_Jf])
 
+@jit
 def thetaJN_Nz_Nx_1_6_7(N_Sf, J0_Sf, J0):
     # Line 957-962
 
@@ -547,6 +555,7 @@ def thetaJN_Nz_Nx_1_6_7(N_Sf, J0_Sf, J0):
 
     return thetaJN, Nz_Jf, Nx_Jf
 
+@jit
 def get_phiJ_Sf(tol_condition, J0_Sf):
     """
     Compute phiJ_Sf based on tolerance condition.
@@ -564,7 +573,7 @@ def get_phiJ_Sf(tol_condition, J0_Sf):
 
     return phiJ_Sf
 
-
+@jit
 def Get_alphaepsilon_atfref(mprime, piM, fRef, alpha0, epsilon0,
                             eta, eta2, eta3, eta4,
                             inveta, c1, c1_over_eta,
@@ -591,7 +600,7 @@ def Get_alphaepsilon_atfref(mprime, piM, fRef, alpha0, epsilon0,
 
     return alpha_offset, epsilon_offset
 
-
+@jit
 def Get_alphaepsilon_atfref_pflag_true(omega_ref, alpha0, epsilon0,
                                        eta, eta2, eta3, eta4,
                                        inveta, c1, c1_over_eta,
@@ -619,7 +628,7 @@ def Get_alphaepsilon_atfref_pflag_true(omega_ref, alpha0, epsilon0,
     return alpha_offset, epsilon_offset
     
 
-
+#Unused
 def XLALSimIMRPhenomXLPNAnsatz(v: float, LNorm: float, L0: float, L1: float, L2: float, 
                                L3: float, L4: float, L5: float, L6: float, L7: float, 
                                L8: float, L8L: float) -> float:
@@ -660,32 +669,7 @@ def XLALSimIMRPhenomXLPNAnsatz(v: float, LNorm: float, L0: float, L1: float, L2:
 
 
 
-
-def Get_alpha_epsilon_offset_based_on_m(
-    alpha_offset_1,
-    epsilon_offset_1,
-    alpha_offset,
-    epsilon_offset,
-    alpha_offset_3,
-    epsilon_offset_3,
-    alpha_offset_4,
-    epsilon_offset_4
-):
-    """
-    Get offset alpha and epsilon angles at reference frequency for m = 1, 2, 3, 4.
-    The angles are evaluated at frequency 2*pi*MfRef/mprime so the offset depends on mprime.
-
-    Returns:
-        alpha_offsets: Array of alpha offsets for m = 1, 2, 3, 4
-        epsilon_offsets: Array of epsilon offsets for m = 1, 2, 3, 4
-    """
-
-    alpha_offsets = jnp.array([alpha_offset_1, alpha_offset, alpha_offset_3, alpha_offset_4])
-    epsilon_offsets = jnp.array([epsilon_offset_1, epsilon_offset, epsilon_offset_3, epsilon_offset_4])
-
-    return alpha_offsets, epsilon_offsets
-
-
+@jit
 def flag_222_223_twoPN_non_spinning_orbitan_angular_momentum(eta, eta2, chi1L, chi2L, delta, power_of_lalpi_2):
         L0   = 1.0
         L1   = 0.0
@@ -701,7 +685,7 @@ def flag_222_223_twoPN_non_spinning_orbitan_angular_momentum(eta, eta2, chi1L, c
 
 
 
-
+@jit
 def set_epsilon0(phenom_xp_convention, phiJ_Sf):
 
     epsilon0 = jax.lax.cond(
@@ -719,7 +703,7 @@ def set_epsilon0(phenom_xp_convention, phiJ_Sf):
 
 
 
-    
+#Unused
 def get_deltaF_from_wfstruct(pWF: dict) -> float:
     """
     Get deltaF from waveform structure
@@ -746,7 +730,7 @@ def get_deltaF_from_wfstruct(pWF: dict) -> float:
 
 
 
-
+#Unused
 def XLALSimInspiralChirpTimeBound(fstart: float, m1: float, m2: float, s1: float, s2: float) -> float:
     """
     Calculate chirp time bound for inspiral
@@ -789,6 +773,7 @@ def XLALSimInspiralChirpTimeBound(fstart: float, m1: float, m2: float, s1: float
     
     return c0 * jnp.power(v, -8) * (1.0 + (c2 + (c3 + c4 * v) * v) * v * v)
 
+#Unused
 def XLALSimInspiralTaylorT2Timing_0PNCoeff(totalmass: float, eta: float) -> float:
     """
     Calculate 0PN coefficient for TaylorT2 timing
@@ -806,7 +791,7 @@ def XLALSimInspiralTaylorT2Timing_0PNCoeff(totalmass: float, eta: float) -> floa
     
     return -5.0 * totalmass / (256.0 * eta)
 
-
+#Unused
 def XLALSimInspiralTaylorT2Timing_2PNCoeff(eta: float) -> float:
     """
     Calculate 2PN coefficient for TaylorT2 timing
@@ -820,13 +805,13 @@ def XLALSimInspiralTaylorT2Timing_2PNCoeff(eta: float) -> float:
     
     return 7.43/2.52 + 11.0/3.0 * eta
 
-
+#Unused
 def XLALSimInspiralTaylorT2Timing_4PNCoeff(eta: float) -> float:
 
     return 30.58673/5.08032 + 54.29/5.04*eta + 61.7/7.2*eta*eta
 
 
-
+@jit
 def XLALSimIMRPhenomXUtilsHztoMf(fHz: float, Mtot_Msun: float) -> float:
     """
     Convert frequency from Hz to geometric units (Mf).
@@ -845,7 +830,7 @@ def XLALSimIMRPhenomXUtilsHztoMf(fHz: float, Mtot_Msun: float) -> float:
     """
     return fHz * Mtot_Msun * MTSUN
 
-
+@jit
 def XLALSimIMRPhenomXUtilsMftoHz(Mf: float, Mtot_Msun: float) -> float:
     """
     Convert frequency from geometric units (Mf) to Hz.
@@ -865,6 +850,8 @@ def XLALSimIMRPhenomXUtilsMftoHz(Mf: float, Mtot_Msun: float) -> float:
     return Mf / (Mtot_Msun * MTSUN)
 
 
+
+#Unused
 def check_kerr_bound(pnr_use_tuned_angles, pnr_single_spin, chi1_norm, chi2_norm):
     """
     Check if spin magnitudes violate the Kerr bound.
@@ -909,7 +896,173 @@ def check_kerr_bound(pnr_use_tuned_angles, pnr_single_spin, chi1_norm, chi2_norm
 
 
 
+@jit
+def IMRPhenomX_rotate_z(angle, v): 
+    """
+    Rotate a 3D vector v = (vx, vy, vz) about the z-axis by given angle.
+    Args:
+        angle: scalar angle in radians (JAX array or float)
+        v: array-like of shape (3,) representing [vx, vy, vz]
+    Returns:
+        rotated vector as a JAX array of shape (3,)
+    """
+    cosa = jnp.cos(angle)
+    sina = jnp.sin(angle)
+    vx = v[0]
+    vy = v[1]
+    vz = v[2]
 
+    vx_rot = vx * cosa - vy * sina
+    vy_rot = vx * sina + vy * cosa
+    vz_rot = vz  # unchanged
+
+    return jnp.array([vx_rot, vy_rot, vz_rot])
+
+
+
+@jit
+def IMRPhenomX_rotate_y(angle, v):
+    """
+    Rotate a 3D vector v = (vx, vy, vz) about the y-axis by a given angle.
+    Args:
+        angle: scalar angle in radians (JAX array or float)
+        v: array-like of shape (3,) representing [vx, vy, vz]
+    Returns:
+        rotated vector as a JAX array of shape (3,)
+    """
+
+    cosa = jnp.cos(angle)
+    sina = jnp.sin(angle)
+    vx = v[0]
+    vy = v[1]
+    vz = v[2]
+
+    vx_rot =  vx * cosa + vz * sina
+    vy_rot =  vy  # unchanged
+    vz_rot = -vx * sina + vz * cosa
+
+    return jnp.array([vx_rot, vy_rot, vz_rot])
+
+
+@jit
+def XLALSimIMRPhenomXPrecessingFinalSpin2017(
+    eta: float,
+    chi1L: float,
+    chi2L: float,
+    chi_perp: float
+) -> float:
+    """
+    Calculate precessing final spin using the 2017 fitting formula.
+    This is essentially the PhenomPv2 final spin prescription.
+
+    Args:
+        eta: Symmetric mass ratio
+        chi1L: Aligned spin component of BH 1
+        chi2L: Aligned spin component of BH 2
+        chi_perp: Perpendicular spin component
+
+    Returns:
+        float: Final dimensionless spin including precession effects
+    """
+    # Get mass ratio from eta
+    delta = jnp.sqrt(1.0 - 4.0 * eta)
+    m1 = 0.5 * (1.0 + delta)
+    # m2 = 0.5 * (1.0 - delta)  # Not used, but kept for reference
+
+    # Compute parallel component of final spin (non-precessing)
+    af_parallel = XLALSimIMRPhenomXFinalSpin2017(eta, chi1L, chi2L)
+
+    # Compute perpendicular component contribution
+    # Weight by appropriate mass factor (larger BH dominates)
+    q_factor = m1  # m1 is already normalized, m1 > m2 by convention
+    Sperp = chi_perp * q_factor * q_factor
+
+    # Total final spin magnitude
+    af = jnp.copysign(1.0, af_parallel) * jnp.sqrt(Sperp * Sperp + af_parallel * af_parallel)
+
+    return af
+
+
+##############################################################################
+######################         UNUSED FUNCTION     ###########################
+##############################################################################
+def _setup_version_flags(self):
+    """Setup version-specific flags and configuration parameters."""
+    # Get IMRPhenomX precession version from LAL dictionary
+    object.__setattr__(self, 'IMRPhenomXPrecVersion', self.lalParams['IMRPhenomXPrecVersion'])
+
+    # Convert version 300 to 223
+    version = jnp.where(self.IMRPhenomXPrecVersion == 300, 223, self.IMRPhenomXPrecVersion)
+    object.__setattr__(self, 'IMRPhenomXPrecVersion', version)
+
+    # Calculate in-plane spin magnitude
+    chi_in_plane = jnp.sqrt(
+        self.chi1x * self.chi1x + self.chi1y * self.chi1y +
+        self.chi2x * self.chi2x + self.chi2y * self.chi2y
+    )
+
+    # Default to NNLO angles if in-plane spins are negligible and version 330 is selected
+    # The solutions would be dominated by numerical noise
+    version = jnp.where(
+        (chi_in_plane < 1e-6) & (self.IMRPhenomXPrecVersion == 330),
+        102,
+        self.IMRPhenomXPrecVersion
+    )
+    object.__setattr__(self, 'IMRPhenomXPrecVersion', version)
+
+    # Default to NNLO if in-plane spins are negligible and SpinTaylor option is selected
+    version = jnp.where(
+        (chi_in_plane < 1e-7) & (self.IMRPhenomXPrecVersion//100 == 3),
+        102,
+        self.IMRPhenomXPrecVersion
+    )
+    object.__setattr__(self, 'IMRPhenomXPrecVersion', version)
+    object.__setattr__(self, 'PolarizationSymmetry', 1.0)
+
+    #Line 245-255
+    # Disable tuned PNR angles, tuned coprec and mode asymmetries in low in-plane spin limit
+    cond = (chi_in_plane<1e-7) & (self.lalParams['PNRUseTunedAngles'] == 1) & (self.pWF['PNR_SINGLE_SPIN']!=1)
+    self.lalParams['PNRUseTunedAngles'] = jnp.where(cond, False, self.lalParams['PNRUseTunedAngles'])
+    self.lalParams['AntisymmetricWaveform'] = jnp.where(cond, False, self.lalParams['AntisymmetricWaveform'])
+    self.lalParams['PNRUseTunedCoprec'] = jnp.where(cond, False, self.lalParams['PNRUseTunedCoprec'])
+
+
+
+
+def IMRPhenomX_PNR_GenerateRingdownPNRBeta(pWF: dict, pPrec) -> float:
+    """
+    Generate ringdown value of precession angle beta for PNR.
+    This is used to set the sign of the final spin and calculate effective ringdown frequency.
+
+    Args:
+        pWF: Waveform structure dictionary
+        pPrec: Precession structure
+
+    Returns:
+        float: Ringdown beta angle in radians
+    """
+    # This function would compute beta at ringdown frequency
+    # For now, we provide a placeholder that should be replaced with actual PNR beta computation
+    # The actual implementation requires the full PNR beta angle model
+
+    # Import beta computation if available
+    from .LALSimIMRPhenomX_PNR_beta import IMRPhenomX_PNR_precompute_beta_coefficients
+
+    # Compute beta coefficients
+    betaParams = IMRPhenomX_PNR_precompute_beta_coefficients(pWF, pPrec)
+
+    # Evaluate beta at ringdown frequency
+    # This is a simplified version - actual implementation evaluates the PNR beta model at fRING
+    Mf_RD = pWF.get('fRING', 0.3)  # Use computed fRING or default
+
+    # Simplified beta evaluation (actual implementation would use the full PNR beta expression)
+    betaRD = betaParams.B0 + betaParams.B1 * Mf_RD + betaParams.B2 * Mf_RD**2
+
+    return betaRD
+
+
+
+#Unused
 def IMRPhenomX_InspiralAngles_SpinTaylor(chi1x: float, chi1y: float, chi1z: float, 
                                          chi2x: float, chi2y: float, chi2z: float,
                                          fmin: float, PrecVersion: int, pWF: dict, lalParams: dict):
@@ -1009,7 +1162,7 @@ def IMRPhenomX_InspiralAngles_SpinTaylor(chi1x: float, chi1y: float, chi1z: floa
 
 
 
-
+#Unused
 def integrate_forward(fRef, fmin, fCut, deltaT_coarse, m1_SI, m2_SI, s1x, s1y, s1z, s2x, s2y, s2z, lnhatx, lnhaty, lnhatz, e1x, e1y, e1z, lambda1, lambda2, quadparam1, quadparam2, spinO, tideO, phaseO, lscorr, approx):
     '''
     If fRef is zero or is equal to fmin, we only need to integrate from fmin to fCut, i.e., forward. 
@@ -1023,7 +1176,7 @@ def integrate_forward(fRef, fmin, fCut, deltaT_coarse, m1_SI, m2_SI, s1x, s1y, s
     V, Phi, S1x, S1y, S1z, S2x, S2y, S2z, LNhatx, LNhaty, LNhatz, E1x, E1y, E1z = XLALSimInspiralSpinTaylorPNEvolveOrbit(deltaT_coarse, m1_SI, m2_SI,fS,fE,s1x,s1y,s1z,s2x,s2y,s2z,lnhatx,lnhaty,lnhatz,e1x,e1y,e1z,lambda1,lambda2,quadparam1, quadparam2, spinO, tideO, phaseO, lscorr)
     return V, Phi, S1x, S1y, S1z, S2x, S2y, S2z, LNhatx, LNhaty, LNhatz, E1x, E1y, E1z
 
-
+#Unused
 def integrate_both_sides(fRef, fmin, fCut, deltaT_coarse, m1_SI, m2_SI,fS,fE,s1x,s1y,s1z,s2x,s2y,s2z,lnhatx,lnhaty,lnhatz,e1x,e1y,e1z,lambda1,lambda2,quadparam1, quadparam2, spinO, tideO, phaseO, lscorr, approx):
     '''
     If fRef > fmin, we first integrate from fRef to fmin and then fRef to fCut. 
@@ -1065,169 +1218,6 @@ def integrate_both_sides(fRef, fmin, fCut, deltaT_coarse, m1_SI, m2_SI,fS,fE,s1x
 
 
     return V, Phi, S1x, S1y, S1z, S2x, S2y, S2z, LNhatx, LNhaty, LNhatz, E1x, E1y, E1z
-
-
-
-
-def IMRPhenomX_rotate_z(angle, v): 
-    """
-    Rotate a 3D vector v = (vx, vy, vz) about the z-axis by given angle.
-    Args:
-        angle: scalar angle in radians (JAX array or float)
-        v: array-like of shape (3,) representing [vx, vy, vz]
-    Returns:
-        rotated vector as a JAX array of shape (3,)
-    """
-    cosa = jnp.cos(angle)
-    sina = jnp.sin(angle)
-    vx = v[0]
-    vy = v[1]
-    vz = v[2]
-
-    vx_rot = vx * cosa - vy * sina
-    vy_rot = vx * sina + vy * cosa
-    vz_rot = vz  # unchanged
-
-    return jnp.array([vx_rot, vy_rot, vz_rot])
-
-
-
-
-def IMRPhenomX_rotate_y(angle, v):
-    """
-    Rotate a 3D vector v = (vx, vy, vz) about the y-axis by a given angle.
-    Args:
-        angle: scalar angle in radians (JAX array or float)
-        v: array-like of shape (3,) representing [vx, vy, vz]
-    Returns:
-        rotated vector as a JAX array of shape (3,)
-    """
-
-    cosa = jnp.cos(angle)
-    sina = jnp.sin(angle)
-    vx = v[0]
-    vy = v[1]
-    vz = v[2]
-
-    vx_rot =  vx * cosa + vz * sina
-    vy_rot =  vy  # unchanged
-    vz_rot = -vx * sina + vz * cosa
-
-    return jnp.array([vx_rot, vy_rot, vz_rot])
-
-
-def XLALSimIMRPhenomXPrecessingFinalSpin2017(
-    eta: float,
-    chi1L: float,
-    chi2L: float,
-    chi_perp: float
-) -> float:
-    """
-    Calculate precessing final spin using the 2017 fitting formula.
-    This is essentially the PhenomPv2 final spin prescription.
-
-    Args:
-        eta: Symmetric mass ratio
-        chi1L: Aligned spin component of BH 1
-        chi2L: Aligned spin component of BH 2
-        chi_perp: Perpendicular spin component
-
-    Returns:
-        float: Final dimensionless spin including precession effects
-    """
-    # Get mass ratio from eta
-    delta = jnp.sqrt(1.0 - 4.0 * eta)
-    m1 = 0.5 * (1.0 + delta)
-    # m2 = 0.5 * (1.0 - delta)  # Not used, but kept for reference
-
-    # Compute parallel component of final spin (non-precessing)
-    af_parallel = XLALSimIMRPhenomXFinalSpin2017(eta, chi1L, chi2L)
-
-    # Compute perpendicular component contribution
-    # Weight by appropriate mass factor (larger BH dominates)
-    q_factor = m1  # m1 is already normalized, m1 > m2 by convention
-    Sperp = chi_perp * q_factor * q_factor
-
-    # Total final spin magnitude
-    af = jnp.copysign(1.0, af_parallel) * jnp.sqrt(Sperp * Sperp + af_parallel * af_parallel)
-
-    return af
-
-
-def IMRPhenomX_PNR_GenerateRingdownPNRBeta(pWF: dict, pPrec) -> float:
-    """
-    Generate ringdown value of precession angle beta for PNR.
-    This is used to set the sign of the final spin and calculate effective ringdown frequency.
-
-    Args:
-        pWF: Waveform structure dictionary
-        pPrec: Precession structure
-
-    Returns:
-        float: Ringdown beta angle in radians
-    """
-    # This function would compute beta at ringdown frequency
-    # For now, we provide a placeholder that should be replaced with actual PNR beta computation
-    # The actual implementation requires the full PNR beta angle model
-
-    # Import beta computation if available
-    from .LALSimIMRPhenomX_PNR_beta import IMRPhenomX_PNR_precompute_beta_coefficients
-
-    # Compute beta coefficients
-    betaParams = IMRPhenomX_PNR_precompute_beta_coefficients(pWF, pPrec)
-
-    # Evaluate beta at ringdown frequency
-    # This is a simplified version - actual implementation evaluates the PNR beta model at fRING
-    Mf_RD = pWF.get('fRING', 0.3)  # Use computed fRING or default
-
-    # Simplified beta evaluation (actual implementation would use the full PNR beta expression)
-    betaRD = betaParams.B0 + betaParams.B1 * Mf_RD + betaParams.B2 * Mf_RD**2
-
-    return betaRD
-
-
-##############################################################################
-######################         UNUSED FUNCTION     ###########################
-##############################################################################
-def _setup_version_flags(self):
-    """Setup version-specific flags and configuration parameters."""
-    # Get IMRPhenomX precession version from LAL dictionary
-    object.__setattr__(self, 'IMRPhenomXPrecVersion', self.lalParams['IMRPhenomXPrecVersion'])
-
-    # Convert version 300 to 223
-    version = jnp.where(self.IMRPhenomXPrecVersion == 300, 223, self.IMRPhenomXPrecVersion)
-    object.__setattr__(self, 'IMRPhenomXPrecVersion', version)
-
-    # Calculate in-plane spin magnitude
-    chi_in_plane = jnp.sqrt(
-        self.chi1x * self.chi1x + self.chi1y * self.chi1y +
-        self.chi2x * self.chi2x + self.chi2y * self.chi2y
-    )
-
-    # Default to NNLO angles if in-plane spins are negligible and version 330 is selected
-    # The solutions would be dominated by numerical noise
-    version = jnp.where(
-        (chi_in_plane < 1e-6) & (self.IMRPhenomXPrecVersion == 330),
-        102,
-        self.IMRPhenomXPrecVersion
-    )
-    object.__setattr__(self, 'IMRPhenomXPrecVersion', version)
-
-    # Default to NNLO if in-plane spins are negligible and SpinTaylor option is selected
-    version = jnp.where(
-        (chi_in_plane < 1e-7) & (self.IMRPhenomXPrecVersion//100 == 3),
-        102,
-        self.IMRPhenomXPrecVersion
-    )
-    object.__setattr__(self, 'IMRPhenomXPrecVersion', version)
-    object.__setattr__(self, 'PolarizationSymmetry', 1.0)
-
-    #Line 245-255
-    # Disable tuned PNR angles, tuned coprec and mode asymmetries in low in-plane spin limit
-    cond = (chi_in_plane<1e-7) & (self.lalParams['PNRUseTunedAngles'] == 1) & (self.pWF['PNR_SINGLE_SPIN']!=1)
-    self.lalParams['PNRUseTunedAngles'] = jnp.where(cond, False, self.lalParams['PNRUseTunedAngles'])
-    self.lalParams['AntisymmetricWaveform'] = jnp.where(cond, False, self.lalParams['AntisymmetricWaveform'])
-    self.lalParams['PNRUseTunedCoprec'] = jnp.where(cond, False, self.lalParams['PNRUseTunedCoprec'])
 
 
 
