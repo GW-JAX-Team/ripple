@@ -414,24 +414,24 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
 
 
     # Eq. D10 in PRD, 95, 104004, (2017), arXiv:1703.03967
-    object.__setattr__(pPrec, 'Omegaz0', a1dD + adD)
+    Omegaz0 = a1dD + adD
 
     # Eq. D11 in PRD, 95, 104004, (2017), arXiv:1703.03967
-    object.__setattr__(pPrec, 'Omegaz1', a2dD - adD*Seff - adD*hdD)
+    Omegaz1 = a2dD - adD * Seff - adD * hdD
 
     # Eq. D12 in PRD, 95, 104004, (2017), arXiv:1703.03967
-    object.__setattr__(pPrec, 'Omegaz2', adD*hdD*Seff + cdD - adD*fdD + adD*hdD_2)
+    Omegaz2 = adD * hdD * Seff + cdD - adD * fdD + adD * hdD_2
 
     # Eq. D13 in PRD, 95, 104004, (2017), arXiv:1703.03967
-    object.__setattr__(pPrec, 'Omegaz3', (adDfdD - cdD - adDhdD_2)*(Seff + hdD) + adDfdDhdD)
+    Omegaz3 = (adDfdD - cdD - adDhdD_2) * (Seff + hdD) + adDfdDhdD
 
     # Eq. D14 in PRD, 95, 104004, (2017), arXiv:1703.03967
-    object.__setattr__(pPrec, 'Omegaz4', (cdD + adDhdD_2 - 2.0*adDfdD)*(hdD*Seff + hdD_2 - fdD) - adD*fdD*fdD)
+    Omegaz4 = (cdD + adDhdD_2 - 2.0 * adDfdD) * (hdD * Seff + hdD_2 - fdD) - adD * fdD * fdD
 
     # Eq. D15 in PRD, 95, 104004, (2017), arXiv:1703.03967
-    object.__setattr__(pPrec, 'Omegaz5', ((cdD - adDfdD + adDhdD_2) * fdD * (Seff + 2.0*hdD) -
-                        (cdD + adDhdD_2 - 2.0*adDfdD) * hdD_2 * (Seff + hdD) -
-                        adDfdD*fdD*hdD))
+    Omegaz5 = ((cdD - adDfdD + adDhdD_2) * fdD * (Seff + 2.0 * hdD) -
+               (cdD + adDhdD_2 - 2.0 * adDfdD) * hdD_2 * (Seff + hdD) -
+               adDfdD * fdD * hdD)
         
     # If Omegaz5 > 1000, this is larger than we expect and the system may be pathological.
     # Set MSA_ERROR = 1 to trigger an error
@@ -441,11 +441,11 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
 
     g0 = g0
     # Coefficients of Eq. 65, as defined in Equations D16 - D21 of PRD, 95, 104004, (2017), arXiv:1703.03967
-    Omegaz0_coeff = 3.0 * g0 * pPrec.Omegaz0
-    Omegaz1_coeff = 3.0 * g0 * pPrec.Omegaz1
-    Omegaz2_coeff = 3.0 * (g0 * pPrec.Omegaz2 + g2 * pPrec.Omegaz0)
-    Omegaz3_coeff = 3.0 * (g0 * pPrec.Omegaz3 + g2 * pPrec.Omegaz1 + g3 * pPrec.Omegaz0)
-    Omegaz4_coeff = 3.0 * (g0 * pPrec.Omegaz4 + g2 * pPrec.Omegaz2 + g3 * pPrec.Omegaz1 + g4 * pPrec.Omegaz0)
+    Omegaz0_coeff = 3.0 * g0 * Omegaz0
+    Omegaz1_coeff = 3.0 * g0 * Omegaz1
+    Omegaz2_coeff = 3.0 * (g0 * Omegaz2 + g2 * Omegaz0)
+    Omegaz3_coeff = 3.0 * (g0 * Omegaz3 + g2 * Omegaz1 + g3 * Omegaz0)
+    Omegaz4_coeff = 3.0 * (g0 * Omegaz4 + g2 * Omegaz2 + g3 * Omegaz1 + g4 * Omegaz0)
     #Omegaz5_coeff = 3.0 * (g0 * pPrec.Omegaz5 + g2 * pPrec.Omegaz3 + g3 * pPrec.Omegaz2 + g4 * pPrec.Omegaz1 + g5 * pPrec.Omegaz0)
     Omegaz5_coeff = 0.0  # FIXME
     
@@ -563,7 +563,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     object.__setattr__(pPrec, 'phiz_0', -phiz_0 - vMSA[0])
     object.__setattr__(pPrec, 'zeta_0', -zeta_0 - vMSA[1])
 
-    return pPrec, Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, g0 
+    return pPrec, jnp.array([Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, g0]) 
 
 
 

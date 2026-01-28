@@ -700,7 +700,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         
         #if pflag in 220, 221, 222, 223, 224...
         #Line 597
-        self, Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, g0 = IMRPhenomX_Initialize_MSA_System(self, self.pWF, self.lalParams['ExpansionOrder'])
+        self, msa_init = IMRPhenomX_Initialize_MSA_System(self, self.pWF, self.lalParams['ExpansionOrder'])
 
         #Mfinal, afinal, fRING, fDAMP = IMRPhenomX_SetPrecessingRemnantParams(self, self.pWF, self.lalParams)
         # The output of this function should be Mfinal, afinal, fring, and fdamp
@@ -760,9 +760,9 @@ class IMRPhenomXGetAndSetPrecessionVariables:
                                                                 self.SAv, self.SAv2, self.invSAv, self.invSAv2,
                                                                 self.constants_L, self.S1_norm_2, self.S2_norm_2,
                                                                 self.qq, self.delta_qq, self.Seff, self.dotS1Ln, self.dotS2Ln, self.S_0_norm,
-                                                                self.psi0, self.psi1, self.psi2, g0,
-                                                                Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, self.phiz_0,
-                                                                Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, self.zeta_0)
+                                                                self.psi0, self.psi1, self.psi2, msa_init[-1],
+                                                                msa_init[0], msa_init[1], msa_init[2], msa_init[3], msa_init[4], msa_init[5], self.phiz_0,
+                                                                msa_init[6], msa_init[7], msa_init[8], msa_init[9], msa_init[10], msa_init[11], self.zeta_0)
 
 
         object.__setattr__(self, 'alpha_offset_array', jnp.ones(4)*alpha_offset)
@@ -772,9 +772,9 @@ class IMRPhenomXGetAndSetPrecessionVariables:
                                         self.SAv, self.SAv2, self.invSAv, self.invSAv2,
                                         self.constants_L, self.S1_norm_2, self.S2_norm_2,
                                         self.qq, self.delta_qq, self.Seff, self.dotS1Ln, self.dotS2Ln, self.S_0_norm,
-                                        self.psi0, self.psi1, self.psi2, g0,
-                                        Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, self.phiz_0,
-                                        Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, self.zeta_0)
+                                        self.psi0, self.psi1, self.psi2, msa_init[-1],
+                                        msa_init[0], msa_init[1], msa_init[2], msa_init[3], msa_init[4], msa_init[5], self.phiz_0,
+                                        msa_init[6], msa_init[7], msa_init[8], msa_init[9], msa_init[10], msa_init[11], self.zeta_0)
 
         #print("end...", vangles[0])
         alpha_out = vangles[0] - alpha_offset
