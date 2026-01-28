@@ -2430,12 +2430,12 @@ class IMRPhenomXPHM(WaveFormModel):
             hp_twist, hc_twist = jax.lax.switch(
                 mode_idx,
                 [
-                    lambda: twist_21(cexp_i_alpha, pPrec, beta_powers),
-                    lambda: twist_22(cexp_i_alpha, pPrec, beta_powers),
-                    lambda: twist_32(cexp_i_alpha, pPrec, beta_powers),
-                    lambda: twist_33(cexp_i_alpha, pPrec, beta_powers),
+                    lambda: twist_21(cexp_i_alpha, pPrec.thetaJN, beta_powers),
+                    lambda: twist_22(cexp_i_alpha, pPrec.thetaJN, beta_powers),
+                    lambda: twist_32(cexp_i_alpha, pPrec.thetaJN, beta_powers),
+                    lambda: twist_33(cexp_i_alpha, pPrec.thetaJN, beta_powers),
                     #lambda: twist_43(cexp_i_alpha, pPrec, beta_powers),
-                    lambda: twist_44(cexp_i_alpha, pPrec, beta_powers),
+                    lambda: twist_44(cexp_i_alpha, pPrec.thetaJN, beta_powers),
                 ]
             )
 
@@ -2621,7 +2621,7 @@ class BetaPowers:
     
 
 
-def twist_22(cexp_i_alpha, pPrec, beta_powers):
+def twist_22(cexp_i_alpha, thetaJN, beta_powers):
 
 
     hp_sum = jnp.zeros_like(cexp_i_alpha, dtype=cexp_i_alpha.dtype)
@@ -2635,7 +2635,14 @@ def twist_22(cexp_i_alpha, pPrec, beta_powers):
 
     cexp_im_alpha_l2 = jnp.stack([cexp_m2i_alpha, cexp_mi_alpha, jnp.ones_like(cexp_i_alpha), cexp_i_alpha, cexp_2i_alpha], axis=0)
 
-    Y2mA = jnp.array([pPrec.Y2m2, pPrec.Y2m1, pPrec.Y20, pPrec.Y21, pPrec.Y22])
+    Y2m2 = compute_sminus2_l2(thetaJN, m=-2)
+    Y2m1 = compute_sminus2_l2(thetaJN, m=-1)
+    Y20 = compute_sminus2_l2(thetaJN, m=0)
+    Y21 = compute_sminus2_l2(thetaJN, m=1)
+    Y22 = compute_sminus2_l2(thetaJN, m=2)
+    Y2mA = jnp.array([Y2m2, Y2m1, Y20, Y21, Y22])
+
+
 
     # Wigner-d coefficients
     # d^2_{-2,2}, d^2_{-1,2}, d^2_{0,2}, d^2_{1,2}, d^2_{2,2}
@@ -2666,7 +2673,7 @@ def twist_22(cexp_i_alpha, pPrec, beta_powers):
 
 
 
-def twist_21(cexp_i_alpha, pPrec, beta_powers):
+def twist_21(cexp_i_alpha, thetaJN, beta_powers):
     """
     Compute the twisting contributions for l=2, m'=1 mode.
 
@@ -2676,7 +2683,7 @@ def twist_21(cexp_i_alpha, pPrec, beta_powers):
 
     Args:
         cexp_i_alpha: Complex exponential e^{i*alpha} (array over frequencies)
-        pPrec: Precession parameters object containing Y2m spherical harmonics
+        thetaJN: Angle between total angular momentum and line of sight
         beta_powers: BetaPowers object containing powers of cos(beta/2) and sin(beta/2)
 
     Returns:
@@ -2693,7 +2700,12 @@ def twist_21(cexp_i_alpha, pPrec, beta_powers):
 
     cexp_im_alpha_l2 = jnp.stack([cexp_m2i_alpha, cexp_mi_alpha, jnp.ones_like(cexp_i_alpha), cexp_i_alpha, cexp_2i_alpha], axis=0)
 
-    Y2mA = jnp.array([pPrec.Y2m2, pPrec.Y2m1, pPrec.Y20, pPrec.Y21, pPrec.Y22])
+    Y2m2 = compute_sminus2_l2(thetaJN, m=-2)
+    Y2m1 = compute_sminus2_l2(thetaJN, m=-1)
+    Y20 = compute_sminus2_l2(thetaJN, m=0)
+    Y21 = compute_sminus2_l2(thetaJN, m=1)
+    Y22 = compute_sminus2_l2(thetaJN, m=2)
+    Y2mA = jnp.array([Y2m2, Y2m1, Y20, Y21, Y22])
 
     # Wigner-d coefficients for m'=1
     # d^2_{-2,1}, d^2_{-1,1}, d^2_{0,1}, d^2_{1,1}, d^2_{2,1}
@@ -2719,7 +2731,7 @@ def twist_21(cexp_i_alpha, pPrec, beta_powers):
     return hp_sum, hc_sum
 
 
-def twist_33(cexp_i_alpha, pPrec, beta_powers):
+def twist_33(cexp_i_alpha, thetaJN, beta_powers):
     """
     Compute the twisting contributions for l=3, m'=3 mode.
 
@@ -2729,7 +2741,7 @@ def twist_33(cexp_i_alpha, pPrec, beta_powers):
 
     Args:
         cexp_i_alpha: Complex exponential e^{i*alpha} (array over frequencies)
-        pPrec: Precession parameters object containing Y3m spherical harmonics
+        thetaJN: Angle between total angular momentum and line of sight
         beta_powers: BetaPowers object containing powers of cos(beta/2) and sin(beta/2)
 
     Returns:
@@ -2748,7 +2760,14 @@ def twist_33(cexp_i_alpha, pPrec, beta_powers):
 
     cexp_im_alpha_l3 = jnp.stack([cexp_m3i_alpha, cexp_m2i_alpha, cexp_mi_alpha, jnp.ones_like(cexp_i_alpha), cexp_i_alpha, cexp_2i_alpha, cexp_3i_alpha], axis=0)
 
-    Y3mA = jnp.array([pPrec.Y3m3, pPrec.Y3m2, pPrec.Y3m1, pPrec.Y30, pPrec.Y31, pPrec.Y32, pPrec.Y33])
+    Y3m3 = compute_sminus2_l3(theta=thetaJN, m=-3)
+    Y3m2 = compute_sminus2_l3(theta=thetaJN, m=-2)
+    Y3m1 = compute_sminus2_l3(theta=thetaJN, m=-1)
+    Y30 = compute_sminus2_l3(theta=thetaJN, m=0)
+    Y31 = compute_sminus2_l3(theta=thetaJN, m=1)
+    Y32 = compute_sminus2_l3(theta=thetaJN, m=2)
+    Y33 = compute_sminus2_l3(theta=thetaJN, m=3)
+    Y3mA = jnp.array([Y3m3, Y3m2, Y3m1, Y30, Y31, Y32, Y33])
 
     # Wigner-d coefficients for m'=3
     # d^3_{-3,3}, d^3_{-2,3}, d^3_{-1,3}, d^3_{0,3}, d^3_{1,3}, d^3_{2,3}, d^3_{3,3}
@@ -2780,7 +2799,7 @@ def twist_33(cexp_i_alpha, pPrec, beta_powers):
     return hp_sum, hc_sum
 
 
-def twist_32(cexp_i_alpha, pPrec, beta_powers):
+def twist_32(cexp_i_alpha, thetaJN, beta_powers):
     """
     Compute the twisting contributions for l=3, m'=2 mode.
 
@@ -2790,7 +2809,7 @@ def twist_32(cexp_i_alpha, pPrec, beta_powers):
 
     Args:
         cexp_i_alpha: Complex exponential e^{i*alpha} (array over frequencies)
-        pPrec: Precession parameters object containing Y3m spherical harmonics
+        thetaJN: Angle between total angular momentum and line of sight
         beta_powers: BetaPowers object containing powers of cos(beta/2) and sin(beta/2)
 
     Returns:
@@ -2809,7 +2828,14 @@ def twist_32(cexp_i_alpha, pPrec, beta_powers):
 
     cexp_im_alpha_l3 = jnp.stack([cexp_m3i_alpha, cexp_m2i_alpha, cexp_mi_alpha, jnp.ones_like(cexp_i_alpha), cexp_i_alpha, cexp_2i_alpha, cexp_3i_alpha], axis=0)
 
-    Y3mA = jnp.array([pPrec.Y3m3, pPrec.Y3m2, pPrec.Y3m1, pPrec.Y30, pPrec.Y31, pPrec.Y32, pPrec.Y33])
+    Y3m3 = compute_sminus2_l3(theta=thetaJN, m=-3)
+    Y3m2 = compute_sminus2_l3(theta=thetaJN, m=-2)
+    Y3m1 = compute_sminus2_l3(theta=thetaJN, m=-1)
+    Y30 = compute_sminus2_l3(theta=thetaJN, m=0)
+    Y31 = compute_sminus2_l3(theta=thetaJN, m=1)
+    Y32 = compute_sminus2_l3(theta=thetaJN, m=2)
+    Y33 = compute_sminus2_l3(theta=thetaJN, m=3)
+    Y3mA = jnp.array([Y3m3, Y3m2, Y3m1, Y30, Y31, Y32, Y33])
 
     # Wigner-d coefficients for m'=2
     # d^3_{-3,2}, d^3_{-2,2}, d^3_{-1,2}, d^3_{0,2}, d^3_{1,2}, d^3_{2,2}, d^3_{3,2}
@@ -2852,7 +2878,7 @@ def twist_32(cexp_i_alpha, pPrec, beta_powers):
     return hp_sum, hc_sum
 
 
-def twist_44(cexp_i_alpha, pPrec, beta_powers):
+def twist_44(cexp_i_alpha, thetaJN, beta_powers):
     """
     Compute the twisting contributions for l=4, m'=4 mode.
 
@@ -2862,7 +2888,7 @@ def twist_44(cexp_i_alpha, pPrec, beta_powers):
 
     Args:
         cexp_i_alpha: Complex exponential e^{i*alpha} (array over frequencies)
-        pPrec: Precession parameters object containing Y4m spherical harmonics
+        thetaJN: Angle between total angular momentum and line of sight
         beta_powers: BetaPowers object containing powers of cos(beta/2) and sin(beta/2)
 
     Returns:
@@ -2883,7 +2909,16 @@ def twist_44(cexp_i_alpha, pPrec, beta_powers):
 
     cexp_im_alpha_l4 = jnp.stack([cexp_m4i_alpha, cexp_m3i_alpha, cexp_m2i_alpha, cexp_mi_alpha, jnp.ones_like(cexp_i_alpha), cexp_i_alpha, cexp_2i_alpha, cexp_3i_alpha, cexp_4i_alpha], axis=0)
 
-    Y4mA = jnp.array([pPrec.Y4m4, pPrec.Y4m3, pPrec.Y4m2, pPrec.Y4m1, pPrec.Y40, pPrec.Y41, pPrec.Y42, pPrec.Y43, pPrec.Y44])
+    Y4m4 = compute_sminus2_l4(theta=thetaJN, m=-4)
+    Y4m3 = compute_sminus2_l4(theta=thetaJN, m=-3)
+    Y4m2 = compute_sminus2_l4(theta=thetaJN, m=-2)
+    Y4m1 = compute_sminus2_l4(theta=thetaJN, m=-1)
+    Y40 = compute_sminus2_l4(theta=thetaJN, m=0)
+    Y41 = compute_sminus2_l4(theta=thetaJN, m=1)
+    Y42 = compute_sminus2_l4(theta=thetaJN, m=2)
+    Y43 = compute_sminus2_l4(theta=thetaJN, m=3)
+    Y44 = compute_sminus2_l4(theta=thetaJN, m=4)
+    Y4mA = jnp.array([Y4m4, Y4m3, Y4m2, Y4m1, Y40, Y41, Y42, Y43, Y44])
 
     # Wigner-d coefficients for m'=4
     # d^4_{-4,4}, d^4_{-3,4}, d^4_{-2,4}, d^4_{-1,4}, d^4_{0,4}, d^4_{1,4}, d^4_{2,4}, d^4_{3,4}, d^4_{4,4}
