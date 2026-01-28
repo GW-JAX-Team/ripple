@@ -2327,27 +2327,7 @@ class IMRPhenomXPHM(WaveFormModel):
 
     def Ampl(self, f, **kwargs):
         return None
-    
-
-    def generate_precession_struct(self, pWF, m1, m2, 
-                                   chi1x, chi1y, chi1z, 
-                                   chi2x, chi2y, chi2z, lalParams):
-        m1_SI = m1 * MSUN
-        m2_SI = m2 * MSUN
-        """
-        pPrec = IMRPhenomXGetAndSetPrecessionVariables(pWF, 
-                                                       m1_SI, 
-                                                       m2_SI,
-                                                       chi1x,
-                                                       chi1y,
-                                                       chi1z,
-                                                       chi2x, 
-                                                       chi2y, 
-                                                       chi2z, lalParams, 
-                                                       debug_flag=False)
-        """
-        return None
-    
+        
     def generate_waveform_struct(self, m1, m2, chi1z, chi2z,
                                  distance, inclination, phi0,  
                                  duration, minimum_frequency, 
@@ -2379,7 +2359,7 @@ class IMRPhenomXPHM(WaveFormModel):
         return pWF
     
 
-    def twistup(self, mass_1, mass_2, Mf, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, phiRef_In, inclination, reference_frequency, hlm, pWF):
+    def twistup(self, Mf, mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, phiRef_In, inclination, reference_frequency, hlm, pWF):
         "Copy of lalsimulation IMRPhenomXPHMTwistUp"
         "Function to twist up hlms"
 
@@ -2424,7 +2404,7 @@ class IMRPhenomXPHM(WaveFormModel):
             emm = emms[mode_idx]
             
             #print("what is the value of offset:", alpha_offset_emm, epsilon_offset_emm)
-            alpha, epsilon, cos_beta = pPrec.compute_evolved_spin_using_msa(mass_1, mass_2, Mf, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, emm, reference_frequency, kappa, phiJ_Sf, pWF)
+            alpha, epsilon, cos_beta = pPrec.compute_evolved_spin_using_msa(Mf, mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, emm, reference_frequency, kappa, phiJ_Sf, pWF)
             cBetah, sBetah = IMRPhenomXWignerdCoefficients_cosbeta(cos_beta)
 
             cexp_i_alpha = jnp.exp(1j * alpha)
@@ -2468,14 +2448,7 @@ class IMRPhenomXPHM(WaveFormModel):
                                  maximum_frequency, 
                                  reference_frequency)
         
-        lalParams = {'IMRPhenomXPrecVersion': 223, 
-                     'PNRUseTunedAngles': 0,
-                     'AntisymmetricWaveform': 0,
-                     'PNRUseTunedCoprec': 0,
-                     'ExpansionOrder': -1}
         
-        #pPrec = self.generate_precession_struct(pWF, m1, m2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, lalParams)
-
         frequency_array = jnp.arange(minimum_frequency, maximum_frequency, 1/duration)
         Mf = XLALSimIMRPhenomXUtilsHztoMf(frequency_array, m1+m2)
 
@@ -2498,7 +2471,7 @@ class IMRPhenomXPHM(WaveFormModel):
         
         eta = m1*m2/jnp.power(m1+m2, 2)
 
-        hp, hc = self.twistup(m1, m2, Mf, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, phi0, inclination, reference_frequency, hlm, pWF)
+        hp, hc = self.twistup(Mf, m1, m2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, phi0, inclination, reference_frequency, hlm, pWF)
 
 
         #zeta_polarization = pPrec.zeta_polarization

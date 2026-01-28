@@ -203,7 +203,7 @@ def IMRPhenomXGetAndSetPrecessionVariables(pWF, mass_1, mass_2, chi1x, chi1y, ch
 
 
 
-def compute_evolved_spin_using_msa(mass_1, mass_2, Mf, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, emm, reference_frequency, kappa, phiJ_Sf, pWF):
+def compute_evolved_spin_using_msa(Mf, mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, emm, reference_frequency, kappa, phiJ_Sf, pWF):
 
     """
     What is compute_evolved_spin_using_msa function supposed to return?
@@ -211,14 +211,7 @@ def compute_evolved_spin_using_msa(mass_1, mass_2, Mf, chi1x, chi1y, chi1z, chi2
 
     phenom_xp_convention = 1
     eta = mass_1*mass_2/jnp.power(mass_1+mass_2, 2)
-    chi1L = chi1z
-    chi2L = chi2z
 
-    bigM = 1
-    total_mass = mass_1 + mass_2
-    mass_1_fraction = mass_1 / total_mass
-    mass_2_fraction = mass_2 / total_mass
-    delta = mass_1_fraction - mass_2_fraction #FIXME
 
     
     #if pflag in 220, 221, 222, 223, 224...
@@ -229,18 +222,11 @@ def compute_evolved_spin_using_msa(mass_1, mass_2, Mf, chi1x, chi1y, chi1z, chi2
                                                                 reference_frequency=reference_frequency)
 
     alpha0 = jnp.pi - kappa # For phenom_xp_convention = 1
-    """    
-    zeta_polarization = compute_zeta_polarization(mass_1_fraction, mass_2_fraction, 
-                                                            self.chi1x, self.chi1y, self.chi1z, 
-                                                            self.chi2x, self.chi2y, self.chi2z, 
-                                                        LRef, phiRef_In, inclination, Nz_Jf, Nx_Jf, kappa)
-    """
 
     epsilon0 = set_epsilon0(phenom_xp_convention, phiJ_Sf)
 
     mprime = 2
-    # When convention five or seven are false...
-    #NH My understanding is that these are just vanlges at the reference frequency for the 22 mode. 
+    
 
     eta2 = jnp.power(eta, 2)
     eta3 = jnp.power(eta, 3)
@@ -255,6 +241,8 @@ def compute_evolved_spin_using_msa(mass_1, mass_2, Mf, chi1x, chi1y, chi1z, chi2
     qq = mass_2 / mass_1
     delta_qq = (1-qq) / (1+qq)
 
+    # When convention five or seven are false...
+    #NH My understanding is that these are just vanlges at the reference frequency for the 22 mode. 
     alpha_offset, epsilon_offset = Get_alphaepsilon_atfref(mprime, pWF['piM'], reference_frequency, alpha0, epsilon0,
                                                             eta=eta,
                                                             eta2=eta2,
