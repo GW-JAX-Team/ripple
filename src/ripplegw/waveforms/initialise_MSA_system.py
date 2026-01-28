@@ -7,13 +7,10 @@ from .elliptic_integrals import gsl_sf_elljac_e
 
 
 #/** This function initializes all the core variables required for the MSA system. This will be called first. */
-def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
+def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, mass_1, mass_2, pflag = 223):
 
     #Sanity check on the precession version
-    pflag = pPrec.IMRPhenomXPrecVersion
-    if pflag not in [220, 221, 222, 223, 224]:
-        raise ValueError("Error: MSA system requires IMRPhenomXPrecVersion 220, 221, 222, 223 or 224.")
-
+   
     '''
       First initialize the system of variables needed for Chatziioannou et al, PRD, 88, 063011, (2013), arXiv:1307.4418:
         - Racine et al, PRD, 80, 044010, (2009), arXiv:0812.4413
@@ -22,14 +19,12 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
         - Bohe et al, CQG, 30, 135009, (2013), arXiv:1303.7412
     '''
 
-    eta = pPrec.eta
-    eta2 = pPrec.eta2
-    eta3 = pPrec.eta3
-    eta4 = pPrec.eta4
-    inveta = pPrec.inveta
+    eta = mass_1 * mass_2 / jnp.power(mass_1+mass_2, 2)
 
-    m1 = pWF['m1']
-    m2 = pWF['m2']
+    eta2 = jnp.power(eta, 2)
+    eta3 = jnp.power(eta, 3)
+    eta4 = jnp.power(eta, 4)
+    inveta = jnp.power(eta, -1)
 
     # PN Coefficients for d \omega / d t as per LALSimInspiralFDPrecAngles_internals.c
     LAL_LN2 = jnp.log(2.0)
@@ -63,12 +58,10 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
         dump this to pPrec->qq, where qq explicitly dentoes that this is 0 < q < 1.
     '''
 
-    q = m2 / m1  # m2 / m1, q < 1, m1 > m2
+    q = mass_2 / mass_1 # m2 / m1, q < 1, m1 > m2
     invq = 1.0 / q  # m1 / m2, invq > 1, m1 > m2
-    qq = q
-    invqq = invq
 
-    mu = (m1 * m2) / (m1 + m2)
+    mu = (mass_1 * mass_2) / (mass_1 + mass_2)
 
     #    /* \delta and powers of \delta in terms of q < 1, should just be m1 - m2 */
     delta_qq = (1.0 - q) / (1.0 + q)
@@ -204,6 +197,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     S2Lsq_pav = (S2L_pav*S2L_pav + (q*q*(Spl2mSmi2)*(Spl2mSmi2) * v_0_2) / (32.0 * eta2 * omqsq))
     S1LS2L_pav = (S1L_pav*S2L_pav - q * (Spl2mSmi2)*(Spl2mSmi2)*v_0_2 / (32.0 * eta2 * omqsq))
 
+    """
     # Spin couplings in arXiv:1703.03967
     beta3 = (((113./12.) + (25./4.)*(m2/m1)) * S1L_pav + ((113./12.) + (25./4.)*(m1/m2)) * S2L_pav)
     beta5 = (((31319./1008.) - (1159./24.)*eta) + (m2/m1)*((809./84) - (281./8.)*eta)) * S1L_pav + \
@@ -216,21 +210,21 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     sigma4 = ((1.0/mu) * ((247./48.)*S1S2_pav - (721./48.)*S1L_pav*S2L_pav) + \
             (1.0/(m1*m1)) * ((233./96.)*S1_norm_2 - (719./96.)*S1Lsq_pav) + \
             (1.0/(m2*m2)) * ((233./96.)*S2_norm_2 - (719./96.)*S2Lsq_pav))
-
+    """
     #Line 2597
 
-    if pflag == 222 or pflag == 223:
-        a0 = eta * domegadt_constants_NS[0]
-        a2 = eta * (domegadt_constants_NS[1] + eta * (domegadt_constants_NS[2]))
-        a3 = eta * (domegadt_constants_NS[3] +
-                    IMRPhenomX_Get_PN_beta(domegadt_constants_SO[0], domegadt_constants_SO[1], dotS1L, dotS2L, q))
-        a4 = eta * (domegadt_constants_NS[4] + eta * (domegadt_constants_NS[5] + eta * (domegadt_constants_NS[6])) +
-                    IMRPhenomX_Get_PN_sigma(domegadt_constants_SS[0], domegadt_constants_SS[1], inveta, dotS1S2, dotS1L, dotS2L) +
-                    IMRPhenomX_Get_PN_tau(domegadt_constants_SS[2], domegadt_constants_SS[3], q, S1_norm_2, S2_norm_2, dotS1L, dotS2L, eta))
-        a5 = eta * (domegadt_constants_NS[7] + eta * (domegadt_constants_NS[8]) +
-                    IMRPhenomX_Get_PN_beta((domegadt_constants_SO[2] + eta * (domegadt_constants_SO[3])),
-                                            (domegadt_constants_SO[4] + eta * (domegadt_constants_SO[5])),
-                                            dotS1L, dotS2L, q))
+
+    a0 = eta * domegadt_constants_NS[0]
+    a2 = eta * (domegadt_constants_NS[1] + eta * (domegadt_constants_NS[2]))
+    a3 = eta * (domegadt_constants_NS[3] +
+                IMRPhenomX_Get_PN_beta(domegadt_constants_SO[0], domegadt_constants_SO[1], dotS1L, dotS2L, q))
+    a4 = eta * (domegadt_constants_NS[4] + eta * (domegadt_constants_NS[5] + eta * (domegadt_constants_NS[6])) +
+                IMRPhenomX_Get_PN_sigma(domegadt_constants_SS[0], domegadt_constants_SS[1], inveta, dotS1S2, dotS1L, dotS2L) +
+                IMRPhenomX_Get_PN_tau(domegadt_constants_SS[2], domegadt_constants_SS[3], q, S1_norm_2, S2_norm_2, dotS1L, dotS2L, eta))
+    a5 = eta * (domegadt_constants_NS[7] + eta * (domegadt_constants_NS[8]) +
+                IMRPhenomX_Get_PN_beta((domegadt_constants_SO[2] + eta * (domegadt_constants_SO[3])),
+                                        (domegadt_constants_SO[4] + eta * (domegadt_constants_SO[5])),
+                                        dotS1L, dotS2L, q))
 
     # Useful powers of a_0
     a0_2 = a0 * a0
