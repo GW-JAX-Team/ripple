@@ -7,7 +7,7 @@ import lal
 import matplotlib.pyplot as plt
 from ripplegw.waveforms import IMRPhenomXPHM
 import bilby
-
+from utils import GPSt_to_LMST
 print("Device", jax.devices())
 
 def compute_overlap(frequency_series_1, frequency_series_2, df):
@@ -103,12 +103,12 @@ lal_hp_xphm, lal_hc_xphm = lalsim.SimIMRPhenomXPHM(injection_parameters['m1_SI']
 ###### jax code
 run_jim = True
 tGPS = 3600
-model = IMRPhenomXPHM.IMRPhenomXPHM(apply_fcut = True, reference_frequency=reference_frequency)
+#model = IMRPhenomXPHM.IMRPhenomXPHM(apply_fcut = True, reference_frequency=reference_frequency)
 
 if run_jim:
 
 
-    hp_xphm, hc_xphm = model.generate_xphm(injection_parameters['m1'][0],
+    hp_xphm, hc_xphm = IMRPhenomXPHM.generate_xphm(injection_parameters['m1'][0],
                                            injection_parameters['m2'][0],
                                             injection_parameters['chi1x'][0],
                                             injection_parameters['chi1y'][0],
@@ -221,7 +221,7 @@ for ell, m, col_idx in modes_info:
     #print(f"Saved {filename}")
 
 
-exit()
+
 ripple_phase = np.genfromtxt("./PhisAllModes_ripple.dat", skip_header=True)
 
 ripple_phase[:, 1] += np.pi/2
