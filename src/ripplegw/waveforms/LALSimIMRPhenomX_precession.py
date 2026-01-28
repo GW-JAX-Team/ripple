@@ -43,7 +43,6 @@ class CommonConstants:
     MAX_TOL_ATAN: float = 1.0e-15
 
 
-@pytree_dataclass
 def IMRPhenomXGetAndSetPrecessionVariables(pWF, mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, lalParams, debug_flag):
     """
     lalsuite: https://lscsoft.docs.ligo.org/lalsuite/lalsimulation/_l_a_l_sim_i_m_r_phenom_x__precession_8c.html#af089ef2586c52b12016c0d791b176121
@@ -82,7 +81,7 @@ def IMRPhenomXGetAndSetPrecessionVariables(pWF, mass_1, mass_2, chi1x, chi1y, ch
     mass_1_fraction = mass_1 / total_mass
     mass_2_fraction = mass_2 / total_mass
 
-    q = mass_1_fraction / mass_2_fraction ###???
+    q = mass_1_fraction / mass_2_fraction 
 
     mass_1_fraction_2 = jnp.power(mass_1_fraction, 2)
     mass_1_fraction_3 = jnp.power(mass_1_fraction, 3)
@@ -101,6 +100,7 @@ def IMRPhenomXGetAndSetPrecessionVariables(pWF, mass_1, mass_2, chi1x, chi1y, ch
     mass_2_fraction_8 = jnp.power(mass_2_fraction, 8)
 
     pWF['M'] = 1
+    bigM = 1
     pWF['m1_2'] = mass_1_fraction_2
     pWF['m2_2'] = mass_2_fraction_2
     eta = mass_1*mass_2 / jnp.power(mass_1 + mass_2, 2)
@@ -126,518 +126,266 @@ def IMRPhenomXGetAndSetPrecessionVariables(pWF, mass_1, mass_2, chi1x, chi1y, ch
     twopiGM = 2 * jnp.pi * G * (mass_1_SI + mass_2_SI) / C / C / C
     piGM =  jnp.pi * (mass_1_SI + mass_2_SI) * (G / C) / (C * C)
 
+    chi1_norm = jnp.sqrt(chi1x * chi1x + chi1y * chi1y + chi1z * chi1z)
+    chi2_norm = jnp.sqrt(chi2x * chi2x + chi2y * chi2y + chi2z * chi2z)
+
+    # Dimensionful spins
+    S1x = chi1x * mass_1_fraction_2
+    S1y = chi1y * mass_1_fraction_2
+    S1z = chi1z * mass_1_fraction_2
+    S1_norm = jnp.abs(chi1_norm) * mass_1_fraction_2
+
+    S2x = chi2x * mass_2_fraction_2
+    S2y = chi2y * mass_2_fraction_2
+    S2z = chi2z * mass_2_fraction_2
+    S2_norm = jnp.abs(chi2_norm) * mass_2_fraction_2
+
+    # Spin norm powers
+    S1_norm_2 = S1_norm * S1_norm
+    S2_norm_2 = S2_norm * S2_norm
+
+    # Perpendicular spin components
+    chi1_perp = jnp.sqrt(chi1x * chi1x + chi1y * chi1y)
+    chi2_perp = jnp.sqrt(chi2x * chi2x + chi2y * chi2y)
+
+    # Spin projections
+    S1_perp = mass_1_fraction_2 * jnp.sqrt(chi1x * chi1x + chi1y * chi1y)
+    S2_perp = mass_2_fraction_2 * jnp.sqrt(chi2x * chi2x + chi2y * chi2y)
+
+    # Total perpendicular spin (norm of in-plane vector sum: Norm[S1perp + S2perp])
+    STot_perp = jnp.sqrt((S1x + S2x) * (S1x + S2x) + (S1y + S2y) * (S1y + S2y))
+
+    # chiTot_perp (distinguishes from Sperp used in construction of chi_p)
+    # For normalization, see Sec. IV D of arXiv:2004.06503
+    chiTot_perp = STot_perp * (bigM * bigM) / mass_1_fraction_2
+
+    # Store chiTot_perp to pWF for use in XCP modifications (PNRUseTunedCoprec)
+    pWF['chiTot_perp'] = chiTot_perp
+
+
+    """
+    Calculate the effective precessing spin parameter.
+    Reference: Schmidt et al, PRD 91, 024043, 2015
+    Note: m1 > m2, so body 1 is the larger black hole
+    """
+
+    A1 = 2.0 + (3.0 * mass_2_fraction) / (2.0 * mass_1_fraction)
+    A2 = 2.0 + (3.0 * mass_1_fraction) / (2.0 * mass_2_fraction)
+    ASp1 = A1 * S1_perp
+    ASp2 = A2 * S2_perp
+
+    # S_p = max(A1 S1_perp, A2 S2_perp)
+    num = jnp.where(ASp2 > ASp1, ASp2, ASp1)
+    den = jnp.where(mass_2_fraction > mass_1_fraction, A2 * mass_2_fraction_2, A1 * mass_1_fraction_2)
+
+    # chi_p = max(A1 * Sp1, A2 * Sp2) / (A_i * m_i^2) where i is the index of the larger BH
+    chip = num / den
+    chi1L = chi1z
+    chi2L = chi2z
+
+    chi_p = chip
+    # Store chi_p to pWF (used in PNRUseTunedCoprec)
+    pWF['chi_p'] = chi_p
+    phi0_aligned = pWF['phi0']
+
+    # Effective (dimensionful) aligned spin
+    SL = chi1L * mass_1_fraction_2 + chi2L * mass_2_fraction_2
+
+    # Effective (dimensionful) in-plane spin (m1 > m2)
+    Sperp = chi_p * mass_1_fraction_2
+
+    # Initialize pWF22AS for SpinTaylor code
+    pWF22AS = None
+
+    return delta, 
+
+    
+
+
+
+def compute_evolved_spin_using_msa(self, mass_1, mass_2, Mf, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, emm, reference_frequency, phiRef_In, inclination, pWF):
+
+    """
+    What is compute_evolved_spin_using_msa function supposed to return?
+    """
+
+    phenom_xp_convention = 1
+    eta = mass_1*mass_2/jnp.power(mass_1+mass_2, 2)
+    chi1L = chi1z
+    chi2L = chi2z
+
+    bigM = 1
+    total_mass = mass_1 + mass_2
+    mass_1_fraction = mass_1 / total_mass
+    mass_2_fraction = mass_2 / total_mass
+    delta = mass_1_f - mass_2 #FIXME
+
+    
+    #if pflag in 220, 221, 222, 223, 224...
+    #Line 597
+    msa_init = IMRPhenomX_Initialize_MSA_System(mass_1=mass_1, mass_2 = mass_2,
+                                                                chi1x=chi1x, chi1y = chi1y, chi1z = chi1z,
+                                                                chi2x=chi2x, chi2y = chi2y, chi2z = chi2z,
+                                                                reference_frequency=reference_frequency)
+
+    #Mfinal, afinal, fRING, fDAMP = IMRPhenomX_SetPrecessingRemnantParams(self, self.pWF, self.lalParams)
+    # The output of this function should be Mfinal, afinal, fring, and fdamp
+    # To be checked
+
+
+    # case 223: Line 691 compute orbital angular momentum
+    L0, L1, L2, L3, L4, L5, L6, L7, L8, L8L = flag_222_223_twoPN_non_spinning_orbitan_angular_momentum(
+        eta, eta2, chi1L, chi2L, delta, jnp.power(jnp.pi, 2))
+
+    LRef = bigM * bigM * XLALSimIMRPhenomXLPNAnsatz(pWF['v_ref'], eta / pWF['v_ref'], L0, L1, L2, L3, L4, L5, L6, L7, L8, L8L) 
+
+    """
+    thetaJN, Nz_Jf, Nx_Jf, phiJ_Sf, kappa = compute_thetaJN_and_kappa(mass_1_fraction, mass_2_fraction, 
+                                                            chi1x, chi1y, chi1z, 
+                                                            chi2x, chi2y, chi2z, 
+                                                            LRef, phiRef_In, inclination)
+    """
+    alpha0 = jnp.pi - kappa # For phenom_xp_convention = 1
+    """    
+    zeta_polarization = compute_zeta_polarization(mass_1_fraction, mass_2_fraction, 
+                                                            self.chi1x, self.chi1y, self.chi1z, 
+                                                            self.chi2x, self.chi2y, self.chi2z, 
+                                                        LRef, phiRef_In, inclination, Nz_Jf, Nx_Jf, kappa)
+    """
 
 
 
 
+    #object.__setattr__(self, 'zeta_polarization', zeta_polarization)
 
-    def __post_init__(self):
-        """Compute all derived quantities."""
-        #self._setup_version_flags()
+    epsilon0 = set_epsilon0(phenom_xp_convention, phiJ_Sf)
 
-        # Compute normalized masses and mass ratio
-      
-        self._update_pWF_dict()
-        self._compute_gravitational_constants()
-        self._compute_effective_spin_parameters()
+    mprime = 2
+    # When convention five or seven are false...
+    #NH My understanding is that these are just vanlges at the reference frequency for the 22 mode. 
 
-        #self._validate_kerr_bound()
-        #self.compute_evolved_spin_using_spintaylor() # Function that uses Spin Taylor approximantion to evolve spins
+    eta2 = jnp.power(self.eta, 2)
+    eta3 = jnp.power(self.eta, 3)
+    eta4 = jnp.power(self.eta, 4)
+    inveta = jnp.power(self.eta, -1)
+
+    SAv2 = msa_init[15]
+    SAv = jnp.sqrt(SAv2)
+    invSAv = jnp.power(SAv, -1)
+    invSAv2 = jnp.power(SAv2, -1)
+
+    qq = mass_2 / mass_1
+    delta_qq = (1-qq) / (1+qq)
+
+    alpha_offset, epsilon_offset = Get_alphaepsilon_atfref(mprime, pWF['piM'], reference_frequency, alpha0, epsilon0,
+                                                            eta=self.eta,
+                                                            eta2=eta2,
+                                                            eta3=eta3,
+                                                            eta4=eta4,
+                                                            inveta=inveta,
+                                                            
+                                                            SAv=SAv,
+                                                            SAv2=SAv2,
+                                                            invSAv=invSAv,
+                                                            invSAv2=invSAv2,
+                                                            S1_norm_2=self.S1_norm_2,
+                                                            S2_norm_2=self.S2_norm_2,
+                                                            qq=qq,
+                                                            delta_qq=delta_qq,
+                                                            
+                                                            Omegaz0_coeff=msa_init[0],
+                                                            Omegaz1_coeff=msa_init[1],
+                                                            Omegaz2_coeff=msa_init[2],
+                                                            Omegaz3_coeff=msa_init[3],
+                                                            Omegaz4_coeff=msa_init[4],
+                                                            Omegaz5_coeff=msa_init[5],
+                                                            
+                                                            Omegazeta0_coeff=msa_init[6],
+                                                            Omegazeta1_coeff=msa_init[7],
+                                                            Omegazeta2_coeff=msa_init[8],
+                                                            Omegazeta3_coeff=msa_init[9],
+                                                            Omegazeta4_coeff=msa_init[10],
+                                                            Omegazeta5_coeff=msa_init[11],
+                                                            g0=msa_init[12],
+                                                            c1=msa_init[13],
+                                                            c1_over_eta=msa_init[14],
+
+                                                            Seff=msa_init[16],
+                                                            dotS1Ln=msa_init[17],
+                                                            dotS2Ln=msa_init[18],
+                                                            S_0_norm=msa_init[19],
+                                                            psi0=msa_init[20],
+                                                            psi1=msa_init[21],
+                                                            psi2=msa_init[22],
+
+                                                            phiz_0=msa_init[23],
+                                                            zeta_0=msa_init[24], 
+                                                            constants_L_0=msa_init[25],
+                                                            constants_L_1=msa_init[26],
+                                                            constants_L_2=msa_init[27],
+                                                            constants_L_3=msa_init[28],
+                                                            constants_L_4=msa_init[29])
+
+
+    vangles = compute_vangles(
+        Mf=Mf,
+        emm=emm,
+        eta=self.eta,
+        eta2=eta2,
+        eta3=eta3,
+        eta4=eta4,
+        inveta=inveta,
         
-        #self.compute_evolved_spin_using_msa()
-
-    def _compute_spin_quantities(self):
-        """Compute all spin-related quantities."""
-        # Spin norms
-        chi1_norm = jnp.sqrt(chi1x * chi1x + chi1y * chi1y + chi1z * chi1z)
-        chi2_norm = jnp.sqrt(chi2x * chi2x + chi2y * chi2y + chi2z * chi2z)
-
-        # Dimensionful spins
-        S1x = chi1x * m1_2
-        S1y = chi1y * m1_2
-        S1z = chi1z * m1_2
-        S1_norm = jnp.abs(chi1_norm) * m1_2
-
-        S2x = chi2x * m2_2
-        S2y = chi2y * m2_2
-        S2z = chi2z * m2_2
-        S2_norm = jnp.abs(chi2_norm) * m2_2
-
-        # Spin norm powers
-        S1_norm_2 = S1_norm * S1_norm
-        S2_norm_2 = S2_norm * S2_norm
-
-        # Perpendicular spin components
-        chi1_perp = jnp.sqrt(chi1x * chi1x + chi1y * chi1y)
-        chi2_perp = jnp.sqrt(chi2x * chi2x + chi2y * chi2y)
-
-        # Spin projections
-        S1_perp = m1_2 * jnp.sqrt(chi1x * chi1x + chi1y * chi1y)
-        S2_perp = m2_2 * jnp.sqrt(chi2x * chi2x + chi2y * chi2y)
-
-        # Total perpendicular spin (norm of in-plane vector sum: Norm[S1perp + S2perp])
-        STot_perp = jnp.sqrt((S1x + S2x) * (S1x + S2x) + (S1y + S2y) * (S1y + S2y))
-
-        # chiTot_perp (distinguishes from Sperp used in construction of chi_p)
-        # For normalization, see Sec. IV D of arXiv:2004.06503
-        chiTot_perp = STot_perp * (M * M) / m1_2
-
-        # Store chiTot_perp to pWF for use in XCP modifications (PNRUseTunedCoprec)
-        pWF['chiTot_perp'] = chiTot_perp
-
-
-    def _compute_effective_spin_parameters(self):
-        """
-        Calculate the effective precessing spin parameter.
-        Reference: Schmidt et al, PRD 91, 024043, 2015
-        Note: m1 > m2, so body 1 is the larger black hole
-        """
-        # Compute A1 and A2 coefficients
-        object.__setattr__(self, 'A1', 2.0 + (3.0 * m2) / (2.0 * mass_1_fraction))
-        object.__setattr__(self, 'A2', 2.0 + (3.0 * mass_1_fraction) / (2.0 * m2))
-        object.__setattr__(self, 'ASp1', self.A1 * self.S1_perp)
-        object.__setattr__(self, 'ASp2', self.A2 * self.S2_perp)
-
-        # S_p = max(A1 S1_perp, A2 S2_perp)
-        num = jnp.where(self.ASp2 > self.ASp1, self.ASp2, self.ASp1)
-        den = jnp.where(m2 > mass_1_fraction, self.A2 * self.m2_2, self.A1 * self.m1_2)
-
-        # chi_p = max(A1 * Sp1, A2 * Sp2) / (A_i * m_i^2) where i is the index of the larger BH
-        object.__setattr__(self, 'chip', num / den)
-        object.__setattr__(self, 'chi1L', self.chi1z)
-        object.__setattr__(self, 'chi2L', self.chi2z)
-
-        object.__setattr__(self, 'chi_p', self.chip)
-        # Store chi_p to pWF (used in PNRUseTunedCoprec)
-        self.pWF['chi_p'] = self.chi_p
-        object.__setattr__(self, 'phi0_aligned', self.pWF['phi0'])
-
-        # Effective (dimensionful) aligned spin
-        object.__setattr__(self, 'SL', self.chi1L * self.m1_2 + self.chi2L * self.m2_2)
-
-        # Effective (dimensionful) in-plane spin (m1 > m2)
-        object.__setattr__(self, 'Sperp', self.chi_p * self.m1_2)
-
-        # Initialize pWF22AS for SpinTaylor code
-        object.__setattr__(self, 'pWF22AS', None)
-
-    def _validate_kerr_bound(self):
-        """Validate that spin magnitudes are within Kerr bound."""
-        kerr_bound_flag = check_kerr_bound(
-            self.lalParams['PNRUseTunedAngles'],
-            self.pWF['PNR_SINGLE_SPIN'],
-            self.chi1_norm,
-            self.chi2_norm
-        )
-
-
-
-    def _initialize_mode_arrays_and_frequencies(self):
-        """Initialize mode arrays and handle deltaF."""
-        object.__setattr__(self, 'L_MAX_PNR', jnp.max(jnp.array(self.lalParams['ModeArray'])))
-        object.__setattr__(self, 'M_MAX', jnp.max(jnp.array(self.lalParams['ModeArray'][:, 1])))
-
-        # Handle deltaF == 0 case
-        deltaMF = jnp.where(
-            self.pWF['deltaF'] == 0,
-            get_deltaF_from_wfstruct(self.pWF),
-            -1  # FIXME
-        )
-        self.pWF['deltaMF'] = deltaMF
-
-    def _compute_path1_parameters(self):
-        """Compute integration parameters for PNRUseTunedAngles == False."""
-        integration_buffer_path1 = jnp.where(self.pWF['deltaF'] > 0., 3. * self.pWF['deltaF'], 0.5)
-        flow_path1 = (self.pWF['fMin'] - integration_buffer_path1) * 2 / self.M_MAX
-        return integration_buffer_path1, flow_path1
-
-    def _compute_path2_parameters(self):
-        """Compute integration parameters for PNRUseTunedAngles == True."""
-        flow_temp_path2, fmin_HM_inspiral = self._compute_path2_initial_frequencies()
-        Mf_low_cut, MF_high_cut = self._compute_frequency_cutoffs()
-        flow_path2_intermediate = self._compute_path2_intermediate_flow(
-            flow_temp_path2, fmin_HM_inspiral, Mf_low_cut, MF_high_cut
-        )
-        integration_buffer_path2, flow_path2 = self._finalize_path2_parameters(flow_path2_intermediate)
-        return integration_buffer_path2, flow_path2
-
-    def _compute_path2_initial_frequencies(self):
-        """Compute initial frequencies for path 2."""
-        iStart_here_path2 = jnp.where(
-            self.pWF['deltaF'] == 0.,
-            0,
-            jnp.floor(self.pWF['fMin'] / self.pWF['deltaF']).astype(int)
-        )
-        flow_temp_path2 = jnp.where(
-            self.pWF['deltaF'] == 0.,
-            0.,
-            iStart_here_path2 * self.pWF['deltaF']
-        )
-        fmin_HM_inspiral = flow_temp_path2 * 2.0 / self.M_MAX
-        return flow_temp_path2, fmin_HM_inspiral
-
-    def _compute_frequency_cutoffs(self):
-        """Compute frequency cutoffs using PNR coefficients."""
-        # Temporarily set version to 223 for PNR variable computation
-        precVersion_save = self.IMRPhenomXPrecVersion
-        object.__setattr__(self, 'IMRPhenomXPrecVersion', 223)
-        IMRPhenomX_PNR_GetAndSetPNRVariables(self, self.pWF) ## First precversion is set to 223
-
-        alphaParams = IMRPhenomX_PNR_precompute_alpha_coefficients(self.pWF, self)
-        betaParams = IMRPhenomX_PNR_precompute_beta_coefficients(self.pWF, self)
-        Mf_beta_lower, Mf_beta_upper = IMRPhenomX_PNR_BetaConnectionFrequencies(betaParams)
-
-        # Restore version
-        object.__setattr__(self, 'IMRPhenomXPrecVersion', precVersion_save)
-
-        # Compute cutoff frequencies
-        Mf_alpha_upper = alphaParams.A4 / 3.0
-        Mf_low_cut = (3.0 / 3.5) * Mf_alpha_upper
-        MF_high_cut = Mf_beta_lower
-
-        self.pWF['fCutDef'] = jnp.where(self.pWF['chiEff']>0.99, 0.33, 0.3)
-        self.pWF['IMRPhenomXPNRUseTunedCoprec'] = False
-        self.pWF['fRing'] = IMRPhenomXHM_GenerateRingdownFrequency(2, 2, self.pWF)
-
-        # Adjust high cutoff
-        MF_high_cut = jnp.where(
-            jnp.logical_or(
-                MF_high_cut > self.pWF['fCutDef'],
-                MF_high_cut < 0.1 * self.pWF['fRING']
-            ),
-            self.pWF['fRING'],
-            MF_high_cut
-        )
-
-        # Adjust low cutoff
-        Mf_low_cut = jnp.where(
-            jnp.logical_or(
-                Mf_low_cut > self.pWF['fCutDef'],
-                MF_high_cut < Mf_low_cut
-            ),
-            MF_high_cut / 2.0,
-            Mf_low_cut
-        )
-
-        return Mf_low_cut, MF_high_cut
-
-    def _compute_path2_intermediate_flow(self, flow_temp_path2, fmin_HM_inspiral, Mf_low_cut, MF_high_cut):
-        """Compute intermediate flow frequency for path 2."""
-        flow_alpha = XLALSimIMRPhenomXUtilsMftoHz(
-            Mf_low_cut * 0.65 * self.M_MAX / 2.0,
-            self.pWF['Mtot']
-        )
-
-        # Compute ringdown frequency adjustment
-        Mf_RD_22 = self.pWF['fRING']
-        Mf_RD_lm = IMRPhenomXHM_GenerateRingdownFrequency(self.L_MAX_PNR, self.M_MAX, self.pWF)
-
-        fmin_HM_ringdown = XLALSimIMRPhenomXUtilsMftoHz(
-            XLALSimIMRPhenomXUtilsHztoMf(flow_temp_path2, self.pWF['Mtot']) - (Mf_RD_lm - Mf_RD_22),
-            self.pWF['Mtot']
-        )
-        else_branch_result = jnp.where(
-            jnp.logical_and(fmin_HM_ringdown < fmin_HM_inspiral, fmin_HM_ringdown > 0.0),
-            fmin_HM_ringdown,
-            fmin_HM_inspiral
-        )
-
-        # Main conditional
-        flow_path2_intermediate = jnp.where(
-            flow_alpha < flow_temp_path2,
-            fmin_HM_inspiral / 1.5,
-            else_branch_result
-        )
-
-        return flow_path2_intermediate
-
-    def _finalize_path2_parameters(self, flow_path2_intermediate):
-        """Finalize path 2 integration buffer and flow."""
-        pnr_interpolation_deltaf = IMRPhenomX_PNR_HMInterpolationDeltaF(
-            flow_path2_intermediate, self.pWF, self
-        )
-
-        integration_buffer_path2 = 1.4 * pnr_interpolation_deltaf
-        flow_path2 = jnp.where(
-            flow_path2_intermediate - 2.0 * pnr_interpolation_deltaf < 0,
-            flow_path2_intermediate / 2.0,
-            flow_path2_intermediate - 2.0 * pnr_interpolation_deltaf
-        )
-
-        iStart_here_path2_final = jnp.floor(flow_path2 / pnr_interpolation_deltaf).astype(int)
-        flow_path2 = iStart_here_path2_final * pnr_interpolation_deltaf
-
-        return integration_buffer_path2, flow_path2
-
-    def _select_integration_path(self, integration_buffer_path1, integration_buffer_path2,
-                                  flow_path1, flow_path2):
-        """Select between path 1 and path 2 based on PNRUseTunedAngles."""
-        integration_buffer = jnp.where(
-            self.lalParams['PNRUseTunedAngles'],
-            integration_buffer_path2,
-            integration_buffer_path1
-        )
-        flow = jnp.where(self.lalParams['PNRUseTunedAngles'], flow_path2, flow_path1)
-
-        object.__setattr__(self, 'integration_buffer', integration_buffer)
-        return integration_buffer, flow
-
-    def _run_spintaylor_evolution(self, flow):
-        """Run SpinTaylor evolution and return PN arrays."""
-        PNarrays, fmin_integration = IMRPhenomX_InspiralAngles_SpinTaylor(
-            self.chi1x, self.chi1y, self.chi1z,
-            self.chi2x, self.chi2y, self.chi2z,
-            flow, self.IMRPhenomXPrecVersion,
-            self.pWF, self.lalParams
-        )
-        object.__setattr__(
-            self, 'Mfmin_integration',
-            XLALSimIMRPhenomXUtilsHztoMf(fmin_integration, self.pWF['Mtot'])
-        )
-        return PNarrays, fmin_integration
-
-    def _extract_and_set_evolved_spins(self, PNarrays):
-        """Extract evolved spins from PNarrays and apply rotation if needed."""
-        chi1_evolved, chi2_evolved = self._compute_rotated_spins(PNarrays)
-        self._set_evolved_spin_attributes(chi1_evolved, chi2_evolved)
-
-    def _compute_rotated_spins(self, PNarrays):
-        """Compute rotated spin vectors from PNarrays."""
-        # Extract final values from PNarrays (last element)
-        lenPN = len(PNarrays[0])
-
-        chi1x_temp = PNarrays[1][lenPN-1]
-        chi1y_temp = PNarrays[2][lenPN-1]
-        chi1z_temp = PNarrays[3][lenPN-1]
-
-        chi2x_temp = PNarrays[4][lenPN-1]
-        chi2y_temp = PNarrays[5][lenPN-1]
-        chi2z_temp = PNarrays[6][lenPN-1]
-
-        Lx = PNarrays[7][lenPN-1]
-        Ly = PNarrays[8][lenPN-1]
-        Lz = PNarrays[9][lenPN-1]
-
-        # Calculate rotation angles from angular momentum
-        phi = jnp.arctan2(Ly, Lx)
-        L_mag = jnp.sqrt(Lx*Lx + Ly*Ly + Lz*Lz)
-        theta = jnp.arccos(Lz / L_mag)
-
-        # Rotate chi1 vector
-        _v1 = IMRPhenomX_rotate_z(-phi, jnp.array([chi1x_temp, chi1y_temp, chi1z_temp]))
-        chi1_rotated = IMRPhenomX_rotate_y(-theta, _v1)
-
-        # Rotate chi2 vector
-        _v2 = IMRPhenomX_rotate_z(-phi, jnp.array([chi2x_temp, chi2y_temp, chi2z_temp]))
-        chi2_rotated = IMRPhenomX_rotate_y(-theta, _v2)
-
-        # Conditionally use rotated or original values based on IMRPhenomXPrecVersion
-        is_version_330 = (self.IMRPhenomXPrecVersion == 330)
-
-        chi1_evolved = jnp.array([
-            jnp.where(is_version_330, chi1_rotated[0], self.chi1x),
-            jnp.where(is_version_330, chi1_rotated[1], self.chi1y),
-            jnp.where(is_version_330, chi1_rotated[2], self.chi1z)
-        ])
-
-        chi2_evolved = jnp.array([
-            jnp.where(is_version_330, chi2_rotated[0], self.chi2x),
-            jnp.where(is_version_330, chi2_rotated[1], self.chi2y),
-            jnp.where(is_version_330, chi2_rotated[2], self.chi2z)
-        ])
-
-        return chi1_evolved, chi2_evolved
-
-    def _set_evolved_spin_attributes(self, chi1_evolved, chi2_evolved):
-        """Set evolved spin attributes."""
-        object.__setattr__(self, 'chi1x_evolved', chi1_evolved[0])
-        object.__setattr__(self, 'chi1y_evolved', chi1_evolved[1])
-        object.__setattr__(self, 'chi1z_evolved', chi1_evolved[2])
-        object.__setattr__(self, 'chi2x_evolved', chi2_evolved[0])
-        object.__setattr__(self, 'chi2y_evolved', chi2_evolved[1])
-        object.__setattr__(self, 'chi2z_evolved', chi2_evolved[2])
-
-
-
-
-
-
-    def compute_evolved_spin_using_msa(self, mass_1, mass_2, Mf, emm, ):
-
-        """
-        What is compute_evolved_spin_using_msa function supposed to return?
-        """
-
-        phenom_xp_convention = 1
+        SAv=SAv,
+        SAv2=SAv2,
+        invSAv=invSAv,
+        invSAv2=invSAv2,
+
+        S1_norm_2=self.S1_norm_2,
+        S2_norm_2=self.S2_norm_2,
+        qq=qq,
+        delta_qq=delta_qq,
         
-        #if pflag in 220, 221, 222, 223, 224...
-        #Line 597
-        msa_init = IMRPhenomX_Initialize_MSA_System(mass_1=mass_1, mass_2 = mass_2,
-                                                                 chi1x=self.chi1x, chi1y = self.chi1y, chi1z = self.chi1z,
-                                                                 chi2x=self.chi2x, chi2y = self.chi2y, chi2z = self.chi2z,
-                                                                 reference_frequency=self.pWF["fRef"])
-
-        #Mfinal, afinal, fRING, fDAMP = IMRPhenomX_SetPrecessingRemnantParams(self, self.pWF, self.lalParams)
-        # The output of this function should be Mfinal, afinal, fring, and fdamp
-        # To be checked
-
-
-        # case 223: Line 691 compute orbital angular momentum
-        L0, L1, L2, L3, L4, L5, L6, L7, L8, L8L = flag_222_223_twoPN_non_spinning_orbitan_angular_momentum(
-            self.eta, self.eta2, self.chi1L, self.chi2L, self.delta, self.common_constants.power_of_lalpi_2)
-
-        LRef = self.M * self.M * XLALSimIMRPhenomXLPNAnsatz(self.pWF['v_ref'], self.pWF['eta'] / self.pWF['v_ref'], L0, L1, L2, L3, L4, L5, L6, L7, L8, L8L) 
-
-        thetaJN, Nz_Jf, Nx_Jf, phiJ_Sf, kappa = compute_thetaJN_and_kappa(mass_1_fraction, m2, 
-                                                                self.chi1x, self.chi1y, self.chi1z, 
-                                                                self.chi2x, self.chi2y, self.chi2z, 
-                                                                LRef, self.pWF['phiRef_In'], self.pWF['inclination'])
+        Omegaz0_coeff=msa_init[0],
+        Omegaz1_coeff=msa_init[1],
+        Omegaz2_coeff=msa_init[2],
+        Omegaz3_coeff=msa_init[3],
+        Omegaz4_coeff=msa_init[4],
+        Omegaz5_coeff=msa_init[5],
         
-        alpha0 = jnp.pi - kappa # For phenom_xp_convention = 1
+        Omegazeta0_coeff=msa_init[6],
+        Omegazeta1_coeff=msa_init[7],
+        Omegazeta2_coeff=msa_init[8],
+        Omegazeta3_coeff=msa_init[9],
+        Omegazeta4_coeff=msa_init[10],
+        Omegazeta5_coeff=msa_init[11],
+        g0=msa_init[12],
+        c1=msa_init[13],
+        c1_over_eta=msa_init[14],
+        Seff=msa_init[16],
+        dotS1Ln=msa_init[17],
+        dotS2Ln=msa_init[18],
+        S_0_norm=msa_init[19],
+        psi0=msa_init[20],
+        psi1=msa_init[21],
+        psi2=msa_init[22],
 
-        
+        phiz_0=msa_init[23],
+        zeta_0=msa_init[24],
+        constants_L_0=msa_init[25],
+        constants_L_1=msa_init[26],
+        constants_L_2=msa_init[27],
+        constants_L_3=msa_init[28],
+        constants_L_4=msa_init[29]
+    )
 
-        # Compress line 931-966
-        object.__setattr__(self, 'thetaJN', thetaJN)
-
-        zeta_polarization = compute_zeta_polarization(mass_1_fraction, m2, 
-                                                             self.chi1x, self.chi1y, self.chi1z, 
-                                                                self.chi2x, self.chi2y, self.chi2z, 
-                                                           LRef, self.pWF['phiRef_In'], self.pWF['inclination'], Nz_Jf, Nx_Jf, kappa)
-
-
-
-
-        object.__setattr__(self, 'zeta_polarization', zeta_polarization)
-
-        epsilon0 = set_epsilon0(phenom_xp_convention, phiJ_Sf)
-
-        mprime = 2
-        # When convention five or seven are false...
-        #NH My understanding is that these are just vanlges at the reference frequency for the 22 mode. 
-
-        eta2 = jnp.power(self.eta, 2)
-        eta3 = jnp.power(self.eta, 3)
-        eta4 = jnp.power(self.eta, 4)
-        inveta = jnp.power(self.eta, -1)
-
-        SAv2 = msa_init[15]
-        SAv = jnp.sqrt(SAv2)
-        invSAv = jnp.power(SAv, -1)
-        invSAv2 = jnp.power(SAv2, -1)
-
-        qq = mass_2 / mass_1
-        delta_qq = (1-qq) / (1+qq)
-
-        alpha_offset, epsilon_offset = Get_alphaepsilon_atfref(mprime, self.pWF['piM'], self.pWF['fRef'], alpha0, epsilon0,
-                                                               eta=self.eta,
-                                                                eta2=eta2,
-                                                                eta3=eta3,
-                                                                eta4=eta4,
-                                                                inveta=inveta,
-                                                                
-                                                                SAv=SAv,
-                                                                SAv2=SAv2,
-                                                                invSAv=invSAv,
-                                                                invSAv2=invSAv2,
-                                                                S1_norm_2=self.S1_norm_2,
-                                                                S2_norm_2=self.S2_norm_2,
-                                                                qq=qq,
-                                                                delta_qq=delta_qq,
-                                                                
-                                                                Omegaz0_coeff=msa_init[0],
-                                                                Omegaz1_coeff=msa_init[1],
-                                                                Omegaz2_coeff=msa_init[2],
-                                                                Omegaz3_coeff=msa_init[3],
-                                                                Omegaz4_coeff=msa_init[4],
-                                                                Omegaz5_coeff=msa_init[5],
-                                                                
-                                                                Omegazeta0_coeff=msa_init[6],
-                                                                Omegazeta1_coeff=msa_init[7],
-                                                                Omegazeta2_coeff=msa_init[8],
-                                                                Omegazeta3_coeff=msa_init[9],
-                                                                Omegazeta4_coeff=msa_init[10],
-                                                                Omegazeta5_coeff=msa_init[11],
-                                                                g0=msa_init[12],
-                                                                c1=msa_init[13],
-                                                                c1_over_eta=msa_init[14],
-
-                                                                Seff=msa_init[16],
-                                                                dotS1Ln=msa_init[17],
-                                                                dotS2Ln=msa_init[18],
-                                                                S_0_norm=msa_init[19],
-                                                                psi0=msa_init[20],
-                                                                psi1=msa_init[21],
-                                                                psi2=msa_init[22],
-
-                                                                phiz_0=msa_init[23],
-                                                                zeta_0=msa_init[24], 
-                                                                constants_L_0=msa_init[25],
-                                                                constants_L_1=msa_init[26],
-                                                                constants_L_2=msa_init[27],
-                                                                constants_L_3=msa_init[28],
-                                                                constants_L_4=msa_init[29])
+    #print("end...", vangles[0])
+    alpha_out = vangles[0] - alpha_offset
+    epsilon_out = vangles[1] - epsilon_offset
+    cos_beta_out = vangles[2]
 
 
-        vangles = compute_vangles(
-            Mf=Mf,
-            emm=emm,
-            eta=self.eta,
-            eta2=eta2,
-            eta3=eta3,
-            eta4=eta4,
-            inveta=inveta,
-            
-            SAv=SAv,
-            SAv2=SAv2,
-            invSAv=invSAv,
-            invSAv2=invSAv2,
-
-            S1_norm_2=self.S1_norm_2,
-            S2_norm_2=self.S2_norm_2,
-            qq=qq,
-            delta_qq=delta_qq,
-            
-            Omegaz0_coeff=msa_init[0],
-            Omegaz1_coeff=msa_init[1],
-            Omegaz2_coeff=msa_init[2],
-            Omegaz3_coeff=msa_init[3],
-            Omegaz4_coeff=msa_init[4],
-            Omegaz5_coeff=msa_init[5],
-            
-            Omegazeta0_coeff=msa_init[6],
-            Omegazeta1_coeff=msa_init[7],
-            Omegazeta2_coeff=msa_init[8],
-            Omegazeta3_coeff=msa_init[9],
-            Omegazeta4_coeff=msa_init[10],
-            Omegazeta5_coeff=msa_init[11],
-            g0=msa_init[12],
-            c1=msa_init[13],
-            c1_over_eta=msa_init[14],
-            Seff=msa_init[16],
-            dotS1Ln=msa_init[17],
-            dotS2Ln=msa_init[18],
-            S_0_norm=msa_init[19],
-            psi0=msa_init[20],
-            psi1=msa_init[21],
-            psi2=msa_init[22],
-
-            phiz_0=msa_init[23],
-            zeta_0=msa_init[24],
-            constants_L_0=msa_init[25],
-            constants_L_1=msa_init[26],
-            constants_L_2=msa_init[27],
-            constants_L_3=msa_init[28],
-            constants_L_4=msa_init[29]
-        )
-
-        #print("end...", vangles[0])
-        alpha_out = vangles[0] - alpha_offset
-        epsilon_out = vangles[1] - epsilon_offset
-        cos_beta_out = vangles[2]
-
-
-        return alpha_out, epsilon_out, cos_beta_out
+    return alpha_out, epsilon_out, cos_beta_out
 
 
 def compute_vangles(Mf, emm,
@@ -1511,3 +1259,235 @@ def _setup_version_flags(self):
     self.lalParams['PNRUseTunedAngles'] = jnp.where(cond, False, self.lalParams['PNRUseTunedAngles'])
     self.lalParams['AntisymmetricWaveform'] = jnp.where(cond, False, self.lalParams['AntisymmetricWaveform'])
     self.lalParams['PNRUseTunedCoprec'] = jnp.where(cond, False, self.lalParams['PNRUseTunedCoprec'])
+
+
+
+
+def _initialize_mode_arrays_and_frequencies(self):
+    """Initialize mode arrays and handle deltaF."""
+    object.__setattr__(self, 'L_MAX_PNR', jnp.max(jnp.array(self.lalParams['ModeArray'])))
+    object.__setattr__(self, 'M_MAX', jnp.max(jnp.array(self.lalParams['ModeArray'][:, 1])))
+
+    # Handle deltaF == 0 case
+    deltaMF = jnp.where(
+        self.pWF['deltaF'] == 0,
+        get_deltaF_from_wfstruct(self.pWF),
+        -1  # FIXME
+    )
+    self.pWF['deltaMF'] = deltaMF
+
+def _compute_path1_parameters(self):
+    """Compute integration parameters for PNRUseTunedAngles == False."""
+    integration_buffer_path1 = jnp.where(self.pWF['deltaF'] > 0., 3. * self.pWF['deltaF'], 0.5)
+    flow_path1 = (self.pWF['fMin'] - integration_buffer_path1) * 2 / self.M_MAX
+    return integration_buffer_path1, flow_path1
+
+def _compute_path2_parameters(self):
+    """Compute integration parameters for PNRUseTunedAngles == True."""
+    flow_temp_path2, fmin_HM_inspiral = self._compute_path2_initial_frequencies()
+    Mf_low_cut, MF_high_cut = self._compute_frequency_cutoffs()
+    flow_path2_intermediate = self._compute_path2_intermediate_flow(
+        flow_temp_path2, fmin_HM_inspiral, Mf_low_cut, MF_high_cut
+    )
+    integration_buffer_path2, flow_path2 = self._finalize_path2_parameters(flow_path2_intermediate)
+    return integration_buffer_path2, flow_path2
+
+def _compute_path2_initial_frequencies(self):
+    """Compute initial frequencies for path 2."""
+    iStart_here_path2 = jnp.where(
+        self.pWF['deltaF'] == 0.,
+        0,
+        jnp.floor(self.pWF['fMin'] / self.pWF['deltaF']).astype(int)
+    )
+    flow_temp_path2 = jnp.where(
+        self.pWF['deltaF'] == 0.,
+        0.,
+        iStart_here_path2 * self.pWF['deltaF']
+    )
+    fmin_HM_inspiral = flow_temp_path2 * 2.0 / self.M_MAX
+    return flow_temp_path2, fmin_HM_inspiral
+
+def _compute_frequency_cutoffs(self):
+    """Compute frequency cutoffs using PNR coefficients."""
+    # Temporarily set version to 223 for PNR variable computation
+    precVersion_save = self.IMRPhenomXPrecVersion
+    object.__setattr__(self, 'IMRPhenomXPrecVersion', 223)
+    IMRPhenomX_PNR_GetAndSetPNRVariables(self, self.pWF) ## First precversion is set to 223
+
+    alphaParams = IMRPhenomX_PNR_precompute_alpha_coefficients(self.pWF, self)
+    betaParams = IMRPhenomX_PNR_precompute_beta_coefficients(self.pWF, self)
+    Mf_beta_lower, Mf_beta_upper = IMRPhenomX_PNR_BetaConnectionFrequencies(betaParams)
+
+    # Restore version
+    object.__setattr__(self, 'IMRPhenomXPrecVersion', precVersion_save)
+
+    # Compute cutoff frequencies
+    Mf_alpha_upper = alphaParams.A4 / 3.0
+    Mf_low_cut = (3.0 / 3.5) * Mf_alpha_upper
+    MF_high_cut = Mf_beta_lower
+
+    self.pWF['fCutDef'] = jnp.where(self.pWF['chiEff']>0.99, 0.33, 0.3)
+    self.pWF['IMRPhenomXPNRUseTunedCoprec'] = False
+    self.pWF['fRing'] = IMRPhenomXHM_GenerateRingdownFrequency(2, 2, self.pWF)
+
+    # Adjust high cutoff
+    MF_high_cut = jnp.where(
+        jnp.logical_or(
+            MF_high_cut > self.pWF['fCutDef'],
+            MF_high_cut < 0.1 * self.pWF['fRING']
+        ),
+        self.pWF['fRING'],
+        MF_high_cut
+    )
+
+    # Adjust low cutoff
+    Mf_low_cut = jnp.where(
+        jnp.logical_or(
+            Mf_low_cut > self.pWF['fCutDef'],
+            MF_high_cut < Mf_low_cut
+        ),
+        MF_high_cut / 2.0,
+        Mf_low_cut
+    )
+
+    return Mf_low_cut, MF_high_cut
+
+def _compute_path2_intermediate_flow(self, flow_temp_path2, fmin_HM_inspiral, Mf_low_cut, MF_high_cut):
+    """Compute intermediate flow frequency for path 2."""
+    flow_alpha = XLALSimIMRPhenomXUtilsMftoHz(
+        Mf_low_cut * 0.65 * self.M_MAX / 2.0,
+        self.pWF['Mtot']
+    )
+
+    # Compute ringdown frequency adjustment
+    Mf_RD_22 = self.pWF['fRING']
+    Mf_RD_lm = IMRPhenomXHM_GenerateRingdownFrequency(self.L_MAX_PNR, self.M_MAX, self.pWF)
+
+    fmin_HM_ringdown = XLALSimIMRPhenomXUtilsMftoHz(
+        XLALSimIMRPhenomXUtilsHztoMf(flow_temp_path2, self.pWF['Mtot']) - (Mf_RD_lm - Mf_RD_22),
+        self.pWF['Mtot']
+    )
+    else_branch_result = jnp.where(
+        jnp.logical_and(fmin_HM_ringdown < fmin_HM_inspiral, fmin_HM_ringdown > 0.0),
+        fmin_HM_ringdown,
+        fmin_HM_inspiral
+    )
+
+    # Main conditional
+    flow_path2_intermediate = jnp.where(
+        flow_alpha < flow_temp_path2,
+        fmin_HM_inspiral / 1.5,
+        else_branch_result
+    )
+
+    return flow_path2_intermediate
+
+def _finalize_path2_parameters(self, flow_path2_intermediate):
+    """Finalize path 2 integration buffer and flow."""
+    pnr_interpolation_deltaf = IMRPhenomX_PNR_HMInterpolationDeltaF(
+        flow_path2_intermediate, self.pWF, self
+    )
+
+    integration_buffer_path2 = 1.4 * pnr_interpolation_deltaf
+    flow_path2 = jnp.where(
+        flow_path2_intermediate - 2.0 * pnr_interpolation_deltaf < 0,
+        flow_path2_intermediate / 2.0,
+        flow_path2_intermediate - 2.0 * pnr_interpolation_deltaf
+    )
+
+    iStart_here_path2_final = jnp.floor(flow_path2 / pnr_interpolation_deltaf).astype(int)
+    flow_path2 = iStart_here_path2_final * pnr_interpolation_deltaf
+
+    return integration_buffer_path2, flow_path2
+
+def _select_integration_path(self, integration_buffer_path1, integration_buffer_path2,
+                                flow_path1, flow_path2):
+    """Select between path 1 and path 2 based on PNRUseTunedAngles."""
+    integration_buffer = jnp.where(
+        self.lalParams['PNRUseTunedAngles'],
+        integration_buffer_path2,
+        integration_buffer_path1
+    )
+    flow = jnp.where(self.lalParams['PNRUseTunedAngles'], flow_path2, flow_path1)
+
+    object.__setattr__(self, 'integration_buffer', integration_buffer)
+    return integration_buffer, flow
+
+def _run_spintaylor_evolution(self, flow):
+    """Run SpinTaylor evolution and return PN arrays."""
+    PNarrays, fmin_integration = IMRPhenomX_InspiralAngles_SpinTaylor(
+        self.chi1x, self.chi1y, self.chi1z,
+        self.chi2x, self.chi2y, self.chi2z,
+        flow, self.IMRPhenomXPrecVersion,
+        self.pWF, self.lalParams
+    )
+    object.__setattr__(
+        self, 'Mfmin_integration',
+        XLALSimIMRPhenomXUtilsHztoMf(fmin_integration, self.pWF['Mtot'])
+    )
+    return PNarrays, fmin_integration
+
+def _extract_and_set_evolved_spins(self, PNarrays):
+    """Extract evolved spins from PNarrays and apply rotation if needed."""
+    chi1_evolved, chi2_evolved = self._compute_rotated_spins(PNarrays)
+    self._set_evolved_spin_attributes(chi1_evolved, chi2_evolved)
+
+def _compute_rotated_spins(self, PNarrays):
+    """Compute rotated spin vectors from PNarrays."""
+    # Extract final values from PNarrays (last element)
+    lenPN = len(PNarrays[0])
+
+    chi1x_temp = PNarrays[1][lenPN-1]
+    chi1y_temp = PNarrays[2][lenPN-1]
+    chi1z_temp = PNarrays[3][lenPN-1]
+
+    chi2x_temp = PNarrays[4][lenPN-1]
+    chi2y_temp = PNarrays[5][lenPN-1]
+    chi2z_temp = PNarrays[6][lenPN-1]
+
+    Lx = PNarrays[7][lenPN-1]
+    Ly = PNarrays[8][lenPN-1]
+    Lz = PNarrays[9][lenPN-1]
+
+    # Calculate rotation angles from angular momentum
+    phi = jnp.arctan2(Ly, Lx)
+    L_mag = jnp.sqrt(Lx*Lx + Ly*Ly + Lz*Lz)
+    theta = jnp.arccos(Lz / L_mag)
+
+    # Rotate chi1 vector
+    _v1 = IMRPhenomX_rotate_z(-phi, jnp.array([chi1x_temp, chi1y_temp, chi1z_temp]))
+    chi1_rotated = IMRPhenomX_rotate_y(-theta, _v1)
+
+    # Rotate chi2 vector
+    _v2 = IMRPhenomX_rotate_z(-phi, jnp.array([chi2x_temp, chi2y_temp, chi2z_temp]))
+    chi2_rotated = IMRPhenomX_rotate_y(-theta, _v2)
+
+    # Conditionally use rotated or original values based on IMRPhenomXPrecVersion
+    is_version_330 = (self.IMRPhenomXPrecVersion == 330)
+
+    chi1_evolved = jnp.array([
+        jnp.where(is_version_330, chi1_rotated[0], self.chi1x),
+        jnp.where(is_version_330, chi1_rotated[1], self.chi1y),
+        jnp.where(is_version_330, chi1_rotated[2], self.chi1z)
+    ])
+
+    chi2_evolved = jnp.array([
+        jnp.where(is_version_330, chi2_rotated[0], self.chi2x),
+        jnp.where(is_version_330, chi2_rotated[1], self.chi2y),
+        jnp.where(is_version_330, chi2_rotated[2], self.chi2z)
+    ])
+
+    return chi1_evolved, chi2_evolved
+
+def _set_evolved_spin_attributes(self, chi1_evolved, chi2_evolved):
+    """Set evolved spin attributes."""
+    object.__setattr__(self, 'chi1x_evolved', chi1_evolved[0])
+    object.__setattr__(self, 'chi1y_evolved', chi1_evolved[1])
+    object.__setattr__(self, 'chi1z_evolved', chi1_evolved[2])
+    object.__setattr__(self, 'chi2x_evolved', chi2_evolved[0])
+    object.__setattr__(self, 'chi2y_evolved', chi2_evolved[1])
+    object.__setattr__(self, 'chi2z_evolved', chi2_evolved[2])
+
+
+
+

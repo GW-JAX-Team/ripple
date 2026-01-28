@@ -11,7 +11,7 @@ from ripplegw import Mc_eta_to_ms
 from .spherical_harmonics import (compute_sminus2_l2, compute_sminus2_l3, compute_sminus2_l4)
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from .LALSimIMRPhenomX_precession import IMRPhenomXGetAndSetPrecessionVariables
+from . import LALSimIMRPhenomX_precession as pPrec
 from .initialise_MSA_system import IMRPhenomX_Return_phi_zeta_costhetaL_MSA
 from .LALSimIMRPhenomX_internals import IMRPhenomXSetWaveformVariables
 
@@ -2378,7 +2378,7 @@ class IMRPhenomXPHM(WaveFormModel):
         return pWF
     
 
-    def twistup(self, mass_1, mass_2, Mf, pPrec, hlm):
+    def twistup(self, mass_1, mass_2, Mf, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, pPrec, hlm, pWF):
         "Copy of lalsimulation IMRPhenomXPHMTwistUp"
         "Function to twist up hlms"
 
@@ -2392,7 +2392,22 @@ class IMRPhenomXPHM(WaveFormModel):
         # Modes 21, 22, 32, 33, 43, 44 in that order
 
         mass_ratio = mass_2/mass_1
+        bigM = 1
+        bigM = 1
+        eta = mass_1*mass_2/jnp.power(mass_1+mass_2, 2)
+        eta2 = jnp.power(eta, 2)
+        chi1L = chi1z
+        chi2L = chi2z
+        delta = 
+        L0, L1, L2, L3, L4, L5, L6, L7, L8, L8L = pPrec.flag_222_223_twoPN_non_spinning_orbitan_angular_momentum(
+        eta, eta2, chi1L, chi2L, delta, jnp.power(jnp.pi, 2))
+        LRef = bigM * bigM * pPrec.XLALSimIMRPhenomXLPNAnsatz(pWF['v_ref'], eta / pWF['v_ref'], L0, L1, L2, L3, L4, L5, L6, L7, L8, L8L) 
         
+        theta_JN, Nz_Jf, Nx_Jf, phiJ_Sf, kappa = pPrec.compute_thetaJN_and_kappa(mass_1_fraction, mass_2_fraction, 
+                                                            chi1x, chi1y, chi1z, 
+                                                            chi2x, chi2y, chi2z, 
+                                                            LRef, phiRef_In, inclination)
+        zeta_polarisations = pPrec.compute_zeta_polarization()
 
 
         def compute_twist_for_mode(mode_idx):
@@ -2474,7 +2489,7 @@ class IMRPhenomXPHM(WaveFormModel):
         
         eta = m1*m2/jnp.power(m1+m2, 2)
 
-        _hp, _hc = self.twistup(m1, m2, Mf, pPrec, hlm)
+        _hp, _hc = self.twistup(m1, m2, Mf, pPrec, hlm, pWF)
 
 
         zeta_polarization = pPrec.zeta_polarization
