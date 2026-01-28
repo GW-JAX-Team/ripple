@@ -465,15 +465,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     #Omegazeta5_coeff = 1.5*(g0*pPrec.Omegazeta5 + g2*pPrec.Omegazeta3 + g3*pPrec.Omegazeta2 + g4*pPrec.Omegazeta1 + g5*pPrec.Omegazeta0)
     Omegazeta5_coeff = 0.0 #FIXME
 
-    '''
-    Omegazeta0_coeff = -g0 * pPrec.Omegazeta0
-    Omegazeta1_coeff = -1.5 * g0 * pPrec.Omegazeta1
-    Omegazeta2_coeff = -3.0*(g0 * pPrec.Omegazeta2 + g2*pPrec.Omegazeta0)
-    Omegazeta3_coeff = 3.0*(g0 * pPrec.Omegazeta3 + g2*pPrec.Omegazeta1 + g3*pPrec.Omegazeta0)
-    Omegazeta4_coeff = 3.0*(g0 * pPrec.Omegazeta4 + g2*pPrec.Omegazeta2 + g3*pPrec.Omegazeta1 + g4*pPrec.Omegazeta0)
-
-    Omegazeta5_coeff = 1.5*(g0*pPrec.Omegazeta5 + g2*pPrec.Omegazeta3 + g3*pPrec.Omegazeta2 + g4*pPrec.Omegazeta1 + g5*pPrec.Omegazeta0)
-    '''    
+    
     #Line 2887 - 2943 compressed
     #pPrec = apply_expansion_order(pPrec, ExpansionOrder)
 
