@@ -151,6 +151,8 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     object.__setattr__(pPrec, 'J_0', IMRPhenomX_vector_sum(pPrec.L_0, pPrec.S_0))
 
     # Norm of total initial spin
+
+    S_0_norm = IMRPhenomX_vector_L2_norm(S0)
     object.__setattr__(pPrec, 'S_0_norm', IMRPhenomX_vector_L2_norm(S0))
     object.__setattr__(pPrec, 'S_0_norm_2', pPrec.S_0_norm * pPrec.S_0_norm)
 
@@ -295,7 +297,8 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
 
 
     # \psi_1 is defined in Eq. C1 of Appendix C in PRD, 95, 104004, (2017), arXiv:1703.03967
-    object.__setattr__(pPrec, 'psi1', 3.0 * (2.0 * eta2 * Seff - c_1) / (eta * delta2))
+    psi1 = 3.0 * (2.0 * eta2 * Seff - c_1) / (eta * delta2)
+
 
     c_1_over_nu = pPrec.c1_over_eta
     c_1_over_nu_2 = c_1_over_nu * c_1_over_nu
@@ -342,7 +345,8 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
         u7 = q * pPrec.Delta
         
         # Eq. C2 (1703.03967)
-        object.__setattr__(pPrec, 'psi2', u1 + u2 * (u3 + u4 + u5 - u6 + u7))
+        #object.__setattr__(pPrec, 'psi2', u1 + u2 * (u3 + u4 + u5 - u6 + u7))
+        psi2 = u1 + u2 * (u3 + u4 + u5 - u6 + u7)
     else:
         # \psi_2 is defined in Eq. C2 of Appendix C in PRD, 95, 104004, (2017). Here we implement system of equations as in paper.pdf
         term1 = 3.0 * g2 / g0
@@ -357,7 +361,8 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
         term8 = eta * (q * (2.0 + q) * pPrec.S1_norm_2 + (1.0 + 2.0 * q) * pPrec.S2_norm_2) / omqsq
         
         # \psi_2, C2 of Appendix C of PRD, 95, 104004, (2017)
-        object.__setattr__(pPrec, 'psi2', term1 + term2 * (term3 + term4 + term5 + term6 + term7 + term8))
+        #object.__setattr__(pPrec, 'psi2', term1 + term2 * (term3 + term4 + term5 + term6 + term7 + term8))
+        psi2 = term1 + term2 * (term3 + term4 + term5 + term6 + term7 + term8)
 
 
     # Eq. D1 of PRD, 95, 104004, (2017), arXiv:1703.03967
@@ -479,10 +484,13 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     #tmpB = 0.0
     #volume_element = 0.0
     #vol_sign = 0.0
-
+    psi0 = compute_psi0(
+        Smi2, Spl2, S32, pPrec.S_0_norm,
+        v_0, v_0_2, psi1, psi2,
+        g0, pPrec.delta_qq, L_0, S1v, S2v)
     object.__setattr__(pPrec, 'psi0', compute_psi0(
         Smi2, Spl2, S32, pPrec.S_0_norm,
-        v_0, v_0_2, pPrec.psi1, pPrec.psi2,
+        v_0, v_0_2, psi1, psi2,
         g0, pPrec.delta_qq, L_0, S1v, S2v))
 
     #vMSA = jnp.array([0.0, 0.0, 0.0])
@@ -514,9 +522,9 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
             S32,
             pPrec.delta_qq,
             g0,
-            pPrec.psi0,
-            pPrec.psi1,
-            pPrec.psi2,
+            psi0,
+            psi1,
+            psi2,
         )  # stub
 
     def no_msa_corrections():
@@ -557,7 +565,7 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, ExpansionOrder: int):
     object.__setattr__(pPrec, 'phiz_0', -phiz_0 - vMSA[0])
     object.__setattr__(pPrec, 'zeta_0', -zeta_0 - vMSA[1])
 
-    return pPrec, jnp.array([Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, g0, c_1, c_1_over_eta, SAv2]), constants_L 
+    return pPrec, jnp.array([Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, g0, c_1, c_1_over_eta, SAv2, Seff, dotS1Ln, dotS2Ln, S_0_norm, psi0, psi1, psi2]), constants_L 
 
 
 
