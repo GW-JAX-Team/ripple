@@ -784,7 +784,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
                                                                 Omegaz3_coeff=msa_init[3],
                                                                 Omegaz4_coeff=msa_init[4],
                                                                 Omegaz5_coeff=msa_init[5],
-                                                                phiz_0=self.phiz_0,
+                                                                phiz_0=msa_init[23],
                                                                 Omegazeta0_coeff=msa_init[6],
                                                                 Omegazeta1_coeff=msa_init[7],
                                                                 Omegazeta2_coeff=msa_init[8],
@@ -792,7 +792,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
                                                                 Omegazeta4_coeff=msa_init[10],
                                                                 Omegazeta5_coeff=msa_init[11],
                                                                 g0=msa_init[12],
-                                                                zeta_0=self.zeta_0)
+                                                                zeta_0=msa_init[24])
 
 
         object.__setattr__(self, 'alpha_offset_array', jnp.ones(4)*alpha_offset)
@@ -830,7 +830,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
             Omegaz3_coeff=msa_init[3],
             Omegaz4_coeff=msa_init[4],
             Omegaz5_coeff=msa_init[5],
-            phiz_0=self.phiz_0,
+            phiz_0=msa_init[23],
             Omegazeta0_coeff=msa_init[6],
             Omegazeta1_coeff=msa_init[7],
             Omegazeta2_coeff=msa_init[8],
@@ -838,7 +838,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
             Omegazeta4_coeff=msa_init[10],
             Omegazeta5_coeff=msa_init[11],
             g0=msa_init[12],
-            zeta_0=self.zeta_0
+            zeta_0=msa_init[24]
         )
 
         #print("end...", vangles[0])
