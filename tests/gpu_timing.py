@@ -1,5 +1,5 @@
 """
-Simple GPU test script for IMRPhenomXPHM waveform generation.
+GPU test script for IMRPhenomXPHM waveform generation.
 """
 import jax
 import jax.numpy as jnp
