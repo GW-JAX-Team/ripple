@@ -2401,21 +2401,7 @@ class IMRPhenomXPHM(WaveFormModel):
             emms = jnp.array([1, 2, 2, 3, 3, 4])
 
             emm = emms[mode_idx]
-
-            ##
-            #vangles = IMRPhenomX_Return_phi_zeta_costhetaL_MSA(pPrec, pWF, v)
-            """
-            vangles = IMRPhenomX_Return_phi_zeta_costhetaL_MSA(v, eta, eta2, eta3, eta4,
-                                                               inveta, pPrec.c1, pPrec.c1_over_eta,
-                                                               pPrec.SAv, pPrec.SAv2, pPrec.invSAv, pPrec.invSAv2,
-                                                               pPrec.constants_L, pPrec.S1_norm_2, pPrec.S2_norm_2,
-                                                               pPrec.qq, pPrec.delta_qq, pPrec.Seff, pPrec.dotS1Ln, pPrec.dotS2Ln, pPrec.S_0_norm, 
-                                                               pPrec.psi0, pPrec.psi1, pPrec.psi2, pPrec.g0, 
-                                                               pPrec.Omegaz0_coeff, pPrec.Omegaz1_coeff, pPrec.Omegaz2_coeff, pPrec.Omegaz3_coeff, pPrec.Omegaz4_coeff, pPrec.Omegaz5_coeff, pPrec.phiz_0,
-                                                               pPrec.Omegazeta0_coeff, pPrec.Omegazeta1_coeff, pPrec.Omegazeta2_coeff, pPrec.Omegazeta3_coeff, pPrec.Omegazeta4_coeff, pPrec.Omegazeta5_coeff, pPrec.zeta_0)
             
-            """
-
             #print("what is the value of offset:", alpha_offset_emm, epsilon_offset_emm)
             alpha, epsilon, cos_beta = pPrec.compute_evolved_spin_using_msa(Mf, emm)
             cBetah, sBetah = IMRPhenomXWignerdCoefficients_cosbeta(cos_beta)
