@@ -44,7 +44,7 @@ class CommonConstants:
 
 
 @pytree_dataclass
-class IMRPhenomXGetAndSetPrecessionVariables:
+def IMRPhenomXGetAndSetPrecessionVariables(pWF, mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, lalParams, debug_flag):
     """
     lalsuite: https://lscsoft.docs.ligo.org/lalsuite/lalsimulation/_l_a_l_sim_i_m_r_phenom_x__precession_8c.html#af089ef2586c52b12016c0d791b176121
 
@@ -75,31 +75,70 @@ class IMRPhenomXGetAndSetPrecessionVariables:
 
     Note: We assume m1 > m2, q > 1, dm = m1 - m2 = delta = sqrt(1-4eta) > 0
     """
-    # Input parameters
-    pWF: dict
-    m1_SI: float
-    m2_SI: float
-    chi1x: float
-    chi1y: float
-    chi1z: float
-    chi2x: float
-    chi2y: float
-    chi2z: float
-    lalParams: dict
-    debug_flag: bool
-
     # Common constants
     common_constants: CommonConstants = field(default_factory=CommonConstants)
+
+    total_mass = mass_1 + mass_2
+    mass_1_fraction = mass_1 / total_mass
+    mass_2_fraction = mass_2 / total_mass
+
+    q = mass_1_fraction / mass_2_fraction ###???
+
+    mass_1_fraction_2 = jnp.power(mass_1_fraction, 2)
+    mass_1_fraction_3 = jnp.power(mass_1_fraction, 3)
+    mass_1_fraction_4 = jnp.power(mass_1_fraction, 4)
+    mass_1_fraction_5 = jnp.power(mass_1_fraction, 5)
+    mass_1_fraction_6 = jnp.power(mass_1_fraction, 6)
+    mass_1_fraction_7 = jnp.power(mass_1_fraction, 7)
+    mass_1_fraction_8 = jnp.power(mass_1_fraction, 8)
+
+    mass_2_fraction_2 = jnp.power(mass_2_fraction, 2)
+    mass_2_fraction_3 = jnp.power(mass_2_fraction, 3)
+    mass_2_fraction_4 = jnp.power(mass_2_fraction, 4)
+    mass_2_fraction_5 = jnp.power(mass_2_fraction, 5)
+    mass_2_fraction_6 = jnp.power(mass_2_fraction, 6)
+    mass_2_fraction_7 = jnp.power(mass_2_fraction, 7)
+    mass_2_fraction_8 = jnp.power(mass_2_fraction, 8)
+
+    pWF['M'] = 1
+    pWF['m1_2'] = mass_1_fraction_2
+    pWF['m2_2'] = mass_2_fraction_2
+    eta = mass_1*mass_2 / jnp.power(mass_1 + mass_2, 2)
+    eta2 = jnp.power(eta, 2)
+    eta3 = jnp.power(eta, 3)
+    eta4 = jnp.power(eta, 4)
+    eta5 = jnp.power(eta, 5)
+    eta6 = jnp.power(eta, 6)
+
+    delta = pWF['delta']
+    delta2 = jnp.power(delta, 2)
+    delta3 = jnp.power(delta, 3)
+
+    inveta = jnp.power(eta, -1)
+    inveta2 = jnp.power(eta, -2)
+    inveta3 = jnp.power(eta, -3)
+    inveta4 = jnp.power(eta, -4)
+    sqrt_inveta = jnp.power(eta, -0.5)
+    chi_eff = pWF['chiEff']
+
+    mass_1_SI = mass_1 * MSUN
+    mass_2_SI = mass_2 * MSUN
+    twopiGM = 2 * jnp.pi * G * (mass_1_SI + mass_2_SI) / C / C / C
+    piGM =  jnp.pi * (mass_1_SI + mass_2_SI) * (G / C) / (C * C)
+
+
+
+
+
 
     def __post_init__(self):
         """Compute all derived quantities."""
         #self._setup_version_flags()
-        self._compute_masses()
-        self._compute_mass_powers()
+
+        # Compute normalized masses and mass ratio
+      
         self._update_pWF_dict()
-        self._compute_eta_quantities()
         self._compute_gravitational_constants()
-        self._compute_spin_quantities()
         self._compute_effective_spin_parameters()
 
         #self._validate_kerr_bound()
@@ -107,104 +146,44 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         
         #self.compute_evolved_spin_using_msa()
 
-        
-
-    def _compute_masses(self):
-        """Compute normalized masses and mass ratio."""
-        object.__setattr__(self, 'm1', self.m1_SI / self.pWF['Mtot_SI'])
-        object.__setattr__(self, 'm2', self.m2_SI / self.pWF['Mtot_SI'])
-        object.__setattr__(self, 'M', self.m1 + self.m2)
-        object.__setattr__(self, 'q', self.m1 / self.m2)
-
-    def _compute_mass_powers(self):
-        """Compute useful powers of masses."""
-        # Powers of m1
-        object.__setattr__(self, 'm1_2', self.m1 * self.m1)
-        object.__setattr__(self, 'm1_3', self.m1 * self.m1_2)
-        object.__setattr__(self, 'm1_4', self.m1 * self.m1_3)
-        object.__setattr__(self, 'm1_5', self.m1 * self.m1_4)
-        object.__setattr__(self, 'm1_6', self.m1 * self.m1_5)
-        object.__setattr__(self, 'm1_7', self.m1 * self.m1_6)
-        object.__setattr__(self, 'm1_8', self.m1 * self.m1_7)
-
-        # Powers of m2
-        object.__setattr__(self, 'm2_2', self.m2 * self.m2)
-
-    def _update_pWF_dict(self):
-        """Update pWF dictionary with computed mass values."""
-        self.pWF['M'] = self.M
-        self.pWF['m1_2'] = self.m1_2
-        self.pWF['m2_2'] = self.m2_2
-
-    def _compute_eta_quantities(self):
-        """Compute eta (symmetric mass ratio) and delta related quantities."""
-        # Powers of eta
-        object.__setattr__(self, 'eta', self.pWF['eta'])
-        object.__setattr__(self, 'eta2', self.eta * self.eta)
-        object.__setattr__(self, 'eta3', self.eta * self.eta2)
-        object.__setattr__(self, 'eta4', self.eta * self.eta3)
-        object.__setattr__(self, 'eta5', self.eta * self.eta4)
-        object.__setattr__(self, 'eta6', self.eta * self.eta5)
-
-        # Delta in terms of q > 1
-        object.__setattr__(self, 'delta', self.pWF['delta'])
-        object.__setattr__(self, 'delta2', self.delta * self.delta)
-        object.__setattr__(self, 'delta3', self.delta * self.delta2)
-
-        # Inverse eta (cached for efficiency)
-        object.__setattr__(self, 'inveta', 1.0 / self.eta)
-        object.__setattr__(self, 'inveta2', 1.0 / self.eta2)
-        object.__setattr__(self, 'inveta3', 1.0 / self.eta3)
-        object.__setattr__(self, 'inveta4', 1.0 / self.eta4)
-        object.__setattr__(self, 'sqrt_inveta', 1.0 / jnp.sqrt(self.eta))
-
-        # Effective aligned spin
-        object.__setattr__(self, 'chi_eff', self.pWF['chiEff'])
-
-    def _compute_gravitational_constants(self):
-        """Compute gravitational constants."""
-        object.__setattr__(self, 'twopiGM', 2 * jnp.pi * G * (self.m1_SI + self.m2_SI) / C / C / C)
-        object.__setattr__(self, 'piGM', jnp.pi * (self.m1_SI + self.m2_SI) * (G / C) / (C * C))
-
     def _compute_spin_quantities(self):
         """Compute all spin-related quantities."""
         # Spin norms
-        object.__setattr__(self, 'chi1_norm', jnp.sqrt(self.chi1x * self.chi1x + self.chi1y * self.chi1y + self.chi1z * self.chi1z))
-        object.__setattr__(self, 'chi2_norm', jnp.sqrt(self.chi2x * self.chi2x + self.chi2y * self.chi2y + self.chi2z * self.chi2z))
+        chi1_norm = jnp.sqrt(chi1x * chi1x + chi1y * chi1y + chi1z * chi1z)
+        chi2_norm = jnp.sqrt(chi2x * chi2x + chi2y * chi2y + chi2z * chi2z)
 
         # Dimensionful spins
-        object.__setattr__(self, 'S1x', self.chi1x * self.m1_2)
+        S1x = chi1x * m1_2
+        S1y = chi1y * m1_2
+        S1z = chi1z * m1_2
+        S1_norm = jnp.abs(chi1_norm) * m1_2
 
-        object.__setattr__(self, 'S1y', self.chi1y * self.m1_2)
-        object.__setattr__(self, 'S1z', self.chi1z * self.m1_2)
-        object.__setattr__(self, 'S1_norm', jnp.abs(self.chi1_norm) * self.m1_2)
-
-        object.__setattr__(self, 'S2x', self.chi2x * self.m2_2)
-        object.__setattr__(self, 'S2y', self.chi2y * self.m2_2)
-        object.__setattr__(self, 'S2z', self.chi2z * self.m2_2)
-        object.__setattr__(self, 'S2_norm', jnp.abs(self.chi2_norm) * self.m2_2)
+        S2x = chi2x * m2_2
+        S2y = chi2y * m2_2
+        S2z = chi2z * m2_2
+        S2_norm = jnp.abs(chi2_norm) * m2_2
 
         # Spin norm powers
-        object.__setattr__(self, 'S1_norm_2', self.S1_norm * self.S1_norm)
-        object.__setattr__(self, 'S2_norm_2', self.S2_norm * self.S2_norm)
+        S1_norm_2 = S1_norm * S1_norm
+        S2_norm_2 = S2_norm * S2_norm
 
         # Perpendicular spin components
-        object.__setattr__(self, 'chi1_perp', jnp.sqrt(self.chi1x * self.chi1x + self.chi1y * self.chi1y))
-        object.__setattr__(self, 'chi2_perp', jnp.sqrt(self.chi2x * self.chi2x + self.chi2y * self.chi2y))
+        chi1_perp = jnp.sqrt(chi1x * chi1x + chi1y * chi1y)
+        chi2_perp = jnp.sqrt(chi2x * chi2x + chi2y * chi2y)
 
         # Spin projections
-        object.__setattr__(self, 'S1_perp', self.m1_2 * jnp.sqrt(self.chi1x * self.chi1x + self.chi1y * self.chi1y))
-        object.__setattr__(self, 'S2_perp', self.m2_2 * jnp.sqrt(self.chi2x * self.chi2x + self.chi2y * self.chi2y))
+        S1_perp = m1_2 * jnp.sqrt(chi1x * chi1x + chi1y * chi1y)
+        S2_perp = m2_2 * jnp.sqrt(chi2x * chi2x + chi2y * chi2y)
 
         # Total perpendicular spin (norm of in-plane vector sum: Norm[S1perp + S2perp])
-        object.__setattr__(self, 'STot_perp', jnp.sqrt((self.S1x + self.S2x) * (self.S1x + self.S2x) + (self.S1y + self.S2y) * (self.S1y + self.S2y)))
+        STot_perp = jnp.sqrt((S1x + S2x) * (S1x + S2x) + (S1y + S2y) * (S1y + S2y))
 
         # chiTot_perp (distinguishes from Sperp used in construction of chi_p)
         # For normalization, see Sec. IV D of arXiv:2004.06503
-        object.__setattr__(self, 'chiTot_perp', self.STot_perp * (self.M * self.M) / self.m1_2)
+        chiTot_perp = STot_perp * (M * M) / m1_2
 
         # Store chiTot_perp to pWF for use in XCP modifications (PNRUseTunedCoprec)
-        self.pWF['chiTot_perp'] = self.chiTot_perp
+        pWF['chiTot_perp'] = chiTot_perp
 
 
     def _compute_effective_spin_parameters(self):
@@ -214,14 +193,14 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         Note: m1 > m2, so body 1 is the larger black hole
         """
         # Compute A1 and A2 coefficients
-        object.__setattr__(self, 'A1', 2.0 + (3.0 * self.m2) / (2.0 * self.m1))
-        object.__setattr__(self, 'A2', 2.0 + (3.0 * self.m1) / (2.0 * self.m2))
+        object.__setattr__(self, 'A1', 2.0 + (3.0 * m2) / (2.0 * mass_1_fraction))
+        object.__setattr__(self, 'A2', 2.0 + (3.0 * mass_1_fraction) / (2.0 * m2))
         object.__setattr__(self, 'ASp1', self.A1 * self.S1_perp)
         object.__setattr__(self, 'ASp2', self.A2 * self.S2_perp)
 
         # S_p = max(A1 S1_perp, A2 S2_perp)
         num = jnp.where(self.ASp2 > self.ASp1, self.ASp2, self.ASp1)
-        den = jnp.where(self.m2 > self.m1, self.A2 * self.m2_2, self.A1 * self.m1_2)
+        den = jnp.where(m2 > mass_1_fraction, self.A2 * self.m2_2, self.A1 * self.m1_2)
 
         # chi_p = max(A1 * Sp1, A2 * Sp2) / (A_i * m_i^2) where i is the index of the larger BH
         object.__setattr__(self, 'chip', num / den)
@@ -509,7 +488,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
 
         LRef = self.M * self.M * XLALSimIMRPhenomXLPNAnsatz(self.pWF['v_ref'], self.pWF['eta'] / self.pWF['v_ref'], L0, L1, L2, L3, L4, L5, L6, L7, L8, L8L) 
 
-        thetaJN, Nz_Jf, Nx_Jf, phiJ_Sf, kappa = compute_thetaJN_and_kappa(self.m1, self.m2, 
+        thetaJN, Nz_Jf, Nx_Jf, phiJ_Sf, kappa = compute_thetaJN_and_kappa(mass_1_fraction, m2, 
                                                                 self.chi1x, self.chi1y, self.chi1z, 
                                                                 self.chi2x, self.chi2y, self.chi2z, 
                                                                 LRef, self.pWF['phiRef_In'], self.pWF['inclination'])
@@ -521,7 +500,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         # Compress line 931-966
         object.__setattr__(self, 'thetaJN', thetaJN)
 
-        zeta_polarization = compute_zeta_polarization(self.m1, self.m2, 
+        zeta_polarization = compute_zeta_polarization(mass_1_fraction, m2, 
                                                              self.chi1x, self.chi1y, self.chi1z, 
                                                                 self.chi2x, self.chi2y, self.chi2z, 
                                                            LRef, self.pWF['phiRef_In'], self.pWF['inclination'], Nz_Jf, Nx_Jf, kappa)
