@@ -760,8 +760,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
                                                                 eta3=eta3,
                                                                 eta4=eta4,
                                                                 inveta=inveta,
-                                                                c1=msa_init[13],
-                                                                c1_over_eta=msa_init[14],
+                                                                
                                                                 SAv=SAv,
                                                                 SAv2=SAv2,
                                                                 invSAv=invSAv,
@@ -771,20 +770,14 @@ class IMRPhenomXGetAndSetPrecessionVariables:
                                                                 S2_norm_2=self.S2_norm_2,
                                                                 qq=qq,
                                                                 delta_qq=delta_qq,
-                                                                Seff=msa_init[16],
-                                                                dotS1Ln=msa_init[17],
-                                                                dotS2Ln=msa_init[18],
-                                                                S_0_norm=msa_init[19],
-                                                                psi0=msa_init[20],
-                                                                psi1=msa_init[21],
-                                                                psi2=msa_init[22],
+                                                                
                                                                 Omegaz0_coeff=msa_init[0],
                                                                 Omegaz1_coeff=msa_init[1],
                                                                 Omegaz2_coeff=msa_init[2],
                                                                 Omegaz3_coeff=msa_init[3],
                                                                 Omegaz4_coeff=msa_init[4],
                                                                 Omegaz5_coeff=msa_init[5],
-                                                                phiz_0=msa_init[23],
+                                                                
                                                                 Omegazeta0_coeff=msa_init[6],
                                                                 Omegazeta1_coeff=msa_init[7],
                                                                 Omegazeta2_coeff=msa_init[8],
@@ -792,6 +785,18 @@ class IMRPhenomXGetAndSetPrecessionVariables:
                                                                 Omegazeta4_coeff=msa_init[10],
                                                                 Omegazeta5_coeff=msa_init[11],
                                                                 g0=msa_init[12],
+                                                                c1=msa_init[13],
+                                                                c1_over_eta=msa_init[14],
+
+                                                                Seff=msa_init[16],
+                                                                dotS1Ln=msa_init[17],
+                                                                dotS2Ln=msa_init[18],
+                                                                S_0_norm=msa_init[19],
+                                                                psi0=msa_init[20],
+                                                                psi1=msa_init[21],
+                                                                psi2=msa_init[22],
+
+                                                                phiz_0=msa_init[23],
                                                                 zeta_0=msa_init[24])
 
 
@@ -806,8 +811,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
             eta3=eta3,
             eta4=eta4,
             inveta=inveta,
-            c1=msa_init[13],
-            c1_over_eta=msa_init[14],
+            
             SAv=SAv,
             SAv2=SAv2,
             invSAv=invSAv,
@@ -817,20 +821,14 @@ class IMRPhenomXGetAndSetPrecessionVariables:
             S2_norm_2=self.S2_norm_2,
             qq=qq,
             delta_qq=delta_qq,
-            Seff=msa_init[16],
-            dotS1Ln=msa_init[17],
-            dotS2Ln=msa_init[18],
-            S_0_norm=msa_init[19],
-            psi0=msa_init[20],
-            psi1=msa_init[21],
-            psi2=msa_init[22],
+            
             Omegaz0_coeff=msa_init[0],
             Omegaz1_coeff=msa_init[1],
             Omegaz2_coeff=msa_init[2],
             Omegaz3_coeff=msa_init[3],
             Omegaz4_coeff=msa_init[4],
             Omegaz5_coeff=msa_init[5],
-            phiz_0=msa_init[23],
+            
             Omegazeta0_coeff=msa_init[6],
             Omegazeta1_coeff=msa_init[7],
             Omegazeta2_coeff=msa_init[8],
@@ -838,6 +836,17 @@ class IMRPhenomXGetAndSetPrecessionVariables:
             Omegazeta4_coeff=msa_init[10],
             Omegazeta5_coeff=msa_init[11],
             g0=msa_init[12],
+            c1=msa_init[13],
+            c1_over_eta=msa_init[14],
+            Seff=msa_init[16],
+            dotS1Ln=msa_init[17],
+            dotS2Ln=msa_init[18],
+            S_0_norm=msa_init[19],
+            psi0=msa_init[20],
+            psi1=msa_init[21],
+            psi2=msa_init[22],
+
+            phiz_0=msa_init[23],
             zeta_0=msa_init[24]
         )
 
