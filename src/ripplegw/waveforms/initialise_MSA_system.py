@@ -7,7 +7,7 @@ from .elliptic_integrals import gsl_sf_elljac_e
 
 
 #/** This function initializes all the core variables required for the MSA system. This will be called first. */
-def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, mass_1, mass_2, pflag = 223):
+def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, pflag = 223):
 
     #Sanity check on the precession version
    
@@ -59,15 +59,11 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, mass_1, mass_2, pflag = 2
     '''
 
     q = mass_2 / mass_1 # m2 / m1, q < 1, m1 > m2
-    invq = 1.0 / q  # m1 / m2, invq > 1, m1 > m2
-
-    mu = (mass_1 * mass_2) / (mass_1 + mass_2)
 
     #    /* \delta and powers of \delta in terms of q < 1, should just be m1 - m2 */
     delta_qq = (1.0 - q) / (1.0 + q)
     delta2_qq = delta_qq * delta_qq
     delta3_qq = delta_qq * delta2_qq
-    delta4_qq = delta_qq * delta3_qq
 
     # Initialize empty vectors (using dictionaries to represent vectors)
 
@@ -78,10 +74,10 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, mass_1, mass_2, pflag = 2
 
     # Dimensionful spin vectors, note eta = m1 * m2 and q = m2/m1
 
-    S1v = jnp.array([pPrec.chi1x * eta/q, pPrec.chi1y * eta/q, pPrec.chi1z * eta/q])
+    S1v = jnp.array([chi1x * eta/q, chi1y * eta/q, chi1z * eta/q])
 
 
-    S2v = jnp.array([pPrec.chi2x * eta*q, pPrec.chi2y * eta*q, pPrec.chi2z * eta*q])
+    S2v = jnp.array([chi2x * eta*q, chi2y * eta*q, chi2z * eta*q])
 
     S1_0_norm = IMRPhenomX_vector_L2_norm(S1v)
     S2_0_norm = IMRPhenomX_vector_L2_norm(S2v)
