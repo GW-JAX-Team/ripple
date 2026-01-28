@@ -111,7 +111,6 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, mass_1, mass_2, chi1x, ch
 
     # Norm of total initial spin
     S_0_norm = IMRPhenomX_vector_L2_norm(S0)
-    S_0_norm_2 = S_0_norm * S_0_norm
 
     # Norm of orbital and total angular momenta
     L_0_norm = IMRPhenomX_vector_L2_norm(L_0)
@@ -120,10 +119,8 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, mass_1, mass_2, chi1x, ch
     L0norm = L_0_norm
     J0norm = J_0_norm
 
+    S1_norm_2, S2_norm_2 = compute_spin_norm_squared(chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, mass_1, mass_2)
 
-    # Input spin norms from pPrec
-    S1_norm_2 = pPrec.S1_norm_2
-    S2_norm_2 = pPrec.S2_norm_2
 
     vRoots = IMRPhenomX_Return_Roots_MSA(
         L_0_norm,
@@ -162,7 +159,6 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, mass_1, mass_2, chi1x, ch
 
     # Useful powers and combinations of c_1
     c1 = c_1
-    c12 = c_1 * c_1
     c1_over_eta = c_1 / eta
     c_1_over_eta = c_1 / eta
 
@@ -218,7 +214,6 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, mass_1, mass_2, chi1x, ch
     g2 = -(a2 / a0_2)
     g3 = -(a3 / a0_2)
     g4 = -(a4 * a0 - a2_2) / a0_3
-    g5 = -(a5 * a0 - 2.0 * a3 * a2) / a0_3
 
     # Useful powers of delta
     delta = delta_qq
@@ -772,6 +767,35 @@ def compute_constants_L(eta, dotS1L, dotS2L, q):
     constants_L_4 = L_csts_nonspin[5] + L_csts_nonspin[6] * eta + L_csts_nonspin[7] * eta * eta + L_csts_nonspin[8] * eta * eta * eta
 
     return jnp.array([constants_L_0, constants_L_1, constants_L_2, constants_L_3, constants_L_4])
+
+
+def compute_spin_norm_squared(chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, mass_1, mass_2):
+    """
+    Compute the squared norms of the dimensionless spin vectors S1 and S2.
+
+    Args:
+        chi1x, chi1y, chi1z: Components of dimensionless spin vector for mass 1
+        chi2x, chi2y, chi2z: Components of dimensionless spin vector for mass 2
+        mass_1: Mass of the primary (m1 > m2)
+        mass_2: Mass of the secondary
+
+    Returns:
+        tuple: (S1_norm_2, S2_norm_2) - squared norms of the spin vectors
+    """
+    chi1_norm = jnp.sqrt(chi1x * chi1x + chi1y * chi1y + chi1z * chi1z)
+    chi2_norm = jnp.sqrt(chi2x * chi2x + chi2y * chi2y + chi2z * chi2z)
+
+    total_mass = mass_1 + mass_2
+    mass_1_fraction = mass_1 / total_mass
+    mass_2_fraction = mass_2 / total_mass
+
+    S1_norm = jnp.abs(chi1_norm) * jnp.power(mass_1_fraction, 2)
+    S2_norm = jnp.abs(chi2_norm) * jnp.power(mass_2_fraction, 2)
+
+    S1_norm_2 = jnp.power(S1_norm, 2)
+    S2_norm_2 = jnp.power(S2_norm, 2)
+
+    return S1_norm_2, S2_norm_2
 
 
 #DONE

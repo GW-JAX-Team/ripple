@@ -343,6 +343,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
 
         # Dimensionful spins
         object.__setattr__(self, 'S1x', self.chi1x * self.m1_2)
+
         object.__setattr__(self, 'S1y', self.chi1y * self.m1_2)
         object.__setattr__(self, 'S1z', self.chi1z * self.m1_2)
         object.__setattr__(self, 'S1_norm', jnp.abs(self.chi1_norm) * self.m1_2)
