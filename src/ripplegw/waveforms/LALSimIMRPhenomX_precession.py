@@ -700,7 +700,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         
         #if pflag in 220, 221, 222, 223, 224...
         #Line 597
-        self, msa_init = IMRPhenomX_Initialize_MSA_System(self, self.pWF, self.lalParams['ExpansionOrder'])
+        self, msa_init, constants_L = IMRPhenomX_Initialize_MSA_System(self, self.pWF, self.lalParams['ExpansionOrder'])
 
         #Mfinal, afinal, fRING, fDAMP = IMRPhenomX_SetPrecessingRemnantParams(self, self.pWF, self.lalParams)
         # The output of this function should be Mfinal, afinal, fring, and fdamp
@@ -750,7 +750,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
                                                                 self.eta, eta2, eta3, eta4, inveta, 
                                                                 self.c1, self.c1_over_eta,
                                                                 self.SAv, self.SAv2, self.invSAv, self.invSAv2,
-                                                                self.constants_L, self.S1_norm_2, self.S2_norm_2,
+                                                                constants_L, self.S1_norm_2, self.S2_norm_2,
                                                                 self.qq, self.delta_qq, self.Seff, self.dotS1Ln, self.dotS2Ln, self.S_0_norm,
                                                                 self.psi0, self.psi1, self.psi2, msa_init[-1],
                                                                 msa_init[0], msa_init[1], msa_init[2], msa_init[3], msa_init[4], msa_init[5], self.phiz_0,
@@ -763,7 +763,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         vangles = compute_vangles(Mf, emm, self.eta, eta2, eta3, eta4, inveta,
                                     self.c1, self.c1_over_eta,
                                         self.SAv, self.SAv2, self.invSAv, self.invSAv2,
-                                        self.constants_L, self.S1_norm_2, self.S2_norm_2,
+                                        constants_L, self.S1_norm_2, self.S2_norm_2,
                                         self.qq, self.delta_qq, self.Seff, self.dotS1Ln, self.dotS2Ln, self.S_0_norm,
                                         self.psi0, self.psi1, self.psi2, msa_init[-1],
                                         msa_init[0], msa_init[1], msa_init[2], msa_init[3], msa_init[4], msa_init[5], self.phiz_0,
