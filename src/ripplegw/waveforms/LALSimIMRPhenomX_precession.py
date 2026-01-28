@@ -791,6 +791,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         # Compress line 887 - 930
         tol_condition = (jnp.abs(vout[0]) < MAX_TOL_ATAN) & (jnp.abs(vout[1]) < MAX_TOL_ATAN)
         alpha0 = jnp.pi - kappa # For phenom_xp_convention = 1
+
         
 
         # Compress line 931-966
@@ -874,6 +875,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         """
         mprime = 2
         # When convention five or seven are false...
+        #NH My understanding is that these are just vanlges at the reference frequency for the 22 mode. 
         alpha_offset, epsilon_offset = Get_alphaepsilon_atfref(mprime, self.pWF['piM'], self.pWF['fRef'], alpha0, epsilon0,
                                                                 self.eta, self.eta2, self.eta3, self.eta4,
                                                                 self.inveta, self.c1, self.c1_over_eta,
@@ -896,6 +898,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
                                         self.Omegaz0_coeff, self.Omegaz1_coeff, self.Omegaz2_coeff, self.Omegaz3_coeff, self.Omegaz4_coeff, self.Omegaz5_coeff, self.phiz_0,
                                         self.Omegazeta0_coeff, self.Omegazeta1_coeff, self.Omegazeta2_coeff, self.Omegazeta3_coeff, self.Omegazeta4_coeff, self.Omegazeta5_coeff, self.zeta_0)
 
+        #print("end...", vangles[0])
         alpha_out = vangles[0] - alpha_offset
         epsilon_out = vangles[1] - epsilon_offset
         cos_beta_out = vangles[2]
