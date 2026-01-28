@@ -12,11 +12,13 @@ import bilby
 # Check available devices
 print("JAX devices:", jax.devices())
 print("Default backend:", jax.default_backend())
+for d in jax.devices():
+    print(f"Device: {d.device_kind}, Platform: {d.platform}")
 
 from ripplegw.waveforms import IMRPhenomXPHM
 from ripplegw.constants import MSUN
 
-N_WAVEFORMS = int(5e3)
+N_WAVEFORMS = int(2e3)
 
 
 # Waveform parameters
