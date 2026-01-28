@@ -45,13 +45,6 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, mass_1, mass_2, chi1x, ch
 
     domegadt_constants_SS = [-494./5., -1442./5., -233./5., -719./5.]
 
-    L_csts_nonspin = [
-        3./2., 1./6., 27./8., -19./8., 1./24., 135./16.,
-        -6889./144. + 41./24.*jnp.pi*jnp.pi, 31./24., 7./1296.
-    ]
-
-    L_csts_spinorbit = [-14./6., -3./2., -11./2., 133./72., -33./8., 7./4.]
-
     '''
         Note that Chatziioannou et al use q = m2/m1, where m1 > m2 and therefore q < 1
         IMRPhenomX assumes m1 > m2 and q > 1. For the internal MSA code, flip q and
@@ -104,20 +97,10 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, mass_1, mass_2, chi1x, ch
 
     # Coefficients for PN orbital angular momentum at 3PN, as per LALSimInspiralFDPrecAngles_internals.c
 
-    constants_L_0 = L_csts_nonspin[0] + eta * L_csts_nonspin[1]
-    constants_L_1 = IMRPhenomX_Get_PN_beta(L_csts_spinorbit[0], L_csts_spinorbit[1], dotS1L, dotS2L, q)
-    constants_L_2 = L_csts_nonspin[2] + eta * L_csts_nonspin[3] + eta * eta * L_csts_nonspin[4]
-    constants_L_3 = IMRPhenomX_Get_PN_beta(
-            (L_csts_spinorbit[2] + L_csts_spinorbit[3] * eta),
-            (L_csts_spinorbit[4] + L_csts_spinorbit[5] * eta),
-            dotS1L, dotS2L, q)
-    constants_L_4 = L_csts_nonspin[5] + L_csts_nonspin[6] * eta + L_csts_nonspin[7] * eta * eta + L_csts_nonspin[8] * eta * eta * eta
-
-    constants_L = jnp.array([constants_L_0, constants_L_1, constants_L_2, constants_L_3, constants_L_4])
+    constants_L = compute_constants_L(eta, dotS1L, dotS2L, q)
 
     # Effective total spin
     Seff = (1.0 + q) * dotS1L + (1 + (1.0/q)) * dotS2L
-    Seff2 = Seff * Seff
 
     #Line 2347
     # Initial total spin, S = S1 + S2
@@ -137,9 +120,6 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, mass_1, mass_2, chi1x, ch
     L0norm = L_0_norm
     J0norm = J_0_norm
 
-    # Useful powers
-    J_0_norm_2 = J_0_norm * J_0_norm
-    L_0_norm_2 = L_0_norm * L_0_norm
 
     # Input spin norms from pPrec
     S1_norm_2 = pPrec.S1_norm_2
@@ -188,15 +168,15 @@ def IMRPhenomX_Initialize_MSA_System(pPrec, pWF: dict, mass_1, mass_2, chi1x, ch
 
     # Average spin couplings over one precession cycle: A9 - A14 of arXiv:1703.03967
     omqsq = (1.0 - q) * (1.0 - q) + 1e-16
-    omq2 = (1.0 - q * q) + 1e-16
+    #omq2 = (1.0 - q * q) + 1e-16
 
     # Precession averaged spin couplings, Eq. A9 - A14 of arXiv:1703.03967, note that we only use the initial values
-    S1L_pav = (c_1 * (1.0 + q) - q * eta * Seff) / (eta * omq2)
-    S2L_pav = -q * (c_1 * (1.0 + q) - eta * Seff) / (eta * omq2)
-    S1S2_pav = 0.5 * SAv2 - 0.5 * (S1_norm_2 + S2_norm_2)
-    S1Lsq_pav = (S1L_pav*S1L_pav + ((Spl2mSmi2)*(Spl2mSmi2) * v_0_2) / (32.0 * eta2 * omqsq))
-    S2Lsq_pav = (S2L_pav*S2L_pav + (q*q*(Spl2mSmi2)*(Spl2mSmi2) * v_0_2) / (32.0 * eta2 * omqsq))
-    S1LS2L_pav = (S1L_pav*S2L_pav - q * (Spl2mSmi2)*(Spl2mSmi2)*v_0_2 / (32.0 * eta2 * omqsq))
+    #S1L_pav = (c_1 * (1.0 + q) - q * eta * Seff) / (eta * omq2)
+    #S2L_pav = -q * (c_1 * (1.0 + q) - eta * Seff) / (eta * omq2)
+    #S1S2_pav = 0.5 * SAv2 - 0.5 * (S1_norm_2 + S2_norm_2)
+    #S1Lsq_pav = (S1L_pav*S1L_pav + ((Spl2mSmi2)*(Spl2mSmi2) * v_0_2) / (32.0 * eta2 * omqsq))
+    #S2Lsq_pav = (S2L_pav*S2L_pav + (q*q*(Spl2mSmi2)*(Spl2mSmi2) * v_0_2) / (32.0 * eta2 * omqsq))
+    #S1LS2L_pav = (S1L_pav*S2L_pav - q * (Spl2mSmi2)*(Spl2mSmi2)*v_0_2 / (32.0 * eta2 * omqsq))
 
     """
     # Spin couplings in arXiv:1703.03967
@@ -758,6 +738,40 @@ def IMRPhenomX_Get_PN_beta(
     """
     return (dotS1L * (a + b * qq) +
             dotS2L * (a + b / qq))
+
+
+def compute_constants_L(eta, dotS1L, dotS2L, q):
+    """
+    Compute coefficients for PN orbital angular momentum at 3PN.
+
+    As per LALSimInspiralFDPrecAngles_internals.c
+
+    Args:
+        eta: Symmetric mass ratio
+        dotS1L: Dot product of S1 and L
+        dotS2L: Dot product of S2 and L
+        q: Mass ratio m2/m1 (q < 1)
+
+    Returns:
+        jnp.ndarray: Array of 5 constants [constants_L_0, ..., constants_L_4]
+    """
+    L_csts_nonspin = [
+        3./2., 1./6., 27./8., -19./8., 1./24., 135./16.,
+        -6889./144. + 41./24.*jnp.pi*jnp.pi, 31./24., 7./1296.
+    ]
+
+    L_csts_spinorbit = [-14./6., -3./2., -11./2., 133./72., -33./8., 7./4.]
+
+    constants_L_0 = L_csts_nonspin[0] + eta * L_csts_nonspin[1]
+    constants_L_1 = IMRPhenomX_Get_PN_beta(L_csts_spinorbit[0], L_csts_spinorbit[1], dotS1L, dotS2L, q)
+    constants_L_2 = L_csts_nonspin[2] + eta * L_csts_nonspin[3] + eta * eta * L_csts_nonspin[4]
+    constants_L_3 = IMRPhenomX_Get_PN_beta(
+            (L_csts_spinorbit[2] + L_csts_spinorbit[3] * eta),
+            (L_csts_spinorbit[4] + L_csts_spinorbit[5] * eta),
+            dotS1L, dotS2L, q)
+    constants_L_4 = L_csts_nonspin[5] + L_csts_nonspin[6] * eta + L_csts_nonspin[7] * eta * eta + L_csts_nonspin[8] * eta * eta * eta
+
+    return jnp.array([constants_L_0, constants_L_1, constants_L_2, constants_L_3, constants_L_4])
 
 
 #DONE
