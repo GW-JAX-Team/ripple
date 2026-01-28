@@ -2359,90 +2359,6 @@ class IMRPhenomXPHM(WaveFormModel):
         return pWF
     
 
-    def twistup(self, Mf, mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, phiRef_In, inclination, reference_frequency, hlm, pWF):
-        "Copy of lalsimulation IMRPhenomXPHMTwistUp"
-        "Function to twist up hlms"
-
-        # Check if we are using multibanding for angles. 
-        # Default in lalsimulation is True but I will force it to False
-
-        # Check PrecVersion
-        # Available options 101, 102, 103, 104, 220, 221, 222, 223, 224, 310, 311, 320, 321, 330
-        # I will use 223 which is default in lalsimulation
-
-        # Modes 21, 22, 32, 33, 43, 44 in that order
-
-        bigM = 1
-        eta = mass_1*mass_2/jnp.power(mass_1+mass_2, 2)
-        eta2 = jnp.power(eta, 2)
-        chi1L = chi1z
-        chi2L = chi2z
-        total_mass = mass_1 + mass_2
-
-        mass_1_fraction = mass_1 / total_mass
-        mass_2_fraction = mass_2 / total_mass
-
-        delta = mass_1_fraction - mass_2_fraction
-        
-        orbital_angular_momentum = pPrec.flag_222_223_twoPN_non_spinning_orbitan_angular_momentum(
-        eta, eta2, chi1L, chi2L, delta, jnp.power(jnp.pi, 2))
-        Msec = (mass_1 + mass_2) * MTSUN
-        piM = jnp.pi * Msec
-        v_ref = jnp.cbrt(piM * reference_frequency)
-        LRef = bigM * bigM * pPrec.XLALSimIMRPhenomXLPNAnsatz(v_ref, eta / v_ref, orbital_angular_momentum[0], orbital_angular_momentum[1], orbital_angular_momentum[2], orbital_angular_momentum[3], orbital_angular_momentum[4], orbital_angular_momentum[5], orbital_angular_momentum[6], orbital_angular_momentum[7], orbital_angular_momentum[8], orbital_angular_momentum[9]) 
-        
-        theta_JN, Nz_Jf, Nx_Jf, phiJ_Sf, kappa = pPrec.compute_thetaJN_and_kappa(mass_1_fraction, mass_2_fraction, 
-                                                            chi1x, chi1y, chi1z, 
-                                                            chi2x, chi2y, chi2z, 
-                                                            LRef, phiRef_In, inclination)
-        
-        zeta_polarisations = pPrec.compute_zeta_polarization(mass_1_fraction, mass_2_fraction, chi1x, chi1y, chi1z,
-                                                             chi2x, chi2y, chi2z, LRef, phiRef_In, inclination, Nz_Jf, Nx_Jf, kappa)
-
-
-        def compute_twist_for_mode(mode_idx):
-            # mode_idx: 0->21, 1->22, 2->32, 3->33, 4->43, 5->44
-            emms = jnp.array([1, 2, 2, 3, 3, 4])
-
-            emm = emms[mode_idx]
-            
-            #print("what is the value of offset:", alpha_offset_emm, epsilon_offset_emm)
-            alpha, epsilon, cos_beta = pPrec.compute_evolved_spin_using_msa(Mf, mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, emm, reference_frequency, kappa, phiJ_Sf)
-            cBetah, sBetah = IMRPhenomXWignerdCoefficients_cosbeta(cos_beta)
-
-            cexp_i_alpha = jnp.exp(1j * alpha)
-
-            beta_powers = BetaPowers.from_half_angle_trig(cBetah, sBetah)
-
-            # Select the appropriate twist function based on mode_idx
-            # Order: 21, 22, 32, 33, 43, 44
-            hp_twist, hc_twist = jax.lax.switch(
-                mode_idx,
-                [
-                    lambda: twist_21(cexp_i_alpha, theta_JN, beta_powers),
-                    lambda: twist_22(cexp_i_alpha, theta_JN, beta_powers),
-                    lambda: twist_32(cexp_i_alpha, theta_JN, beta_powers),
-                    lambda: twist_33(cexp_i_alpha, theta_JN, beta_powers),
-                    #lambda: twist_43(cexp_i_alpha, pPrec.theta_JN, beta_powers),
-                    lambda: twist_44(cexp_i_alpha, theta_JN, beta_powers),
-                ]
-            )
-
-            return hp_twist, hc_twist, epsilon*emm
-
-        mode_indices = jnp.arange(5)  # 0 to 5 for modes 21, 22, 32, 33, 43, 44
-        hp_twist_all_modes, hc_twist_all_modes, epsilon_all_modes = jax.vmap(
-            compute_twist_for_mode
-        )(mode_indices)
-
-
-        _hp = jnp.sum(hlm * hp_twist_all_modes.T * jnp.exp(-1j * epsilon_all_modes.T) / 2, axis=1)
-        _hc = jnp.sum(hlm * hc_twist_all_modes.T * jnp.exp(-1j * epsilon_all_modes.T) / 2, axis=1)
-
-        hp, hc = apply_polarization_rotation(zeta_polarisations, _hp, _hc)
-        
-        return hp, hc
-    
     def generate_xphm(self, m1, m2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, distance, inclination, phi0, duration, minimum_frequency, maximum_frequency, reference_frequency):
 
         pWF = self.generate_waveform_struct(m1, m2, chi1z, chi2z,
@@ -2474,7 +2390,7 @@ class IMRPhenomXPHM(WaveFormModel):
         
         eta = m1*m2/jnp.power(m1+m2, 2)
 
-        hp, hc = self.twistup(Mf, m1, m2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, phi0, inclination, reference_frequency, hlm, pWF)
+        hp, hc = twistup(Mf, m1, m2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, phi0, inclination, reference_frequency, hlm)
 
 
         #zeta_polarization = pPrec.zeta_polarization
@@ -2486,6 +2402,91 @@ class IMRPhenomXPHM(WaveFormModel):
         
         return  hp, hc
         
+
+
+def twistup(Mf, mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, phiRef_In, inclination, reference_frequency, hlm):
+    "Copy of lalsimulation IMRPhenomXPHMTwistUp"
+    "Function to twist up hlms"
+
+    # Check if we are using multibanding for angles. 
+    # Default in lalsimulation is True but I will force it to False
+
+    # Check PrecVersion
+    # Available options 101, 102, 103, 104, 220, 221, 222, 223, 224, 310, 311, 320, 321, 330
+    # I will use 223 which is default in lalsimulation
+
+    # Modes 21, 22, 32, 33, 43, 44 in that order
+
+    bigM = 1
+    eta = mass_1*mass_2/jnp.power(mass_1+mass_2, 2)
+    eta2 = jnp.power(eta, 2)
+    chi1L = chi1z
+    chi2L = chi2z
+    total_mass = mass_1 + mass_2
+
+    mass_1_fraction = mass_1 / total_mass
+    mass_2_fraction = mass_2 / total_mass
+
+    delta = mass_1_fraction - mass_2_fraction
+    
+    orbital_angular_momentum = pPrec.flag_222_223_twoPN_non_spinning_orbitan_angular_momentum(
+    eta, eta2, chi1L, chi2L, delta, jnp.power(jnp.pi, 2))
+    Msec = (mass_1 + mass_2) * MTSUN
+    piM = jnp.pi * Msec
+    v_ref = jnp.cbrt(piM * reference_frequency)
+    LRef = bigM * bigM * pPrec.XLALSimIMRPhenomXLPNAnsatz(v_ref, eta / v_ref, orbital_angular_momentum[0], orbital_angular_momentum[1], orbital_angular_momentum[2], orbital_angular_momentum[3], orbital_angular_momentum[4], orbital_angular_momentum[5], orbital_angular_momentum[6], orbital_angular_momentum[7], orbital_angular_momentum[8], orbital_angular_momentum[9]) 
+    
+    theta_JN, Nz_Jf, Nx_Jf, phiJ_Sf, kappa = pPrec.compute_thetaJN_and_kappa(mass_1_fraction, mass_2_fraction, 
+                                                        chi1x, chi1y, chi1z, 
+                                                        chi2x, chi2y, chi2z, 
+                                                        LRef, phiRef_In, inclination)
+    
+    zeta_polarisations = pPrec.compute_zeta_polarization(mass_1_fraction, mass_2_fraction, chi1x, chi1y, chi1z,
+                                                            chi2x, chi2y, chi2z, LRef, phiRef_In, inclination, Nz_Jf, Nx_Jf, kappa)
+
+
+    def compute_twist_for_mode(mode_idx):
+        # mode_idx: 0->21, 1->22, 2->32, 3->33, 4->43, 5->44
+        emms = jnp.array([1, 2, 2, 3, 3, 4])
+
+        emm = emms[mode_idx]
+        
+        #print("what is the value of offset:", alpha_offset_emm, epsilon_offset_emm)
+        alpha, epsilon, cos_beta = pPrec.compute_evolved_spin_using_msa(Mf, mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, emm, reference_frequency, kappa, phiJ_Sf)
+        cBetah, sBetah = IMRPhenomXWignerdCoefficients_cosbeta(cos_beta)
+
+        cexp_i_alpha = jnp.exp(1j * alpha)
+
+        beta_powers = BetaPowers.from_half_angle_trig(cBetah, sBetah)
+
+        # Select the appropriate twist function based on mode_idx
+        # Order: 21, 22, 32, 33, 43, 44
+        hp_twist, hc_twist = jax.lax.switch(
+            mode_idx,
+            [
+                lambda: twist_21(cexp_i_alpha, theta_JN, beta_powers),
+                lambda: twist_22(cexp_i_alpha, theta_JN, beta_powers),
+                lambda: twist_32(cexp_i_alpha, theta_JN, beta_powers),
+                lambda: twist_33(cexp_i_alpha, theta_JN, beta_powers),
+                #lambda: twist_43(cexp_i_alpha, pPrec.theta_JN, beta_powers),
+                lambda: twist_44(cexp_i_alpha, theta_JN, beta_powers),
+            ]
+        )
+
+        return hp_twist, hc_twist, epsilon*emm
+
+    mode_indices = jnp.arange(5)  # 0 to 5 for modes 21, 22, 32, 33, 43, 44
+    hp_twist_all_modes, hc_twist_all_modes, epsilon_all_modes = jax.vmap(
+        compute_twist_for_mode
+    )(mode_indices)
+
+
+    _hp = jnp.sum(hlm * hp_twist_all_modes.T * jnp.exp(-1j * epsilon_all_modes.T) / 2, axis=1)
+    _hc = jnp.sum(hlm * hc_twist_all_modes.T * jnp.exp(-1j * epsilon_all_modes.T) / 2, axis=1)
+
+    hp, hc = apply_polarization_rotation(zeta_polarisations, _hp, _hc)
+    
+    return hp, hc
 
 
 
