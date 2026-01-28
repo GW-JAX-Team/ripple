@@ -887,11 +887,22 @@ class IMRPhenomXGetAndSetPrecessionVariables:
 
         object.__setattr__(self, 'alpha_offset_array', jnp.ones(4)*alpha_offset)
         object.__setattr__(self, 'epsilon_offset_array', jnp.ones(4)*epsilon_offset)
-
-        
-
         
         return None
+
+    def compute_vangles(self, Mf, emm):
+        v =  jnp.cbrt(jnp.pi * Mf * 2.0 / emm)
+        vangles = IMRPhenomX_Return_phi_zeta_costhetaL_MSA(v,
+                                                            self.eta, self.eta2, self.eta3, self.eta4,
+                                                            self.inveta, self.c1, self.c1_over_eta,
+                                                            self.SAv, self.SAv2, self.invSAv, self.invSAv2,
+                                                            self.constants_L, self.S1_norm_2, self.S2_norm_2,
+                                                            self.qq, self.delta_qq, self.Seff, self.dotS1Ln, self.dotS2Ln, self.S_0_norm,
+                                                            self.psi0, self.psi1, self.psi2, self.g0,
+                                                            self.Omegaz0_coeff, self.Omegaz1_coeff, self.Omegaz2_coeff, self.Omegaz3_coeff, self.Omegaz4_coeff, self.Omegaz5_coeff, self.phiz_0,
+                                                            self.Omegazeta0_coeff, self.Omegazeta1_coeff, self.Omegazeta2_coeff, self.Omegazeta3_coeff, self.Omegazeta4_coeff, self.Omegazeta5_coeff, self.zeta_0)
+        return vangles
+
 
 
 
