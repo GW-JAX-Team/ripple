@@ -2434,7 +2434,7 @@ class IMRPhenomXPHM(WaveFormModel):
                     lambda: twist_22(cexp_i_alpha, pPrec.thetaJN, beta_powers),
                     lambda: twist_32(cexp_i_alpha, pPrec.thetaJN, beta_powers),
                     lambda: twist_33(cexp_i_alpha, pPrec.thetaJN, beta_powers),
-                    #lambda: twist_43(cexp_i_alpha, pPrec, beta_powers),
+                    #lambda: twist_43(cexp_i_alpha, pPrec.thetaJN, beta_powers),
                     lambda: twist_44(cexp_i_alpha, pPrec.thetaJN, beta_powers),
                 ]
             )
@@ -2953,7 +2953,7 @@ def twist_44(cexp_i_alpha, thetaJN, beta_powers):
     return hp_sum, hc_sum
 
 
-def twist_43(cexp_i_alpha, pPrec, beta_powers):
+def twist_43(cexp_i_alpha, thetaJN, beta_powers):
     """
     Compute the twisting contributions for l=4, m'=3 mode.
 
@@ -2963,7 +2963,7 @@ def twist_43(cexp_i_alpha, pPrec, beta_powers):
 
     Args:
         cexp_i_alpha: Complex exponential e^{i*alpha} (array over frequencies)
-        pPrec: Precession parameters object containing Y4m spherical harmonics
+        thetaJN: Angle between total angular momentum J and line of sight N
         beta_powers: BetaPowers object containing powers of cos(beta/2) and sin(beta/2)
 
     Returns:
@@ -2984,7 +2984,17 @@ def twist_43(cexp_i_alpha, pPrec, beta_powers):
 
     cexp_im_alpha_l4 = jnp.stack([cexp_m4i_alpha, cexp_m3i_alpha, cexp_m2i_alpha, cexp_mi_alpha, jnp.ones_like(cexp_i_alpha), cexp_i_alpha, cexp_2i_alpha, cexp_3i_alpha, cexp_4i_alpha], axis=0)
 
-    Y4mA = jnp.array([pPrec.Y4m4, pPrec.Y4m3, pPrec.Y4m2, pPrec.Y4m1, pPrec.Y40, pPrec.Y41, pPrec.Y42, pPrec.Y43, pPrec.Y44])
+    # Compute Y4m spherical harmonics directly
+    Y4m4 = compute_sminus2_l4(theta=thetaJN, m=-4)
+    Y4m3 = compute_sminus2_l4(theta=thetaJN, m=-3)
+    Y4m2 = compute_sminus2_l4(theta=thetaJN, m=-2)
+    Y4m1 = compute_sminus2_l4(theta=thetaJN, m=-1)
+    Y40 = compute_sminus2_l4(theta=thetaJN, m=0)
+    Y41 = compute_sminus2_l4(theta=thetaJN, m=1)
+    Y42 = compute_sminus2_l4(theta=thetaJN, m=2)
+    Y43 = compute_sminus2_l4(theta=thetaJN, m=3)
+    Y44 = compute_sminus2_l4(theta=thetaJN, m=4)
+    Y4mA = jnp.array([Y4m4, Y4m3, Y4m2, Y4m1, Y40, Y41, Y42, Y43, Y44])
 
     # Wigner-d coefficients for m'=3
     # d^4_{-4,3}, d^4_{-3,3}, d^4_{-2,3}, d^4_{-1,3}, d^4_{0,3}, d^4_{1,3}, d^4_{2,3}, d^4_{3,3}, d^4_{4,3}
