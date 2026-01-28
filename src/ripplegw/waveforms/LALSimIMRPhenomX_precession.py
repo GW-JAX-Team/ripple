@@ -280,7 +280,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
         #self._validate_kerr_bound()
         #self.compute_evolved_spin_using_spintaylor() # Function that uses Spin Taylor approximantion to evolve spins
         
-        self.compute_evolved_spin_using_msa()
+        #self.compute_evolved_spin_using_msa()
 
         
 
@@ -696,7 +696,7 @@ class IMRPhenomXGetAndSetPrecessionVariables:
 
 
 
-    def compute_evolved_spin_using_msa(self):
+    def compute_evolved_spin_using_msa(self, Mf, emm):
 
         """
         What is compute_evolved_spin_using_msa function supposed to return?
@@ -887,21 +887,47 @@ class IMRPhenomXGetAndSetPrecessionVariables:
 
         object.__setattr__(self, 'alpha_offset_array', jnp.ones(4)*alpha_offset)
         object.__setattr__(self, 'epsilon_offset_array', jnp.ones(4)*epsilon_offset)
-        
-        return None
 
-    def compute_vangles(self, Mf, emm):
-        v =  jnp.cbrt(jnp.pi * Mf * 2.0 / emm)
-        vangles = IMRPhenomX_Return_phi_zeta_costhetaL_MSA(v,
-                                                            self.eta, self.eta2, self.eta3, self.eta4,
-                                                            self.inveta, self.c1, self.c1_over_eta,
-                                                            self.SAv, self.SAv2, self.invSAv, self.invSAv2,
-                                                            self.constants_L, self.S1_norm_2, self.S2_norm_2,
-                                                            self.qq, self.delta_qq, self.Seff, self.dotS1Ln, self.dotS2Ln, self.S_0_norm,
-                                                            self.psi0, self.psi1, self.psi2, self.g0,
-                                                            self.Omegaz0_coeff, self.Omegaz1_coeff, self.Omegaz2_coeff, self.Omegaz3_coeff, self.Omegaz4_coeff, self.Omegaz5_coeff, self.phiz_0,
-                                                            self.Omegazeta0_coeff, self.Omegazeta1_coeff, self.Omegazeta2_coeff, self.Omegazeta3_coeff, self.Omegazeta4_coeff, self.Omegazeta5_coeff, self.zeta_0)
-        return vangles
+        vangles = compute_vangles(Mf, emm, self.eta, self.c1, self.c1_over_eta,
+                                        self.SAv, self.SAv2, self.invSAv, self.invSAv2,
+                                        self.constants_L, self.S1_norm_2, self.S2_norm_2,
+                                        self.qq, self.delta_qq, self.Seff, self.dotS1Ln, self.dotS2Ln, self.S_0_norm,
+                                        self.psi0, self.psi1, self.psi2, self.g0,
+                                        self.Omegaz0_coeff, self.Omegaz1_coeff, self.Omegaz2_coeff, self.Omegaz3_coeff, self.Omegaz4_coeff, self.Omegaz5_coeff, self.phiz_0,
+                                        self.Omegazeta0_coeff, self.Omegazeta1_coeff, self.Omegazeta2_coeff, self.Omegazeta3_coeff, self.Omegazeta4_coeff, self.Omegazeta5_coeff, self.zeta_0)
+
+        alpha_out = vangles[0] - alpha_offset
+        epsilon_out = vangles[1] - epsilon_offset
+        cos_beta_out = vangles[2]
+
+
+        return alpha_out, epsilon_out, cos_beta_out
+
+
+def compute_vangles(Mf, emm,
+                    eta, c1, c1_over_eta,
+                    SAv, SAv2, invSAv, invSAv2,
+                    constants_L, S1_norm_2, S2_norm_2,
+                    qq, delta_qq, Seff, dotS1Ln, dotS2Ln, S_0_norm,
+                    psi0, psi1, psi2, g0,
+                    Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, phiz_0,
+                    Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, zeta_0):
+    v = jnp.cbrt(jnp.pi * Mf * 2.0 / emm)
+    eta2 = jnp.power(eta, 2)
+    eta3 = jnp.power(eta, 3)
+    eta4 = jnp.power(eta, 4)
+    inveta = jnp.power(eta, -1)
+
+    vangles = IMRPhenomX_Return_phi_zeta_costhetaL_MSA(v,
+                                                        eta, eta2, eta3, eta4,
+                                                        inveta, c1, c1_over_eta,
+                                                        SAv, SAv2, invSAv, invSAv2,
+                                                        constants_L, S1_norm_2, S2_norm_2,
+                                                        qq, delta_qq, Seff, dotS1Ln, dotS2Ln, S_0_norm,
+                                                        psi0, psi1, psi2, g0,
+                                                        Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, phiz_0,
+                                                        Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, zeta_0)
+    return vangles
 
 
 
