@@ -176,7 +176,15 @@ def get_IIa_raw_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     return phi_IIa_raw
 
 
-def get_IIb_raw_phase(fM_s: Array, theta: Array, coeffs: Array, f_RD, f_damp) -> Array:
+def get_IIb_raw_phase(
+    fM_s: Array,
+    theta: Array,
+    coeffs: Array,
+    f_RD: float,
+    f_damp: float,
+    Rholm: float = 1.0,
+    Taulm: float = 1.0,
+) -> Array:
     m1, m2, _, _ = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -190,7 +198,9 @@ def get_IIb_raw_phase(fM_s: Array, theta: Array, coeffs: Array, f_RD, f_damp) ->
         coeffs[14] * fM_s
         - coeffs[15] * (fM_s**-1.0)
         + 4.0 * coeffs[16] * (fM_s ** (3.0 / 4.0)) / 3.0
-        + coeffs[17] * jnp.arctan((fM_s - coeffs[18] * f_RDM_s) / f_dampM_s)
+        + coeffs[17]
+        * Rholm
+        * jnp.arctan((fM_s - coeffs[18] * f_RDM_s) / (Rholm * f_dampM_s * Taulm))
     ) / eta
 
     return phi_IIb_raw
@@ -381,7 +391,14 @@ def get_IIb_Amp(fM_s: Array, theta: Array, coeffs: Array, f_RD, f_damp) -> Array
     return Amp_IIb
 
 
-def Phase(f: Array, theta: Array, coeffs: Array, transition_freqs: Array) -> Array:
+def Phase(
+    f: Array,
+    theta: Array,
+    coeffs: Array,
+    transition_freqs: Array,
+    Rholm: float = 1.0,
+    Taulm: float = 1.0,
+) -> Array:
     """
     Computes the phase of the PhenomD waveform following 1508.07253.
     Sets time and phase of coealence to be zero.
@@ -436,14 +453,14 @@ def Phase(f: Array, theta: Array, coeffs: Array, transition_freqs: Array) -> Arr
     # ==> a0 = phi_IIa(f2*M_s) - phi_IIb(f2*M_s) - beta1_correction*(f2*M_s)
     phi_IIa_f2, dphi_IIa_f2 = jax.value_and_grad(phi_IIa_func)(f2 * M_s)
     phi_IIb_f2, dphi_IIb_f2 = jax.value_and_grad(get_IIb_raw_phase)(
-        f2 * M_s, theta, coeffs, f_RD, f_damp
+        f2 * M_s, theta, coeffs, f_RD, f_damp, Rholm, Taulm
     )
 
     a1_correction = dphi_IIa_f2 - dphi_IIb_f2
     a0 = phi_IIa_f2 + beta0 - a1_correction * (f2 * M_s) - phi_IIb_f2
 
     phi_IIb = (
-        get_IIb_raw_phase(f * M_s, theta, coeffs, f_RD, f_damp)
+        get_IIb_raw_phase(f * M_s, theta, coeffs, f_RD, f_damp, Rholm, Taulm)
         + a0
         + a1_correction * (f * M_s)
     )
@@ -458,16 +475,11 @@ def Phase(f: Array, theta: Array, coeffs: Array, transition_freqs: Array) -> Arr
     return phase
 
 
-def Amp(
-    f: Array, theta: Array, coeffs: Array, transition_frequencies: Array, D=1
+def IMRPhenDAmplitude(
+    f: Array, theta: Array, coeffs: Array, transition_frequencies: Array
 ) -> Array:
     """
-    Computes the amplitude of the PhenomD frequency domain waveform following 1508.07253.
-    Note that this waveform also assumes that object one is the more massive.
-
-    Returns:
-    --------
-      Amplitude (array):
+    Useful function for IMRPhenomHM. Computes the Amp variable of Amp() (defined below)
     """
 
     # First lets calculate some of the vairables that will be used below
@@ -476,7 +488,6 @@ def Amp(
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s**2.0)
 
     # _, _, f3, f4, f_RD, f_damp = get_transition_frequencies(theta, coeffs[5], coeffs[6])
     _, _, f3, f4, f_RD, f_damp = transition_frequencies
@@ -501,6 +512,62 @@ def Amp(
         + jnp.heaviside(f - f4, 0.5) * Amp_IIb * jnp.heaviside(fcut_true - f, 0.0)
         + 0.0 * jnp.heaviside(f - fcut_true, 1.0)
     )
+    return Amp
+
+
+def IMRPhenDAmplitude_NoCut(
+    f: Array, theta: Array, coeffs: Array, transition_frequencies: Array
+) -> Array:
+    """
+    Same as IMRPhenDAmplitude but without the fM_CUT cutoff.
+    Used by IMRPhenomHM where mapped frequencies can exceed fM_CUT.
+    """
+    m1, m2, _, _ = theta
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
+    M_s = m1_s + m2_s
+
+    _, _, f3, f4, f_RD, f_damp = transition_frequencies
+
+    # First we get the inspiral amplitude
+    Amp_Ins = get_inspiral_Amp(f * M_s, theta, coeffs)
+
+    # Intermediate amplitude (region IIa)
+    Amp_IIa = get_IIa_Amp(f * M_s, theta, coeffs, f3, f4, f_RD, f_damp)
+
+    # Merger-ringdown amplitude (region IIb)
+    Amp_IIb = get_IIb_Amp(f * M_s, theta, coeffs, f_RD, f_damp)
+
+    # Combine WITHOUT the fM_CUT cutoff
+    Amp = (
+        Amp_Ins * jnp.heaviside(f3 - f, 0.5)
+        + jnp.heaviside(f - f3, 0.5) * Amp_IIa * jnp.heaviside(f4 - f, 0.5)
+        + jnp.heaviside(f - f4, 0.5) * Amp_IIb
+    )
+    return Amp
+
+
+def Amp(
+    f: Array, theta: Array, coeffs: Array, transition_frequencies: Array, D=1
+) -> Array:
+    """
+    Computes the amplitude of the PhenomD frequency domain waveform following 1508.07253.
+    Note that this waveform also assumes that object one is the more massive.
+
+    Returns:
+    --------
+      Amplitude (array):
+    """
+
+    # First lets calculate some of the vairables that will be used below
+    # Mass variables
+    m1, m2, _, _ = theta
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
+    M_s = m1_s + m2_s
+    eta = m1_s * m2_s / (M_s**2.0)
+
+    Amp = IMRPhenDAmplitude(f, theta, coeffs, transition_frequencies)
 
     # Prefactor
     Amp0 = get_Amp0(f * M_s, eta) * (
@@ -604,3 +671,65 @@ def gen_IMRPhenomD_hphc(f: Array, params: Array, f_ref: float):
     hc = -1j * h0 * jnp.cos(iota)
 
     return hp, hc
+
+
+####################################################################################################
+######################################## HIGHER-ORDER MODES ########################################
+####################################################################################################
+
+# def PhiMRDAnsatzInt(
+#         f: float,
+#         coeffs: Array,
+#         fRD_22: float,
+#         fDM_22: float,
+#         Rholm: float,
+#         Taulm: float
+# ):
+#     """
+#     See eq. 9 of https://arxiv.org/abs/1708.00404
+#     """
+#     return (
+#         - coeffs[15]/f +
+#         (4.0/3.0) * (coeffs[16] * (f ** (3.0/4.0))) +
+#         coeffs[14] * f +
+#         coeffs[17] * Rholm * jnp.arctan((f - coeffs[18] * fRD_22)/(Rholm * fDM_22 * Taulm))
+#     )
+
+# def HM_mapped_PhenomD_Phase(
+#         Mf: float | Array,
+#         theta: Array,
+#         coeffs: Array,
+#         MfInsJoin: float,
+#         MfMRDJoin: float,
+#         Rholm: float,
+#         Taulm: float
+# ):
+#     """
+#     This is a weird implementation of IMRPhenDPhase from LALSimIMRPhenomD_internals.c (line 1257)
+#     using functions from both LAL and ripple. NOTE: this might be a problem
+#     """
+
+#     # Inspiral: ripple, get_inspiral_phase
+#     # Intermediate: ripple, get_IIa_raw_phase
+#     # MRD: LAL, PhiMRDAnsatzInt
+
+#     m1, m2, chi1, chi2 = theta
+#     M = m1 + m2
+#     eta = m1 * m2 / (M**2.0)
+
+#     return jnp.where(
+#         Mf < MfInsJoin,
+#         get_inspiral_phase(Mf, theta, coeffs) * eta, # Inspiral
+#         jnp.where(
+#             Mf < MfMRDJoin,
+#             get_IIa_raw_phase(Mf, theta, coeffs) * eta,
+#             PhiMRDAnsatzInt(
+#                 Mf,
+#                 coeffs,
+#                 get_fRD(theta)[0],
+#                 get_fDamp(theta)[0],
+#                 Rholm,
+#                 Taulm
+#             )
+#         )
+#     )
