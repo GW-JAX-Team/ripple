@@ -2,7 +2,7 @@ import jax
 from jax import jit
 import jax.numpy as jnp
 from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
-from ..constants import C, PI, MSUN, MTSUN_SI, MTSUN
+from ..constants import C, PI, MSUN, MTSUN_SI, MTSUN, MRSUN, MPC
 from ..typing import Array
 from .spherical_harmonics import (
     compute_sminus2_l2,
@@ -12,7 +12,6 @@ from .spherical_harmonics import (
 from dataclasses import dataclass
 from . import LALSimIMRPhenomX_precession as pPrec
 
-from .LALSimIMRPhenomD_internals import DPhiMRD
 from .LALSimIMRPhenomUtils import XLALSimPhenomUtilsChiP
 
 # Some pre-XPHM ripple code
@@ -1322,8 +1321,8 @@ def compute_delta_coefficients(
             - 2.0 * d1 * f12 * f24 * f3
             - d2 * f12 * f24 * f3
             + d2 * f15 * f32
-            - 3.0 * d1 * f13 * f22 * f32
-            - d2 * f13 * f22 * f32
+            - 3.0 * d1 * f13 * f2 * f32
+            - d2 * f13 * f2 * f32
             + 2.0 * d1 * f12 * f23 * f32
             - 2.0 * d2 * f12 * f23 * f32
             + d1 * f1 * f24 * f32
@@ -1341,7 +1340,7 @@ def compute_delta_coefficients(
             + d1 * f22 * f35
             - 8.0 * f12 * f23 * f3 * v1
             + 6.0 * f1 * f24 * f3 * v1
-            + 12.0 * f12 * f22 * f32 * v1
+            + 12.0 * f12 * f2 * f32 * v1
             - 8.0 * f1 * f23 * f32 * v1
             - 4.0 * f12 * f34 * v1
             + 2.0 * f1 * f35 * v1
@@ -1353,7 +1352,7 @@ def compute_delta_coefficients(
             + 8.0 * f12 * f23 * f3 * v3
             - 6.0 * f1 * f24 * f3 * v3
             + 4.0 * f14 * f32 * v3
-            - 12.0 * f12 * f22 * f32 * v3
+            - 12.0 * f12 * f2 * f32 * v3
             + 8.0 * f1 * f23 * f32 * v3
         )
         / denom
@@ -1365,8 +1364,8 @@ def compute_delta_coefficients(
             d2 * f15 * f2
             - d1 * f13 * f23
             - 3.0 * d2 * f13 * f23
-            + d1 * f12 * f24
-            + 2.0 * d2 * f12 * f24
+            + d1 * f1 * f24
+            + d2 * f1 * f24
             - d2 * f15 * f3
             + d2 * f14 * f2 * f3
             - d1 * f12 * f23 * f3
@@ -2860,526 +2859,6 @@ def compute_full_amplitude(
     )
 
 
-@jit
-def hphc(
-    frequency_array,
-    chirp_mass,
-    eta,
-    chi1x,
-    chi1y,
-    chi1z,
-    chi2x,
-    chi2y,
-    chi2z,
-    iota,
-    luminosity_distance,
-    initial_phase,
-    reference_frequency,
-):
-    """
-    Compute the plus and cross polarisations of the GW as a function of frequency, given the events parameters, avoiding for loops over the modes.
-
-    :param array frequency_array: Frequency grid on which the phase will be computed, in :math:`\\rm Hz`.
-    :param dict(array, array, ...) kwargs: Dictionary with arrays containing the parameters of the events to compute the phase of, as in :py:data:`events`.
-    :return: Plus and cross polarisations of the GW for the chosen events evaluated on the frequency grid.
-    :rtype: tuple(array, array)
-
-    """
-    fcutPar = 0.2
-    complShiftm = jnp.array(
-        [0.0, jnp.pi * 0.5, 0.0, -jnp.pi * 0.5, jnp.pi, jnp.pi * 0.5, 0.0]
-    )
-
-    # This function retuns directly the full plus and cross polarisations, avoiding for loops over the modes
-    total_mass = chirp_mass / (eta ** (3.0 / 5.0))
-    mass_ratio = symmetric_mass_ratio_to_mass_ratio(eta)
-    mass_1, mass_2 = chirp_mass_and_mass_ratio_to_component_masses(
-        chirp_mass, mass_ratio
-    )
-
-    eta2 = eta * eta  # These can speed up a bit, we call them multiple times
-    chi1, chi2 = chi1z, chi2z
-
-    QuadMon1, QuadMon2 = jnp.ones(total_mass.shape), jnp.ones(total_mass.shape)
-
-    chi12, chi22 = chi1 * chi1, chi2 * chi2
-    chi1dotchi2 = chi1 * chi2
-    # This is needed to stabilize JAX derivatives
-    Seta = jnp.sqrt(jnp.where(eta < 0.25, 1.0 - 4.0 * eta, 0.0))
-    SetaPlus1 = 1.0 + Seta
-    chi_s = 0.5 * (chi1 + chi2)
-    chi_a = 0.5 * (chi1 - chi2)
-    chi1dotchi2 = chi1 * chi2
-
-    # These are mass_1/total_mass and mass_2/total_mass
-    m1ByM = 0.5 * (1.0 + Seta)
-    m2ByM = 0.5 * (1.0 - Seta)
-
-    # We work in dimensionless frequency M*f, not f
-    fgrid = total_mass * MTSUN_SI * frequency_array
-    # This is MfRef, needed to recover LAL, which sets fRef to f_min if fRef=0
-    # reference_frequency  = jnp.amin(fgrid, axis=0)
-
-    reference_frequency = total_mass * MTSUN_SI * reference_frequency
-    # As in arXiv:1508.07253 eq. (4) and LALSimIMRPhenomD_internals.c line 97
-    chiPN = chi_s * (1.0 - eta * 76.0 / 113.0) + Seta * chi_a
-    xi = -1.0 + chiPN
-    # Compute final spin, radiated energy and mass
-    aeff = _finalspin(eta, chi1, chi2)
-    Erad = _radiatednrg(eta, chi1, chi2)
-    finMass = 1.0 - Erad
-
-    # Compute the real and imag parts of the complex ringdown frequency for the (l,m) mode as in LALSimIMRPhenomHM.c line 189
-    # These are all fits of the different modes. We directly exploit the fact that the relevant HM in this WF are 6
-    # modes = jnp.array([21,22,32,33,43,44]) #
-    modes = jnp.array([21, 22, 32, 33, 44])
-
-    ells = jnp.floor(modes / 10).astype(jnp.int32)
-    mms = modes - ells * 10
-    # Domain mapping for dimnesionless BH spin
-
-    chip = XLALSimPhenomUtilsChiP(mass_1, mass_2, chi1x, chi1y, chi2x, chi2y)
-
-    fringlm, fdamplm = compute_fring_and_fdamp(
-        aeff=aeff, finMass=finMass, chip=chip, m1ByM=m1ByM, modes=modes
-    )
-
-    # print(f"values of fringlm {fringlm} fring {fring} and fring_phenomD {fring_phenomD}")
-    # fringlm[1] = fringlm[1]
-    # fdamplm[1] = fdamplm[1]
-    # Compute sigma coefficients as a JAX array (JIT-compatible)
-    sigma_coeffs = compute_sigma_coefficients(eta, eta2, xi)
-    sigma1 = sigma_coeffs[..., SIGMA_1]
-    sigma2 = sigma_coeffs[..., SIGMA_2]
-    sigma3 = sigma_coeffs[..., SIGMA_3]
-    sigma4 = sigma_coeffs[..., SIGMA_4]
-
-    # Compute beta coefficients as a JAX array (JIT-compatible)
-    beta_coeffs = compute_beta_coefficients(eta, eta2, xi)
-    beta1 = beta_coeffs[..., BETA_1]
-    beta2 = beta_coeffs[..., BETA_2]
-    beta3 = beta_coeffs[..., BETA_3]
-
-    # Compute alpha coefficients as a JAX array (JIT-compatible)
-    alpha_coeffs = compute_alpha_coefficients(eta, eta2, xi)
-    alpha1 = alpha_coeffs[..., ALPHA_1]
-    alpha2 = alpha_coeffs[..., ALPHA_2]
-    alpha3 = alpha_coeffs[..., ALPHA_3]
-    alpha4 = alpha_coeffs[..., ALPHA_4]
-    alpha5 = alpha_coeffs[..., ALPHA_5]
-
-    # Compute the TF2 phase coefficients as a JAX array (JIT-compatible)
-    TF2coeffs = compute_TF2_coefficients(
-        eta,
-        eta2,
-        Seta,
-        chi_s,
-        chi_a,
-        chi1,
-        chi2,
-        chi1dotchi2,
-        chi12,
-        chi22,
-        m1ByM,
-        m2ByM,
-        QuadMon1,
-        QuadMon2,
-    )
-    TF2OverallAmpl = 3.0 / (128.0 * eta)
-    # Compute inspiral phase coefficients as a JAX array (JIT-compatible)
-    PhiInspcoeffs = compute_PhiInsp_coefficients(
-        TF2coeffs, TF2OverallAmpl, sigma1, sigma2, sigma3, sigma4
-    )
-
-    # Now compute the coefficients to align the three parts
-
-    fInsJoinPh = PHI_fJoin_INS
-    fMRDJoinPh = 0.5 * fringlm[1]
-
-    # First the Inspiral - Intermediate: we compute C1Int and C2Int coeffs
-    # Equations to solve for to get C(1) continuous join
-    # PhiIns (f)  =   PhiInt (f) + C1Int + C2Int f
-    # Joining at fInsJoin
-    # PhiIns (fInsJoin)  =   PhiInt (fInsJoin) + C1Int + C2Int fInsJoin
-    # PhiIns'(fInsJoin)  =   PhiInt'(fInsJoin) + C2Int
-    # This is the first derivative wrt f of the inspiral phase computed at fInsJoin
-    DPhiIns = compute_DPhiIns(
-        fInsJoinPh, TF2coeffs, TF2OverallAmpl, sigma1, sigma2, sigma3, sigma4, eta
-    )
-    # This is the first derivative of the Intermediate phase computed at fInsJoin
-    DPhiInt = (beta1 + beta3 / (fInsJoinPh**4) + beta2 / fInsJoinPh) / eta
-
-    C2Int = DPhiIns - DPhiInt
-
-    # This is the inspiral phase computed at fInsJoin
-    PhiInsJoin = compute_PhiInsJoin(fInsJoinPh, PhiInspcoeffs, eta)
-    # This is the Intermediate phase computed at fInsJoin
-    PhiIntJoin = (
-        beta1 * fInsJoinPh
-        - beta3 / (3.0 * fInsJoinPh * fInsJoinPh * fInsJoinPh)
-        + beta2 * jnp.log(fInsJoinPh)
-    )
-
-    C1Int = PhiInsJoin - PhiIntJoin / eta - C2Int * fInsJoinPh
-
-    # Now the same for Intermediate - Merger-Ringdown: we also need a temporary Intermediate Phase function
-    PhiIntTempVal = (
-        (
-            beta1 * fMRDJoinPh
-            - beta3 / (3.0 * fMRDJoinPh * fMRDJoinPh * fMRDJoinPh)
-            + beta2 * jnp.log(fMRDJoinPh)
-        )
-        / eta
-        + C1Int
-        + C2Int * fMRDJoinPh
-    )
-    DPhiIntTempVal = (
-        C2Int + (beta1 + beta3 / (fMRDJoinPh**4) + beta2 / fMRDJoinPh) / eta
-    )
-    DPhiMRDVal = (
-        alpha1
-        + alpha2 / (fMRDJoinPh * fMRDJoinPh)
-        + alpha3 / (fMRDJoinPh ** (1.0 / 4.0))
-        + alpha4
-        / (
-            fdamplm[1]
-            * (
-                1.0
-                + (fMRDJoinPh - alpha5 * fringlm[1])
-                * (fMRDJoinPh - alpha5 * fringlm[1])
-                / (fdamplm[1] * fdamplm[1])
-            )
-        )
-    ) / eta
-    PhiMRJoinTemp = (
-        -(alpha2 / fMRDJoinPh)
-        + (4.0 / 3.0) * (alpha3 * (fMRDJoinPh ** (3.0 / 4.0)))
-        + alpha1 * fMRDJoinPh
-        + alpha4 * jnp.arctan((fMRDJoinPh - alpha5 * fringlm[1]) / fdamplm[1])
-    )
-
-    C2MRD = DPhiIntTempVal - DPhiMRDVal
-    C1MRD = PhiIntTempVal - PhiMRJoinTemp / eta - C2MRD * fMRDJoinPh
-
-    # Compute coefficients gamma appearing in arXiv:1508.07253 eq. (19), the numerical coefficients are in Tab. 5
-    gamma1, gamma2, gamma3 = compute_gamma_coefficients(eta, eta2, xi)
-    # Compute fpeak, from arXiv:1508.07253 eq. (20), we remove the square root term in case it is complex
-    fpeak = jnp.where(
-        gamma2 >= 1.0,
-        jnp.fabs(fringlm[1] - (fdamplm[1] * gamma3) / gamma2),
-        jnp.fabs(
-            fringlm[1]
-            + (fdamplm[1] * (-1.0 + jnp.sqrt(1.0 - gamma2 * gamma2)) * gamma3) / gamma2
-        ),
-    )
-
-    # Compute coefficients rho appearing in arXiv:1508.07253 eq. (30), the numerical coefficients are in Tab. 5
-    rho1, rho2, rho3 = compute_rho_coefficients(eta, eta2, xi)
-    # Compute coefficients delta appearing in arXiv:1508.07253 eq. (21)
-    f1Interm = AMP_fJoin_INS
-    f3Interm = fpeak
-    dfInterm = 0.5 * (f3Interm - f1Interm)
-    f2Interm = f1Interm + dfInterm
-    # Compute inspiral amplitude coefficients as a JAX array (JIT-compatible)
-    amp0 = jnp.sqrt(2.0 * eta / 3.0) * (jnp.pi ** (-1.0 / 6.0))
-    Acoeffs = compute_Acoeffs(
-        eta, eta2, Seta, SetaPlus1, chi1, chi2, chi12, chi22, rho1, rho2, rho3
-    )
-    # v1 is the inspiral model evaluated at f1Interm
-    v1 = compute_v1(f1Interm, Acoeffs)
-    # v2 is the value of the amplitude evaluated at f2. They come from the fit of the collocation points in the intermediate region
-    v2 = compute_v2(eta, eta2, xi)
-    # v3 is the merger-ringdown model (eq. (19) of arXiv:1508.07253) evaluated at f3
-    v3 = compute_v3(f3Interm, fringlm[1], fdamplm[1], gamma1, gamma2, gamma3)
-
-    # d1 is the derivative of the inspiral model evaluated at f1
-    d1 = compute_d1(
-        f1Interm, eta, eta2, chi1, chi2, chi12, chi22, Seta, SetaPlus1, rho1, rho2, rho3
-    )
-    # d2 is the derivative of the merger-ringdown model evaluated at f3
-    d2 = compute_d2(f3Interm, fringlm[1], fdamplm[1], gamma1, gamma2, gamma3)
-    # Compute the delta coefficients for the intermediate amplitude
-    delta0, delta1, delta2, delta3, delta4 = compute_delta_coefficients(
-        f1Interm, f2Interm, f3Interm, d1, d2, v1, v2, v3
-    )
-
-    # Defined as in LALSimulation - LALSimIMRPhenomUtils.c line 70. Final units are correctly Hz^-1
-    # there is a 2 * sqrt(5/(64*pi)) missing w.r.t the standard coefficient, which comes from the (2,2) shperical harmonic
-
-    Overallamp = (
-        total_mass * GMsun_over_c2_Gpc * total_mass * MTSUN_SI / luminosity_distance
-    )
-
-    # Time shift so that peak amplitude is approximately at t=0
-    # Use PhenomD-style fring/fdamp/fpeak to match LALSim's IMRPhenomDComputet0
-
-    t0 = DPhiMRD(
-        fpeak, alpha1, alpha2, alpha3, alpha4, alpha5, fringlm[1], eta, fdamplm[1], 1, 1
-    )
-    # t0 = (alpha1 + alpha2/(fpeak_phenomD*fpeak_phenomD) + alpha3/(fpeak_phenomD**(1./4.)) + alpha4/(fdamp_phenomD*(1. + (fpeak_phenomD - alpha5*fring_phenomD)*(fpeak_phenomD - alpha5*fring_phenomD)/(fdamp_phenomD*fdamp_phenomD))))/eta
-
-    phiRef = compute_full_phase(
-        reference_frequency,
-        PhiInspcoeffs,
-        eta,
-        beta1,
-        beta2,
-        beta3,
-        C1Int,
-        C2Int,
-        alpha1,
-        alpha2,
-        alpha3,
-        alpha4,
-        alpha5,
-        fringlm[1],
-        fdamplm[1],
-        fMRDJoinPh,
-        PHI_fJoin_INS,
-        fcutPar,
-        C1MRD,
-        C2MRD,
-        1,
-        1,
-    )
-
-    # phiRef = completePhase(reference_frequency, C1MRD, C2MRD, 1., 1.) # Matches exactly with lalsimulation
-    phi0 = 0.5 * phiRef  # + kwargs['Phicoal']
-    # FIXME Need to swtich on kwargs['Phicoal'] at some point
-
-    # Now compute all the modes, they are 6, we parallelize
-
-    Rholm, Taulm = (fringlm[1] / fringlm.T), (fdamplm.T / fdamplm[1])
-    # Rholm and Taulm only figure in the MRD part, the rest of the coefficients is the same, recompute only this
-    DPhiMRDVal = (
-        alpha1
-        + alpha2 / (fMRDJoinPh * fMRDJoinPh)
-        + alpha3 / (fMRDJoinPh ** (1.0 / 4.0))
-        + alpha4
-        / (
-            fdamplm[1]
-            * Taulm
-            * (
-                1.0
-                + (fMRDJoinPh - alpha5 * fringlm[1])
-                * (fMRDJoinPh - alpha5 * fringlm[1])
-                / (fdamplm[1] * Taulm * Rholm * fdamplm[1] * Taulm * Rholm)
-            )
-        )
-    ) / eta
-    PhiMRJoinTemp = (
-        -(alpha2 / fMRDJoinPh)
-        + (4.0 / 3.0) * (alpha3 * (fMRDJoinPh ** (3.0 / 4.0)))
-        + alpha1 * fMRDJoinPh
-        + alpha4
-        * Rholm
-        * jnp.arctan((fMRDJoinPh - alpha5 * fringlm[1]) / (fdamplm[1] * Rholm * Taulm))
-    )
-    C2MRDHM = DPhiIntTempVal - DPhiMRDVal
-    C1MRDHM = (PhiIntTempVal - PhiMRJoinTemp / eta - C2MRDHM * fMRDJoinPh).T
-    Rholm, Taulm, DPhiMRDVal, PhiMRJoinTemp, C2MRDHM = (
-        Rholm.T,
-        Taulm.T,
-        DPhiMRDVal.T,
-        PhiMRJoinTemp.T,
-        C2MRDHM.T,
-    )
-
-    # Scale input frequencies according to PhenomHM model
-    # Compute mapping coefficinets
-    Map_flPhi = PHI_fJoin_INS
-    Map_fiPhi = Map_flPhi / Rholm
-    Map_flAmp = AMP_fJoin_INS
-    Map_fiAmp = Map_flAmp / Rholm
-    Map_fr = fringlm
-
-    Map_ai, Map_bi = 2.0 / mms, 0.0
-
-    Map_TrdAmp = Map_fr - fringlm + jnp.expand_dims(fringlm[1], len(fringlm[1].shape))
-    Map_TiAmp = 2.0 * Map_fiAmp / mms
-    Map_amAmp = (Map_TrdAmp - Map_TiAmp) / (Map_fr - Map_fiAmp)
-    Map_bmAmp = Map_TiAmp - Map_fiAmp * Map_amAmp
-
-    Map_TrdPhi = Map_fr * Rholm
-    Map_TiPhi = 2.0 * Map_fiPhi / mms
-    Map_amPhi = (Map_TrdPhi - Map_TiPhi) / (Map_fr - Map_fiPhi)
-    Map_bmPhi = Map_TiPhi - Map_fiPhi * Map_amPhi
-
-    Map_arAmp, Map_brAmp = (
-        1.0,
-        -Map_fr + jnp.expand_dims(fringlm[1], len(fringlm[1].shape)),
-    )
-    Map_arPhi, Map_brPhi = Rholm, 0.0
-
-    # Now scale as f -> f*a+b for each regime
-    fgrid = jnp.expand_dims(
-        fgrid, len(fgrid.shape)
-    )  # Need a new axis to do all the 6 calculations together
-
-    fgridScaled = jnp.where(
-        fgrid < Map_fiAmp,
-        fgrid * Map_ai + Map_bi,
-        jnp.where(
-            fgrid < Map_fr, fgrid * Map_amAmp + Map_bmAmp, fgrid * Map_arAmp + Map_brAmp
-        ),
-    )
-    # Map the ampliude's range
-    # We divide by the leading order l=m=2 behavior, and then scale in the expected PN behavior for the multipole of interest.
-
-    beta_term1 = OnePointFiveSpinPN(fgrid, chi_s, chi_a, mms, modes, eta, Seta)
-    beta_term2 = OnePointFiveSpinPN(
-        2.0 * fgrid / mms, chi_s, chi_a, mms, modes, eta, Seta
-    )
-    HMamp_term1 = OnePointFiveSpinPN(fgridScaled, chi_s, chi_a, mms, modes, eta, Seta)
-    fgridScaled = jnp.moveaxis(
-        fgridScaled, len(fgridScaled.shape) - 1, len(fgridScaled.shape) - 2
-    )
-    # fgridScaled = fgridScaled.transpose(0,2,1)
-    HMamp_term2 = (
-        jnp.pi * jnp.sqrt(eta * 2.0 / 3.0) * ((jnp.pi * fgridScaled) ** (-7.0 / 6.0))
-    )
-
-    # The (3,3) and (4,3) modes vanish if eta=0.25 (equal mass case) and the (2,1) mode vanishes if both eta=0.25 and chi1z=chi2z
-    # This results in NaNs having 0/0, correct for this using jnp.nan_to_num()
-    full_amplitude = compute_full_amplitude(
-        fgridScaled,
-        Overallamp,
-        amp0,
-        Acoeffs,
-        fpeak,
-        delta0,
-        delta1,
-        delta2,
-        delta3,
-        delta4,
-        fringlm[1],
-        fdamplm[1],
-        gamma1,
-        gamma2,
-        gamma3,
-        AMP_fJoin_INS,
-        fcutPar,
-    )
-
-    AmplsAllModes = jnp.nan_to_num(
-        full_amplitude * (beta_term1 / beta_term2) * HMamp_term1 / HMamp_term2
-    )
-
-    AmplsAllModes = jnp.moveaxis(
-        AmplsAllModes, len(AmplsAllModes.shape) - 1, len(AmplsAllModes.shape) - 2
-    )
-
-    # AmplsAllModes = AmplsAllModes.transpose(0,2,1)
-    C1MRDHM, C2MRDHM, Rholm, Taulm = C1MRDHM.T, C2MRDHM.T, Rholm.T, Taulm.T
-
-    # Compute temporary phase coefficients for mode continuity
-    PhDBconst, PhDCconst, PhDBAterm, tmpphaseC = compute_temp_phase_coefficients(
-        PhiInspcoeffs,
-        eta,
-        beta1,
-        beta2,
-        beta3,
-        C1Int,
-        C2Int,
-        alpha1,
-        alpha2,
-        alpha3,
-        alpha4,
-        alpha5,
-        fringlm[1],
-        fdamplm[1],
-        fMRDJoinPh,
-        PHI_fJoin_INS,
-        fcutPar,
-        C1MRDHM,
-        C2MRDHM,
-        Rholm,
-        Taulm,
-        Map_ai,
-        Map_bi,
-        Map_amPhi,
-        Map_bmPhi,
-        Map_arPhi,
-        Map_brPhi,
-        Map_fiPhi,
-        Map_fr,
-    )
-    PhDBconst, PhDCconst, PhDBAterm, tmpphaseC = (
-        PhDBconst.T,
-        PhDCconst.T,
-        PhDBAterm.T,
-        tmpphaseC.T,
-    )
-
-    # Compute phases for all modes
-    PhisAllModes = compute_PhisAllModes(
-        fgrid,
-        PhiInspcoeffs,
-        eta,
-        beta1,
-        beta2,
-        beta3,
-        C1Int,
-        C2Int,
-        alpha1,
-        alpha2,
-        alpha3,
-        alpha4,
-        alpha5,
-        fringlm[1],
-        fdamplm[1],
-        fMRDJoinPh,
-        PHI_fJoin_INS,
-        fcutPar,
-        C1MRDHM,
-        C2MRDHM,
-        Rholm,
-        Taulm,
-        Map_ai,
-        Map_bi,
-        Map_amPhi,
-        Map_bmPhi,
-        Map_arPhi,
-        Map_brPhi,
-        Map_fiPhi,
-        Map_fr,
-        PhDBconst,
-        PhDCconst,
-        PhDBAterm,
-        tmpphaseC,
-    )
-
-    # FIXME
-    # Save PhisAllModes to dat file for debugging (frequency + modes as columns)
-    # freqs_flat = fgrid.flatten()
-    # n_modes = PhisAllModes.shape[1] if len(PhisAllModes.shape) > 1 else 1
-    # phases_2d = PhisAllModes.reshape(-1, n_modes)  # shape: (nfreqs, n_modes)
-    # save_data = np.column_stack([freqs_flat, phases_2d])
-    # np.savetxt('PhisAllModes_ripple.dat', save_data, header='f 21 22 32 33 43')
-
-    PhisAllModes = (
-        PhisAllModes
-        - jnp.expand_dims(t0, len(t0.shape))
-        * (fgrid - jnp.expand_dims(reference_frequency, len(reference_frequency.shape)))
-        - mms * jnp.expand_dims(phi0, len(phi0.shape))
-        + complShiftm[mms]
-    )
-
-    # print(f"ripple debug t0 value {t0}")
-    # print(f"ripple debug phi0 {phi0}")
-
-    modes = jnp.expand_dims(modes, len(modes.shape))
-    Y, Ymstar = SpinWeighted_SphericalHarmonic(iota, modes)
-    Y, Ymstar = Y.T, jnp.conj(Ymstar).T
-
-    # hp = jnp.sum(AmplsAllModes*jnp.exp(-1j*PhisAllModes)*(0.5*(Y + ((-1)**ells)*Ymstar)), axis=-1)
-    # hc = -jnp.sum(AmplsAllModes*jnp.exp(-1j*PhisAllModes)*(-1j* 0.5 * (Y - ((-1)**ells)* Ymstar)), axis=-1)
-
-    hlm = AmplsAllModes * jnp.exp(-1j * PhisAllModes) * jnp.power(-1, ells)
-
-    return hlm
-
-
 def generate_xphm(
     mass_1,
     mass_2,
@@ -3389,7 +2868,7 @@ def generate_xphm(
     chi2x,
     chi2y,
     chi2z,
-    distance,
+    distance,  # in Mpc
     inclination,
     phi0,
     duration,
@@ -3403,22 +2882,40 @@ def generate_xphm(
 
     chirp_mass = component_masses_to_chirp_mass(mass_1, mass_2)
     eta = mass_1 * mass_2 / jnp.power(mass_1 + mass_2, 2)
+    m1_SI = mass_1 * MSUN
+    m2_SI = mass_2 * MSUN
+    Mtot = mass_1 + mass_2
 
-    hlm = hphc(
+    # Overall amplitude prefactor from LAL's XLALSimPhenomUtilsFDamp0:
+    # amp0 = Mtot * MRSUN * Mtot * MTSUN / distance
+    # where Mtot is in solar masses and distance is in meters
+    dist_m = distance * MPC  # distance in meters
+    amp0 = Mtot * MRSUN * Mtot * MTSUN_SI / dist_m
+
+    modes = jnp.array(
+        [[2, 1], [2, 2], [3, 2], [3, 3], [4, 4]]
+    )  # This is currently hardcoded
+    extra_params = {
+        "ModeArray": modes
+    }  # FIXME: In the future this dict should be passed to generate_xphm itself
+
+    hlm = XLALSimIMRPhenomHMGethlmModes(
         frequency_array,
-        chirp_mass=chirp_mass,
-        eta=eta,
-        luminosity_distance=distance,
-        iota=inclination,
-        initial_phase=phi0,
-        chi1x=chi1x,
-        chi1y=chi1y,
-        chi1z=chi1z,
-        chi2x=chi2x,
-        chi2y=chi2y,
-        chi2z=chi2z,
-        reference_frequency=reference_frequency,
+        m1_SI,
+        m2_SI,
+        chi1x,
+        chi1y,
+        chi1z,
+        chi2x,
+        chi2y,
+        chi2z,
+        phi0,
+        frequency_array[1] - frequency_array[0],
+        reference_frequency,
+        extra_params,
     )
+
+    hlms = amp0 * hlm
 
     hp, hc = twistup(
         Mf,
@@ -3433,7 +2930,7 @@ def generate_xphm(
         phi0,
         inclination,
         reference_frequency,
-        hlm,
+        hlms,
     )
 
     return hp, hc
@@ -3537,8 +3034,8 @@ def twistup(
     )
 
     def compute_twist_for_mode(mode_idx):
-        # mode_idx: 0->21, 1->22, 2->32, 3->33, 4->43, 5->44
-        emms = jnp.array([1, 2, 2, 3, 3, 4])
+        # mode_idx: 0->21, 1->22, 2->32, 3->33, 4->44
+        emms = jnp.array([1, 2, 2, 3, 4])
 
         emm = emms[mode_idx]
 
@@ -3565,7 +3062,7 @@ def twistup(
         beta_powers = BetaPowers.from_half_angle_trig(cBetah, sBetah)
 
         # Select the appropriate twist function based on mode_idx
-        # Order: 21, 22, 32, 33, 43, 44
+        # Order: 21, 22, 32, 33, 44
         hp_twist, hc_twist = jax.lax.switch(
             mode_idx,
             [
@@ -3580,16 +3077,16 @@ def twistup(
 
         return hp_twist, hc_twist, epsilon * emm
 
-    mode_indices = jnp.arange(5)  # 0 to 5 for modes 21, 22, 32, 33, 43, 44
+    mode_indices = jnp.arange(5)  # 0 to 4 for modes 21, 22, 32, 33, 44
     hp_twist_all_modes, hc_twist_all_modes, epsilon_all_modes = jax.vmap(
         compute_twist_for_mode
     )(mode_indices)
 
     _hp = jnp.sum(
-        hlm * hp_twist_all_modes.T * jnp.exp(-1j * epsilon_all_modes.T) / 2, axis=1
+        hlm.T * hp_twist_all_modes.T * jnp.exp(-1j * epsilon_all_modes.T) / 2, axis=1
     )
     _hc = jnp.sum(
-        hlm * hc_twist_all_modes.T * jnp.exp(-1j * epsilon_all_modes.T) / 2, axis=1
+        hlm.T * hc_twist_all_modes.T * jnp.exp(-1j * epsilon_all_modes.T) / 2, axis=1
     )
 
     hp, hc = apply_polarization_rotation(zeta_polarisations, _hp, _hc)
@@ -4455,6 +3952,110 @@ def Get_alpha_epsilon_offset(
 #######################################################################################################
 
 
+def gen_IMRPhenomHM_hphc(
+    f: Array, theta_intrinsic: Array, theta_extrinsic: Array, f_ref: float
+):
+    m1, m2, chi1, chi2 = theta_intrinsic
+    distance, tc, phiRef, inclination = theta_extrinsic
+    Mf = XLALSimIMRPhenomXUtilsHztoMf(f, m1 + m2)
+
+    chirp_mass = component_masses_to_chirp_mass(m1, m2)
+    eta = m1 * m2 / jnp.power(m1 + m2, 2)
+    m1_SI = m1 * MSUN
+    m2_SI = m2 * MSUN
+    Mtot = m1 + m2
+    df = f[1] - f[0]
+
+    # Overall amplitude prefactor from LAL's XLALSimPhenomUtilsFDamp0:
+    # amp0 = Mtot * MRSUN * Mtot * MTSUN / distance
+    # where Mtot is in solar masses and distance is in meters
+    dist_m = distance * MPC  # distance in meters
+    amp0 = Mtot * MRSUN * Mtot * MTSUN_SI / dist_m
+
+    modes = jnp.array(
+        [[2, 1], [2, 2], [3, 2], [3, 3], [4, 4]]
+    )  # This is currently hardcoded
+    extra_params = {
+        "ModeArray": modes
+    }  # FIXME: In the future this dict should be passed to generate_xphm itself
+
+    hlms = XLALSimIMRPhenomHMGethlmModes(
+        f, m1_SI, m2_SI, 0.0, 0.0, chi1, 0.0, 0.0, chi2, phiRef, df, f_ref, extra_params
+    )
+
+    vmapped_add_mode = jax.vmap(
+        PhenomInternal_IMRPhenomHMFDAddMode,
+        in_axes=(
+            0,  # hlm
+            None,  # theta
+            0,  # l
+            0,  # m
+            0,  # sym, used for m=0, not in code now but logic is there if we ever want this
+        ),
+    )
+    sym_array = jnp.where(
+        modes[:, 1] == 0, False, True
+    )  # sym is False for m=0 modes, True otherwise
+    hp_array, hc_array = vmapped_add_mode(
+        hlms, inclination, modes[:, 0], modes[:, 1], sym_array
+    )
+
+    # Sum over modes and rescale by amp0
+    hp = jnp.sum(hp_array, axis=0) * amp0
+    hc = jnp.sum(hc_array, axis=0) * amp0
+
+    return hp, hc
+
+
+def PhenomInternal_IMRPhenomHMFDAddMode(
+    hlm: Array, theta: float, l: int, m: int, sym: bool
+):
+    """
+    Helper function to multiply hlm with Ylm.
+    Adapted from LALSimIMRPhenomInternalUtils.c line 329
+    Will not work for l > 4 at the moment
+    """
+
+    # Compute Y_{l,m}
+    Ylm = jax.lax.switch(
+        l - 2, [compute_sminus2_l2, compute_sminus2_l3, compute_sminus2_l4], theta, m
+    )
+    # Compute Y_{l,-m}
+    Ylmm = jax.lax.switch(
+        l - 2, [compute_sminus2_l2, compute_sminus2_l3, compute_sminus2_l4], theta, -m
+    )
+
+    # (-1)^l factor
+    minus1l = jnp.where(l % 2 == 0, 1.0, -1.0)
+
+    def equatorial_symm_branch():
+        # For phi=0, Y values are real, so conj(Y_{l,-m}) = Y_{l,-m}
+        # factorp = 0.5 * (Y_{l,m} + (-1)^l * conj(Y_{l,-m}))
+        # factorc = -i * 0.5 * (Y_{l,m} - (-1)^l * conj(Y_{l,-m}))
+        factorp = 0.5 * (Ylm + minus1l * Ylmm)
+        factorc_real = -0.5 * (
+            Ylm - minus1l * Ylmm
+        )  # This is the imaginary part since we multiply by -i
+
+        hp = factorp * hlm
+        hc = 1j * factorc_real * hlm  # -i * (Y - ...) = i * (-(Y - ...))
+        return hp, hc
+
+    def no_equatorial_symm_branch():
+        # factorp = 0.5 * Y_{l,m}
+        # factorc = -i * 0.5 * Y_{l,m}
+        factorp = 0.5 * Ylm
+        hp = factorp * hlm
+        hc = 1j * (-0.5 * Ylm) * hlm  # -i * 0.5 * Ylm * hlm
+        return hp, hc
+
+    return jax.lax.cond(
+        sym,
+        equatorial_symm_branch,
+        no_equatorial_symm_branch,
+    )
+
+
 def XLALSimIMRPhenomHMGethlmModes(
     freqs: Array,
     m1_SI: float,
@@ -4650,8 +4251,11 @@ def init_PhenomHM_Storage(
     # Maximum ell=4, mm=4, so we need a 5x5 array (indices 0-4)
     # IMPORTANT: Build the map dynamically based on the actual ModeArray order
     mode_index_map = jnp.full((5, 5), -1, dtype=jnp.int32)
-    for idx, (ell_val, mm_val) in enumerate(ModeArray):
-        mode_index_map = mode_index_map.at[int(ell_val), int(mm_val)].set(idx)
+    ell_vals = ModeArray[:, 0].astype(jnp.int32)
+    mm_vals = ModeArray[:, 1].astype(jnp.int32)
+    mode_index_map = mode_index_map.at[ell_vals, mm_vals].set(
+        jnp.arange(len(ModeArray))
+    )
     p["mode_index_map"] = mode_index_map
 
     vmapped_IMRPhenomHMGetRingdownFrequency = jax.vmap(
