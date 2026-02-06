@@ -133,6 +133,42 @@ def get_transition_frequencies(
     return f1, f2, f3, f4, f_RD, f_damp
 
 
+def get_transition_frequencies_from_fRD_fdamp(
+    theta: Array, gamma2: float, gamma3: float, f_RD: float, f_damp: float
+) -> Tuple[float, float, float, float, float, float]:
+    """
+    Compute transition frequencies using externally provided fRD and fdamp.
+
+    This is used by IMRPhenomHM where fRD/fdamp are computed using PhenomPv2
+    final spin (with chip) rather than FinalSpin0815 (aligned spin only).
+    """
+    m1, m2, chi1, chi2 = theta
+    M = m1 + m2
+
+    # Phase transition frequencies
+    f1 = 0.018 / (M * MTSUN)
+    f2 = 0.5 * f_RD
+
+    # Amplitude transition frequencies
+    f3 = 0.014 / (M * MTSUN)
+    f4_gammaneg_gtr_1 = lambda f_RD_, f_damp_, gamma3_, gamma2_: jnp.abs(
+        f_RD_ + (-f_damp_ * gamma3_) / gamma2_
+    )
+    f4_gammaneg_less_1 = lambda f_RD_, f_damp_, gamma3_, gamma2_: jnp.abs(
+        f_RD_ + (f_damp_ * (-1 + jnp.sqrt(1 - (gamma2_) ** 2.0)) * gamma3_) / gamma2_
+    )
+    f4 = jax.lax.cond(
+        gamma2 >= 1,
+        f4_gammaneg_gtr_1,
+        f4_gammaneg_less_1,
+        f_RD,
+        f_damp,
+        gamma3,
+        gamma2,
+    )
+    return f1, f2, f3, f4, f_RD, f_damp
+
+
 def get_coeffs(theta: Array) -> Array:
     # Retrives the coefficients needed to produce the waveform
 
