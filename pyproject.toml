@@ -44,6 +44,7 @@ cuda = [
 [dependency-groups]
 dev = [
     "lalsuite",
+    "pandas>=2.0.0",
     "pre-commit>=4.2.0",
     "coverage>=7.7.0",
     "coveralls>=4.0.1",
@@ -63,6 +64,7 @@ build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+norecursedirs = ["tests/cross_validation", "tests/benchmarks"]
 
 [tool.ruff.lint]
 ignore = [
