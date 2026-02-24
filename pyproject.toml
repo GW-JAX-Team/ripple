@@ -7,6 +7,9 @@ requires-python = ">=3.11"
 authors = [
     { name = "Thomas Edwards", email = "tedwards2412@gmail.com" },
 ]
+maintainers = [
+  {name = "Thomas Ng", email = "thomas.ng@nikhef.nl"}
+]
 license = { file = "LICENSE" }
 keywords = ["gravitational waves", "jax"]
 classifiers = [
