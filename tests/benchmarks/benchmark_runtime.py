@@ -27,8 +27,7 @@ import numpy as np
 # Add parent directory to path to import from tests
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from ripplegw import ms_to_Mc_eta, lambdas_to_lambda_tildes
-from ripplegw.constants import PI
+from ripplegw.conversions import ms_to_Mc_eta, lambdas_to_lambda_tildes
 from tests.utils import (
     check_is_tidal,
     check_is_precessing,
@@ -161,14 +160,24 @@ def benchmark_waveform_ripple(
     # Convert to ripple format
     theta_batch_ripple = []
     for theta_lal in theta_batch_lal:
-        if is_precessing:
-            # TODO: Implement precessing parameter conversion
-            raise NotImplementedError("Precessing waveforms not yet supported in benchmarks")
-        else:
-            m1 = theta_lal[0]
-            m2 = theta_lal[1]
-            Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
+        m1 = theta_lal[0]
+        m2 = theta_lal[1]
+        Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
 
+        if is_precessing:
+            # theta_lal = [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
+            # Ripple IMRPhenomPv2 expects [Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
+            s1x, s1y, s1z = theta_lal[2], theta_lal[3], theta_lal[4]
+            s2x, s2y, s2z = theta_lal[5], theta_lal[6], theta_lal[7]
+            dist_mpc = theta_lal[8]
+            tc = theta_lal[9]
+            phic = theta_lal[10]
+            inclination = theta_lal[11]
+            theta_ripple = jnp.array(
+                [Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, tc, phic, inclination]
+            )
+            theta_batch_ripple.append(theta_ripple)
+        else:
             if is_tidal:
                 s1z = theta_lal[2]
                 s2z = theta_lal[3]
@@ -206,7 +215,7 @@ def benchmark_waveform_ripple(
 
             theta_batch_ripple.append(theta_ripple)
 
-    theta_batch_ripple = jnp.array(theta_batch_ripple)
+    theta_batch_ripple = jnp.array(theta_batch_ripple)  # type: ignore[assignment]
 
     # Get waveform function
     waveform = get_jitted_waveform(waveform_name, fs, f_ref)
@@ -303,13 +312,40 @@ def benchmark_waveform_lal(
 
     def generate_lal_waveform(theta):
         """Generate a single LAL waveform."""
-        if is_precessing:
-            # TODO: Implement precessing
-            raise NotImplementedError("Precessing waveforms not yet supported")
-        else:
-            m1_kg = theta[0] * lal.MSUN_SI
-            m2_kg = theta[1] * lal.MSUN_SI
+        m1_kg = theta[0] * lal.MSUN_SI
+        m2_kg = theta[1] * lal.MSUN_SI
 
+        if is_precessing:
+            # theta = [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
+            s1x, s1y, s1z = theta[2], theta[3], theta[4]
+            s2x, s2y, s2z = theta[5], theta[6], theta[7]
+            distance = theta[8] * 1e6 * lal.PC_SI
+            phi_ref = theta[10]
+            inclination = theta[11]
+
+            lalsim.SimInspiralChooseFDWaveform(
+                m1_kg,
+                m2_kg,
+                s1x,
+                s1y,
+                s1z,
+                s2x,
+                s2y,
+                s2z,
+                distance,
+                inclination,
+                phi_ref,
+                0,
+                0,
+                0,
+                df,
+                f_l,
+                f_u,
+                f_ref,
+                None,
+                approximant,
+            )
+        else:
             if is_tidal:
                 s1z = theta[2]
                 s2z = theta[3]
@@ -381,7 +417,7 @@ ALL_WAVEFORMS = [
     "IMRPhenomD_NRTidalv2",
     "IMRPhenomXAS_NRTidalv3",
     "TaylorF2",
-    # "IMRPhenomPv2",  # TODO: Add precessing support
+    "IMRPhenomPv2",
 ]
 
 
