@@ -466,7 +466,7 @@ def main():
 
     # Default output location
     if args.output is None:
-        output_file = Path(__file__).parent / "benchmark_results.json"
+        output_file = Path(__file__).parent / "results" / "benchmark_results.json"
     else:
         output_file = Path(args.output)
 
