@@ -237,7 +237,7 @@ def psd_data():
     ],
 )
 def test_waveform_mismatch(
-    waveform_name, bounds, n_samples, freq_params, psd_data
+    waveform_name, bounds, n_samples, freq_params, psd_data, cross_val_results
 ):
     """Test that ripple waveforms match LALSuite to machine precision.
 
@@ -370,6 +370,22 @@ def test_waveform_mismatch(
         for i, theta, error in failed_params[:5]:  # Print first 5 failures
             print(f"  Sample {i}: {error}")
             print(f"    Params: {theta}")
+
+    # Record stats for the session-level summary
+    cross_val_results.append(
+        {
+            "waveform": waveform_name,
+            "n_samples": n_samples,
+            "n_finite": len(finite_mismatches),
+            "n_failed": len(failed_params),
+            "mean": float(np.mean(finite_mismatches)),
+            "median": float(np.median(finite_mismatches)),
+            "min": float(np.min(finite_mismatches)),
+            "max": float(max_mismatch),
+            "threshold": MISMATCH_THRESHOLD,
+            "passed": len(failed_params) == 0 and max_mismatch < MISMATCH_THRESHOLD,
+        }
+    )
 
     assert (
         len(failed_params) == 0

@@ -1,0 +1,126 @@
+"""Cross-validation test configuration and session summary.
+
+This conftest collects per-waveform mismatch statistics from all
+test_waveform_mismatch runs and prints a formatted summary at the end of the
+session, including hardware information and pass/fail status per waveform.
+"""
+
+import platform
+from datetime import datetime
+
+import jax
+import numpy as np
+import pytest
+
+
+# ---------------------------------------------------------------------------
+# Session-level results store
+# ---------------------------------------------------------------------------
+
+def pytest_configure(config):
+    """Attach a shared results store to the pytest config object."""
+    config._cross_val_results = []
+
+
+@pytest.fixture(scope="session")
+def cross_val_results(request):
+    """Session-scoped list that accumulates per-waveform result dicts.
+
+    Each entry has the shape::
+
+        {
+            "waveform": str,
+            "n_samples": int,
+            "n_finite": int,
+            "n_failed": int,
+            "mean": float,
+            "median": float,
+            "min": float,
+            "max": float,
+            "threshold": float,
+            "passed": bool,
+        }
+    """
+    return request.config._cross_val_results
+
+
+# ---------------------------------------------------------------------------
+# Terminal summary hook
+# ---------------------------------------------------------------------------
+
+def _hardware_info() -> dict:
+    """Collect hardware / runtime information."""
+    devices = jax.devices()
+    device_strs = [str(d) for d in devices]
+
+    return {
+        "host": platform.node(),
+        "os": f"{platform.system()} {platform.release()}",
+        "cpu": platform.processor() or platform.machine(),
+        "python": platform.python_version(),
+        "jax_devices": device_strs,
+        "jax_version": jax.__version__,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+
+
+def pytest_terminal_summary(terminalreporter, exitstatus, config):
+    """Print a cross-validation summary table after all tests finish."""
+    results = getattr(config, "_cross_val_results", [])
+    if not results:
+        return
+
+    hw = _hardware_info()
+
+    # ---- header -----------------------------------------------------------
+    terminalreporter.write_sep("=", "Cross-Validation Summary")
+
+    # ---- hardware block ---------------------------------------------------
+    terminalreporter.write_line("Hardware / Runtime")
+    terminalreporter.write_line(f"  Host       : {hw['host']}")
+    terminalreporter.write_line(f"  OS         : {hw['os']}")
+    terminalreporter.write_line(f"  CPU        : {hw['cpu']}")
+    terminalreporter.write_line(f"  Python     : {hw['python']}")
+    terminalreporter.write_line(f"  JAX        : {hw['jax_version']}")
+    terminalreporter.write_line(f"  Devices    : {', '.join(hw['jax_devices'])}")
+    terminalreporter.write_line(f"  Timestamp  : {hw['timestamp']}")
+    terminalreporter.write_line("")
+
+    # ---- results table ----------------------------------------------------
+    col_w = 26
+    num_w = 12
+    header = (
+        f"{'Waveform':<{col_w}}"
+        f"{'Samples':>{num_w}}"
+        f"{'Failed':>{num_w}}"
+        f"{'Mean':>{num_w}}"
+        f"{'Median':>{num_w}}"
+        f"{'Max':>{num_w}}"
+        f"{'Threshold':>{num_w}}"
+        f"{'Status':>{10}}"
+    )
+    terminalreporter.write_line(header)
+    terminalreporter.write_line("-" * (col_w + num_w * 6 + 10))
+
+    all_passed = True
+    for r in results:
+        status = "PASS" if r["passed"] else "FAIL"
+        if not r["passed"]:
+            all_passed = False
+
+        row = (
+            f"{r['waveform']:<{col_w}}"
+            f"{r['n_samples']:>{num_w}}"
+            f"{r['n_failed']:>{num_w}}"
+            f"{r['mean']:>{num_w}.2e}"
+            f"{r['median']:>{num_w}.2e}"
+            f"{r['max']:>{num_w}.2e}"
+            f"{r['threshold']:>{num_w}.2e}"
+            f"{status:>{10}}"
+        )
+        terminalreporter.write_line(row)
+
+    terminalreporter.write_line("-" * (col_w + num_w * 6 + 10))
+    overall = "ALL PASSED" if all_passed else "SOME FAILED"
+    terminalreporter.write_line(f"Overall: {overall}")
+    terminalreporter.write_sep("=", "")
