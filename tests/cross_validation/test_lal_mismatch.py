@@ -469,7 +469,7 @@ def test_waveform_mismatch(
             "min": float(np.min(finite_mismatches)),
             "max": float(max_mismatch),
             "threshold": mismatch_threshold,
-            "passed": len(failed_params) == 0 and max_mismatch < mismatch_threshold,
+            "passed": bool(len(failed_params) == 0 and max_mismatch < mismatch_threshold),
         }
     )
 

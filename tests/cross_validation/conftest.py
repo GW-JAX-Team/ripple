@@ -72,7 +72,7 @@ def _hardware_info() -> dict:
     devices = jax.devices()
     device_strs = [str(d) for d in devices]
 
-    x64_enabled = jax.config.jax_enable_x64
+    x64_enabled = bool(jax.config.jax_enable_x64)
     # Confirm the actual floating-point dtype in use
     float_dtype = str(jnp.zeros(1).dtype)  # "float64" or "float32"
 
