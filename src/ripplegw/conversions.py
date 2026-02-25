@@ -47,9 +47,7 @@ def ms_to_Mc_eta(m):
 # ---------------------------------------------------------------------------
 
 
-def _compute_lambda_tildes_from_eta(
-    eta: Array, lambda_1: Array, lambda_2: Array
-):
+def _compute_lambda_tildes_from_eta(eta: Array, lambda_1: Array, lambda_2: Array):
     """Core tidal conversion: individual lambdas → (lambda_tilde, delta_lambda_tilde) given eta."""
     lambda_plus = lambda_1 + lambda_2
     lambda_minus = lambda_1 - lambda_2
