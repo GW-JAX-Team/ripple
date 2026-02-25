@@ -5,19 +5,15 @@ This module contains common utilities used across different test categories:
 - Waveform detection and loading
 - LALSuite waveform generation (when available)
 - Match computation and inner products
-- PSD loading
 - Random parameter generation
 """
 
-import os
-from pathlib import Path
 from typing import Optional
 
 import jax
 import jax.numpy as jnp
 import numpy as np
 
-from ripplegw import ms_to_Mc_eta, lambdas_to_lambda_tildes
 from ripplegw.constants import PI
 
 # Check if LALSuite is available
@@ -371,30 +367,6 @@ def compute_match(
     h1_h2 = noise_weighted_inner_product(h1, h2, psd, frequencies)
     match = h1_h2 / jnp.sqrt(h1_sq * h2_sq)
     return match.real
-
-
-def load_psd(name: str) -> tuple[np.ndarray, np.ndarray]:
-    """Load a PSD file from the tests/psds/ directory.
-
-    Args:
-        name: Name of the PSD file (e.g., 'psd.txt', 'ET-D-psd.txt').
-
-    Returns:
-        Tuple of (frequencies, PSD values).
-
-    Raises:
-        FileNotFoundError: If the PSD file does not exist.
-    """
-    # Try loading from current directory first, then relative to tests directory
-    psd_path = Path(name)
-    if not psd_path.exists():
-        psd_path = Path(__file__).parent / "psds" / name
-    if not psd_path.exists():
-        raise FileNotFoundError(f"PSD file not found: {name}")
-
-    freqs, *psd_arrs = np.loadtxt(psd_path, unpack=True)
-    psd = psd_arrs[0]
-    return freqs, psd
 
 
 def generate_random_params(

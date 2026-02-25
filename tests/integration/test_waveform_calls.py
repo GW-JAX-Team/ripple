@@ -11,8 +11,7 @@ import jax
 import jax.numpy as jnp
 import pytest
 
-from ripplegw import ms_to_Mc_eta, lambdas_to_lambda_tildes
-from ripplegw.constants import PI
+from ripplegw.conversions import ms_to_Mc_eta, lambdas_to_lambda_tildes
 
 jax.config.update("jax_enable_x64", True)
 
@@ -193,7 +192,7 @@ def test_imrphenomd_grad(test_freq_grid, bbh_aligned_params):
 
 
 # ============================================================================
-# Test IMRPhenomXAS (aligned-spin BBH, newer)
+# Test IMRPhenomXAS (aligned-spin BBH)
 # ============================================================================
 
 
@@ -342,7 +341,7 @@ def test_imrphenomd_nrtidalv2_vmap(test_freq_grid, bns_tidal_params):
 
 
 # ============================================================================
-# Test IMRPhenomXAS_NRTidalv3 (BNS with tidal, newer)
+# Test IMRPhenomXAS_NRTidalv3 (BNS with tidal)
 # ============================================================================
 
 

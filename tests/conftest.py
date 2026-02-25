@@ -1,12 +1,12 @@
 """Shared pytest fixtures for ripple tests.
 
 This module provides fixtures for common test setup, including default
-frequency grid parameters and PSD loading.
+frequency grid parameters.
 """
 
 import pytest
 
-from tests.utils import get_freqs, load_psd
+from tests.utils import get_freqs
 
 
 @pytest.fixture
@@ -39,22 +39,3 @@ def freq_grid(default_freq_params):
         default_freq_params["T"],
     )
 
-
-@pytest.fixture
-def default_psd():
-    """Load the default PSD for testing.
-
-    Returns:
-        Tuple of (frequencies, PSD values).
-    """
-    return load_psd("psd.txt")
-
-
-@pytest.fixture
-def et_psd():
-    """Load the Einstein Telescope PSD for testing.
-
-    Returns:
-        Tuple of (frequencies, PSD values).
-    """
-    return load_psd("ET-D-psd.txt")
