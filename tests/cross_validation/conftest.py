@@ -22,6 +22,21 @@ def pytest_configure(config):
     config._cross_val_results = []
 
 
+def pytest_addoption(parser):
+    """Register --n-samples CLI option."""
+    parser.addoption(
+        "--n-samples",
+        type=int,
+        default=10,
+        help="Number of random parameter sets per waveform (default: 10; use 200 for a full run)",
+    )
+
+
+@pytest.fixture(scope="session")
+def n_samples(request):
+    """Number of random samples to test per waveform (set via --n-samples)."""
+    return request.config.getoption("--n-samples")
+
 @pytest.fixture(scope="session")
 def cross_val_results(request):
     """Session-scoped list that accumulates per-waveform result dicts.

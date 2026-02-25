@@ -62,8 +62,8 @@ BBH_BOUNDS = {
     "d_L": [100.0, 1000.0],  # Distance (Mpc)
 }
 
-# Number of random samples to test (can be overridden with pytest --count=N)
-N_SAMPLES = 200
+# Maximum number of random samples when running the full suite
+N_SAMPLES_FULL = 200
 
 # Common mismatch threshold for all waveform types
 MISMATCH_THRESHOLD = 1e-10
@@ -226,14 +226,14 @@ def psd_data():
 
 
 @pytest.mark.parametrize(
-    "waveform_name,bounds,n_samples",
+    "waveform_name,bounds",
     [
-        ("IMRPhenomD", BBH_BOUNDS, N_SAMPLES),
-        ("IMRPhenomXAS", BBH_BOUNDS, N_SAMPLES),
-        ("IMRPhenomD_NRTidalv2", DEFAULT_BOUNDS, N_SAMPLES),
-        ("IMRPhenomXAS_NRTidalv3", DEFAULT_BOUNDS, N_SAMPLES),
-        ("TaylorF2", DEFAULT_BOUNDS, N_SAMPLES),
-        ("IMRPhenomPv2", BBH_BOUNDS, N_SAMPLES),
+        ("IMRPhenomD", BBH_BOUNDS),
+        ("IMRPhenomXAS", BBH_BOUNDS),
+        ("IMRPhenomD_NRTidalv2", DEFAULT_BOUNDS),
+        ("IMRPhenomXAS_NRTidalv3", DEFAULT_BOUNDS),
+        ("TaylorF2", DEFAULT_BOUNDS),
+        ("IMRPhenomPv2", BBH_BOUNDS),
     ],
 )
 def test_waveform_mismatch(
