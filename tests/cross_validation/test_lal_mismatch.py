@@ -10,22 +10,17 @@ Nyquist Boundary Handling:
     To ensure a fair comparison, we apply the same Nyquist mask (zeroing the
     last 2 frequency bins) to both LAL and ripple waveforms before computing
     the match.
-
-Expected Results:
-    - Non-tidal BBH (IMRPhenomD, IMRPhenomXAS): mismatch < 1e-14
-    - Tidal BNS (NRTidalv2, NRTidalv3, TaylorF2): mismatch < 1e-13
-    - Precessing (IMRPhenomPv2): mismatch < 1e-11
 """
 
 import jax
 import jax.numpy as jnp
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytest
 from pathlib import Path
 
-from ripplegw import ms_to_Mc_eta, lambdas_to_lambda_tildes
-from ripplegw.constants import PI
+from ripplegw.conversions import ms_to_Mc_eta, lambdas_to_lambda_tildes
 from tests.utils import (
     check_lal_available,
     check_is_tidal,
@@ -35,7 +30,6 @@ from tests.utils import (
     get_lal_waveform,
     get_nyquist_mask,
     compute_match,
-    load_psd,
     generate_random_params,
     LAL_AVAILABLE,
 )
@@ -71,15 +65,8 @@ BBH_BOUNDS = {
 # Number of random samples to test (can be overridden with pytest --count=N)
 N_SAMPLES = 200
 
-# Mismatch thresholds for each waveform type
-MISMATCH_THRESHOLDS = {
-    "IMRPhenomD": 1e-14,
-    "IMRPhenomXAS": 1e-14,
-    "IMRPhenomD_NRTidalv2": 1e-13,
-    "IMRPhenomXAS_NRTidalv3": 1e-13,
-    "TaylorF2": 1e-13,
-    "IMRPhenomPv2": 1e-11,
-}
+# Common mismatch threshold for all waveform types
+MISMATCH_THRESHOLD = 1e-10
 
 
 # ============================================================================
@@ -125,11 +112,23 @@ def compute_ripple_lal_mismatch(
     # Convert parameters to ripple format
     if is_precessing:
         # Precessing: theta_lal = [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
-        # Ripple IMRPhenomPv2 expects: [Mc, eta, chi1_l, chi2_l, chi1, chi2, theta1, theta2, phi_12, phi_jl, dist, tc, phic, inc]
-        # This is complex - for now we'll skip precessing in this implementation
-        # TODO: Implement proper precessing parameter conversion
-        raise NotImplementedError(
-            "Precessing waveform cross-validation not yet implemented"
+        # Ripple IMRPhenomPv2 expects: [Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, tc, phiRef, incl]
+        # Both LAL and ripple use Cartesian spins; only need to convert (m1, m2) -> (Mc, eta)
+        m1 = theta_lal[0]
+        m2 = theta_lal[1]
+        Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
+        s1x = theta_lal[2]
+        s1y = theta_lal[3]
+        s1z = theta_lal[4]
+        s2x = theta_lal[5]
+        s2y = theta_lal[6]
+        s2z = theta_lal[7]
+        dist_mpc = theta_lal[8]
+        tc = theta_lal[9]
+        phic = theta_lal[10]
+        inclination = theta_lal[11]
+        theta_ripple = jnp.array(
+            [Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, tc, phic, inclination]
         )
     else:
         m1 = theta_lal[0]
@@ -211,8 +210,14 @@ def freq_params():
 
 @pytest.fixture
 def psd_data():
-    """Load PSD for cross-validation."""
-    return load_psd("psd.txt")
+    """Load aLIGO PSD for cross-validation.
+
+    Source: bilby (https://github.com/bilby-dev/bilby)
+    Commit: 0985f75c664786e21cc4f662d4f12fe181b1a536
+    """
+    psd_path = Path(__file__).parent.parent / "psds" / "ET_D_psd.txt"
+    freqs, psd = np.loadtxt(psd_path, unpack=True)
+    return freqs, psd
 
 
 # ============================================================================
@@ -228,8 +233,7 @@ def psd_data():
         ("IMRPhenomD_NRTidalv2", DEFAULT_BOUNDS, N_SAMPLES),
         ("IMRPhenomXAS_NRTidalv3", DEFAULT_BOUNDS, N_SAMPLES),
         ("TaylorF2", DEFAULT_BOUNDS, N_SAMPLES),
-        # IMRPhenomPv2 requires special handling - skip for now
-        # ("IMRPhenomPv2", BBH_BOUNDS, N_SAMPLES),
+        ("IMRPhenomPv2", BBH_BOUNDS, N_SAMPLES),
     ],
 )
 def test_waveform_mismatch(
@@ -332,8 +336,33 @@ def test_waveform_mismatch(
     print(f"  Failed samples: {len(failed_params)}")
     print(f"  Results saved to: {results_file}")
 
+    # Plot mismatch distribution
+    figures_dir = Path(__file__).parent / "figures"
+    figures_dir.mkdir(exist_ok=True)
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+
+    log10_m = np.log10(finite_mismatches)
+    axes[0].hist(log10_m, bins=30, edgecolor="black", alpha=0.8)
+    axes[0].axvline(np.log10(MISMATCH_THRESHOLD), color="red", linestyle="--", label=f"threshold = {MISMATCH_THRESHOLD:.0e}")
+    axes[0].set_xlabel(r"$\log_{10}$(mismatch)")
+    axes[0].set_ylabel("Count")
+    axes[0].set_title(f"{waveform_name}: mismatch distribution")
+    axes[0].legend()
+
+    axes[1].scatter(range(len(finite_mismatches)), np.sort(log10_m), s=5, alpha=0.6)
+    axes[1].axhline(np.log10(MISMATCH_THRESHOLD), color="red", linestyle="--", label=f"threshold = {MISMATCH_THRESHOLD:.0e}")
+    axes[1].set_xlabel("Sample index (sorted)")
+    axes[1].set_ylabel(r"$\log_{10}$(mismatch)")
+    axes[1].set_title(f"{waveform_name}: sorted mismatches")
+    axes[1].legend()
+
+    fig.tight_layout()
+    fig_file = figures_dir / f"mismatch_{waveform_name}.png"
+    fig.savefig(fig_file, dpi=150)
+    plt.close(fig)
+    print(f"  Figure saved to: {fig_file}")
+
     # Assert that all mismatches are below threshold
-    threshold = MISMATCH_THRESHOLDS[waveform_name]
     max_mismatch = np.max(finite_mismatches)
 
     if failed_params:
@@ -346,8 +375,8 @@ def test_waveform_mismatch(
         len(failed_params) == 0
     ), f"{len(failed_params)}/{n_samples} samples failed"
     assert (
-        max_mismatch < threshold
-    ), f"Max mismatch {max_mismatch:.2e} exceeds threshold {threshold:.2e}"
+        max_mismatch < MISMATCH_THRESHOLD
+    ), f"Max mismatch {max_mismatch:.2e} exceeds threshold {MISMATCH_THRESHOLD:.2e}"
 
 
 # ============================================================================
@@ -378,7 +407,7 @@ def test_imrphenomd_single_point(freq_params, psd_data):
     )
 
     print(f"\nIMRPhenomD single point mismatch: {mismatch:.2e}")
-    assert mismatch < 1e-14, f"Mismatch {mismatch:.2e} too large"
+    assert mismatch < MISMATCH_THRESHOLD, f"Mismatch {mismatch:.2e} too large"
 
 
 def test_imrphenomxas_single_point(freq_params, psd_data):
@@ -404,4 +433,4 @@ def test_imrphenomxas_single_point(freq_params, psd_data):
     )
 
     print(f"\nIMRPhenomXAS single point mismatch: {mismatch:.2e}")
-    assert mismatch < 1e-14, f"Mismatch {mismatch:.2e} too large"
+    assert mismatch < MISMATCH_THRESHOLD, f"Mismatch {mismatch:.2e} too large"

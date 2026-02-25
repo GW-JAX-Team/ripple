@@ -47,6 +47,7 @@ cuda = [
 [dependency-groups]
 dev = [
     "lalsuite",
+    "matplotlib>=3.7.0",
     "pandas>=2.0.0",
     "pre-commit>=4.2.0",
     "coverage>=7.7.0",
