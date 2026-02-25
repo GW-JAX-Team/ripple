@@ -5,8 +5,10 @@ test_waveform_mismatch runs and prints a formatted summary at the end of the
 session, including hardware information and pass/fail status per waveform.
 """
 
+import json
 import platform
 from datetime import datetime
+from pathlib import Path
 
 import jax
 import numpy as np
@@ -65,8 +67,14 @@ def cross_val_results(request):
 
 def _hardware_info() -> dict:
     """Collect hardware / runtime information."""
+    import jax.numpy as jnp
+
     devices = jax.devices()
     device_strs = [str(d) for d in devices]
+
+    x64_enabled = jax.config.jax_enable_x64
+    # Confirm the actual floating-point dtype in use
+    float_dtype = str(jnp.zeros(1).dtype)  # "float64" or "float32"
 
     return {
         "host": platform.node(),
@@ -75,6 +83,8 @@ def _hardware_info() -> dict:
         "python": platform.python_version(),
         "jax_devices": device_strs,
         "jax_version": jax.__version__,
+        "float_dtype": float_dtype,
+        "x64_enabled": x64_enabled,
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
 
@@ -98,6 +108,7 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     terminalreporter.write_line(f"  Python     : {hw['python']}")
     terminalreporter.write_line(f"  JAX        : {hw['jax_version']}")
     terminalreporter.write_line(f"  Devices    : {', '.join(hw['jax_devices'])}")
+    terminalreporter.write_line(f"  Precision  : {hw['float_dtype']} (x64_enabled={hw['x64_enabled']})")
     terminalreporter.write_line(f"  Timestamp  : {hw['timestamp']}")
     terminalreporter.write_line("")
 
@@ -139,3 +150,15 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     overall = "ALL PASSED" if all_passed else "SOME FAILED"
     terminalreporter.write_line(f"Overall: {overall}")
     terminalreporter.write_sep("=", "")
+
+    # ---- persist metadata to disk ----------------------------------------
+    results_dir = Path(__file__).parent / "results"
+    results_dir.mkdir(exist_ok=True)
+    metadata = {
+        "hardware": hw,
+        "waveforms": results,
+    }
+    metadata_file = results_dir / "metadata.json"
+    with open(metadata_file, "w") as f:
+        json.dump(metadata, f, indent=2)
+    terminalreporter.write_line(f"Metadata saved to: {metadata_file}")
