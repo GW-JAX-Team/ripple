@@ -154,11 +154,11 @@ def get_jitted_waveform(waveform_name: str, fs: jnp.ndarray, f_ref: float):
             return hp
 
     elif waveform_name == "IMRPhenomPv2":
-        from ripplegw.waveforms.IMRPhenomPv2 import gen_IMRPhenomPv2
+        from ripplegw.waveforms.IMRPhenomPv2 import gen_IMRPhenomPv2_hphc as waveform_generator
 
         @jax.jit
         def waveform(theta):
-            hp, hc = gen_IMRPhenomPv2(fs, theta, f_ref)
+            hp, _ = waveform_generator(fs, theta, f_ref)
             return hp
 
     elif waveform_name == "SineGaussian":
@@ -337,7 +337,8 @@ def noise_weighted_inner_product(
         frequencies: Frequency array.
 
     Returns:
-        Noise-weighted inner product (h1|h2).
+        Noise-weighted inner product (h1|h2), real part only.
+        Use noise_weighted_inner_product_complex for phase-sensitive operations.
     """
     from jax.scipy.integrate import trapezoid
 
@@ -345,13 +346,23 @@ def noise_weighted_inner_product(
     return 4 * trapezoid(integrand, x=frequencies, axis=-1).real
 
 
+def _noise_weighted_inner_product_complex(
+    h1: jnp.ndarray, h2: jnp.ndarray, psd: jnp.ndarray, frequencies: jnp.ndarray
+) -> complex:
+    """Complex noise-weighted inner product, retaining phase information."""
+    from jax.scipy.integrate import trapezoid
+
+    integrand = jnp.conj(h1) * h2 / psd
+    return 4 * trapezoid(integrand, x=frequencies, axis=-1)
+
+
 def compute_match(
     h1: jnp.ndarray, h2: jnp.ndarray, psd: jnp.ndarray, frequencies: jnp.ndarray
 ) -> float:
     """Compute the match between two waveforms.
 
-    The match is defined as the normalized inner product:
-        match = (h1|h2) / sqrt((h1|h1) * (h2|h2))
+    The match is phase-maximized: match = |<h1|h2>| / sqrt(<h1|h1> * <h2|h2>),
+    which corresponds to maximizing over a constant phase offset between h1 and h2.
 
     Args:
         h1: First waveform.
@@ -364,9 +375,9 @@ def compute_match(
     """
     h1_sq = noise_weighted_inner_product(h1, h1, psd, frequencies)
     h2_sq = noise_weighted_inner_product(h2, h2, psd, frequencies)
-    h1_h2 = noise_weighted_inner_product(h1, h2, psd, frequencies)
-    match = h1_h2 / jnp.sqrt(h1_sq * h2_sq)
-    return match.real
+    h1_h2 = _noise_weighted_inner_product_complex(h1, h2, psd, frequencies)
+    match = jnp.abs(h1_h2) / jnp.sqrt(h1_sq * h2_sq)
+    return float(match.real)
 
 
 def generate_random_params(
