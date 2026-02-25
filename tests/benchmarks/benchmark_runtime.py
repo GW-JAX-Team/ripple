@@ -223,7 +223,7 @@ def benchmark_waveform_ripple(
     # Warmup: JIT compile and run a few times
     print(f"  Warming up {waveform_name}...")
     for _ in range(n_warmup):
-        hp = waveform(theta_batch_ripple[0])
+        hp, hc = waveform(theta_batch_ripple[0])
         hp.block_until_ready()
 
     # Benchmark single calls
@@ -232,7 +232,7 @@ def benchmark_waveform_ripple(
     for i in range(n_repeats):
         start = time.time()
         for theta in theta_batch_ripple:
-            hp = waveform(theta)
+            hp, hc = waveform(theta)
             hp.block_until_ready()
         end = time.time()
         single_times.append((end - start) / n_params * 1000)  # ms per call
@@ -243,13 +243,13 @@ def benchmark_waveform_ripple(
 
     # Warmup vmap
     for _ in range(n_warmup):
-        hp_batch = waveform_vmapped(theta_batch_ripple)
+        hp_batch, hc_batch = waveform_vmapped(theta_batch_ripple)
         hp_batch.block_until_ready()
 
     vmap_times = []
     for i in range(n_repeats):
         start = time.time()
-        hp_batch = waveform_vmapped(theta_batch_ripple)
+        hp_batch, hc_batch = waveform_vmapped(theta_batch_ripple)
         hp_batch.block_until_ready()
         end = time.time()
         vmap_times.append((end - start) / n_params * 1000)  # ms per call

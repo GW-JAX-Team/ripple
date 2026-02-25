@@ -115,13 +115,16 @@ def compute_ripple_lal_mismatch(
         psd_freqs: PSD frequencies.
 
     Returns:
-        Mismatch (1 - match).
+        Tuple (mismatch_hp, mismatch_hc) where each is 1 - match for the
+        respective polarization. For aligned-spin waveforms hc = i*hp in the
+        frequency domain, so both should agree. For precessing waveforms the
+        two polarizations are independent and both are tested.
     """
     is_tidal = check_is_tidal(waveform_name)
     is_precessing = check_is_precessing(waveform_name)
 
-    # Generate LAL waveform
-    hp_lal = get_lal_waveform(
+    # Generate LAL waveform (both polarizations)
+    hp_lal, hc_lal = get_lal_waveform(
         theta_lal, waveform_name, f_l, f_u, df, f_ref, is_tidal, is_precessing
     )
 
@@ -188,23 +191,27 @@ def compute_ripple_lal_mismatch(
                 [Mc, eta, s1z, s2z, dist_mpc, tc, phic, inclination]
             )
 
-    # Generate ripple waveform
+    # Generate ripple waveform (both polarizations)
     waveform = get_jitted_waveform(waveform_name, fs, f_ref)
-    hp_ripple = waveform(theta_ripple)
+    hp_ripple, hc_ripple = waveform(theta_ripple)
 
-    # Apply Nyquist mask to both waveforms
+    # Apply Nyquist mask to all waveforms
     nyquist_mask = get_nyquist_mask(fs)
     hp_lal_masked = jnp.array(hp_lal) * nyquist_mask
+    hc_lal_masked = jnp.array(hc_lal) * nyquist_mask
     hp_ripple_masked = hp_ripple * nyquist_mask
+    hc_ripple_masked = hc_ripple * nyquist_mask
 
     # Interpolate PSD to ripple frequency grid
     psd_interp = jnp.interp(fs, psd_freqs, psd)
 
-    # Compute match
-    match = compute_match(hp_ripple_masked, hp_lal_masked, psd_interp, fs)
-    mismatch = 1.0 - match
+    # Compute match for both polarizations
+    match_hp = compute_match(hp_ripple_masked, hp_lal_masked, psd_interp, fs)
+    match_hc = compute_match(hc_ripple_masked, hc_lal_masked, psd_interp, fs)
+    mismatch_hp = 1.0 - match_hp
+    mismatch_hc = 1.0 - match_hc
 
-    return mismatch
+    return mismatch_hp, mismatch_hc
 
 
 # ============================================================================
@@ -282,25 +289,31 @@ def test_waveform_mismatch(
     )
 
     # Compute mismatches for all samples
-    mismatches = []
+    mismatches_hp = []
+    mismatches_hc = []
     failed_params = []
 
     for i, theta_lal in enumerate(theta_batch):
         try:
-            mismatch = compute_ripple_lal_mismatch(
+            mismatch_hp, mismatch_hc = compute_ripple_lal_mismatch(
                 waveform_name, theta_lal, fs, f_l, f_u, df, f_ref, psd, psd_freqs
             )
-            mismatches.append(mismatch)
+            mismatches_hp.append(mismatch_hp)
+            mismatches_hc.append(mismatch_hc)
 
             # Check NaN/Inf
-            if not np.isfinite(mismatch):
+            if not np.isfinite(mismatch_hp) or not np.isfinite(mismatch_hc):
                 failed_params.append((i, theta_lal, "NaN/Inf mismatch"))
 
         except Exception as e:
             failed_params.append((i, theta_lal, str(e)))
-            mismatches.append(np.nan)
+            mismatches_hp.append(np.nan)
+            mismatches_hc.append(np.nan)
 
-    mismatches = np.array(mismatches)
+    mismatches_hp = np.array(mismatches_hp)
+    mismatches_hc = np.array(mismatches_hc)
+    # Worst-case mismatch over both polarizations
+    mismatches = np.maximum(mismatches_hp, mismatches_hc)
     finite_mismatches = mismatches[np.isfinite(mismatches)]
 
     # Save results to CSV
@@ -321,6 +334,8 @@ def test_waveform_mismatch(
             "tc": theta_batch[:, 7],
             "phi_ref": theta_batch[:, 8],
             "inclination": theta_batch[:, 9],
+            "mismatch_hp": mismatches_hp,
+            "mismatch_hc": mismatches_hc,
             "mismatch": mismatches,
         }
     elif is_precessing:
@@ -338,6 +353,8 @@ def test_waveform_mismatch(
             "tc": theta_batch[:, 9],
             "phi_ref": theta_batch[:, 10],
             "inclination": theta_batch[:, 11],
+            "mismatch_hp": mismatches_hp,
+            "mismatch_hc": mismatches_hc,
             "mismatch": mismatches,
         }
     else:
@@ -350,6 +367,8 @@ def test_waveform_mismatch(
             "tc": theta_batch[:, 5],
             "phi_ref": theta_batch[:, 6],
             "inclination": theta_batch[:, 7],
+            "mismatch_hp": mismatches_hp,
+            "mismatch_hc": mismatches_hc,
             "mismatch": mismatches,
         }
 

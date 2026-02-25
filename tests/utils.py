@@ -102,7 +102,7 @@ def get_jitted_waveform(waveform_name: str, fs: jnp.ndarray, f_ref: float):
         f_ref: Reference frequency (Hz).
 
     Returns:
-        JIT-compiled waveform function that takes theta and returns hp.
+        JIT-compiled waveform function that takes theta and returns (hp, hc).
 
     Raises:
         ValueError: If the waveform is not supported.
@@ -112,8 +112,8 @@ def get_jitted_waveform(waveform_name: str, fs: jnp.ndarray, f_ref: float):
 
         @jax.jit
         def waveform(theta):
-            hp, _ = waveform_generator(fs, theta, f_ref)
-            return hp
+            hp, hc = waveform_generator(fs, theta, f_ref)
+            return hp, hc
 
     elif waveform_name == "IMRPhenomD_NRTidalv2":
         from ripplegw.waveforms.IMRPhenomD_NRTidalv2 import (
@@ -122,8 +122,8 @@ def get_jitted_waveform(waveform_name: str, fs: jnp.ndarray, f_ref: float):
 
         @jax.jit
         def waveform(theta):
-            hp, _ = waveform_generator(fs, theta, f_ref)
-            return hp
+            hp, hc = waveform_generator(fs, theta, f_ref)
+            return hp, hc
 
     elif waveform_name == "IMRPhenomXAS":
         from ripplegw.waveforms.IMRPhenomXAS import (
@@ -132,8 +132,8 @@ def get_jitted_waveform(waveform_name: str, fs: jnp.ndarray, f_ref: float):
 
         @jax.jit
         def waveform(theta):
-            hp, _ = waveform_generator(fs, theta, f_ref)
-            return hp
+            hp, hc = waveform_generator(fs, theta, f_ref)
+            return hp, hc
 
     elif waveform_name == "IMRPhenomXAS_NRTidalv3":
         from ripplegw.waveforms.IMRPhenomXAS_NRTidalv3 import (
@@ -142,32 +142,32 @@ def get_jitted_waveform(waveform_name: str, fs: jnp.ndarray, f_ref: float):
 
         @jax.jit
         def waveform(theta):
-            hp, _ = waveform_generator(fs, theta, f_ref)
-            return hp
+            hp, hc = waveform_generator(fs, theta, f_ref)
+            return hp, hc
 
     elif waveform_name == "TaylorF2":
         from ripplegw.waveforms.TaylorF2 import gen_TaylorF2_hphc as waveform_generator
 
         @jax.jit
         def waveform(theta):
-            hp, _ = waveform_generator(fs, theta, f_ref)
-            return hp
+            hp, hc = waveform_generator(fs, theta, f_ref)
+            return hp, hc
 
     elif waveform_name == "IMRPhenomPv2":
         from ripplegw.waveforms.IMRPhenomPv2 import gen_IMRPhenomPv2_hphc as waveform_generator
 
         @jax.jit
         def waveform(theta):
-            hp, _ = waveform_generator(fs, theta, f_ref)
-            return hp
+            hp, hc = waveform_generator(fs, theta, f_ref)
+            return hp, hc
 
     elif waveform_name == "SineGaussian":
         from ripplegw.waveforms.SineGaussian import gen_SineGaussian_hphc
 
         @jax.jit
         def waveform(theta):
-            hp, _ = gen_SineGaussian_hphc(fs, theta)
-            return hp
+            hp, hc = gen_SineGaussian_hphc(fs, theta)
+            return hp, hc
 
     else:
         raise ValueError(f"Waveform approximant {waveform_name} not supported by ripple")
@@ -199,7 +199,7 @@ def get_lal_waveform(
         is_precessing: Whether the waveform includes precession.
 
     Returns:
-        LAL waveform strain (hp) evaluated on the frequency grid.
+        Tuple (hp, hc) of LAL waveform strains evaluated on the frequency grid.
 
     Raises:
         ImportError: If LALSuite is not available.
@@ -224,7 +224,7 @@ def get_lal_waveform(
         phi_ref = theta[10]
         inclination = theta[11]
 
-        hp, _ = lalsim.SimInspiralChooseFDWaveform(
+        hp, hc = lalsim.SimInspiralChooseFDWaveform(
             m1_kg,
             m2_kg,
             s1x,
@@ -276,7 +276,7 @@ def get_lal_waveform(
             inclination = theta[7]
             laldict = None
 
-        hp, _ = lalsim.SimInspiralChooseFDWaveform(
+        hp, hc = lalsim.SimInspiralChooseFDWaveform(
             m1_kg,
             m2_kg,
             0.0,
@@ -303,8 +303,9 @@ def get_lal_waveform(
     freqs_lal = np.arange(len(hp.data.data)) * df
     mask_lal = (freqs_lal > f_l) & (freqs_lal < f_u)
     hp_lalsuite = hp.data.data[mask_lal]
+    hc_lalsuite = hc.data.data[mask_lal]
 
-    return hp_lalsuite
+    return hp_lalsuite, hc_lalsuite
 
 
 def get_nyquist_mask(frequencies: jnp.ndarray, n_bins: int = 2) -> jnp.ndarray:
