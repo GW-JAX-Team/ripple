@@ -13,7 +13,7 @@ from .IMRPhenomD_utils import (
 from .IMRPhenomD_QNMdata import fM_CUT
 from ..constants import EulerGamma, MTSUN, MPC, C, PI
 from jaxtyping import Array
-from ripplegw import Mc_eta_to_ms
+from ripplegw.conversions import Mc_eta_to_ms
 
 
 def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
@@ -422,8 +422,8 @@ def Phase(f: Array, theta: Array, coeffs: Array, transition_freqs: Array) -> Arr
     beta1_correction = dphi_Ins_f1 - dphi_IIa_f1
     beta0 = phi_Ins_f1 - beta1_correction * (f1 * M_s) - phi_IIa_f1
 
-    phi_IIa_func = (
-        lambda fM_s: get_IIa_raw_phase(fM_s, theta, coeffs) + beta1_correction * fM_s
+    phi_IIa_func = lambda fM_s: (
+        get_IIa_raw_phase(fM_s, theta, coeffs) + beta1_correction * fM_s
     )
     phi_IIa = phi_IIa_func(f * M_s) + beta0
 
@@ -490,7 +490,7 @@ def Amp(
     Amp_IIb = get_IIb_Amp(f * M_s, theta, coeffs, f_RD, f_damp)
 
     # And now we can combine them by multiplying by a set of heaviside functions
-    fcut_above = lambda f: (fM_CUT / M_s)
+    fcut_above = lambda f: fM_CUT / M_s
     fcut_below = lambda f: f[jnp.abs(f - (fM_CUT / M_s)).argmin() - 1]
     fcut_true = jax.lax.cond((fM_CUT / M_s) > f[-1], fcut_above, fcut_below, f)
     Amp = (
@@ -531,7 +531,7 @@ def _gen_IMRPhenomD(
     Psi -= t0 * ((f * M_s) - Mf_ref) + Psi_ref
     ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] - 2 * theta_extrinsic[2]
     Psi += ext_phase_contrib
-    fcut_above = lambda f: (fM_CUT / M_s)
+    fcut_above = lambda f: fM_CUT / M_s
     fcut_below = lambda f: f[jnp.abs(f - (fM_CUT / M_s)).argmin() - 1]
     fcut_true = jax.lax.cond((fM_CUT / M_s) > f[-1], fcut_above, fcut_below, f)
     # fcut_true = f[jnp.abs(f - (fM_CUT / M_s)).argmin() - 1]
