@@ -459,7 +459,7 @@ def main():
         "--output",
         type=str,
         default=None,
-        help="Output JSON file (default: tests/benchmarks/benchmark_results.json)",
+        help="Output JSON file (default: tests/benchmarks/results/benchmark_results.json)",
     )
 
     args = parser.parse_args()
