@@ -100,7 +100,7 @@ def compute_ripple_lal_mismatch(
     f_ref: float,
     psd: np.ndarray,
     psd_freqs: np.ndarray,
-) -> float:
+) -> tuple[float, float]:
     """Compute mismatch between ripple and LAL waveforms.
 
     Args:
@@ -316,6 +316,14 @@ def test_waveform_mismatch(
     mismatches = np.maximum(mismatches_hp, mismatches_hc)
     finite_mismatches = mismatches[np.isfinite(mismatches)]
 
+    n_nonfinite = mismatches.size - finite_mismatches.size
+    assert finite_mismatches.size > 0, (
+        f"All {mismatches.size} per-sample mismatches are non-finite for {waveform_name}. "
+        f"Non-finite count: {n_nonfinite}. "
+        f"Sample mismatches (first 10): {mismatches[:10]}. "
+        f"Failed samples: {len(failed_params)}."
+    )
+
     # Save results to CSV
     results_dir = Path(__file__).parent / "results"
     results_dir.mkdir(exist_ok=True)
@@ -523,9 +531,10 @@ def test_imrphenomd_single_point(freq_params, psd_data):
     # Known-good parameters
     theta_lal = np.array([30.0, 25.0, 0.5, -0.3, 400.0, 0.0, 0.5, 0.8])
 
-    mismatch = compute_ripple_lal_mismatch(
+    mismatch_hp, mismatch_hc = compute_ripple_lal_mismatch(
         waveform_name, theta_lal, fs, f_l, f_u, df, f_ref, psd, psd_freqs
     )
+    mismatch = max(mismatch_hp, mismatch_hc)
 
     print(f"\nIMRPhenomD single point mismatch: {mismatch:.2e}")
     threshold = get_mismatch_threshold(waveform_name)
@@ -550,9 +559,10 @@ def test_imrphenomxas_single_point(freq_params, psd_data):
     # Known-good parameters
     theta_lal = np.array([30.0, 25.0, 0.5, -0.3, 400.0, 0.0, 0.5, 0.8])
 
-    mismatch = compute_ripple_lal_mismatch(
+    mismatch_hp, mismatch_hc = compute_ripple_lal_mismatch(
         waveform_name, theta_lal, fs, f_l, f_u, df, f_ref, psd, psd_freqs
     )
+    mismatch = max(mismatch_hp, mismatch_hc)
 
     print(f"\nIMRPhenomXAS single point mismatch: {mismatch:.2e}")
     threshold = get_mismatch_threshold(waveform_name)

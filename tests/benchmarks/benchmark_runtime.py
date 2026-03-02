@@ -494,6 +494,7 @@ def main():
         print(f"{'=' * 80}")
 
         # Ripple benchmark
+        result = None
         try:
             result = benchmark_waveform_ripple(
                 waveform_name,
@@ -518,15 +519,17 @@ def main():
                 lal_result = benchmark_waveform_lal(waveform_name, n_params=args.n_params)
                 if lal_result:
                     # Merge LAL results into the ripple results
+                    ripple_entry = None
                     for r in results:
                         if r.get("waveform") == waveform_name:
                             r.update(lal_result)
+                            ripple_entry = r
                             break
 
                     print("\nLAL Results:")
                     print(f"  Single call: {lal_result['lal_call_ms']:.4f} ms")
-                    if "single_call_ms_mean" in result:
-                        speedup_lal = lal_result["lal_call_ms"] / result["single_call_ms_mean"]
+                    if ripple_entry is not None and "single_call_ms_mean" in ripple_entry:
+                        speedup_lal = lal_result["lal_call_ms"] / ripple_entry["single_call_ms_mean"]
                         print(f"  Speedup (ripple single vs LAL): {speedup_lal:.2f}x")
 
             except Exception as e:
