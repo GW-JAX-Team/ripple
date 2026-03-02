@@ -227,7 +227,7 @@ def benchmark_waveform_ripple(
         hp.block_until_ready()
 
     # Benchmark single calls
-    print(f"  Benchmarking single calls...")
+    print("  Benchmarking single calls...")
     single_times = []
     for i in range(n_repeats):
         start = time.time()
@@ -238,7 +238,7 @@ def benchmark_waveform_ripple(
         single_times.append((end - start) / n_params * 1000)  # ms per call
 
     # Benchmark vmapped calls
-    print(f"  Benchmarking vmapped calls...")
+    print("  Benchmarking vmapped calls...")
     waveform_vmapped = jax.jit(jax.vmap(waveform))
 
     # Warmup vmap
@@ -503,7 +503,7 @@ def main():
             )
             results.append(result)
 
-            print(f"\nRipple Results:")
+            print("\nRipple Results:")
             print(f"  Single call: {result['single_call_ms_mean']:.4f} ± {result['single_call_ms_std']:.4f} ms")
             print(f"  Vmapped call: {result['vmapped_call_ms_mean']:.4f} ± {result['vmapped_call_ms_std']:.4f} ms")
             print(f"  Speedup (vmap): {result['speedup_vmap']:.2f}x")
@@ -523,7 +523,7 @@ def main():
                             r.update(lal_result)
                             break
 
-                    print(f"\nLAL Results:")
+                    print("\nLAL Results:")
                     print(f"  Single call: {lal_result['lal_call_ms']:.4f} ms")
                     if "single_call_ms_mean" in result:
                         speedup_lal = lal_result["lal_call_ms"] / result["single_call_ms_mean"]
