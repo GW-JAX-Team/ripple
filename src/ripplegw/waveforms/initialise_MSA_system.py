@@ -1,26 +1,36 @@
-
 import jax.numpy as jnp
 import jax
-from ..constants import MTSUN, GAMMA, MSUN, G, C
+from ..constants import GAMMA, MSUN, G, C
 from .elliptic_integrals import ellint_F
 from .elliptic_integrals import gsl_sf_elljac_e
 from jax import jit
 
-#/** This function initializes all the core variables required for the MSA system. This will be called first. */
+
+# /** This function initializes all the core variables required for the MSA system. This will be called first. */
 @jit
-def IMRPhenomX_Initialize_MSA_System(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, reference_frequency, pflag = 223):
+def IMRPhenomX_Initialize_MSA_System(
+    mass_1,
+    mass_2,
+    chi1x,
+    chi1y,
+    chi1z,
+    chi2x,
+    chi2y,
+    chi2z,
+    reference_frequency,
+    pflag=223,
+):
+    # Sanity check on the precession version
 
-    #Sanity check on the precession version
-   
-    '''
-      First initialize the system of variables needed for Chatziioannou et al, PRD, 88, 063011, (2013), arXiv:1307.4418:
-        - Racine et al, PRD, 80, 044010, (2009), arXiv:0812.4413
-        - Favata, PRD, 80, 024002, (2009), arXiv:0812.0069
-        - Blanchet et al, PRD, 84, 064041, (2011), arXiv:1104.5659
-        - Bohe et al, CQG, 30, 135009, (2013), arXiv:1303.7412
-    '''
+    """
+    First initialize the system of variables needed for Chatziioannou et al, PRD, 88, 063011, (2013), arXiv:1307.4418:
+      - Racine et al, PRD, 80, 044010, (2009), arXiv:0812.4413
+      - Favata, PRD, 80, 024002, (2009), arXiv:0812.0069
+      - Blanchet et al, PRD, 84, 064041, (2011), arXiv:1104.5659
+      - Bohe et al, CQG, 30, 135009, (2013), arXiv:1303.7412
+    """
 
-    eta = mass_1 * mass_2 / jnp.power(mass_1+mass_2, 2)
+    eta = mass_1 * mass_2 / jnp.power(mass_1 + mass_2, 2)
 
     eta2 = jnp.power(eta, 2)
     eta3 = jnp.power(eta, 3)
@@ -30,29 +40,60 @@ def IMRPhenomX_Initialize_MSA_System(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x,
     # PN Coefficients for d \omega / d t as per LALSimInspiralFDPrecAngles_internals.c
     LAL_LN2 = jnp.log(2.0)
     domegadt_constants_NS = [
-        96./5., -1486./35., -264./5., 384.*jnp.pi/5., 34103./945., 13661./105., 944./15.,
-        jnp.pi*(-4159./35.), jnp.pi*(-2268./5.),
-        (16447322263./7276500. + jnp.pi*jnp.pi*512./5. - LAL_LN2*109568./175. - GAMMA*54784./175.),
-        (-56198689./11340. + jnp.pi*jnp.pi*902./5.), 1623./140., -1121./27., -54784./525.,
-        -jnp.pi*883./42., jnp.pi*71735./63., jnp.pi*73196./63.
+        96.0 / 5.0,
+        -1486.0 / 35.0,
+        -264.0 / 5.0,
+        384.0 * jnp.pi / 5.0,
+        34103.0 / 945.0,
+        13661.0 / 105.0,
+        944.0 / 15.0,
+        jnp.pi * (-4159.0 / 35.0),
+        jnp.pi * (-2268.0 / 5.0),
+        (
+            16447322263.0 / 7276500.0
+            + jnp.pi * jnp.pi * 512.0 / 5.0
+            - LAL_LN2 * 109568.0 / 175.0
+            - GAMMA * 54784.0 / 175.0
+        ),
+        (-56198689.0 / 11340.0 + jnp.pi * jnp.pi * 902.0 / 5.0),
+        1623.0 / 140.0,
+        -1121.0 / 27.0,
+        -54784.0 / 525.0,
+        -jnp.pi * 883.0 / 42.0,
+        jnp.pi * 71735.0 / 63.0,
+        jnp.pi * 73196.0 / 63.0,
     ]
 
     domegadt_constants_SO = [
-        -904./5., -120., -62638./105., 4636./5., -6472./35., 3372./5., -jnp.pi*720.,
-        -jnp.pi*2416./5., -208520./63., 796069./105., -100019./45., -1195759./945.,
-        514046./105., -8709./5., -jnp.pi*307708./105., jnp.pi*44011./7.,
-        -jnp.pi*7992./7., jnp.pi*151449./35.
+        -904.0 / 5.0,
+        -120.0,
+        -62638.0 / 105.0,
+        4636.0 / 5.0,
+        -6472.0 / 35.0,
+        3372.0 / 5.0,
+        -jnp.pi * 720.0,
+        -jnp.pi * 2416.0 / 5.0,
+        -208520.0 / 63.0,
+        796069.0 / 105.0,
+        -100019.0 / 45.0,
+        -1195759.0 / 945.0,
+        514046.0 / 105.0,
+        -8709.0 / 5.0,
+        -jnp.pi * 307708.0 / 105.0,
+        jnp.pi * 44011.0 / 7.0,
+        -jnp.pi * 7992.0 / 7.0,
+        jnp.pi * 151449.0 / 35.0,
     ]
 
-    domegadt_constants_SS = [-494./5., -1442./5., -233./5., -719./5.]
+    domegadt_constants_SS = [-494.0 / 5.0, -1442.0 / 5.0, -233.0 / 5.0, -719.0 / 5.0]
 
-    '''
+    """
         Note that Chatziioannou et al use q = m2/m1, where m1 > m2 and therefore q < 1
         IMRPhenomX assumes m1 > m2 and q > 1. For the internal MSA code, flip q and
         dump this to pPrec->qq, where qq explicitly dentoes that this is 0 < q < 1.
-    '''
+    """
 
-    q = mass_2 / mass_1 # m2 / m1, q < 1, m1 > m2
+    q = mass_2 / mass_1  # m2 / m1, q < 1, m1 > m2
 
     #    /* \delta and powers of \delta in terms of q < 1, should just be m1 - m2 */
     delta_qq = (1.0 - q) / (1.0 + q)
@@ -61,29 +102,25 @@ def IMRPhenomX_Initialize_MSA_System(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x,
 
     # Initialize empty vectors (using dictionaries to represent vectors)
 
-
     # Define source frame such that \hat{L} = {0,0,1} with L_z pointing along \hat{z}
     Lhat = jnp.array([0.0, 0.0, 1.0])
 
-
     # Dimensionful spin vectors, note eta = m1 * m2 and q = m2/m1
 
-    S1v = jnp.array([chi1x * eta/q, chi1y * eta/q, chi1z * eta/q])
+    S1v = jnp.array([chi1x * eta / q, chi1y * eta / q, chi1z * eta / q])
 
-
-    S2v = jnp.array([chi2x * eta*q, chi2y * eta*q, chi2z * eta*q])
+    S2v = jnp.array([chi2x * eta * q, chi2y * eta * q, chi2z * eta * q])
 
     S1_0_norm = IMRPhenomX_vector_L2_norm(S1v)
     S2_0_norm = IMRPhenomX_vector_L2_norm(S2v)
 
-
-    mass_1_SI = (mass_1 * MSUN)
-    mass_2_SI = (mass_2 * MSUN)
+    mass_1_SI = mass_1 * MSUN
+    mass_2_SI = mass_2 * MSUN
 
     piGM = jnp.pi * (mass_1_SI + mass_2_SI) * (G / C) / (C * C)
 
     # Reference velocity v and v^2
-    v_0 = jnp.power(piGM * reference_frequency, 1.0/3.0)
+    v_0 = jnp.power(piGM * reference_frequency, 1.0 / 3.0)
     v_0_2 = v_0 * v_0
 
     # Reference orbital angular momenta
@@ -98,12 +135,14 @@ def IMRPhenomX_Initialize_MSA_System(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x,
 
     # Coefficients for PN orbital angular momentum at 3PN, as per LALSimInspiralFDPrecAngles_internals.c
 
-    constants_L_0, constants_L_1, constants_L_2, constants_L_3, constants_L_4 = compute_constants_L(eta, dotS1L, dotS2L, q)
+    constants_L_0, constants_L_1, constants_L_2, constants_L_3, constants_L_4 = (
+        compute_constants_L(eta, dotS1L, dotS2L, q)
+    )
 
     # Effective total spin
-    Seff = (1.0 + q) * dotS1L + (1 + (1.0/q)) * dotS2L
+    Seff = (1.0 + q) * dotS1L + (1 + (1.0 / q)) * dotS2L
 
-    #Line 2347
+    # Line 2347
     # Initial total spin, S = S1 + S2
     S0 = IMRPhenomX_vector_sum(S1v, S2v)
 
@@ -120,8 +159,9 @@ def IMRPhenomX_Initialize_MSA_System(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x,
     L0norm = L_0_norm
     J0norm = J_0_norm
 
-    S1_norm_2, S2_norm_2 = compute_spin_norm_squared(chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, mass_1, mass_2)
-
+    S1_norm_2, S2_norm_2 = compute_spin_norm_squared(
+        chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, mass_1, mass_2
+    )
 
     vRoots = IMRPhenomX_Return_Roots_MSA(
         L_0_norm,
@@ -137,7 +177,7 @@ def IMRPhenomX_Initialize_MSA_System(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x,
         S_0_norm,
     )
 
-    #Line 2500
+    # Line 2500
     Spl2 = vRoots[2]
     Smi2 = vRoots[1]
     S32 = vRoots[0]
@@ -155,7 +195,7 @@ def IMRPhenomX_Initialize_MSA_System(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x,
     invSAv = 1.0 / SAv
 
     # c_1 is determined by Eq. 41 of PRD, 95, 104004, (2017), arXiv:1703.03967
-    c_1 = 0.5 * (J0norm*J0norm - L0norm*L0norm - SAv2) / L_0_norm * eta
+    c_1 = 0.5 * (J0norm * J0norm - L0norm * L0norm - SAv2) / L_0_norm * eta
     c1_2 = c_1 * c_1
 
     # Useful powers and combinations of c_1
@@ -165,15 +205,15 @@ def IMRPhenomX_Initialize_MSA_System(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x,
 
     # Average spin couplings over one precession cycle: A9 - A14 of arXiv:1703.03967
     omqsq = (1.0 - q) * (1.0 - q) + 1e-16
-    #omq2 = (1.0 - q * q) + 1e-16
+    # omq2 = (1.0 - q * q) + 1e-16
 
     # Precession averaged spin couplings, Eq. A9 - A14 of arXiv:1703.03967, note that we only use the initial values
-    #S1L_pav = (c_1 * (1.0 + q) - q * eta * Seff) / (eta * omq2)
-    #S2L_pav = -q * (c_1 * (1.0 + q) - eta * Seff) / (eta * omq2)
-    #S1S2_pav = 0.5 * SAv2 - 0.5 * (S1_norm_2 + S2_norm_2)
-    #S1Lsq_pav = (S1L_pav*S1L_pav + ((Spl2mSmi2)*(Spl2mSmi2) * v_0_2) / (32.0 * eta2 * omqsq))
-    #S2Lsq_pav = (S2L_pav*S2L_pav + (q*q*(Spl2mSmi2)*(Spl2mSmi2) * v_0_2) / (32.0 * eta2 * omqsq))
-    #S1LS2L_pav = (S1L_pav*S2L_pav - q * (Spl2mSmi2)*(Spl2mSmi2)*v_0_2 / (32.0 * eta2 * omqsq))
+    # S1L_pav = (c_1 * (1.0 + q) - q * eta * Seff) / (eta * omq2)
+    # S2L_pav = -q * (c_1 * (1.0 + q) - eta * Seff) / (eta * omq2)
+    # S1S2_pav = 0.5 * SAv2 - 0.5 * (S1_norm_2 + S2_norm_2)
+    # S1Lsq_pav = (S1L_pav*S1L_pav + ((Spl2mSmi2)*(Spl2mSmi2) * v_0_2) / (32.0 * eta2 * omqsq))
+    # S2Lsq_pav = (S2L_pav*S2L_pav + (q*q*(Spl2mSmi2)*(Spl2mSmi2) * v_0_2) / (32.0 * eta2 * omqsq))
+    # S1LS2L_pav = (S1L_pav*S2L_pav - q * (Spl2mSmi2)*(Spl2mSmi2)*v_0_2 / (32.0 * eta2 * omqsq))
 
     """
     # Spin couplings in arXiv:1703.03967
@@ -189,20 +229,49 @@ def IMRPhenomX_Initialize_MSA_System(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x,
             (1.0/(m1*m1)) * ((233./96.)*S1_norm_2 - (719./96.)*S1Lsq_pav) + \
             (1.0/(m2*m2)) * ((233./96.)*S2_norm_2 - (719./96.)*S2Lsq_pav))
     """
-    #Line 2597
-
+    # Line 2597
 
     a0 = eta * domegadt_constants_NS[0]
     a2 = eta * (domegadt_constants_NS[1] + eta * (domegadt_constants_NS[2]))
-    a3 = eta * (domegadt_constants_NS[3] +
-                IMRPhenomX_Get_PN_beta(domegadt_constants_SO[0], domegadt_constants_SO[1], dotS1L, dotS2L, q))
-    a4 = eta * (domegadt_constants_NS[4] + eta * (domegadt_constants_NS[5] + eta * (domegadt_constants_NS[6])) +
-                IMRPhenomX_Get_PN_sigma(domegadt_constants_SS[0], domegadt_constants_SS[1], inveta, dotS1S2, dotS1L, dotS2L) +
-                IMRPhenomX_Get_PN_tau(domegadt_constants_SS[2], domegadt_constants_SS[3], q, S1_norm_2, S2_norm_2, dotS1L, dotS2L, eta))
-    a5 = eta * (domegadt_constants_NS[7] + eta * (domegadt_constants_NS[8]) +
-                IMRPhenomX_Get_PN_beta((domegadt_constants_SO[2] + eta * (domegadt_constants_SO[3])),
-                                        (domegadt_constants_SO[4] + eta * (domegadt_constants_SO[5])),
-                                        dotS1L, dotS2L, q))
+    a3 = eta * (
+        domegadt_constants_NS[3]
+        + IMRPhenomX_Get_PN_beta(
+            domegadt_constants_SO[0], domegadt_constants_SO[1], dotS1L, dotS2L, q
+        )
+    )
+    a4 = eta * (
+        domegadt_constants_NS[4]
+        + eta * (domegadt_constants_NS[5] + eta * (domegadt_constants_NS[6]))
+        + IMRPhenomX_Get_PN_sigma(
+            domegadt_constants_SS[0],
+            domegadt_constants_SS[1],
+            inveta,
+            dotS1S2,
+            dotS1L,
+            dotS2L,
+        )
+        + IMRPhenomX_Get_PN_tau(
+            domegadt_constants_SS[2],
+            domegadt_constants_SS[3],
+            q,
+            S1_norm_2,
+            S2_norm_2,
+            dotS1L,
+            dotS2L,
+            eta,
+        )
+    )
+    a5 = eta * (
+        domegadt_constants_NS[7]
+        + eta * (domegadt_constants_NS[8])
+        + IMRPhenomX_Get_PN_beta(
+            (domegadt_constants_SO[2] + eta * (domegadt_constants_SO[3])),
+            (domegadt_constants_SO[4] + eta * (domegadt_constants_SO[5])),
+            dotS1L,
+            dotS2L,
+            q,
+        )
+    )
 
     # Useful powers of a_0
     a0_2 = a0 * a0
@@ -211,10 +280,11 @@ def IMRPhenomX_Initialize_MSA_System(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x,
 
     # Calculate g coefficients as in Appendix A of Chatziioannou et al, PRD, 95, 104004, (2017), arXiv:1703.03967.
     # These constants are used in TaylorT2 where domega/dt is expressed as an inverse polynomial
-    g0 = 1/a0
+    g0 = 1 / a0
     g2 = -(a2 / a0_2)
     g3 = -(a3 / a0_2)
     g4 = -(a4 * a0 - a2_2) / a0_3
+    g5 = 0.0  # -(a5 * a0 - 2.0 * a3 * a2) / a0_3
 
     # Useful powers of delta
     delta = delta_qq
@@ -236,7 +306,7 @@ def IMRPhenomX_Initialize_MSA_System(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x,
 
     # This implements the Delta term as in LALSimInspiralFDPrecAngles.c
     # c.f. https://git.ligo.org/lscsoft/lalsuite/-/blob/master/lalsimulation/lib/LALSimInspiralFDPrecAngles_internals.c#L145
-    #if pflag == 222 or pflag == 223:
+    # if pflag == 222 or pflag == 223:
     Del1 = 4.0 * c_1_over_nu_2 * one_p_q_sq
     Del2 = 8.0 * c_1_over_nu * q * (1.0 + q) * Seff
     Del3 = 4.0 * (one_m_q2_2 * S1_norm_2 - q_2 * Seff_2)
@@ -262,11 +332,15 @@ def IMRPhenomX_Initialize_MSA_System(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x,
     """
     # Line 2706
 
-    #if pflag == 222 or pflag == 223:
+    # if pflag == 222 or pflag == 223:
     u1 = 3.0 * g2 / g0
     u2 = 0.75 * one_p_q_sq / one_m_q_4
     u3 = -20.0 * c_1_over_nu_2 * q_2 * one_p_q_sq
-    u4 = 2.0 * one_m_q2_2 * (q * (2.0 + q) * S1_norm_2 + (1.0 + 2.0 * q) * S2_norm_2 - 2.0 * q * SAv2)
+    u4 = (
+        2.0
+        * one_m_q2_2
+        * (q * (2.0 + q) * S1_norm_2 + (1.0 + 2.0 * q) * S2_norm_2 - 2.0 * q * SAv2)
+    )
     u5 = 2.0 * q_2 * (7.0 + 6.0 * q + 7.0 * q_2) * 2.0 * c_1_over_nu * Seff
     u6 = 2.0 * q_2 * (3.0 + 4.0 * q + 3.0 * q_2) * Seff_2
     u7 = q * Delta
@@ -303,32 +377,41 @@ def IMRPhenomX_Initialize_MSA_System(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x,
     sqrt_cpcm = jnp.sqrt(cpcm)
 
     # Eq. D4 in PRD, 95, 104004, (2017), arXiv:1703.03967 ; Note difference to published version.
-    a1dD = 0.5 + 0.75/eta
+    a1dD = 0.5 + 0.75 / eta
 
     # Eq. D5 in PRD, 95, 104004, (2017), arXiv:1703.03967
-    a2dD = -0.75*Seff/eta
+    a2dD = -0.75 * Seff / eta
 
     # Eq. E3 in PRD, 95, 104004, (2017), arXiv:1703.03967 ; Note that this is Rm * D2
     D2RmSq = (cp - sqrt_cpcm) / eta2
 
     # Eq. E4 in PRD, 95, 104004, (2017), arXiv:1703.03967 ; Note that this is Rm^2 * D4
-    D4RmSq = -0.5*Rm*sqrt_cpcm/eta2 - cp/eta4*(sqrt_cpcm - cp)
+    D4RmSq = -0.5 * Rm * sqrt_cpcm / eta2 - cp / eta4 * (sqrt_cpcm - cp)
 
     S0m = S1_norm_2 - S2_norm_2
 
     # Difference of spin norms squared, as used in Eq. D6 of PRD, 95, 104004, (2017), arXiv:1703.03967
-    aw = (-3.0*(1.0 + q)/q*(2.0*(1.0 + q)*eta2*Seff*c_1 - (1.0 + q)*c1_2 + (1.0 - q)*eta2*S0m))
-    cw = 3.0/32.0/eta*Rm_2
-    dw = 4.0*cp - 4.0*D2RmSq*eta2
-    hw = -2.0*(2.0*D2RmSq - Rm)*c_1
-    fw = Rm*D2RmSq - D4RmSq - 0.25*Rm_2
+    aw = (
+        -3.0
+        * (1.0 + q)
+        / q
+        * (
+            2.0 * (1.0 + q) * eta2 * Seff * c_1
+            - (1.0 + q) * c1_2
+            + (1.0 - q) * eta2 * S0m
+        )
+    )
+    cw = 3.0 / 32.0 / eta * Rm_2
+    dw = 4.0 * cp - 4.0 * D2RmSq * eta2
+    hw = -2.0 * (2.0 * D2RmSq - Rm) * c_1
+    fw = Rm * D2RmSq - D4RmSq - 0.25 * Rm_2
 
     adD = aw / dw
     hdD = hw / dw
     cdD = cw / dw
     fdD = fw / dw
 
-    gw = 3.0/16.0/eta2/eta*Rm_2*(c_1 - eta2*Seff)
+    gw = 3.0 / 16.0 / eta2 / eta * Rm_2 * (c_1 - eta2 * Seff)
     gdD = gw / dw
 
     # Useful powers of the coefficients
@@ -337,7 +420,7 @@ def IMRPhenomX_Initialize_MSA_System(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x,
     adDfdDhdD = adDfdD * hdD
     adDhdD_2 = adD * hdD_2
 
-    #Line 2800
+    # Line 2800
 
     # Eq. D10 in PRD, 95, 104004, (2017), arXiv:1703.03967
     Omegaz0 = a1dD + adD
@@ -352,12 +435,16 @@ def IMRPhenomX_Initialize_MSA_System(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x,
     Omegaz3 = (adDfdD - cdD - adDhdD_2) * (Seff + hdD) + adDfdDhdD
 
     # Eq. D14 in PRD, 95, 104004, (2017), arXiv:1703.03967
-    Omegaz4 = (cdD + adDhdD_2 - 2.0 * adDfdD) * (hdD * Seff + hdD_2 - fdD) - adD * fdD * fdD
+    Omegaz4 = (cdD + adDhdD_2 - 2.0 * adDfdD) * (
+        hdD * Seff + hdD_2 - fdD
+    ) - adD * fdD * fdD
 
     # Eq. D15 in PRD, 95, 104004, (2017), arXiv:1703.03967
-    Omegaz5 = ((cdD - adDfdD + adDhdD_2) * fdD * (Seff + 2.0 * hdD) -
-               (cdD + adDhdD_2 - 2.0 * adDfdD) * hdD_2 * (Seff + hdD) -
-               adDfdD * fdD * hdD)
+    Omegaz5 = (
+        (cdD - adDfdD + adDhdD_2) * fdD * (Seff + 2.0 * hdD)
+        - (cdD + adDhdD_2 - 2.0 * adDfdD) * hdD_2 * (Seff + hdD)
+        - adDfdD * fdD * hdD
+    )
 
     # Coefficients of Eq. 65, as defined in Equations D16 - D21 of PRD, 95, 104004, (2017), arXiv:1703.03967
     Omegaz0_coeff = 3.0 * g0 * Omegaz0
@@ -365,7 +452,7 @@ def IMRPhenomX_Initialize_MSA_System(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x,
     Omegaz2_coeff = 3.0 * (g0 * Omegaz2 + g2 * Omegaz0)
     Omegaz3_coeff = 3.0 * (g0 * Omegaz3 + g2 * Omegaz1 + g3 * Omegaz0)
     Omegaz4_coeff = 3.0 * (g0 * Omegaz4 + g2 * Omegaz2 + g3 * Omegaz1 + g4 * Omegaz0)
-    Omegaz5_coeff = 0.0  # FIXME
+    Omegaz5_coeff = 0  # 3.0 * (g0 * Omegaz5 + g2 * Omegaz3 + g3 * Omegaz2 + g4 * Omegaz1 + g5 * Omegaz0)
 
     # Coefficients of zeta: in Appendix E of PRD, 95, 104004, (2017), arXiv:1703.03967
     c1oveta2 = c_1 / eta2
@@ -378,16 +465,17 @@ def IMRPhenomX_Initialize_MSA_System(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x,
 
     Omegazeta0_coeff = -g0 * Omegazeta0
     Omegazeta1_coeff = -1.5 * g0 * Omegazeta1
-    Omegazeta2_coeff = -3.0*(g0 * Omegazeta2 + g2*Omegazeta0)
-    Omegazeta3_coeff = 3.0*(g0 * Omegazeta3 + g2*Omegazeta1 + g3*Omegazeta0)
-    Omegazeta4_coeff = 3.0*(g0 * Omegazeta4 + g2*Omegazeta2 + g3*Omegazeta1 + g4*Omegazeta0)
-    Omegazeta5_coeff = 0.0 #FIXME
+    Omegazeta2_coeff = -3.0 * (g0 * Omegazeta2 + g2 * Omegazeta0)
+    Omegazeta3_coeff = 3.0 * (g0 * Omegazeta3 + g2 * Omegazeta1 + g3 * Omegazeta0)
+    Omegazeta4_coeff = 3.0 * (
+        g0 * Omegazeta4 + g2 * Omegazeta2 + g3 * Omegazeta1 + g4 * Omegazeta0
+    )
+    Omegazeta5_coeff = 0.0  # 1.5 * (g0 * Omegazeta5 + g2 * Omegazeta3 + g3 * Omegazeta2 + g4 * Omegazeta1 + g5 * Omegazeta0)
 
     # Get psi0 term
     psi0 = compute_psi0(
-        Smi2, Spl2, S32, S_0_norm,
-        v_0, v_0_2, psi1, psi2,
-        g0, delta_qq, L_0, S1v, S2v)
+        Smi2, Spl2, S32, S_0_norm, v_0, v_0_2, psi1, psi2, g0, delta_qq, L_0, S1v, S2v
+    )
 
     # Tolerance chosen to be consistent with implementation in LALSimInspiralFDPrecAngles
     condition = jnp.abs(Spl2 - Smi2) > 1e-5
@@ -422,12 +510,26 @@ def IMRPhenomX_Initialize_MSA_System(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x,
 
     # Initial \phi_z
     phiz_0_init = 0.0
-    phiz_0 = IMRPhenomX_Return_phiz_MSA(v_0, J_0_norm,
-                                        eta, inveta, eta2, eta4,
-                                        c1, SAv, SAv2, invSAv, invSAv2,
-                                        Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff,
-                                        Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff,
-                                        phiz_0_init)
+    phiz_0 = IMRPhenomX_Return_phiz_MSA(
+        v_0,
+        J_0_norm,
+        eta,
+        inveta,
+        eta2,
+        eta4,
+        c1,
+        SAv,
+        SAv2,
+        invSAv,
+        invSAv2,
+        Omegaz0_coeff,
+        Omegaz1_coeff,
+        Omegaz2_coeff,
+        Omegaz3_coeff,
+        Omegaz4_coeff,
+        Omegaz5_coeff,
+        phiz_0_init,
+    )
 
     # Initial \zeta
     zeta_0_init = 0.0
@@ -446,10 +548,42 @@ def IMRPhenomX_Initialize_MSA_System(mass_1, mass_2, chi1x, chi1y, chi1z, chi2x,
     phiz_0 = -phiz_0 - vMSA[0]
     zeta_0 = -zeta_0 - vMSA[1]
 
-    return jnp.array([Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff, Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff, Omegazeta0_coeff, Omegazeta1_coeff, Omegazeta2_coeff, Omegazeta3_coeff, Omegazeta4_coeff, Omegazeta5_coeff, g0, c_1, c_1_over_eta, SAv2, Seff, dotS1Ln, dotS2Ln, S_0_norm, psi0, psi1, psi2, phiz_0, zeta_0, constants_L_0, constants_L_1, constants_L_2, constants_L_3, constants_L_4,
-                      S1_norm_2, S2_norm_2])
-
-
+    return jnp.array(
+        [
+            Omegaz0_coeff,
+            Omegaz1_coeff,
+            Omegaz2_coeff,
+            Omegaz3_coeff,
+            Omegaz4_coeff,
+            Omegaz5_coeff,
+            Omegazeta0_coeff,
+            Omegazeta1_coeff,
+            Omegazeta2_coeff,
+            Omegazeta3_coeff,
+            Omegazeta4_coeff,
+            Omegazeta5_coeff,
+            g0,
+            c_1,
+            c_1_over_eta,
+            SAv2,
+            Seff,
+            dotS1Ln,
+            dotS2Ln,
+            S_0_norm,
+            psi0,
+            psi1,
+            psi2,
+            phiz_0,
+            zeta_0,
+            constants_L_0,
+            constants_L_1,
+            constants_L_2,
+            constants_L_3,
+            constants_L_4,
+            S1_norm_2,
+            S2_norm_2,
+        ]
+    )
 
 
 @jit
@@ -575,7 +709,6 @@ def IMRPhenomX_Return_Roots_MSA(
     return roots_array
 
 
-
 @jit
 def IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(
     LNorm: float,
@@ -656,7 +789,6 @@ def IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(
     return jnp.array([B_coeff, C_coeff, D_coeff])
 
 
-
 @jit
 def IMRPhenomX_Get_PN_sigma(
     a: float,
@@ -681,6 +813,7 @@ def IMRPhenomX_Get_PN_sigma(
         float: PN sigma value
     """
     return inveta * (a * dotS1S2 - b * dotS1L * dotS2L)
+
 
 @jit
 def IMRPhenomX_Get_PN_tau(
@@ -709,10 +842,10 @@ def IMRPhenomX_Get_PN_tau(
     Returns:
         float: PN tau value
     """
-    return ((qq * ((S1_norm_2 * a) - b * dotS1L * dotS1L) +
-             (a * S2_norm_2 - b * dotS2L * dotS2L) / qq) /
-            eta)
-
+    return (
+        qq * ((S1_norm_2 * a) - b * dotS1L * dotS1L)
+        + (a * S2_norm_2 - b * dotS2L * dotS2L) / qq
+    ) / eta
 
 
 @jit
@@ -736,8 +869,7 @@ def IMRPhenomX_Get_PN_beta(
     Returns:
         float: PN beta value
     """
-    return (dotS1L * (a + b * qq) +
-            dotS2L * (a + b / qq))
+    return dotS1L * (a + b * qq) + dotS2L * (a + b / qq)
 
 
 @jit
@@ -757,20 +889,46 @@ def compute_constants_L(eta, dotS1L, dotS2L, q):
         jnp.ndarray: Array of 5 constants [constants_L_0, ..., constants_L_4]
     """
     L_csts_nonspin = [
-        3./2., 1./6., 27./8., -19./8., 1./24., 135./16.,
-        -6889./144. + 41./24.*jnp.pi*jnp.pi, 31./24., 7./1296.
+        3.0 / 2.0,
+        1.0 / 6.0,
+        27.0 / 8.0,
+        -19.0 / 8.0,
+        1.0 / 24.0,
+        135.0 / 16.0,
+        -6889.0 / 144.0 + 41.0 / 24.0 * jnp.pi * jnp.pi,
+        31.0 / 24.0,
+        7.0 / 1296.0,
     ]
 
-    L_csts_spinorbit = [-14./6., -3./2., -11./2., 133./72., -33./8., 7./4.]
+    L_csts_spinorbit = [
+        -14.0 / 6.0,
+        -3.0 / 2.0,
+        -11.0 / 2.0,
+        133.0 / 72.0,
+        -33.0 / 8.0,
+        7.0 / 4.0,
+    ]
 
     constants_L_0 = L_csts_nonspin[0] + eta * L_csts_nonspin[1]
-    constants_L_1 = IMRPhenomX_Get_PN_beta(L_csts_spinorbit[0], L_csts_spinorbit[1], dotS1L, dotS2L, q)
-    constants_L_2 = L_csts_nonspin[2] + eta * L_csts_nonspin[3] + eta * eta * L_csts_nonspin[4]
+    constants_L_1 = IMRPhenomX_Get_PN_beta(
+        L_csts_spinorbit[0], L_csts_spinorbit[1], dotS1L, dotS2L, q
+    )
+    constants_L_2 = (
+        L_csts_nonspin[2] + eta * L_csts_nonspin[3] + eta * eta * L_csts_nonspin[4]
+    )
     constants_L_3 = IMRPhenomX_Get_PN_beta(
-            (L_csts_spinorbit[2] + L_csts_spinorbit[3] * eta),
-            (L_csts_spinorbit[4] + L_csts_spinorbit[5] * eta),
-            dotS1L, dotS2L, q)
-    constants_L_4 = L_csts_nonspin[5] + L_csts_nonspin[6] * eta + L_csts_nonspin[7] * eta * eta + L_csts_nonspin[8] * eta * eta * eta
+        (L_csts_spinorbit[2] + L_csts_spinorbit[3] * eta),
+        (L_csts_spinorbit[4] + L_csts_spinorbit[5] * eta),
+        dotS1L,
+        dotS2L,
+        q,
+    )
+    constants_L_4 = (
+        L_csts_nonspin[5]
+        + L_csts_nonspin[6] * eta
+        + L_csts_nonspin[7] * eta * eta
+        + L_csts_nonspin[8] * eta * eta * eta
+    )
 
     return constants_L_0, constants_L_1, constants_L_2, constants_L_3, constants_L_4
 
@@ -854,37 +1012,48 @@ def compute_psi0(
         volume_element = IMRPhenomX_vector_dot_product(
             IMRPhenomX_vector_cross_product(L_0, S1v), S2v
         )
-        vol_sign = jnp.sign(volume_element)  # equivalent to (volume_element > 0) - (volume_element < 0)
+        vol_sign = jnp.sign(
+            volume_element
+        )  # equivalent to (volume_element > 0) - (volume_element < 0)
 
-        psi_of_v0 = IMRPhenomX_psiofv(v_0, v_0_2, 0.0, psi1, psi2, g0, delta_qq)  
-        
+        psi_of_v0 = IMRPhenomX_psiofv(v_0, v_0_2, 0.0, psi1, psi2, g0, delta_qq)
+
         # Handle boundary cases for tmpB
         def handle_boundary_cases():
             # If tmpB > 1.0 and close to 1
             case1_condition = jnp.logical_and(tmpB > 1.0, (tmpB - 1.0) < 0.00001)
-            case1_result = ellint_F(jnp.arcsin(vol_sign * jnp.sqrt(1.0)), mm) - psi_of_v0  # stub
-            
+            case1_result = (
+                ellint_F(jnp.arcsin(vol_sign * jnp.sqrt(1.0)), mm) - psi_of_v0
+            )  # stub
+
             # If tmpB < 0.0 and close to 0
             case2_condition = jnp.logical_and(tmpB < 0.0, tmpB > -0.00001)
-            case2_result = ellint_F(jnp.arcsin(vol_sign * jnp.sqrt(0.0)), mm) - psi_of_v0  # stub
-            
+            case2_result = (
+                ellint_F(jnp.arcsin(vol_sign * jnp.sqrt(0.0)), mm) - psi_of_v0
+            )  # stub
+
             # Normal case
-            normal_result = ellint_F(jnp.arcsin(vol_sign * jnp.sqrt(tmpB)), mm) - psi_of_v0  # stub
-            
+            normal_result = (
+                ellint_F(jnp.arcsin(vol_sign * jnp.sqrt(tmpB)), mm) - psi_of_v0
+            )  # stub
+
             return jnp.where(
-                case1_condition, case1_result,
-                jnp.where(case2_condition, case2_result, normal_result)
+                case1_condition,
+                case1_result,
+                jnp.where(case2_condition, case2_result, normal_result),
             )
-        
+
         def normal_case():
-            return ellint_F(jnp.arcsin(vol_sign * jnp.sqrt(tmpB)), mm) - psi_of_v0  # stub
-        
+            return (
+                ellint_F(jnp.arcsin(vol_sign * jnp.sqrt(tmpB)), mm) - psi_of_v0
+            )  # stub
+
         # Check if we're in boundary case
         boundary_condition = jnp.logical_or(tmpB < 0.0, tmpB > 1.0)
-        #jax.debug.print('JAX debug {} {} {}', handle_boundary_cases(), normal_case(), boundary_condition)
+        # jax.debug.print('JAX debug {} {} {}', handle_boundary_cases(), normal_case(), boundary_condition)
 
         return jax.lax.cond(boundary_condition, handle_boundary_cases, normal_case)
-    
+
     return jax.lax.cond(condition, psi0_zero, psi0_nonzero)
 
 
@@ -920,11 +1089,11 @@ def IMRPhenomX_psiofv(v, v2, psi0, psi1, psi2, g0, delta_qq):
 def IMRPhenomX_vector_cross_product(v1: jnp.ndarray, v2: jnp.ndarray) -> jnp.ndarray:
     """
     Calculate cross product of two 3D vectors
-    
+
     Args:
         v1: First 3D vector as JAX array [x, y, z] (jnp.ndarray)
         v2: Second 3D vector as JAX array [x, y, z] (jnp.ndarray)
-        
+
     Returns:
         jnp.ndarray: Cross product vector
     """
@@ -991,7 +1160,10 @@ def IMRPhenomX_Return_Constants_c_MSA(
         * (
             eta3
             + 4.0 * eta3 * Seff * v
-            - 2.0 * eta * (JNorm2 - Spl2 + 2.0 * (S1_norm_2 - S2_norm_2) * delta_qq) * v2
+            - 2.0
+            * eta
+            * (JNorm2 - Spl2 + 2.0 * (S1_norm_2 - S2_norm_2) * delta_qq)
+            * v2
             - 4.0 * eta * Seff * (JNorm2 - Spl2) * v3
             + (JNorm2 - Spl2) ** 2 * v4 * inveta
         )
@@ -1049,7 +1221,7 @@ def IMRPhenomX_Return_Constants_d_MSA(
 
     y = -2.0 * (Spl2 - Smi2) * (JNorm2 + LNorm2 - Spl2)
 
-    z = -(Spl2 - Smi2) ** 2
+    z = -((Spl2 - Smi2) ** 2)
 
     return jnp.array([x, y, z])
 
@@ -1089,8 +1261,6 @@ def IMRPhenomX_Return_Psi_MSA(
     return -0.75 * g0 * delta_qq * (1.0 + psi1 * v + psi2 * v2) / (v2 * v)
 
 
-
-
 @jit
 def IMRPhenomX_Return_Psi_dot_MSA(
     v: float,
@@ -1126,7 +1296,6 @@ def IMRPhenomX_Return_Psi_dot_MSA(
     psi_dot = 0.5 * A_coeff * jnp.sqrt(Spl2 - S32)
 
     return psi_dot
-
 
 
 @jit
@@ -1262,16 +1431,14 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
         return (
             jnp.abs(
                 (
-                    (
-                        c4 * d0 * ((2 * d0 + d2) + sd)
-                        - c2 * d0 * ((d2 + 2.0 * d4) - sd)
-                        - c0 * ((2 * d0 * d4) - (d2 + d4) * (d2 - sd))
-                    )
-                    / C2den
+                    c4 * d0 * ((2 * d0 + d2) + sd)
+                    - c2 * d0 * ((d2 + 2.0 * d4) - sd)
+                    - c0 * ((2 * d0 * d4) - (d2 + d4) * (d2 - sd))
                 )
-                * (sqrt_nc / (nc - 1.0))
-                * (atan_psi - jnp.arctan(sqrt_nc * tan_psi))
+                / C2den
             )
+            * (sqrt_nc / (nc - 1.0))
+            * (atan_psi - jnp.arctan(sqrt_nc * tan_psi))
             / psi_dot
         )
 
@@ -1279,16 +1446,14 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
         return (
             jnp.abs(
                 (
-                    (
-                        -c4 * d0 * ((2 * d0 + d2) - sd)
-                        + c2 * d0 * ((d2 + 2.0 * d4) + sd)
-                        - c0 * (-(2 * d0 * d4) + (d2 + d4) * (d2 + sd))
-                    )
-                    / C2den
+                    -c4 * d0 * ((2 * d0 + d2) - sd)
+                    + c2 * d0 * ((d2 + 2.0 * d4) + sd)
+                    - c0 * (-(2 * d0 * d4) + (d2 + d4) * (d2 + sd))
                 )
-                * (sqrt_nd / (nd - 1.0))
-                * (atan_psi - jnp.arctan(sqrt_nd * tan_psi))
             )
+            / C2den
+            * (sqrt_nd / (nd - 1.0))
+            * (atan_psi - jnp.arctan(sqrt_nd * tan_psi))
             / psi_dot
         )
 
@@ -1305,7 +1470,6 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
     vMSA_y = jnp.where(jnp.isnan(vMSA_y), 0.0, vMSA_y)
 
     return jnp.stack([vMSA_x, vMSA_y, jnp.zeros_like(vMSA_x)], axis=0)
-
 
 
 @jit
@@ -1389,10 +1553,11 @@ def IMRPhenomX_Return_phiz_MSA(
 
     # Eq. D22-D27 of Chatziioannou et al, PRD 95, 104004, (2017), arXiv:1703.03967
     phiz_0_coeff = (JNorm * inveta4) * (
-        0.5 * c12 - (c1 * eta2 * invv) / 6.0 - (SAv2 * eta2) / 3.0 - (eta4 * invv2) / 3.0
-    ) - (0.5 * c1 * inveta) * (
-        c12 * inveta4 - SAv2 * inveta2
-    ) * log1
+        0.5 * c12
+        - (c1 * eta2 * invv) / 6.0
+        - (SAv2 * eta2) / 3.0
+        - (eta4 * invv2) / 3.0
+    ) - (0.5 * c1 * inveta) * (c12 * inveta4 - SAv2 * inveta2) * log1
 
     phiz_1_coeff = (
         -0.5 * JNorm * inveta2 * (c1 + eta * LNewt)
@@ -1409,7 +1574,9 @@ def IMRPhenomX_Return_phiz_MSA(
     )
 
     phiz_5_coeff = (
-        -JNorm * v * (
+        -JNorm
+        * v
+        * (
             0.5 * c12 * invSAv4
             - c1 * v * invSAv2 / 6.0
             - v * v / 3.0
@@ -1435,8 +1602,6 @@ def IMRPhenomX_Return_phiz_MSA(
     phiz_out = jnp.nan_to_num(phiz_out, nan=0.0)
 
     return phiz_out
-
-
 
 
 @jit
@@ -1487,14 +1652,18 @@ def IMRPhenomX_Return_zeta_MSA(
     logv = jnp.log(v)
 
     # Compute zeta using precession coefficients
-    zeta_out = eta * (
-        Omegazeta0_coeff * invv3
-        + Omegazeta1_coeff * invv2
-        + Omegazeta2_coeff * invv
-        + Omegazeta3_coeff * logv
-        + Omegazeta4_coeff * v
-        + Omegazeta5_coeff * v2
-    ) + zeta_0
+    zeta_out = (
+        eta
+        * (
+            Omegazeta0_coeff * invv3
+            + Omegazeta1_coeff * invv2
+            + Omegazeta2_coeff * invv
+            + Omegazeta3_coeff * logv
+            + Omegazeta4_coeff * v
+            + Omegazeta5_coeff * v2
+        )
+        + zeta_0
+    )
 
     # Replace NaNs with 0 using jnp.nan_to_num
     zeta_out = jnp.nan_to_num(zeta_out, nan=0.0)
@@ -1506,11 +1675,11 @@ def IMRPhenomX_Return_zeta_MSA(
 def IMRPhenomX_vector_sum(v1: jnp.ndarray, v2: jnp.ndarray) -> jnp.ndarray:
     """
     Calculate sum of two 3D vectors
-    
+
     Args:
         v1: First 3D vector as JAX array (jnp.ndarray)
         v2: Second 3D vector as JAX array (jnp.ndarray)
-        
+
     Returns:
         jnp.ndarray: Sum of the vectors
     """
@@ -1521,10 +1690,10 @@ def IMRPhenomX_vector_sum(v1: jnp.ndarray, v2: jnp.ndarray) -> jnp.ndarray:
 def IMRPhenomX_vector_L2_norm(v1: jnp.ndarray) -> float:
     """
     Calculate L2 norm of a 3D vector
-    
+
     Args:
         v1: 3D vector as JAX array [x, y, z] (jnp.ndarray)
-        
+
     Returns:
         float: L2 norm of the vector
     """
@@ -1535,11 +1704,11 @@ def IMRPhenomX_vector_L2_norm(v1: jnp.ndarray) -> float:
 def IMRPhenomX_vector_scalar(v1: jnp.ndarray, a: float) -> jnp.ndarray:
     """
     Multiply a vector by a scalar
-    
+
     Args:
         v1: 3D vector as JAX array [x, y, z] (jnp.ndarray)
         a: Scalar multiplier (float)
-        
+
     Returns:
         jnp.ndarray: Scaled vector
     """
@@ -1547,12 +1716,10 @@ def IMRPhenomX_vector_scalar(v1: jnp.ndarray, a: float) -> jnp.ndarray:
     return v2
 
 
-
 @jit
-def IMRPhenomX_JNorm_MSA(LNorm:float, c1_over_eta:float, SAv2:float)->float:
-    JNorm2 = (LNorm * LNorm + 2.0 * LNorm * c1_over_eta + SAv2)
+def IMRPhenomX_JNorm_MSA(LNorm: float, c1_over_eta: float, SAv2: float) -> float:
+    JNorm2 = LNorm * LNorm + 2.0 * LNorm * c1_over_eta + SAv2
     return jnp.sqrt(JNorm2)
-
 
 
 @jit
@@ -1601,7 +1768,6 @@ def IMRPhenomX_L_norm_3PN_of_v(
         )
     )
     return L_norm3PN
-
 
 
 @jit
@@ -1725,10 +1891,7 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
     Spl = jnp.sqrt(Spl2)
 
     SNorm = IMRPhenomX_Return_SNorm_MSA(
-        v,
-        Smi2, Spl2, S32,
-        psi0, psi1, psi2,
-        g0, delta_qq
+        v, Smi2, Spl2, S32, psi0, psi1, psi2, g0, delta_qq
     )
 
     # Compressing line 2245-2249
@@ -1753,7 +1916,7 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
         psi1,
         psi2,
     )
-    cond = (jnp.abs(Smi2 - Spl2) > 1.e-5)
+    cond = jnp.abs(Smi2 - Spl2) > 1.0e-5
 
     # Create vMSA with zeros matching the shape of vMSA_correction
     vMSA_zeros = jnp.zeros_like(vMSA_correction)
@@ -1762,14 +1925,45 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
     phiz_MSA = vMSA[0]
     zeta_MSA = vMSA[1]
 
+    jax.debug.print("ripple v = {}", v)
+    jax.debug.print("ripple J_norm = {}", J_norm)
+    jax.debug.print("eta = {}", eta)
+    jax.debug.print("inveta = {}", inveta)
+    jax.debug.print("eta2 = {}", eta2)
+    jax.debug.print("eta4 = {}", eta4)
+    jax.debug.print("c1 = {}", c1)
+    jax.debug.print("SAv = {}", SAv)
+    jax.debug.print("SAv2 = {}", SAv2)
+    jax.debug.print("invSAv = {}", invSAv)
+    jax.debug.print("invSAv2 = {}", invSAv2)
+    jax.debug.print("Omegaz0_coeff = {}", Omegaz0_coeff)
+    jax.debug.print("Omegaz1_coeff = {}", Omegaz1_coeff)
+    jax.debug.print("Omegaz2_coeff = {}", Omegaz2_coeff)
+    jax.debug.print("Omegaz3_coeff = {}", Omegaz3_coeff)
+    jax.debug.print("Omegaz4_coeff = {}", Omegaz4_coeff)
+    jax.debug.print("Omegaz5_coeff = {}", Omegaz5_coeff)
+    jax.debug.print("phiz_0 = {}", phiz_0)
     phiz = IMRPhenomX_Return_phiz_MSA(
-        v, J_norm,
-        eta, inveta, eta2, eta4,
-        c1, SAv, SAv2, invSAv, invSAv2,
-        Omegaz0_coeff, Omegaz1_coeff, Omegaz2_coeff,
-        Omegaz3_coeff, Omegaz4_coeff, Omegaz5_coeff,
-        phiz_0
+        v,
+        J_norm,
+        eta,
+        inveta,
+        eta2,
+        eta4,
+        c1,
+        SAv,
+        SAv2,
+        invSAv,
+        invSAv2,
+        Omegaz0_coeff,
+        Omegaz1_coeff,
+        Omegaz2_coeff,
+        Omegaz3_coeff,
+        Omegaz4_coeff,
+        Omegaz5_coeff,
+        phiz_0,
     )
+    jax.debug.print("phiz = {}", phiz)
     zeta = IMRPhenomX_Return_zeta_MSA(
         v,
         eta,
@@ -1790,13 +1984,8 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
     return jnp.array([vout1, vout2, vout3])
 
 
-
 @jit
-def IMRPhenomX_costhetaLJ(
-    L_norm: float, 
-    J_norm: float, 
-    S_norm: float
-    ) -> float:
+def IMRPhenomX_costhetaLJ(L_norm: float, J_norm: float, S_norm: float) -> float:
     costhetaLJ = 0.5 * (J_norm**2 + L_norm**2 - S_norm**2) / (L_norm * J_norm)
 
     # Clamp the value to the interval [-1.0, 1.0]
@@ -1867,20 +2056,16 @@ def IMRPhenomX_Return_SNorm_MSA(
     return jnp.sqrt(SNorm2)
 
 
-
 @jit
 def IMRPhenomX_vector_dot_product(v1: jnp.ndarray, v2: jnp.ndarray) -> float:
     """
     Calculate dot product of two 3D vectors
-    
+
     Args:
         v1: First 3D vector as JAX array (jnp.ndarray)
         v2: Second 3D vector as JAX array (jnp.ndarray)
-        
+
     Returns:
         float: Dot product
     """
     return jnp.dot(v1, v2)
-
-
-

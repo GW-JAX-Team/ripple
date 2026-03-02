@@ -654,7 +654,7 @@ def compute_gamma_coefficients(
         Third gamma coefficient.
     """
     xi2 = xi * xi
-    xi3 = xi2 * xi
+    # xi3 = xi2 * xi
 
     gamma1 = (
         0.006927402739328343
@@ -2875,13 +2875,12 @@ def generate_xphm(
     minimum_frequency,
     maximum_frequency,
     reference_frequency,
+    mode_array,
 ):
     frequency_array = jnp.arange(minimum_frequency, maximum_frequency, 1 / duration)
 
     Mf = XLALSimIMRPhenomXUtilsHztoMf(frequency_array, mass_1 + mass_2)
 
-    chirp_mass = component_masses_to_chirp_mass(mass_1, mass_2)
-    eta = mass_1 * mass_2 / jnp.power(mass_1 + mass_2, 2)
     m1_SI = mass_1 * MSUN
     m2_SI = mass_2 * MSUN
     Mtot = mass_1 + mass_2
@@ -2892,11 +2891,8 @@ def generate_xphm(
     dist_m = distance * MPC  # distance in meters
     amp0 = Mtot * MRSUN * Mtot * MTSUN_SI / dist_m
 
-    modes = jnp.array(
-        [[2, 1], [2, 2], [3, 2], [3, 3], [4, 4]]
-    )  # This is currently hardcoded
     extra_params = {
-        "ModeArray": modes
+        "ModeArray": mode_array
     }  # FIXME: In the future this dict should be passed to generate_xphm itself
 
     hlm = XLALSimIMRPhenomHMGethlmModes(
@@ -2915,7 +2911,9 @@ def generate_xphm(
         extra_params,
     )
 
-    hlms = amp0 * hlm
+    ells = mode_array[:, 0]
+    minus1l = jnp.where(ells % 2 != 0, -1, 1)
+    hlms = minus1l[:, None] * hlm * amp0
 
     hp, hc = twistup(
         Mf,
@@ -3055,6 +3053,20 @@ def twistup(
             kappa,
             phiJ_Sf,
         )
+
+        beta = jnp.arccos(cos_beta)
+
+        def _save_angles(emm_, Mf_, alpha_, epsilon_, beta_):
+            import numpy as np
+
+            np.savetxt(
+                f"ripple_angles_{int(emm_)}.dat",
+                np.column_stack([Mf_, alpha_, epsilon_, beta_]),
+                header="Mf alpha epsilon beta",
+            )
+
+        jax.debug.callback(_save_angles, emm, Mf, alpha, epsilon, beta)
+
         cBetah, sBetah = IMRPhenomXWignerdCoefficients_cosbeta(cos_beta)
 
         cexp_i_alpha = jnp.exp(1j * alpha)
@@ -3951,7 +3963,8 @@ def Get_alpha_epsilon_offset(
 ############################################### HM CODE ###############################################
 #######################################################################################################
 
-
+# Is this function being used?
+"""
 def gen_IMRPhenomHM_hphc(
     f: Array, theta_intrinsic: Array, theta_extrinsic: Array, f_ref: float
 ):
@@ -4006,9 +4019,11 @@ def gen_IMRPhenomHM_hphc(
 
     return hp, hc
 
+"""
+
 
 def PhenomInternal_IMRPhenomHMFDAddMode(
-    hlm: Array, theta: float, l: int, m: int, sym: bool
+    hlm: Array, theta: float, ell: int, emm: int, sym: bool
 ):
     """
     Helper function to multiply hlm with Ylm.
@@ -4018,15 +4033,21 @@ def PhenomInternal_IMRPhenomHMFDAddMode(
 
     # Compute Y_{l,m}
     Ylm = jax.lax.switch(
-        l - 2, [compute_sminus2_l2, compute_sminus2_l3, compute_sminus2_l4], theta, m
+        ell - 2,
+        [compute_sminus2_l2, compute_sminus2_l3, compute_sminus2_l4],
+        theta,
+        emm,
     )
     # Compute Y_{l,-m}
     Ylmm = jax.lax.switch(
-        l - 2, [compute_sminus2_l2, compute_sminus2_l3, compute_sminus2_l4], theta, -m
+        ell - 2,
+        [compute_sminus2_l2, compute_sminus2_l3, compute_sminus2_l4],
+        theta,
+        -emm,
     )
 
     # (-1)^l factor
-    minus1l = jnp.where(l % 2 == 0, 1.0, -1.0)
+    minus1l = jnp.where(ell % 2 == 0, 1.0, -1.0)
 
     def equatorial_symm_branch():
         # For phi=0, Y values are real, so conj(Y_{l,-m}) = Y_{l,-m}
@@ -4056,6 +4077,7 @@ def PhenomInternal_IMRPhenomHMFDAddMode(
     )
 
 
+# Function to compute hlm modes
 def XLALSimIMRPhenomHMGethlmModes(
     freqs: Array,
     m1_SI: float,
@@ -4310,16 +4332,16 @@ def IMRPhenomHMGetRingdownFrequency(
     return fringdown, fdamp
 
 
-def SimRingdownCW_KAPPA(jf: float, l: int, m: int):
+def SimRingdownCW_KAPPA(jf: float, ell: int, emm: int):
     """
     Domain mapping for dimnesionless BH spin
     """
     alpha = jnp.log(2.0 - jf) / jnp.log(3)
-    beta = 1.0 / (2.0 + l - jnp.abs(m))
+    beta = 1.0 / (2.0 + ell - jnp.abs(emm))
     return alpha**beta
 
 
-def SimRingdownCW_CW07102016(kappa: float, l: int, input_m: int, n: int):
+def SimRingdownCW_CW07102016(kappa: float, ell: int, input_m: int, n: int):
     """
     Dimensionless QNM Frequencies: Note that name encodes date of writing
     """
@@ -4412,7 +4434,7 @@ def SimRingdownCW_CW07102016(kappa: float, l: int, input_m: int, n: int):
 
     # Determine index of branch to use. If other modes are added, this will need to be expanded for new modes
     # Create a unique key from l, m, n: key = l * 100 + m * 10 + n
-    key = l * 100 + jnp.abs(m) * 10 + n
+    key = ell * 100 + jnp.abs(m) * 10 + n
 
     # Map keys to indices
     # 210 → 0, 220 → 1, 320 → 2, 330 → 3, 430 → 4, 440 → 5
@@ -4567,7 +4589,7 @@ def IMRPhenomHMAmplitude(freqs_geom: Array, pHM: dict, ell: int, mm: int):
     return amps * rescaling
 
 
-def IMRPhenomHMOnePointFiveSpinPN(fM, l, m, M1, M2, X1z, X2z):
+def IMRPhenomHMOnePointFiveSpinPN(fM, ell, m, M1, M2, X1z, X2z):
     """
     Implementation of IMRPhenomHMOnePointFiveSpinPN from LALSimIMRPhenomHM.c
     Currently supported modes: (2,1), (2,2), (3,2), (3,3), (4,4)
@@ -4630,7 +4652,7 @@ def IMRPhenomHMOnePointFiveSpinPN(fM, l, m, M1, M2, X1z, X2z):
         # THIS IS LEADING ORDER
         return (4.0 / 9.0) * jnp.sqrt(10.0 / 7.0) * v2 * (1.0 - 3.0 * eta) + 0 * 1j
 
-    key = l * 10 + jnp.abs(m)
+    key = ell * 10 + jnp.abs(m)
 
     # Map keys to indices
     index = jnp.where(
@@ -4828,8 +4850,6 @@ def IMRPhenomHMFreqDomainMapParams(
         0.014,  # Dimensionless frequency (Mf) at which the inspiral amplitude switches to the intermediate amplitude
         0.018,  # Dimensionless frequency (Mf) at which the inspiral phase switches to the intermediate phase
     )
-    f1 = Mf_1_22
-
     Mf_RD_22 = pHM["Mf_RD_22"]
     Mf_RD_lm = pHM["PhenomHMfring"][mode_idx]
 

@@ -383,6 +383,18 @@ def compute_evolved_spin_using_msa(
     epsilon_out = vangles[1] - epsilon_offset
     cos_beta_out = vangles[2]
 
+    jax.debug.print("ripple debug...alpha_offset {}", alpha_offset)
+    jax.debug.print("ripple debug...epsilon_offset {}", epsilon_offset)
+
+    def save_vangles(Mf_, emm_, vx, vy, vz):
+        import numpy as np
+
+        data = np.column_stack([Mf_, vx, vy, vz])
+        with open(f"ripple_vangles_{int(emm_.ravel()[0])}.dat", "w") as f:
+            np.savetxt(f, data, fmt="%.15e")
+
+    jax.debug.callback(save_vangles, Mf, emm, vangles[0], vangles[1], vangles[2])
+
     return alpha_out, epsilon_out, cos_beta_out
 
 

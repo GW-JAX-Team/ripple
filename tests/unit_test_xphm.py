@@ -10,7 +10,7 @@ import bilby
 from utils import GPSt_to_LMST
 print("Device", jax.devices())
 
-def compute_overlap(frequency_series_1, frequency_series_2, df):
+def compute_overlap(frequency_series_1, frequency_series_2):
 
     norm1 = np.sum(frequency_series_1*np.conj(frequency_series_1))**0.5
     norm2 = np.sum(frequency_series_2*np.conj(frequency_series_2))**0.5
@@ -20,7 +20,7 @@ def compute_overlap(frequency_series_1, frequency_series_2, df):
 
 injection_parameters = {}
 injection_parameters['m1'] = np.array([36.0])
-injection_parameters['m2'] = np.array([29.0])
+injection_parameters['m2'] = np.array([9.0])
 
 injection_parameters['m1_SI'] = injection_parameters['m1'] * MSUN
 injection_parameters['m2_SI'] = injection_parameters['m2'] * MSUN
@@ -42,7 +42,7 @@ injection_parameters['psi'] = np.array([0.])
 
 injection_parameters['eta'] = injection_parameters['m1'] * injection_parameters['m2'] / (injection_parameters['m1'] + injection_parameters['m2'])**2
 
-injection_parameters['Phicoal'] = np.array([0.5])
+injection_parameters['Phicoal'] = np.array([0.])
 
 injection_parameters['chi1x'] = np.array([.1])
 injection_parameters['chi1y'] = np.array([.2])
@@ -58,20 +58,16 @@ maximum_frequency = 1024
 duration = 8.
 df = 1/duration
 reference_frequency = 50
+modes = jnp.array([[2,1],[2,2],[3,2],[3,3],[4,4]])
 
 f = np.arange(minimum_frequency, maximum_frequency, df)
 lalparams = lal.CreateDict()
 
 ModeArray = lalsim.SimInspiralCreateModeArray()
 
-lalsim.SimInspiralModeArrayActivateMode(ModeArray, 2, 1)
-lalsim.SimInspiralModeArrayActivateMode(ModeArray, 2, 2)
+for mm in modes:
+    lalsim.SimInspiralModeArrayActivateMode(ModeArray, int(mm[0]), int(mm[1]))
 
-lalsim.SimInspiralModeArrayActivateMode(ModeArray, 3, 2)
-lalsim.SimInspiralModeArrayActivateMode(ModeArray, 3, 3)
-
-#lalsim.SimInspiralModeArrayActivateMode(ModeArray, 4, 3)
-lalsim.SimInspiralModeArrayActivateMode(ModeArray, 4, 4)
 
 
 
@@ -101,14 +97,48 @@ lal_hp_xphm, lal_hc_xphm = lalsim.SimIMRPhenomXPHM(injection_parameters['m1_SI']
                                                )
 
 ###### jax code
-run_jim = True
 tGPS = 3600
 #model = IMRPhenomXPHM.IMRPhenomXPHM(apply_fcut = True, reference_frequency=reference_frequency)
 
-if run_jim:
+make_ripple_hlms = True
+if make_ripple_hlms:
 
 
-    hp_xphm, hc_xphm = IMRPhenomXPHM.generate_xphm(injection_parameters['m1'][0],
+    extra_params = {"ModeArray": modes}
+    
+    hlms_ripple = IMRPhenomXPHM.XLALSimIMRPhenomHMGethlmModes(
+    f,
+    injection_parameters['m1_SI'][0],
+    injection_parameters['m2_SI'][0],
+    injection_parameters['chi1x'][0],
+    injection_parameters['chi1y'][0],
+    injection_parameters['chi1z'][0],
+    injection_parameters['chi2x'][0],
+    injection_parameters['chi2y'][0],
+    injection_parameters['chi2z'][0],
+    0.0,
+    df,
+    reference_frequency,
+    extra_params)
+    
+    
+    Mtot = injection_parameters['m1'][0] + injection_parameters['m2'][0]
+    dist_m = injection_parameters['distance_SI'][0]
+    amp0 = Mtot * lal.MRSUN_SI * Mtot * lal.MTSUN_SI / dist_m
+    
+    print("ripple amp0", amp0)
+    ells = modes[:, 0]
+    minus1l = jnp.where(ells % 2 != 0, -1, 1)
+    hlms_ripple_final = minus1l[:, None] * hlms_ripple * amp0
+
+
+
+run_jim_xphm = True
+
+if run_jim_xphm:
+
+
+    ripple_hp_xphm, ripple_hc_xphm = IMRPhenomXPHM.generate_xphm(injection_parameters['m1'][0],
                                            injection_parameters['m2'][0],
                                             injection_parameters['chi1x'][0],
                                             injection_parameters['chi1y'][0],
@@ -120,13 +150,14 @@ if run_jim:
                                             injection_parameters['iota'][0],
                                             injection_parameters['Phicoal'][0],
                                             duration,
-                                            minimum_frequency, maximum_frequency, reference_frequency)
+                                            minimum_frequency, maximum_frequency, reference_frequency,
+                                            modes)
 
 
     N = int(minimum_frequency * duration)
 
-    plus_overlap = compute_overlap(hp_xphm, np.array(lal_hp_xphm.data.data[N:-1]), df = 1/duration)
-    print("Plus overlap", plus_overlap)
+    plus_overlap = compute_overlap(ripple_hp_xphm, np.array(lal_hp_xphm.data.data[N:-1]))
+    print("Plus overlap percentage", 100*(1-plus_overlap))
 
 
 
@@ -137,8 +168,8 @@ if run_jim:
 
 
     # Compute amplitude and phase
-    ripple_amp = np.abs(hp_xphm)
-    ripple_phase = np.unwrap(np.angle(hp_xphm))
+    ripple_amp = np.abs(ripple_hp_xphm)
+    ripple_phase = np.unwrap(np.angle(ripple_hp_xphm))
     lal_amp = np.abs(plot_xphm_hp)
     lal_phase = np.unwrap(np.angle(plot_xphm_hp))
 
@@ -169,7 +200,7 @@ if run_jim:
     ax[1].set_title('Phase XPHM')
 
     # Full waveform (real part)
-    ax[2].plot(f, np.real(hp_xphm), label='ripple')
+    ax[2].plot(f, np.real(ripple_hp_xphm), label='ripple')
     ax[2].plot(lal_f, np.real(plot_xphm_hp), label='lalsim', linestyle='--')
     ax[2].set_xlim(15, 100)
     ax[2].set_xlabel('Frequency [Hz]')
@@ -183,79 +214,104 @@ if run_jim:
 
     
 
-# Convert all parameters to JAX arrays to avoid type mixing issues
-print('\n Calling the hphc directly')
-hlm = IMRPhenomXPHM.hphc(frequency_array = jnp.arange(minimum_frequency, maximum_frequency, df),
-                        chirp_mass = injection_parameters['chirp_mass'][0],
-                        eta = injection_parameters['eta'][0],
-                        chi1x = injection_parameters['chi1x'][0],
-                        chi1y = injection_parameters['chi1y'][0],
-                        chi1z = injection_parameters['chi1z'][0],
-                        chi2x = injection_parameters['chi2x'][0],
-                        chi2y = injection_parameters['chi2y'][0],
-                        chi2z = injection_parameters['chi2z'][0],
-                        luminosity_distance= injection_parameters['distance'][0],
-                        iota = injection_parameters['iota'][0],
-                        initial_phase= injection_parameters['Phicoal'][0],
-                        reference_frequency = reference_frequency
-                        )
 
 # Save each mode of hlm to separate files
-modes_info = [
-    (2, 1, 0),  # (ell, m, column_index)
-    (2, 2, 1),
-    (3, 2, 2),
-    (3, 3, 3),
-    (4, 4, 4)
-]
+modes_info = [(int(ell), int(m), i) for i, (ell, m) in enumerate(modes)]
 
-for ell, m, col_idx in modes_info:
-    mode_data = hlm[:, col_idx]
-    amp = np.abs(mode_data)
-    phase = np.angle(mode_data)
+save_ripple_waveforms = False
+if save_ripple_waveforms:
+    # Saving ripple waveforms
+    for ell, m, col_idx in modes_info:
+        mode_data = hlms_ripple_final[:, col_idx]
+        ripple_amp = np.abs(mode_data)
+        ripple_phase = np.angle(mode_data)
 
-    # Save as: frequency, amplitude, phase
-    output = np.column_stack([f, amp, phase])
-    filename = f'ripple_hlm{ell}{m}.dat'
-    np.savetxt(filename, output, header='frequency amplitude phase', fmt='%.3f %.5e %.5e')
-    #print(f"Saved {filename}")
+        # Save as: frequency, amplitude, phase
+        output = np.column_stack([f, ripple_amp, ripple_phase])
+        filename = f'ripple_hlm{ell}{m}.dat'
+        np.savetxt(filename, output, header='frequency amplitude phase', fmt='%.3f %.5e %.5e')
 
 
 
-ripple_phase = np.genfromtxt("./PhisAllModes_ripple.dat", skip_header=True)
+fig, ax = plt.subplots(5, 4, figsize = (18, 11), sharex = True)
+for ell, emm, col_idx in modes_info:
 
-ripple_phase[:, 1] += np.pi/2
-ripple_phase[:, 4] -= np.pi/2
-ripple_phase[:, 5] += np.pi
+    phase_ripple = jnp.unwrap(jnp.angle(hlms_ripple_final[col_idx, :]))
+    amp_ripple = jnp.abs(hlms_ripple_final[col_idx, :])
 
-fig, ax = plt.subplots(5, 2, figsize = (6, 8), sharex = True)
-for ell, emm, column_index in modes_info:
-    lalsim_phase = np.genfromtxt(f"./lalsim_phases_{ell}{emm}.dat", skip_header=True)
-    si_frequency = lalsim_phase[:, 1]
+    hlms_lal = np.genfromtxt(f"lalsim_htildelm_{ell}{emm}.dat", skip_header=1)
+    freq_lal = hlms_lal[:, 1]
+    hlms_lal_complex = hlms_lal[:, 2] + 1j * hlms_lal[:, 3]
 
-    ripple_phase_mode = ripple_phase[:, column_index+1][:len(si_frequency)] 
+    # Select rows whose frequency matches the ripple frequency array
+    mask = (freq_lal >= minimum_frequency) & (freq_lal < maximum_frequency)
+    hlms_lal_masked = hlms_lal_complex[mask]
+    phase_lal = jnp.unwrap(jnp.angle(hlms_lal_masked))
+    amp_lal = jnp.abs(hlms_lal_masked)
+
+    # Phase
+    ax[col_idx, 0].plot(f, phase_lal, label = "LAL")
+    ax[col_idx, 0].plot(f, phase_ripple, linestyle = "--", label = "Ripple")
+    ax[col_idx, 0].set_title(f"Phase ({ell},{emm})")
+    ax[col_idx, 0].legend()
+
+    dphase = phase_ripple - phase_lal
+    ax[col_idx, 1].plot(f, dphase)
+    ax[col_idx, 1].set_title(r"$\Delta \phi$" + f" ({ell},{emm})")
+
+    # Amplitude
+    ax[col_idx, 2].plot(f, amp_lal, label = "LAL")
+    ax[col_idx, 2].plot(f, amp_ripple, linestyle = "--", label = "Ripple")
+    ax[col_idx, 2].set_title(f"Amplitude ({ell},{emm})")
+    ax[col_idx, 2].legend()
+
+    damp = amp_ripple - amp_lal
+    ax[col_idx, 3].plot(f, damp)
+    ax[col_idx, 3].set_title(r"$\Delta A$" + f" ({ell},{emm})")
 
 
-    ax[column_index, 0].plot(si_frequency, lalsim_phase[:, 2], label = 'lalsim')
-    ax[column_index, 0].plot(si_frequency, ripple_phase_mode, label = 'ripple', ls = '--')
-    ax[column_index, 0].legend()
-    ax[column_index, 0].grid()
-
-
-    diff = lalsim_phase[:, 2] - ripple_phase_mode
-    ax[column_index, 1].plot(si_frequency, diff, label = 'difference')
-    #ax[column_index, 1].set_yscale('symlog')
-    #ax[column_index, 1].legend()
-    ax[column_index, 1].grid()
-    ax[column_index, 1].set_ylim(-0.05, 0.06)
-    ax[column_index, 1].set_title(f"mode {ell} {emm}")
-
-
-    for _ax in ax.flatten():
-        _ax.axvline(x = 56.2224314, color = 'black', ls ='--')
-        _ax.axvline(x = 146.12671021, color = 'black', ls ='--')
-        _ax.axvline(x = 624.69368224, color = 'black', ls ='--')
-        _ax.axvline(x = 20, color = 'grey', ls = ':')
 
 fig.tight_layout()
-fig.savefig(f'mode_all_phase.pdf')
+fig.savefig("phase_difference.pdf")
+
+   
+
+
+# Twisting-up angles comparison: ripple vs lalsimulation
+# lalsim files: Mf alpha epsilon cos_beta
+# ripple files: Mf alpha epsilon beta
+
+Mtot_SI = (injection_parameters['m1'][0] + injection_parameters['m2'][0]) * lal.MTSUN_SI
+
+fig_ang, ax_ang = plt.subplots(5, 6, figsize=(24, 14), sharex=True)
+
+for row, (ell, emm, col_idx) in enumerate(modes_info):
+    lal_data    = np.loadtxt(f"lalsim_angles_{ell}{emm}.dat")
+    ripple_data = np.loadtxt(f"ripple_angles_{emm}.dat", skiprows=1)
+
+    # Convert Mf -> Hz
+    f_lal    = lal_data[:, 0]    / Mtot_SI
+    f_ripple = ripple_data[:, 0] / Mtot_SI
+
+    alpha_lal,   epsilon_lal,   cosbeta_lal   = lal_data[:, 1],    lal_data[:, 2],    lal_data[:, 3]
+    alpha_ripple, epsilon_ripple, beta_ripple  = ripple_data[:, 1], ripple_data[:, 2], ripple_data[:, 3]
+
+    beta_lal = np.arccos(cosbeta_lal)
+
+    for col, (y_lal, y_ripple, label) in enumerate([
+        (alpha_lal,   alpha_ripple,   r"$\alpha$"),
+        (epsilon_lal, epsilon_ripple, r"$\epsilon$"),
+        (beta_lal,    beta_ripple,    r"$\beta$"),
+    ]):
+        ax_ang[row, 2*col].plot(f_lal,    y_lal,    label="LAL")
+        ax_ang[row, 2*col].plot(f_ripple, y_ripple, linestyle="--", label="Ripple")
+        ax_ang[row, 2*col].set_title(f"{label} ({ell},{emm})")
+        ax_ang[row, 2*col].legend(fontsize=6)
+
+        diff = y_lal[:(len(y_ripple))] - y_ripple[:len(y_ripple)]
+        ax_ang[row, 2*col+1].plot(f_ripple, diff)
+        ax_ang[row, 2*col+1].set_title(f"$\Delta${label} ({ell},{emm})")
+
+ax_ang[-1, 0].set_xlabel("Frequency [Hz]")
+fig_ang.tight_layout()
+fig_ang.savefig("spin_angles_comparison.pdf")
