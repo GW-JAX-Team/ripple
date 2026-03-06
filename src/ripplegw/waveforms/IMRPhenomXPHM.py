@@ -2859,6 +2859,7 @@ def compute_full_amplitude(
     )
 
 
+@jit
 def generate_xphm(
     mass_1,
     mass_2,
@@ -2871,14 +2872,9 @@ def generate_xphm(
     distance,  # in Mpc
     inclination,
     phi0,
-    duration,
-    minimum_frequency,
-    maximum_frequency,
+    frequency_array,
     reference_frequency,
-    mode_array,
 ):
-    frequency_array = jnp.arange(minimum_frequency, maximum_frequency, 1 / duration)
-
     Mf = XLALSimIMRPhenomXUtilsHztoMf(frequency_array, mass_1 + mass_2)
 
     m1_SI = mass_1 * MSUN
@@ -2891,7 +2887,7 @@ def generate_xphm(
     dist_m = distance * MPC  # distance in meters
     amp0 = Mtot * MRSUN * Mtot * MTSUN_SI / dist_m
 
-    extra_params = {"ModeArray": mode_array}
+    extra_params = {"ModeArray": jnp.array([[2, 1], [2, 2], [3, 2], [3, 3], [4, 4]])}
 
     hlm = XLALSimIMRPhenomHMGethlmModes(
         frequency_array,
@@ -2909,7 +2905,7 @@ def generate_xphm(
         extra_params,
     )
 
-    ells = mode_array[:, 0]
+    ells = extra_params["ModeArray"][:, 0]
     minus1l = jnp.where(ells % 2 != 0, -1, 1)
     hlms = minus1l[:, None] * hlm * amp0
 
@@ -3955,10 +3951,6 @@ def Get_alpha_epsilon_offset(
 
     return alpha_offset_mprime, epsilon_offset_mprime
 
-
-#######################################################################################################
-############################################### HM CODE ###############################################
-#######################################################################################################
 
 # Is this function being used?
 """
