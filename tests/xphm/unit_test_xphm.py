@@ -6,13 +6,34 @@ from ripplegw.constants import MSUN
 import lal
 import matplotlib.pyplot as plt
 from ripplegw.waveforms import IMRPhenomXPHM
+import bilby
+from bilby.gw.utils import noise_weighted_inner_product
+
+psd = bilby.gw.detector.PowerSpectralDensity(psd_file="ET_D_psd.txt")
 
 
-def compute_overlap(frequency_series_1, frequency_series_2):
-    normass_1 = np.sum(frequency_series_1 * np.conj(frequency_series_1)) ** 0.5
-    normass_2 = np.sum(frequency_series_2 * np.conj(frequency_series_2)) ** 0.5
-    inner_product = np.sum(frequency_series_1 * np.conj(frequency_series_2))
-    return inner_product / (normass_1 * normass_2)
+def compute_overlap(
+    frequency_series_1,
+    frequency_series_2,
+    minimum_frequency,
+    maximum_frequency,
+    duration,
+):
+    frequency_array = np.arange(minimum_frequency, maximum_frequency, 1 / duration)
+    interpolated_psd = psd.power_spectral_density_interpolated(frequency_array)
+
+    inner_product = noise_weighted_inner_product(
+        frequency_series_1, frequency_series_2, interpolated_psd, duration
+    )
+
+    norm_1 = noise_weighted_inner_product(
+        frequency_series_1, frequency_series_1, interpolated_psd, duration
+    )
+    norm_2 = noise_weighted_inner_product(
+        frequency_series_2, frequency_series_2, interpolated_psd, duration
+    )
+
+    return inner_product / np.power(norm_1 * norm_2, 0.5)
 
 
 def generate_lalsimulation_xphm_waveform(
@@ -49,7 +70,7 @@ def generate_lalsimulation_xphm_waveform(
         injection_parameters["spin_2z"],
         injection_parameters["distance_SI"],
         injection_parameters["iota"],
-        injection_parameters["Phicoal"],
+        injection_parameters["phase"],
         minimum_frequency,
         maximum_frequency,
         1 / duration,
@@ -81,7 +102,7 @@ def generate_ripple_xphm_waveform(
         injection_parameters["spin_2z"],
         injection_parameters["distance"],
         injection_parameters["iota"],
-        injection_parameters["Phicoal"],
+        injection_parameters["phase"],
         frequency_array,
         reference_frequency,
     )
@@ -140,8 +161,8 @@ def main():
     print("Device", jax.devices())
 
     injection_parameters = {}
-    injection_parameters["mass_1"] = 36.0
-    injection_parameters["mass_2"] = 29.0
+    injection_parameters["mass_1"] = 15.0
+    injection_parameters["mass_2"] = 10.0
     injection_parameters["mass_1_SI"] = injection_parameters["mass_1"] * MSUN
     injection_parameters["mass_2_SI"] = injection_parameters["mass_2"] * MSUN
     injection_parameters["distance"] = 1.0  # In Mpc
@@ -152,13 +173,13 @@ def main():
     injection_parameters["phi"] = 0.0
     injection_parameters["iota"] = 0.2
     injection_parameters["psi"] = 1.2
-    injection_parameters["Phicoal"] = 0.0
-    injection_parameters["spin_1x"] = 0.1
-    injection_parameters["spin_1y"] = 0.2
-    injection_parameters["spin_1z"] = 0.3
-    injection_parameters["spin_2x"] = 0.3
-    injection_parameters["spin_2y"] = 0.2
-    injection_parameters["spin_2z"] = 0.1
+    injection_parameters["phase"] = 0.0
+    injection_parameters["spin_1x"] = -0.02
+    injection_parameters["spin_1y"] = 0.564
+    injection_parameters["spin_1z"] = -0.3
+    injection_parameters["spin_2x"] = -0.86
+    injection_parameters["spin_2y"] = -0.45
+    injection_parameters["spin_2z"] = -0.08
 
     minimum_frequency = 20
     maximum_frequency = 1024
@@ -185,9 +206,13 @@ def main():
 
     mask = int(minimum_frequency * duration)
     plus_overlap = compute_overlap(
-        ripple_plus, np.array(lalsim_plus.data.data[mask:-1])
+        ripple_plus,
+        np.array(lalsim_plus.data.data[mask:-1]),
+        minimum_frequency,
+        maximum_frequency,
+        duration,
     )
-    print("Plus overlap percentage", 100 * (1 - plus_overlap))
+    print("plus log10 mismatch", np.log10(np.abs(np.real(1 - plus_overlap))))
 
     plot_xphm_comparison(
         ripple_plus, lalsim_plus, minimum_frequency, maximum_frequency, duration
