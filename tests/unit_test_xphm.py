@@ -2,7 +2,7 @@ import lalsimulation as lalsim
 import jax
 import jax.numpy as jnp
 import numpy as np
-from ripplegw.constants import C, MSUN
+from ripplegw.constants import MSUN
 import lal
 import matplotlib.pyplot as plt
 from ripplegw.waveforms import IMRPhenomXPHM
@@ -12,22 +12,22 @@ print("Device", jax.devices())
 
 def compute_overlap(frequency_series_1, frequency_series_2):
 
-    norm1 = np.sum(frequency_series_1*np.conj(frequency_series_1))**0.5
-    norm2 = np.sum(frequency_series_2*np.conj(frequency_series_2))**0.5
+    normass_1 = np.sum(frequency_series_1*np.conj(frequency_series_1))**0.5
+    normass_2 = np.sum(frequency_series_2*np.conj(frequency_series_2))**0.5
 
     inner_product = np.sum(frequency_series_1*np.conj(frequency_series_2))
-    return inner_product / (norm1*norm2)
+    return inner_product / (normass_1*normass_2)
 
 injection_parameters = {}
-injection_parameters['m1'] = np.array([36.0])
-injection_parameters['m2'] = np.array([9.0])
+injection_parameters['mass_1'] = np.array([36.0])
+injection_parameters['mass_2'] = np.array([9.0])
 
-injection_parameters['m1_SI'] = injection_parameters['m1'] * MSUN
-injection_parameters['m2_SI'] = injection_parameters['m2'] * MSUN
+injection_parameters['mass_1_SI'] = injection_parameters['mass_1'] * MSUN
+injection_parameters['mass_2_SI'] = injection_parameters['mass_2'] * MSUN
 
 
-injection_parameters['chirp_mass'] = bilby.gw.conversion.component_masses_to_chirp_mass(injection_parameters['m1'], 
-                                                                                injection_parameters['m2'])
+injection_parameters['chirp_mass'] = bilby.gw.conversion.component_masses_to_chirp_mass(injection_parameters['mass_1'], 
+                                                                                injection_parameters['mass_2'])
 
 injection_parameters['distance'] = np.array([1]) # In Mpc
 
@@ -40,7 +40,7 @@ injection_parameters['iota'] = np.array([0])
 
 injection_parameters['psi'] = np.array([0.])
 
-injection_parameters['eta'] = injection_parameters['m1'] * injection_parameters['m2'] / (injection_parameters['m1'] + injection_parameters['m2'])**2
+injection_parameters['eta'] = injection_parameters['mass_1'] * injection_parameters['mass_2'] / (injection_parameters['mass_1'] + injection_parameters['mass_2'])**2
 
 injection_parameters['Phicoal'] = np.array([0.])
 
@@ -78,8 +78,8 @@ lalsim.SimInspiralWaveformParamsInsertPhenomXPHMMBandVersion(lalparams, 0)
 lalsim.SimInspiralWaveformParamsInsertPhenomXPHMThresholdMband(lalparams, 0.0)
 lalsim.SimInspiralWaveformParamsInsertPhenomXPrecVersion(lalparams, 223)
 
-lal_hp_xphm, lal_hc_xphm = lalsim.SimIMRPhenomXPHM(injection_parameters['m1_SI'][0],                       
-                                               injection_parameters['m2_SI'][0],                    
+lal_hp_xphm, lal_hc_xphm = lalsim.SimIMRPhenomXPHM(injection_parameters['mass_1_SI'][0],                       
+                                               injection_parameters['mass_2_SI'][0],                    
                                                injection_parameters['chi1x'][0],                        #/**< x-component of the dimensionless spin of object 1 w.r.t. Lhat = (0,0,1) */
                                                injection_parameters['chi1y'][0],                        #/**< y-component of the dimensionless spin of object 1 w.r.t. Lhat = (0,0,1) */
                                                injection_parameters['chi1z'][0],                        #/**< z-component of the dimensionless spin of object 1 w.r.t. Lhat = (0,0,1) */
@@ -108,8 +108,8 @@ if make_ripple_hlms:
     
     hlms_ripple = IMRPhenomXPHM.XLALSimIMRPhenomHMGethlmModes(
     f,
-    injection_parameters['m1_SI'][0],
-    injection_parameters['m2_SI'][0],
+    injection_parameters['mass_1_SI'][0],
+    injection_parameters['mass_2_SI'][0],
     injection_parameters['chi1x'][0],
     injection_parameters['chi1y'][0],
     injection_parameters['chi1z'][0],
@@ -122,7 +122,7 @@ if make_ripple_hlms:
     extra_params)
     
     
-    Mtot = injection_parameters['m1'][0] + injection_parameters['m2'][0]
+    Mtot = injection_parameters['mass_1'][0] + injection_parameters['mass_2'][0]
     dist_m = injection_parameters['distance_SI'][0]
     amp0 = Mtot * lal.MRSUN_SI * Mtot * lal.MTSUN_SI / dist_m
     
@@ -137,8 +137,8 @@ run_jim_xphm = True
 if run_jim_xphm:
     frequency_array = jnp.arange(minimum_frequency, maximum_frequency, 1/duration)
 
-    ripple_hp_xphm, ripple_hc_xphm = IMRPhenomXPHM.generate_xphm(injection_parameters['m1'][0],
-                                           injection_parameters['m2'][0],
+    ripple_hp_xphm, ripple_hc_xphm = IMRPhenomXPHM.generate_xphm(injection_parameters['mass_1'][0],
+                                           injection_parameters['mass_2'][0],
                                             injection_parameters['chi1x'][0],
                                             injection_parameters['chi1y'][0],
                                             injection_parameters['chi1z'][0],
@@ -279,7 +279,7 @@ fig.savefig("phase_difference.pdf")
 # lalsim files: Mf alpha epsilon cos_beta
 # ripple files: Mf alpha epsilon beta
 
-Mtot_SI = (injection_parameters['m1'][0] + injection_parameters['m2'][0]) * lal.MTSUN_SI
+Mtot_SI = (injection_parameters['mass_1'][0] + injection_parameters['mass_2'][0]) * lal.MTSUN_SI
 
 fig_ang, ax_ang = plt.subplots(5, 6, figsize=(24, 14), sharex=True)
 
