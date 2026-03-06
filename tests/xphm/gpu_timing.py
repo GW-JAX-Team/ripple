@@ -9,7 +9,7 @@ import numpy as np
 import time
 from ripplegw.waveforms import IMRPhenomXPHM
 
-jax.config.update("jax_enable_x64", False)
+jax.config.update("jax_enable_x64", True)
 
 # Check available devices
 print("JAX devices:", jax.devices())
@@ -38,7 +38,8 @@ def setup_injection_parameters(N_WAVEFORMS, reference_frequency):
     )
 
     injection_parameters = {
-        key: jnp.array(value) for key, value in _injection_parameters.items()
+        key: jnp.array(value, dtype=jnp.float64)
+        for key, value in _injection_parameters.items()
     }
 
     return injection_parameters
