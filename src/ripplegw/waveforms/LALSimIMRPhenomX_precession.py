@@ -1,10 +1,9 @@
 import jax.numpy as jnp
-from ..constants import G, MSUN, C, MTSUN
+from ..constants import G, C, MTSUN
 import jax
 
-from .IMRPhenomXPHM_utils import *
+from .IMRPhenomXPHM_utils import XLALSimIMRPhenomXatan2tol
 from .LALSimInspiralSpinTaylor import XLALSimInspiralSpinTaylorPNEvolveOrbit
-from dataclasses import field
 from jax_dataclasses import pytree_dataclass
 from jax import jit
 
@@ -43,169 +42,6 @@ class CommonConstants:
     log16: float = 2.772588722239781
     power_of_lalpi_2: float = 9.869604401089358
     MAX_TOL_ATAN: float = 1.0e-15
-
-
-# Unused
-def IMRPhenomXGetAndSetPrecessionVariables(
-    pWF, mass_1, mass_2, chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, lalParams, debug_flag
-):
-    """
-    lalsuite: https://lscsoft.docs.ligo.org/lalsuite/lalsimulation/_l_a_l_sim_i_m_r_phenom_x__precession_8c.html#af089ef2586c52b12016c0d791b176121
-
-    Parameters
-    ----------
-    pWF : dict
-        Some useful waveform parameters
-    m1_SI : float
-        Mass of object 1 (heavier one) in SI units
-    m2_SI : float
-        Mass of object 2 (lighter one) in SI units
-    chi1x : float
-        Object 1 spin x-component
-    chi1y : float
-        Object 1 spin y-component
-    chi1z : float
-        Object 1 spin z-component
-    chi2x : float
-        Object 2 spin x-component
-    chi2y : float
-        Object 2 spin y-component
-    chi2z : float
-        Object 2 spin z-component
-    lalParams : dict
-        LAL parameters
-    debug_flag : bool
-        Debug flag
-
-    Note: We assume m1 > m2, q > 1, dm = m1 - m2 = delta = sqrt(1-4eta) > 0
-    """
-    # Common constants
-    common_constants: CommonConstants = field(default_factory=CommonConstants)
-
-    total_mass = mass_1 + mass_2
-    mass_1_fraction = mass_1 / total_mass
-    mass_2_fraction = mass_2 / total_mass
-
-    q = mass_1_fraction / mass_2_fraction
-
-    mass_1_fraction_2 = jnp.power(mass_1_fraction, 2)
-    mass_1_fraction_3 = jnp.power(mass_1_fraction, 3)
-    mass_1_fraction_4 = jnp.power(mass_1_fraction, 4)
-    mass_1_fraction_5 = jnp.power(mass_1_fraction, 5)
-    mass_1_fraction_6 = jnp.power(mass_1_fraction, 6)
-    mass_1_fraction_7 = jnp.power(mass_1_fraction, 7)
-    mass_1_fraction_8 = jnp.power(mass_1_fraction, 8)
-
-    mass_2_fraction_2 = jnp.power(mass_2_fraction, 2)
-    mass_2_fraction_3 = jnp.power(mass_2_fraction, 3)
-    mass_2_fraction_4 = jnp.power(mass_2_fraction, 4)
-    mass_2_fraction_5 = jnp.power(mass_2_fraction, 5)
-    mass_2_fraction_6 = jnp.power(mass_2_fraction, 6)
-    mass_2_fraction_7 = jnp.power(mass_2_fraction, 7)
-    mass_2_fraction_8 = jnp.power(mass_2_fraction, 8)
-
-    pWF["M"] = 1
-    bigM = 1
-    pWF["m1_2"] = mass_1_fraction_2
-    pWF["m2_2"] = mass_2_fraction_2
-    eta = mass_1 * mass_2 / jnp.power(mass_1 + mass_2, 2)
-    eta2 = jnp.power(eta, 2)
-    eta3 = jnp.power(eta, 3)
-    eta4 = jnp.power(eta, 4)
-    eta5 = jnp.power(eta, 5)
-    eta6 = jnp.power(eta, 6)
-
-    delta = pWF["delta"]
-    delta2 = jnp.power(delta, 2)
-    delta3 = jnp.power(delta, 3)
-
-    inveta = jnp.power(eta, -1)
-    inveta2 = jnp.power(eta, -2)
-    inveta3 = jnp.power(eta, -3)
-    inveta4 = jnp.power(eta, -4)
-    sqrt_inveta = jnp.power(eta, -0.5)
-    chi_eff = pWF["chiEff"]
-
-    mass_1_SI = mass_1 * MSUN
-    mass_2_SI = mass_2 * MSUN
-    twopiGM = 2 * jnp.pi * G * (mass_1_SI + mass_2_SI) / C / C / C
-    piGM = jnp.pi * (mass_1_SI + mass_2_SI) * (G / C) / (C * C)
-
-    chi1_norm = jnp.sqrt(chi1x * chi1x + chi1y * chi1y + chi1z * chi1z)
-    chi2_norm = jnp.sqrt(chi2x * chi2x + chi2y * chi2y + chi2z * chi2z)
-
-    # Dimensionful spins
-    S1x = chi1x * mass_1_fraction_2
-    S1y = chi1y * mass_1_fraction_2
-    S1z = chi1z * mass_1_fraction_2
-    S1_norm = jnp.abs(chi1_norm) * mass_1_fraction_2
-
-    S2x = chi2x * mass_2_fraction_2
-    S2y = chi2y * mass_2_fraction_2
-    S2z = chi2z * mass_2_fraction_2
-    S2_norm = jnp.abs(chi2_norm) * mass_2_fraction_2
-
-    # Spin norm powers
-    S1_norm_2 = S1_norm * S1_norm
-    S2_norm_2 = S2_norm * S2_norm
-
-    # Perpendicular spin components
-    chi1_perp = jnp.sqrt(chi1x * chi1x + chi1y * chi1y)
-    chi2_perp = jnp.sqrt(chi2x * chi2x + chi2y * chi2y)
-
-    # Spin projections
-    S1_perp = mass_1_fraction_2 * jnp.sqrt(chi1x * chi1x + chi1y * chi1y)
-    S2_perp = mass_2_fraction_2 * jnp.sqrt(chi2x * chi2x + chi2y * chi2y)
-
-    # Total perpendicular spin (norm of in-plane vector sum: Norm[S1perp + S2perp])
-    STot_perp = jnp.sqrt((S1x + S2x) * (S1x + S2x) + (S1y + S2y) * (S1y + S2y))
-
-    # chiTot_perp (distinguishes from Sperp used in construction of chi_p)
-    # For normalization, see Sec. IV D of arXiv:2004.06503
-    chiTot_perp = STot_perp * (bigM * bigM) / mass_1_fraction_2
-
-    # Store chiTot_perp to pWF for use in XCP modifications (PNRUseTunedCoprec)
-    pWF["chiTot_perp"] = chiTot_perp
-
-    """
-    Calculate the effective precessing spin parameter.
-    Reference: Schmidt et al, PRD 91, 024043, 2015
-    Note: m1 > m2, so body 1 is the larger black hole
-    """
-
-    A1 = 2.0 + (3.0 * mass_2_fraction) / (2.0 * mass_1_fraction)
-    A2 = 2.0 + (3.0 * mass_1_fraction) / (2.0 * mass_2_fraction)
-    ASp1 = A1 * S1_perp
-    ASp2 = A2 * S2_perp
-
-    # S_p = max(A1 S1_perp, A2 S2_perp)
-    num = jnp.where(ASp2 > ASp1, ASp2, ASp1)
-    den = jnp.where(
-        mass_2_fraction > mass_1_fraction,
-        A2 * mass_2_fraction_2,
-        A1 * mass_1_fraction_2,
-    )
-
-    # chi_p = max(A1 * Sp1, A2 * Sp2) / (A_i * m_i^2) where i is the index of the larger BH
-    chip = num / den
-    chi1L = chi1z
-    chi2L = chi2z
-
-    chi_p = chip
-    # Store chi_p to pWF (used in PNRUseTunedCoprec)
-    pWF["chi_p"] = chi_p
-    phi0_aligned = pWF["phi0"]
-
-    # Effective (dimensionful) aligned spin
-    SL = chi1L * mass_1_fraction_2 + chi2L * mass_2_fraction_2
-
-    # Effective (dimensionful) in-plane spin (m1 > m2)
-    Sperp = chi_p * mass_1_fraction_2
-
-    # Initialize pWF22AS for SpinTaylor code
-    pWF22AS = None
-
-    return (delta,)
 
 
 @jit
@@ -378,19 +214,9 @@ def compute_evolved_spin_using_msa(
         S2_norm_2=msa_init[31],
     )
 
-    # print("end...", vangles[0])
     alpha_out = vangles[0] - alpha_offset
     epsilon_out = vangles[1] - epsilon_offset
     cos_beta_out = vangles[2]
-
-    def save_vangles(Mf_, emm_, vx, vy, vz):
-        import numpy as np
-
-        data = np.column_stack([Mf_, vx, vy, vz])
-        with open(f"ripple_vangles_{int(emm_.ravel()[0])}.dat", "w") as f:
-            np.savetxt(f, data, fmt="%.15e")
-
-    jax.debug.callback(save_vangles, Mf, emm, vangles[0], vangles[1], vangles[2])
 
     return alpha_out, epsilon_out, cos_beta_out
 

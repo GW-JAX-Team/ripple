@@ -249,19 +249,6 @@ def twistup(
             phiJ_Sf,
         )
 
-        beta = jnp.arccos(cos_beta)
-
-        def _save_angles(emm_, Mf_, alpha_, epsilon_, beta_):
-            import numpy as np
-
-            np.savetxt(
-                f"ripple_angles_{int(emm_)}.dat",
-                np.column_stack([Mf_, alpha_, epsilon_, beta_]),
-                header="Mf alpha epsilon beta",
-            )
-
-        jax.debug.callback(_save_angles, emm, Mf, alpha, epsilon, beta)
-
         cBetah, sBetah = IMRPhenomXWignerdCoefficients_cosbeta(cos_beta)
 
         cexp_i_alpha = jnp.exp(1j * alpha)
