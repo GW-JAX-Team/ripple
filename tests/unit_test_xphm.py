@@ -135,7 +135,7 @@ def main():
 
     injection_parameters = {}
     injection_parameters["mass_1"] = np.array([36.0])
-    injection_parameters["mass_2"] = np.array([9.0])
+    injection_parameters["mass_2"] = np.array([29.0])
     injection_parameters["mass_1_SI"] = injection_parameters["mass_1"] * MSUN
     injection_parameters["mass_2_SI"] = injection_parameters["mass_2"] * MSUN
     injection_parameters["distance"] = np.array([1])  # In Mpc
@@ -158,7 +158,7 @@ def main():
     maximum_frequency = 1024
     duration = 8.0
     reference_frequency = 50
-    modes = jnp.array([[2, 1], [2, 2], [3, 2], [3, 3], [4, 4]])
+    modes = jnp.array([[2, 1], [2, 2], [3, 2], [3, 3], [4, 4]], dtype=jnp.int32)
 
     lalsim_plus, lalsim_cross = generate_lalsimulation_xphm_waveform(
         injection_parameters,

@@ -66,7 +66,11 @@ def generate_xphm(
     dist_m = distance * MPC  # distance in meters
     amp0 = Mtot * MRSUN * Mtot * MTSUN_SI / dist_m
 
-    extra_params = {"ModeArray": jnp.array([[2, 1], [2, 2], [3, 2], [3, 3], [4, 4]])}
+    extra_params = {
+        "ModeArray": jnp.array(
+            [[2, 1], [2, 2], [3, 2], [3, 3], [4, 4]], dtype=jnp.int32
+        )
+    }
 
     hlm = XLALSimIMRPhenomHMGethlmModes(
         frequency_array,
@@ -225,7 +229,7 @@ def twistup(
 
     def compute_twist_for_mode(mode_idx):
         # mode_idx: 0->21, 1->22, 2->32, 3->33, 4->44
-        emms = jnp.array([1, 2, 2, 3, 4])
+        emms = jnp.array([1, 2, 2, 3, 4], dtype=jnp.int32)
 
         emm = emms[mode_idx]
 
@@ -280,7 +284,7 @@ def twistup(
 
         return hp_twist, hc_twist, epsilon * emm
 
-    mode_indices = jnp.arange(5)  # 0 to 4 for modes 21, 22, 32, 33, 44
+    mode_indices = jnp.arange(5, dtype=jnp.int32)  # 0 to 4 for modes 21, 22, 32, 33, 44
     hp_twist_all_modes, hc_twist_all_modes, epsilon_all_modes = jax.vmap(
         compute_twist_for_mode
     )(mode_indices)
@@ -1076,7 +1080,7 @@ def init_PhenomHM_Storage(
     ell_vals = ModeArray[:, 0].astype(jnp.int32)
     mm_vals = ModeArray[:, 1].astype(jnp.int32)
     mode_index_map = mode_index_map.at[ell_vals, mm_vals].set(
-        jnp.arange(len(ModeArray))
+        jnp.arange(len(ModeArray), dtype=jnp.int32)
     )
     p["mode_index_map"] = mode_index_map
 
