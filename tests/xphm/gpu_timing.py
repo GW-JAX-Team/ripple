@@ -18,7 +18,7 @@ for d in jax.devices():
     print(f"Device: {d.device_kind}, Platform: {d.platform}")
 
 
-def setup_injection_parameters(N_WAVEFORMS):
+def setup_injection_parameters(N_WAVEFORMS, reference_frequency):
     # Waveform parameters
     population = bilby.gw.prior.BBHPriorDict()
     population["chirp_mass"] = bilby.core.prior.Uniform(10, 100)
@@ -29,7 +29,9 @@ def setup_injection_parameters(N_WAVEFORMS):
     _injection_parameters = bilby.gw.conversion.generate_component_masses(
         population.sample(N_WAVEFORMS)
     )
-    _injection_parameters["reference_frequency"] = np.ones(N_WAVEFORMS) * 50
+    _injection_parameters["reference_frequency"] = (
+        np.ones(N_WAVEFORMS) * reference_frequency
+    )
 
     _injection_parameters = bilby.gw.conversion.generate_component_spins(
         _injection_parameters
@@ -55,7 +57,9 @@ def main():
     frequency_array = jnp.arange(minimum_frequency, maximum_frequency, 1.0 / duration)
 
     # Waveform parameters batch
-    batch_injection_parameters = setup_injection_parameters(N_injections)
+    batch_injection_parameters = setup_injection_parameters(
+        N_injections, reference_frequency
+    )
 
     # Batch function
     generate_xphm_batched = jax.vmap(

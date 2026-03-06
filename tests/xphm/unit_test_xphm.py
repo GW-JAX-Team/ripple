@@ -41,12 +41,12 @@ def generate_lalsimulation_xphm_waveform(
     hp, hc = lalsim.SimIMRPhenomXPHM(
         injection_parameters["mass_1_SI"],
         injection_parameters["mass_2_SI"],
-        injection_parameters["chi1x"],
-        injection_parameters["chi1y"],
-        injection_parameters["chi1z"],
-        injection_parameters["chi2x"],
-        injection_parameters["chi2y"],
-        injection_parameters["chi2z"],
+        injection_parameters["spin_1x"],
+        injection_parameters["spin_1y"],
+        injection_parameters["spin_1z"],
+        injection_parameters["spin_2x"],
+        injection_parameters["spin_2y"],
+        injection_parameters["spin_2z"],
         injection_parameters["distance_SI"],
         injection_parameters["iota"],
         injection_parameters["Phicoal"],
@@ -73,12 +73,12 @@ def generate_ripple_xphm_waveform(
     hp, hc = IMRPhenomXPHM.generate_xphm(
         injection_parameters["mass_1"],
         injection_parameters["mass_2"],
-        injection_parameters["chi1x"],
-        injection_parameters["chi1y"],
-        injection_parameters["chi1z"],
-        injection_parameters["chi2x"],
-        injection_parameters["chi2y"],
-        injection_parameters["chi2z"],
+        injection_parameters["spin_1x"],
+        injection_parameters["spin_1y"],
+        injection_parameters["spin_1z"],
+        injection_parameters["spin_2x"],
+        injection_parameters["spin_2y"],
+        injection_parameters["spin_2z"],
         injection_parameters["distance"],
         injection_parameters["iota"],
         injection_parameters["Phicoal"],
@@ -153,12 +153,12 @@ def main():
     injection_parameters["iota"] = 0.2
     injection_parameters["psi"] = 1.2
     injection_parameters["Phicoal"] = 0.0
-    injection_parameters["chi1x"] = 0.1
-    injection_parameters["chi1y"] = 0.2
-    injection_parameters["chi1z"] = 0.3
-    injection_parameters["chi2x"] = 0.3
-    injection_parameters["chi2y"] = 0.2
-    injection_parameters["chi2z"] = 0.1
+    injection_parameters["spin_1x"] = 0.1
+    injection_parameters["spin_1y"] = 0.2
+    injection_parameters["spin_1z"] = 0.3
+    injection_parameters["spin_2x"] = 0.3
+    injection_parameters["spin_2y"] = 0.2
+    injection_parameters["spin_2z"] = 0.1
 
     minimum_frequency = 20
     maximum_frequency = 1024

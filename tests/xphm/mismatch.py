@@ -6,32 +6,53 @@ import lalsimulation as lalsim
 import jax.numpy as jnp
 from ripplegw.waveforms import IMRPhenomXPHM
 import lal
-from tqdm import tqdm
+from ripplegw.constants import MSUN
+from bilby.gw.utils import noise_weighted_inner_product
+
+psd = bilby.gw.detector.PowerSpectralDensity(psd_file="ET_D_psd.txt")
 
 
-def compute_overlap(frequency_series_1, frequency_series_2):
-    norm1 = np.sum(frequency_series_1 * np.conj(frequency_series_1)) ** 0.5
-    norm2 = np.sum(frequency_series_2 * np.conj(frequency_series_2)) ** 0.5
+def compute_overlap(
+    frequency_series_1,
+    frequency_series_2,
+    minimum_frequency,
+    maximum_frequency,
+    duration,
+):
+    frequency_array = np.arange(minimum_frequency, maximum_frequency, 1 / duration)
+    interpolated_psd = psd.power_spectral_density_interpolated(frequency_array)
 
-    inner_product = np.sum(frequency_series_1 * np.conj(frequency_series_2))
-    return inner_product / (norm1 * norm2)
+    inner_product = noise_weighted_inner_product(
+        frequency_series_1, frequency_series_2, interpolated_psd, duration
+    )
+
+    norm_1 = noise_weighted_inner_product(
+        frequency_series_1, frequency_series_1, interpolated_psd, duration
+    )
+    norm_2 = noise_weighted_inner_product(
+        frequency_series_2, frequency_series_2, interpolated_psd, duration
+    )
+
+    return inner_product / np.power(norm_1 * norm_2, 0.5)
 
 
-def setup_injection_parameters(N_WAVEFORMS):
+def setup_injection_parameters(N_WAVEFORMS, reference_frequency):
     # Waveform parameters
     """
     Set up the injection parameters from bilby prior
     """
     population = bilby.gw.prior.BBHPriorDict()
-    population["chirp_mass"] = bilby.core.prior.Uniform(10, 100)
-    population["mass_ratio"] = bilby.core.prior.Uniform(0.25, 1)
+    population["chirp_mass"] = bilby.core.prior.Uniform(10, 150)
+    population["mass_ratio"] = bilby.core.prior.Uniform(0.4, 1)
     population.pop("mass_1")
     population.pop("mass_2")
 
     _injection_parameters = bilby.gw.conversion.generate_component_masses(
         population.sample(N_WAVEFORMS)
     )
-    _injection_parameters["reference_frequency"] = np.ones(N_WAVEFORMS) * 50
+    _injection_parameters["reference_frequency"] = (
+        np.ones(N_WAVEFORMS) * reference_frequency
+    )
 
     _injection_parameters = bilby.gw.conversion.generate_component_spins(
         _injection_parameters
@@ -53,13 +74,13 @@ def plot_mismatch_histogram(collect_mismatch, output="mismatch_histogram.pdf"):
         if min(collect_mismatch) == 0.0
         else (np.log10(min(collect_mismatch)) - 1)
     )
-    maximum_match = np.log10(max(collect_mismatch)) + 1
+    maximum_match = np.log10(max(collect_mismatch))
     ax.hist(
         collect_mismatch,
         cumulative=1,
         histtype="step",
         lw=2,
-        bins=10.0 ** np.arange(minimum_match, maximum_match, 0.2),
+        bins=10.0 ** np.linspace(minimum_match, maximum_match, 20),
     )
     ax.set_ylabel("Fraction of events")
     ax.set_title(f"N = {len(collect_mismatch)}, XPHM")
@@ -82,6 +103,8 @@ def generate_lalsimulation_xphm_waveform(
     """
     lalparams = lal.CreateDict()
 
+    injection_parameters["mass_1_SI"] = injection_parameters["mass_1"] * MSUN
+    injection_parameters["mass_2_SI"] = injection_parameters["mass_2"] * MSUN
     ModeArray = lalsim.SimInspiralCreateModeArray()
     for mm in modes:
         lalsim.SimInspiralModeArrayActivateMode(ModeArray, int(mm[0]), int(mm[1]))
@@ -95,15 +118,15 @@ def generate_lalsimulation_xphm_waveform(
     hp, hc = lalsim.SimIMRPhenomXPHM(
         injection_parameters["mass_1_SI"],
         injection_parameters["mass_2_SI"],
-        injection_parameters["chi1x"],
-        injection_parameters["chi1y"],
-        injection_parameters["chi1z"],
-        injection_parameters["chi2x"],
-        injection_parameters["chi2y"],
-        injection_parameters["chi2z"],
+        injection_parameters["spin_1x"],
+        injection_parameters["spin_1y"],
+        injection_parameters["spin_1z"],
+        injection_parameters["spin_2x"],
+        injection_parameters["spin_2y"],
+        injection_parameters["spin_2z"],
         injection_parameters["distance_SI"],
         injection_parameters["iota"],
-        injection_parameters["Phicoal"],
+        injection_parameters["phase"],
         minimum_frequency,
         maximum_frequency,
         1 / duration,
@@ -127,15 +150,15 @@ def generate_ripple_xphm_waveform(
     hp, hc = IMRPhenomXPHM.generate_xphm(
         injection_parameters["mass_1"],
         injection_parameters["mass_2"],
-        injection_parameters["chi1x"],
-        injection_parameters["chi1y"],
-        injection_parameters["chi1z"],
-        injection_parameters["chi2x"],
-        injection_parameters["chi2y"],
-        injection_parameters["chi2z"],
-        injection_parameters["distance"],
+        injection_parameters["spin_1x"],
+        injection_parameters["spin_1y"],
+        injection_parameters["spin_1z"],
+        injection_parameters["spin_2x"],
+        injection_parameters["spin_2y"],
+        injection_parameters["spin_2z"],
+        injection_parameters["luminosity_distance"],
         injection_parameters["iota"],
-        injection_parameters["Phicoal"],
+        injection_parameters["phase"],
         frequency_array,
         reference_frequency,
     )
@@ -154,11 +177,14 @@ def compute_mismatch_loop(
     "Compute and collect mismatch"
     collect_mismatch = []
     N_injections = len(batch_injection_parameters["mass_1"])
-    for ii in tqdm(range(N_injections)):
-        injection_parameters = {
-            key: value[ii] for key, value in batch_injection_parameters.items()
-        }
 
+    for ii in range(N_injections):
+        injection_parameters = {
+            key: float(value[ii]) for key, value in batch_injection_parameters.items()
+        }
+        injection_parameters["distance_SI"] = (
+            injection_parameters["luminosity_distance"] * 3.0856775814913673e22
+        )  # In meters
         lalsim_plus, _ = generate_lalsimulation_xphm_waveform(
             injection_parameters,
             minimum_frequency,
@@ -178,28 +204,39 @@ def compute_mismatch_loop(
 
         mask = int(minimum_frequency * duration)
         plus_overlap = compute_overlap(
-            ripple_plus, np.array(lalsim_plus.data.data[mask:-1])
+            ripple_plus,
+            np.array(lalsim_plus.data.data[mask:-1]),
+            minimum_frequency,
+            maximum_frequency,
+            duration,
         )
 
         mismatch = 1 - plus_overlap
         collect_mismatch.append(mismatch)
+        # log_mismatch = np.log10(np.real(mismatch))
+        # if log_mismatch>-5:
+        #    print(f"High Mismatch {log_mismatch}  mass: {injection_parameters['chirp_mass']} mass ratio: {injection_parameters['mass_ratio']}")
+
     return collect_mismatch
 
 
 def main():
-    N_injections = int(100)
-    seed = 3232
+    N_injections = int(1000)
+    seed = 99
     np.random.seed(seed)
     bilby.core.utils.random.seed(seed)
     # Frequency settings
     minimum_frequency = 20.0
-    maximum_frequency = 512.0
-    duration = 4.0
+    maximum_frequency = 1024.0
+    duration = 8.0
     reference_frequency = 50.0
     modes = jnp.array([[2, 1], [2, 2], [3, 2], [3, 3], [4, 4]], dtype=jnp.int32)
 
     # Waveform parameters batch
-    batch_injection_parameters = setup_injection_parameters(N_injections)
+    batch_injection_parameters = setup_injection_parameters(
+        N_injections, reference_frequency
+    )
+    batch_injection_parameters["phase"] = np.zeros(N_injections)
     collect_mismatch = compute_mismatch_loop(
         batch_injection_parameters,
         minimum_frequency,
