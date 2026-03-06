@@ -2,7 +2,6 @@ import lalsimulation as lalsim
 import jax
 import jax.numpy as jnp
 import numpy as np
-from ripplegw.constants import MSUN
 import lal
 import matplotlib.pyplot as plt
 from ripplegw.waveforms import IMRPhenomXPHM
@@ -100,7 +99,7 @@ def generate_ripple_xphm_waveform(
         injection_parameters["spin_2x"],
         injection_parameters["spin_2y"],
         injection_parameters["spin_2z"],
-        injection_parameters["distance"],
+        injection_parameters["luminosity_distance"],
         injection_parameters["iota"],
         injection_parameters["phase"],
         frequency_array,
@@ -122,7 +121,7 @@ def plot_xphm_comparison(
     lal_amp = np.abs(lal_hp_data)
     lal_phase = np.unwrap(np.angle(lal_hp_data))
 
-    fig, ax = plt.subplots(3, 1, figsize=(10, 12))
+    fig, ax = plt.subplots(3, 1, figsize=(10, 12), sharex=True)
 
     ax[0].plot(f, ripple_amp, label="ripple")
     ax[0].plot(lal_f, lal_amp, label="lalsim", linestyle="--")
@@ -147,7 +146,7 @@ def plot_xphm_comparison(
 
     ax[2].plot(f, np.real(ripple_hp), label="ripple")
     ax[2].plot(lal_f, np.real(lal_hp_data), label="lalsim", linestyle="--")
-    ax[2].set_xlim(15, 80)
+    ax[2].set_xlim(5, 80)
     ax[2].set_xlabel("Frequency [Hz]")
     ax[2].set_ylabel("Real(h+)")
     ax[2].legend()
@@ -160,9 +159,11 @@ def plot_xphm_comparison(
 def main():
     print("Device", jax.devices())
 
+    """
+
     injection_parameters = {}
-    injection_parameters["mass_1"] = 15.0
-    injection_parameters["mass_2"] = 10.0
+    injection_parameters["mass_1"] = 54.1
+    injection_parameters["mass_2"] = 39.6
     injection_parameters["mass_1_SI"] = injection_parameters["mass_1"] * MSUN
     injection_parameters["mass_2_SI"] = injection_parameters["mass_2"] * MSUN
     injection_parameters["distance"] = 1.0  # In Mpc
@@ -180,8 +181,42 @@ def main():
     injection_parameters["spin_2x"] = -0.86
     injection_parameters["spin_2y"] = -0.45
     injection_parameters["spin_2z"] = -0.08
+    """
 
-    minimum_frequency = 20
+    injection_parameters = {
+        "mass_ratio": 0.7327068719493379,
+        "chirp_mass": 40.21851619436802,
+        "luminosity_distance": 3591.7174866455944,
+        "dec": -0.5755423434101768,
+        "ra": 1.912839917660547,
+        "theta_jn": 1.6888647787268254,
+        "psi": 0.1969818317310661,
+        "phase": 0.0,
+        "a_1": 0.13622939251161847,
+        "a_2": 0.5078492220952112,
+        "tilt_1": 2.346879763100818,
+        "tilt_2": 2.638869136967795,
+        "phi_12": 1.2341920041064134,
+        "phi_jl": 1.1824420407687204,
+        "total_mass": 93.74281750701586,
+        "mass_1": 54.101948243301464,
+        "mass_2": 39.64086926371439,
+        "reference_frequency": 50.0,
+        "iota": 1.5974619941546846,
+        "spin_1x": -0.013859979166069767,
+        "spin_1y": -0.09622879788950928,
+        "spin_1z": -0.0954272855023169,
+        "spin_2x": 0.21707702207214383,
+        "spin_2y": -0.11291667037919641,
+        "spin_2z": -0.44501485865246915,
+        "phi_1": 4.569341234651292,
+        "phi_2": 5.803533238757705,
+        "distance_SI": 1.1082882127592829e26,
+        "mass_1_SI": 1.0757684791097569e32,
+        "mass_2_SI": 7.882229572702067e31,
+    }
+
+    minimum_frequency = 10
     maximum_frequency = 1024
     duration = 8.0
     reference_frequency = 50

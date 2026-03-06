@@ -223,13 +223,13 @@ def compute_mismatch_loop(
         collect_mismatch.append(mismatch)
         debug = True
         if debug:
-            log_mismatch = np.log10(np.real(mismatch))
-            if log_mismatch > -3:
+            log_mismatch = np.log10(abs(np.real(mismatch)))
+            if log_mismatch > -2:
                 print(f"High Mismatch {log_mismatch}")
                 print("Injection parameters")
                 for key, value in injection_parameters.items():
                     print(key, value)
-
+                print(injection_parameters)
                 print("----------\n")
 
     return collect_mismatch
