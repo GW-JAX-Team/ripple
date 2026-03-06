@@ -100,7 +100,7 @@ lal_hp_xphm, lal_hc_xphm = lalsim.SimIMRPhenomXPHM(injection_parameters['m1_SI']
 tGPS = 3600
 #model = IMRPhenomXPHM.IMRPhenomXPHM(apply_fcut = True, reference_frequency=reference_frequency)
 
-make_ripple_hlms = True
+make_ripple_hlms = False
 if make_ripple_hlms:
 
 
@@ -135,7 +135,7 @@ if make_ripple_hlms:
 run_jim_xphm = True
 
 if run_jim_xphm:
-
+    frequency_array = jnp.arange(minimum_frequency, maximum_frequency, 1/duration)
 
     ripple_hp_xphm, ripple_hc_xphm = IMRPhenomXPHM.generate_xphm(injection_parameters['m1'][0],
                                            injection_parameters['m2'][0],
@@ -148,10 +148,8 @@ if run_jim_xphm:
                                             injection_parameters['distance'][0],
                                             injection_parameters['iota'][0],
                                             injection_parameters['Phicoal'][0],
-                                            duration,
-                                            minimum_frequency, maximum_frequency, reference_frequency,
-                                            modes)
-
+                                            frequency_array,
+                                            reference_frequency)
 
     N = int(minimum_frequency * duration)
 
