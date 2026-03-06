@@ -123,10 +123,28 @@ def twistup(
     reference_frequency,
     hlm,
 ):
-    "Copy of lalsimulation IMRPhenomXPHMTwistUp"
-    "Function to twist up hlms"
+    """
+    Rotate the co-precessing frame hlm modes into the inertial (J-frame) polarisations hp, hc.
+    Implementation follows the lalsimulation function IMRPhenomXPHMTwistUps.
 
-    # Check if we are using multibanding for angles.
+    Computes the precession angles (alpha, beta, epsilon) at each frequency via MSA,
+    applies the per-mode Wigner-d rotation and spherical-harmonic projection, sums over
+    modes (21, 22, 32, 33, 44), and applies a final polarisation rotation by zeta.
+
+    Args:
+        Mf: Dimensionless frequency array (len N).
+        mass_1, mass_2: Component masses in solar masses.
+        chi1x/y/z, chi2x/y/z: Dimensionless spin components in the L-frame.
+        phiRef_In: Reference orbital phase (rad).
+        inclination: Inclination angle between J and line of sight (rad).
+        reference_frequency: Reference frequency for spin evolution (Hz).
+        hlm: Co-precessing frame modes, shape (n_modes, N).
+
+    Returns:
+        hp, hc: Plus and cross polarisations, shape (N,).
+    """
+
+    # We are not using multibanding for angles.
     # Default in lalsimulation is True but I will force it to False
 
     # Check PrecVersion
