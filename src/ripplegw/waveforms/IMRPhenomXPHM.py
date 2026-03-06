@@ -114,7 +114,6 @@ CSHIFT = jnp.array([0.0, PI / 2.0, 0.0, -PI / 2.0, PI, PI / 2.0, 0.0])
 
 
 @jit
-@jit
 def generate_xphm(
     mass_1,
     mass_2,
@@ -916,6 +915,7 @@ def XLALSimIMRPhenomXUtilsHztoMf(fHz: float, Mtot_Msun: float) -> float:
     return fHz * Mtot_Msun * MTSUN_SI
 
 
+@jit
 def XLALSimIMRPhenomHMGethlmModes(
     freqs: Array,
     m1_SI: float,
