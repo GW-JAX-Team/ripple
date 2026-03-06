@@ -11,6 +11,12 @@ from bilby.gw.utils import noise_weighted_inner_product
 
 psd = bilby.gw.detector.PowerSpectralDensity(psd_file="ET_D_psd.txt")
 
+"""
+The mismatch seems to go up to 1e-2 for a specific set of mass and spins. 
+This needs to be fixed. 
+
+"""
+
 
 def compute_overlap(
     frequency_series_1,
