@@ -6,7 +6,6 @@ from ripplegw.constants import MSUN
 import lal
 import matplotlib.pyplot as plt
 from ripplegw.waveforms import IMRPhenomXPHM
-import bilby
 from utils import GPSt_to_LMST
 print("Device", jax.devices())
 
@@ -24,24 +23,12 @@ injection_parameters['mass_2'] = np.array([9.0])
 
 injection_parameters['mass_1_SI'] = injection_parameters['mass_1'] * MSUN
 injection_parameters['mass_2_SI'] = injection_parameters['mass_2'] * MSUN
-
-
-injection_parameters['chirp_mass'] = bilby.gw.conversion.component_masses_to_chirp_mass(injection_parameters['mass_1'], 
-                                                                                injection_parameters['mass_2'])
-
 injection_parameters['distance'] = np.array([1]) # In Mpc
-
-injection_parameters['distance_SI'] = np.array([1 * 3.0856775814913673e22])
+injection_parameters['distance_SI'] = np.array([1 * 3.0856775814913673e22]) # In meters
 injection_parameters['theta'] = np.array([0.5])
-
 injection_parameters['phi'] = np.array([0.])
-
-injection_parameters['iota'] = np.array([0])
-
-injection_parameters['psi'] = np.array([0.])
-
-injection_parameters['eta'] = injection_parameters['mass_1'] * injection_parameters['mass_2'] / (injection_parameters['mass_1'] + injection_parameters['mass_2'])**2
-
+injection_parameters['iota'] = np.array([0.2])
+injection_parameters['psi'] = np.array([1.2])
 injection_parameters['Phicoal'] = np.array([0.])
 
 injection_parameters['chi1x'] = np.array([.1])
@@ -56,21 +43,16 @@ injection_parameters['chi2z'] = np.array([.1])
 minimum_frequency = 20
 maximum_frequency = 1024
 duration = 8.
-df = 1/duration
 reference_frequency = 50
 modes = jnp.array([[2,1],[2,2],[3,2],[3,3],[4,4]])
 
-f = np.arange(minimum_frequency, maximum_frequency, df)
+f = np.arange(minimum_frequency, maximum_frequency, 1/duration)
 lalparams = lal.CreateDict()
 
 ModeArray = lalsim.SimInspiralCreateModeArray()
 
 for mm in modes:
     lalsim.SimInspiralModeArrayActivateMode(ModeArray, int(mm[0]), int(mm[1]))
-
-
-
-
 
 lalsim.SimInspiralWaveformParamsInsertModeArray(lalparams, ModeArray)
 lalsim.SimInspiralWaveformParamsInsertPhenomXPHMTwistPhenomHM(lalparams, 1)
@@ -91,7 +73,7 @@ lal_hp_xphm, lal_hc_xphm = lalsim.SimIMRPhenomXPHM(injection_parameters['mass_1_
                                                injection_parameters['Phicoal'][0],                       #/**< Orbital phase (rad) at reference frequency */
                                                minimum_frequency,                        #/**< Starting GW frequency (Hz) */
                                                maximum_frequency,                        #/**< Ending GW frequency (Hz); Defaults to Mf = 0.3 if no f_max is specified. */
-                                               df,                       #/**< Sampling frequency (Hz). To use non-uniform frequency grid, set deltaF <= 0. */
+                                               1/duration,                       #/**< Sampling frequency (Hz). To use non-uniform frequency grid, set deltaF <= 0. */
                                                reference_frequency,                      #/**< Reference frequency (Hz) */
                                                lalparams                  #/**< LAL Dictionary struct */
                                                )
@@ -99,38 +81,6 @@ lal_hp_xphm, lal_hc_xphm = lalsim.SimIMRPhenomXPHM(injection_parameters['mass_1_
 ###### jax code
 tGPS = 3600
 #model = IMRPhenomXPHM.IMRPhenomXPHM(apply_fcut = True, reference_frequency=reference_frequency)
-
-make_ripple_hlms = False
-if make_ripple_hlms:
-
-
-    extra_params = {"ModeArray": modes}
-    
-    hlms_ripple = IMRPhenomXPHM.XLALSimIMRPhenomHMGethlmModes(
-    f,
-    injection_parameters['mass_1_SI'][0],
-    injection_parameters['mass_2_SI'][0],
-    injection_parameters['chi1x'][0],
-    injection_parameters['chi1y'][0],
-    injection_parameters['chi1z'][0],
-    injection_parameters['chi2x'][0],
-    injection_parameters['chi2y'][0],
-    injection_parameters['chi2z'][0],
-    0.0,
-    df,
-    reference_frequency,
-    extra_params)
-    
-    
-    Mtot = injection_parameters['mass_1'][0] + injection_parameters['mass_2'][0]
-    dist_m = injection_parameters['distance_SI'][0]
-    amp0 = Mtot * lal.MRSUN_SI * Mtot * lal.MTSUN_SI / dist_m
-    
-    ells = modes[:, 0]
-    minus1l = jnp.where(ells % 2 != 0, -1, 1)
-    hlms_ripple_final = minus1l[:, None] * hlms_ripple * amp0
-
-
 
 run_jim_xphm = True
 
@@ -211,105 +161,3 @@ if run_jim_xphm:
 
     
 exit()
-
-# Save each mode of hlm to separate files
-modes_info = [(int(ell), int(m), i) for i, (ell, m) in enumerate(modes)]
-
-save_ripple_waveforms = False
-if save_ripple_waveforms:
-    # Saving ripple waveforms
-    for ell, m, col_idx in modes_info:
-        mode_data = hlms_ripple_final[:, col_idx]
-        ripple_amp = np.abs(mode_data)
-        ripple_phase = np.angle(mode_data)
-
-        # Save as: frequency, amplitude, phase
-        output = np.column_stack([f, ripple_amp, ripple_phase])
-        filename = f'ripple_hlm{ell}{m}.dat'
-        np.savetxt(filename, output, header='frequency amplitude phase', fmt='%.3f %.5e %.5e')
-
-
-
-
-fig, ax = plt.subplots(5, 4, figsize = (18, 11), sharex = True)
-for ell, emm, col_idx in modes_info:
-
-    phase_ripple = jnp.unwrap(jnp.angle(hlms_ripple_final[col_idx, :]))
-    amp_ripple = jnp.abs(hlms_ripple_final[col_idx, :])
-
-    hlms_lal = np.genfromtxt(f"lalsim_htildelm_{ell}{emm}.dat", skip_header=1)
-    freq_lal = hlms_lal[:, 1]
-    hlms_lal_complex = hlms_lal[:, 2] + 1j * hlms_lal[:, 3]
-
-    # Select rows whose frequency matches the ripple frequency array
-    mask = (freq_lal >= minimum_frequency) & (freq_lal < maximum_frequency)
-    hlms_lal_masked = hlms_lal_complex[mask]
-    phase_lal = jnp.unwrap(jnp.angle(hlms_lal_masked))
-    amp_lal = jnp.abs(hlms_lal_masked)
-
-    # Phase
-    ax[col_idx, 0].plot(f, phase_lal, label = "LAL")
-    ax[col_idx, 0].plot(f, phase_ripple, linestyle = "--", label = "Ripple")
-    ax[col_idx, 0].set_title(f"Phase ({ell},{emm})")
-    ax[col_idx, 0].legend()
-
-    dphase = phase_ripple - phase_lal
-    ax[col_idx, 1].plot(f, dphase)
-    ax[col_idx, 1].set_title(r"$\Delta \phi$" + f" ({ell},{emm})")
-
-    # Amplitude
-    ax[col_idx, 2].plot(f, amp_lal, label = "LAL")
-    ax[col_idx, 2].plot(f, amp_ripple, linestyle = "--", label = "Ripple")
-    ax[col_idx, 2].set_title(f"Amplitude ({ell},{emm})")
-    ax[col_idx, 2].legend()
-
-    damp = amp_ripple - amp_lal
-    ax[col_idx, 3].plot(f, damp)
-    ax[col_idx, 3].set_title(r"$\Delta A$" + f" ({ell},{emm})")
-
-
-
-fig.tight_layout()
-fig.savefig("phase_difference.pdf")
-
-   
-
-
-# Twisting-up angles comparison: ripple vs lalsimulation
-# lalsim files: Mf alpha epsilon cos_beta
-# ripple files: Mf alpha epsilon beta
-
-Mtot_SI = (injection_parameters['mass_1'][0] + injection_parameters['mass_2'][0]) * lal.MTSUN_SI
-
-fig_ang, ax_ang = plt.subplots(5, 6, figsize=(24, 14), sharex=True)
-
-for row, (ell, emm, col_idx) in enumerate(modes_info):
-    lal_data    = np.loadtxt(f"lalsim_angles_{ell}{emm}.dat")
-    ripple_data = np.loadtxt(f"ripple_angles_{emm}.dat", skiprows=1)
-
-    # Convert Mf -> Hz
-    f_lal    = lal_data[:, 0]    / Mtot_SI
-    f_ripple = ripple_data[:, 0] / Mtot_SI
-
-    alpha_lal,   epsilon_lal,   cosbeta_lal   = lal_data[:, 1],    lal_data[:, 2],    lal_data[:, 3]
-    alpha_ripple, epsilon_ripple, beta_ripple  = ripple_data[:, 1], ripple_data[:, 2], ripple_data[:, 3]
-
-    beta_lal = np.arccos(cosbeta_lal)
-
-    for col, (y_lal, y_ripple, label) in enumerate([
-        (alpha_lal,   alpha_ripple,   r"$\alpha$"),
-        (epsilon_lal, epsilon_ripple, r"$\epsilon$"),
-        (beta_lal,    beta_ripple,    r"$\beta$"),
-    ]):
-        ax_ang[row, 2*col].plot(f_lal,    y_lal,    label="LAL")
-        ax_ang[row, 2*col].plot(f_ripple, y_ripple, linestyle="--", label="Ripple")
-        ax_ang[row, 2*col].set_title(f"{label} ({ell},{emm})")
-        ax_ang[row, 2*col].legend(fontsize=6)
-
-        diff = y_lal[:(len(y_ripple))] - y_ripple[:len(y_ripple)]
-        ax_ang[row, 2*col+1].plot(f_ripple, diff)
-        ax_ang[row, 2*col+1].set_title(f"$\Delta${label} ({ell},{emm})")
-
-ax_ang[-1, 0].set_xlabel("Frequency [Hz]")
-fig_ang.tight_layout()
-fig_ang.savefig("spin_angles_comparison.pdf")
