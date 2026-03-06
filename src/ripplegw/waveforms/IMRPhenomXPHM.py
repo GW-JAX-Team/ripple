@@ -996,6 +996,7 @@ def XLALSimIMRPhenomHMGethlmModes(
     return hlms
 
 
+@jit
 def IMRPhenomHMEvaluateOnehlmMode(
     freqs_geom: Array, pHM: dict, ell: int, mm: int, phi0: float
 ):
@@ -1034,6 +1035,7 @@ def IMRPhenomHMEvaluateOnehlmMode(
     return amp_lm * jnp.exp(-1j * (phase_term1 + phase_term2))
 
 
+@jit
 def XLALSimPhenomUtilsPhenomPv2FinalSpin(
     m1: float, m2: float, chi1_l: float, chi2_l: float, chip: float
 ):
@@ -1056,6 +1058,7 @@ def XLALSimPhenomUtilsPhenomPv2FinalSpin(
     return jnp.copysign(1.0, af_parallel) * jnp.sqrt(Sperp**2 + af_parallel**2)
 
 
+@jit
 def init_PhenomHM_Storage(
     p: dict,
     m1_SI: float,
@@ -1149,6 +1152,7 @@ def init_PhenomHM_Storage(
     return p
 
 
+@jit
 def IMRPhenomHMGetRingdownFrequency(
     ell: int, mm: int, finalmass: float, finalspin: float
 ):
@@ -1169,6 +1173,7 @@ def IMRPhenomHMGetRingdownFrequency(
     return fringdown, fdamp
 
 
+@jit
 def SimRingdownCW_KAPPA(jf: float, ell: int, emm: int):
     """
     Domain mapping for dimnesionless BH spin
@@ -1178,6 +1183,7 @@ def SimRingdownCW_KAPPA(jf: float, ell: int, emm: int):
     return alpha**beta
 
 
+@jit
 def SimRingdownCW_CW07102016(kappa: float, ell: int, input_m: int, n: int):
     """
     Dimensionless QNM Frequencies: Note that name encodes date of writing
@@ -1309,6 +1315,7 @@ def SimRingdownCW_CW07102016(kappa: float, ell: int, input_m: int, n: int):
     )
 
 
+@jit
 def IMRPhenomHMFreqDomainMap(Mflm, ell, mm, pHM, AmpFlag):
     # Mflm here has the same meaning as Mf_wf in XLALSimIMRPhenomHMFreqDomainMapHM (old deleted function).
     # Following variables not used in this funciton but are returned in IMRPhenomHMFreqDomainMapParams
@@ -1317,6 +1324,7 @@ def IMRPhenomHMFreqDomainMap(Mflm, ell, mm, pHM, AmpFlag):
     return Mf22
 
 
+@jit
 def IMRPhenomHMAmplitude(freqs_geom: Array, pHM: dict, ell: int, mm: int):
     """
     Returns IMRPhenomHM amplitude evaluated at a set of input frequencies for the l,m mode
@@ -1426,6 +1434,7 @@ def IMRPhenomHMAmplitude(freqs_geom: Array, pHM: dict, ell: int, mm: int):
     return amps * rescaling
 
 
+@jit
 def IMRPhenomHMOnePointFiveSpinPN(fM, ell, m, M1, M2, X1z, X2z):
     """
     Implementation of IMRPhenomHMOnePointFiveSpinPN from LALSimIMRPhenomHM.c
@@ -1504,6 +1513,7 @@ def IMRPhenomHMOnePointFiveSpinPN(fM, ell, m, M1, M2, X1z, X2z):
     return M * M * PI * jnp.sqrt(eta * 2.0 / 3) * v ** (-3.5) * jnp.abs(Hlm)
 
 
+@jit
 def IMRPhenomHMPhase(freqs_geom: Array, pHM: dict, ell: int, mm: int):
     """
     Returns IMRPhenomHM phase evaluated at a set of input frequencies for the l,m mode
@@ -1593,6 +1603,7 @@ def IMRPhenomHMPhase(freqs_geom: Array, pHM: dict, ell: int, mm: int):
     return phase
 
 
+@jit
 def IMRPhenomHMPhasePreComp(q: dict, ell: int, emm: int, pHM: dict):
     """
     Copy of IMRPhenomHMPhasePreComp in LALSimIMRPhenomHM.c
@@ -1668,6 +1679,7 @@ def IMRPhenomHMPhasePreComp(q: dict, ell: int, emm: int, pHM: dict):
     return q
 
 
+@jit
 def IMRPhenomHMFreqDomainMapParams(
     flm: float,  # input waveform frequency
     ell: int,  # spherical harmonics ell mode
@@ -1722,6 +1734,7 @@ def IMRPhenomHMFreqDomainMapParams(
     return a, b
 
 
+@jit
 def IMRPhenomHMSlopeAmAndBm(
     mm: int,
     fi: float,
@@ -1747,6 +1760,7 @@ def IMRPhenomHMSlopeAmAndBm(
     return Am, Bm
 
 
+@jit
 def IMRPhenomHMTrd(
     Mf: float, Mf_RD_22: float, Mf_RD_lm: float, AmpFlag: bool, mode_idx: int, pHM: dict
 ):
@@ -1764,6 +1778,7 @@ def IMRPhenomHMTrd(
     )
 
 
+@jit
 def IMRPhenomHMMapParams(
     flm: float,
     fi: float,
