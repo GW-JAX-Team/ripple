@@ -42,7 +42,7 @@ def setup_injection_parameters(N_WAVEFORMS, reference_frequency):
     Set up the injection parameters from bilby prior
     """
     population = bilby.gw.prior.BBHPriorDict()
-    population["chirp_mass"] = bilby.core.prior.Uniform(10, 150)
+    population["chirp_mass"] = bilby.core.prior.Uniform(10, 100)
     population["mass_ratio"] = bilby.core.prior.Uniform(0.4, 1)
     population.pop("mass_1")
     population.pop("mass_2")
@@ -213,9 +213,16 @@ def compute_mismatch_loop(
 
         mismatch = 1 - plus_overlap
         collect_mismatch.append(mismatch)
-        # log_mismatch = np.log10(np.real(mismatch))
-        # if log_mismatch>-5:
-        #    print(f"High Mismatch {log_mismatch}  mass: {injection_parameters['chirp_mass']} mass ratio: {injection_parameters['mass_ratio']}")
+        debug = True
+        if debug:
+            log_mismatch = np.log10(np.real(mismatch))
+            if log_mismatch > -3:
+                print(f"High Mismatch {log_mismatch}")
+                print("Injection parameters")
+                for key, value in injection_parameters.items():
+                    print(key, value)
+
+                print("----------\n")
 
     return collect_mismatch
 
@@ -226,7 +233,7 @@ def main():
     np.random.seed(seed)
     bilby.core.utils.random.seed(seed)
     # Frequency settings
-    minimum_frequency = 20.0
+    minimum_frequency = 10.0
     maximum_frequency = 1024.0
     duration = 8.0
     reference_frequency = 50.0
