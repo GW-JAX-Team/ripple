@@ -23,6 +23,9 @@ def generate_lalsimulation_xphm_waveform(
     duration,
     modes,
 ):
+    """
+    Wrapper to call the lalsimulation XPHM waveform.
+    """
     lalparams = lal.CreateDict()
 
     ModeArray = lalsim.SimInspiralCreateModeArray()
@@ -36,17 +39,17 @@ def generate_lalsimulation_xphm_waveform(
     lalsim.SimInspiralWaveformParamsInsertPhenomXPrecVersion(lalparams, 223)
 
     hp, hc = lalsim.SimIMRPhenomXPHM(
-        injection_parameters["mass_1_SI"][0],
-        injection_parameters["mass_2_SI"][0],
-        injection_parameters["chi1x"][0],
-        injection_parameters["chi1y"][0],
-        injection_parameters["chi1z"][0],
-        injection_parameters["chi2x"][0],
-        injection_parameters["chi2y"][0],
-        injection_parameters["chi2z"][0],
-        injection_parameters["distance_SI"][0],
-        injection_parameters["iota"][0],
-        injection_parameters["Phicoal"][0],
+        injection_parameters["mass_1_SI"],
+        injection_parameters["mass_2_SI"],
+        injection_parameters["chi1x"],
+        injection_parameters["chi1y"],
+        injection_parameters["chi1z"],
+        injection_parameters["chi2x"],
+        injection_parameters["chi2y"],
+        injection_parameters["chi2z"],
+        injection_parameters["distance_SI"],
+        injection_parameters["iota"],
+        injection_parameters["Phicoal"],
         minimum_frequency,
         maximum_frequency,
         1 / duration,
@@ -63,19 +66,22 @@ def generate_ripple_xphm_waveform(
     reference_frequency,
     duration,
 ):
+    """
+    Wrapper to call the ripple XPHM waveform.
+    """
     frequency_array = jnp.arange(minimum_frequency, maximum_frequency, 1 / duration)
     hp, hc = IMRPhenomXPHM.generate_xphm(
-        injection_parameters["mass_1"][0],
-        injection_parameters["mass_2"][0],
-        injection_parameters["chi1x"][0],
-        injection_parameters["chi1y"][0],
-        injection_parameters["chi1z"][0],
-        injection_parameters["chi2x"][0],
-        injection_parameters["chi2y"][0],
-        injection_parameters["chi2z"][0],
-        injection_parameters["distance"][0],
-        injection_parameters["iota"][0],
-        injection_parameters["Phicoal"][0],
+        injection_parameters["mass_1"],
+        injection_parameters["mass_2"],
+        injection_parameters["chi1x"],
+        injection_parameters["chi1y"],
+        injection_parameters["chi1z"],
+        injection_parameters["chi2x"],
+        injection_parameters["chi2y"],
+        injection_parameters["chi2z"],
+        injection_parameters["distance"],
+        injection_parameters["iota"],
+        injection_parameters["Phicoal"],
         frequency_array,
         reference_frequency,
     )
@@ -134,25 +140,25 @@ def main():
     print("Device", jax.devices())
 
     injection_parameters = {}
-    injection_parameters["mass_1"] = np.array([36.0])
-    injection_parameters["mass_2"] = np.array([29.0])
+    injection_parameters["mass_1"] = 36.0
+    injection_parameters["mass_2"] = 29.0
     injection_parameters["mass_1_SI"] = injection_parameters["mass_1"] * MSUN
     injection_parameters["mass_2_SI"] = injection_parameters["mass_2"] * MSUN
-    injection_parameters["distance"] = np.array([1])  # In Mpc
-    injection_parameters["distance_SI"] = np.array(
-        [injection_parameters["distance"][0] * 3.0856775814913673e22]
+    injection_parameters["distance"] = 1.0  # In Mpc
+    injection_parameters["distance_SI"] = (
+        injection_parameters["distance"] * 3.0856775814913673e22
     )  # In meters
-    injection_parameters["theta"] = np.array([0.5])
-    injection_parameters["phi"] = np.array([0.0])
-    injection_parameters["iota"] = np.array([0.2])
-    injection_parameters["psi"] = np.array([1.2])
-    injection_parameters["Phicoal"] = np.array([0.0])
-    injection_parameters["chi1x"] = np.array([0.1])
-    injection_parameters["chi1y"] = np.array([0.2])
-    injection_parameters["chi1z"] = np.array([0.3])
-    injection_parameters["chi2x"] = np.array([0.3])
-    injection_parameters["chi2y"] = np.array([0.2])
-    injection_parameters["chi2z"] = np.array([0.1])
+    injection_parameters["theta"] = 0.5
+    injection_parameters["phi"] = 0.0
+    injection_parameters["iota"] = 0.2
+    injection_parameters["psi"] = 1.2
+    injection_parameters["Phicoal"] = 0.0
+    injection_parameters["chi1x"] = 0.1
+    injection_parameters["chi1y"] = 0.2
+    injection_parameters["chi1z"] = 0.3
+    injection_parameters["chi2x"] = 0.3
+    injection_parameters["chi2y"] = 0.2
+    injection_parameters["chi2z"] = 0.1
 
     minimum_frequency = 20
     maximum_frequency = 1024
