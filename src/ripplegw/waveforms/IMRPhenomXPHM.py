@@ -26,84 +26,9 @@ from .IMRPhenomD import IMRPhenDAmplitude_NoCut
 from .IMRPhenomD import get_IIb_raw_phase
 from .IMRPhenomPv2_utils import FinalSpin0815
 
-# from .LALSimIMRPhenomX_precession import Get_alpha_epsilon_offset
-
-
 uGpc = 3.085677581491367278913937957796471611e25
-# 3.085677581491367278913937957796471611e25 # meters
 GMsun_over_c2 = MTSUN_SI * C
-# 1.476625061404649406193430731479084713e3 # meters
 GMsun_over_c2_Gpc = GMsun_over_c2 / uGpc
-
-
-# MTSUN_SI = 4.925491025543575903411922162094833998e-6
-
-# TF2 coefficient array indices (for JIT-compatible array-based storage)
-TF2_ZERO = 0
-TF2_ONE = 1
-TF2_TWO = 2
-TF2_THREE = 3
-TF2_FOUR = 4
-TF2_FIVE = 5
-TF2_FIVE_LOG = 6
-TF2_SIX = 7
-TF2_SIX_LOG = 8
-TF2_SEVEN = 9
-TF2_NUM_COEFFS = 10
-
-# PhiInsp coefficient array indices (for JIT-compatible array-based storage)
-PHI_INITIAL_PHASING = 0
-PHI_TWO_THIRDS = 1
-PHI_THIRD = 2
-PHI_THIRD_LOG = 3
-PHI_LOG = 4
-PHI_MIN_THIRD = 5
-PHI_MIN_TWO_THIRDS = 6
-PHI_MIN_ONE = 7
-PHI_MIN_FOUR_THIRDS = 8
-PHI_MIN_FIVE_THIRDS = 9
-PHI_ONE = 10
-PHI_FOUR_THIRDS = 11
-PHI_FIVE_THIRDS = 12
-PHI_TWO = 13
-PHI_NUM_COEFFS = 14
-
-# Amplitude coefficient array indices (for JIT-compatible array-based storage)
-AMP_TWO_THIRDS = 0
-AMP_ONE = 1
-AMP_FOUR_THIRDS = 2
-AMP_FIVE_THIRDS = 3
-AMP_TWO = 4
-AMP_SEVEN_THIRDS = 5
-AMP_EIGHT_THIRDS = 6
-AMP_THREE = 7
-AMP_NUM_COEFFS = 8
-
-# Alpha coefficient array indices (for JIT-compatible array-based storage)
-ALPHA_1 = 0
-ALPHA_2 = 1
-ALPHA_3 = 2
-ALPHA_4 = 3
-ALPHA_5 = 4
-ALPHA_NUM_COEFFS = 5
-
-# Beta coefficient array indices (for JIT-compatible array-based storage)
-BETA_1 = 0
-BETA_2 = 1
-BETA_3 = 2
-BETA_NUM_COEFFS = 3
-
-# Sigma coefficient array indices (for JIT-compatible array-based storage)
-SIGMA_1 = 0
-SIGMA_2 = 1
-SIGMA_3 = 2
-SIGMA_4 = 3
-SIGMA_NUM_COEFFS = 4
-
-# Dimensionless frequency (Mf) at which the inspiral amplitude switches to the intermediate amplitude
-AMP_fJoin_INS = 0.014
-# Dimensionless frequency (Mf) at which the inspiral phase switches to the intermediate phase
-PHI_fJoin_INS = 0.018
 
 
 # Phase shift due to leading order complex amplitude
