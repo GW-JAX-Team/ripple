@@ -29,9 +29,9 @@ injection_parameters['m2_SI'] = injection_parameters['m2'] * MSUN
 injection_parameters['chirp_mass'] = bilby.gw.conversion.component_masses_to_chirp_mass(injection_parameters['m1'], 
                                                                                 injection_parameters['m2'])
 
-injection_parameters['distance'] = np.array([0.001]) # In GPc
+injection_parameters['distance'] = np.array([1]) # In Mpc
 
-injection_parameters['distance_SI'] = np.array([0.001 * 3.0856775814913673e25])
+injection_parameters['distance_SI'] = np.array([1 * 3.0856775814913673e22])
 injection_parameters['theta'] = np.array([0.5])
 
 injection_parameters['phi'] = np.array([0.])
@@ -126,7 +126,6 @@ if make_ripple_hlms:
     dist_m = injection_parameters['distance_SI'][0]
     amp0 = Mtot * lal.MRSUN_SI * Mtot * lal.MTSUN_SI / dist_m
     
-    print("ripple amp0", amp0)
     ells = modes[:, 0]
     minus1l = jnp.where(ells % 2 != 0, -1, 1)
     hlms_ripple_final = minus1l[:, None] * hlms_ripple * amp0
@@ -213,7 +212,7 @@ if run_jim_xphm:
     fig.savefig('xphm.pdf')
 
     
-
+exit()
 
 # Save each mode of hlm to separate files
 modes_info = [(int(ell), int(m), i) for i, (ell, m) in enumerate(modes)]
@@ -230,6 +229,7 @@ if save_ripple_waveforms:
         output = np.column_stack([f, ripple_amp, ripple_phase])
         filename = f'ripple_hlm{ell}{m}.dat'
         np.savetxt(filename, output, header='frequency amplitude phase', fmt='%.3f %.5e %.5e')
+
 
 
 

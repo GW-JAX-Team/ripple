@@ -1050,7 +1050,6 @@ def compute_psi0(
 
         # Check if we're in boundary case
         boundary_condition = jnp.logical_or(tmpB < 0.0, tmpB > 1.0)
-        # jax.debug.print('JAX debug {} {} {}', handle_boundary_cases(), normal_case(), boundary_condition)
 
         return jax.lax.cond(boundary_condition, handle_boundary_cases, normal_case)
 
@@ -1925,24 +1924,6 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
     phiz_MSA = vMSA[0]
     zeta_MSA = vMSA[1]
 
-    jax.debug.print("ripple v = {}", v)
-    jax.debug.print("ripple J_norm = {}", J_norm)
-    jax.debug.print("eta = {}", eta)
-    jax.debug.print("inveta = {}", inveta)
-    jax.debug.print("eta2 = {}", eta2)
-    jax.debug.print("eta4 = {}", eta4)
-    jax.debug.print("c1 = {}", c1)
-    jax.debug.print("SAv = {}", SAv)
-    jax.debug.print("SAv2 = {}", SAv2)
-    jax.debug.print("invSAv = {}", invSAv)
-    jax.debug.print("invSAv2 = {}", invSAv2)
-    jax.debug.print("Omegaz0_coeff = {}", Omegaz0_coeff)
-    jax.debug.print("Omegaz1_coeff = {}", Omegaz1_coeff)
-    jax.debug.print("Omegaz2_coeff = {}", Omegaz2_coeff)
-    jax.debug.print("Omegaz3_coeff = {}", Omegaz3_coeff)
-    jax.debug.print("Omegaz4_coeff = {}", Omegaz4_coeff)
-    jax.debug.print("Omegaz5_coeff = {}", Omegaz5_coeff)
-    jax.debug.print("phiz_0 = {}", phiz_0)
     phiz = IMRPhenomX_Return_phiz_MSA(
         v,
         J_norm,
@@ -1963,7 +1944,7 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
         Omegaz5_coeff,
         phiz_0,
     )
-    jax.debug.print("phiz = {}", phiz)
+
     zeta = IMRPhenomX_Return_zeta_MSA(
         v,
         eta,

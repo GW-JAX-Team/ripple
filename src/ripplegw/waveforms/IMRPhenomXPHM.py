@@ -2891,9 +2891,7 @@ def generate_xphm(
     dist_m = distance * MPC  # distance in meters
     amp0 = Mtot * MRSUN * Mtot * MTSUN_SI / dist_m
 
-    extra_params = {
-        "ModeArray": mode_array
-    }  # FIXME: In the future this dict should be passed to generate_xphm itself
+    extra_params = {"ModeArray": mode_array}
 
     hlm = XLALSimIMRPhenomHMGethlmModes(
         frequency_array,
@@ -2934,6 +2932,7 @@ def generate_xphm(
     return hp, hc
 
 
+@jit
 def twistup(
     Mf,
     mass_1,
@@ -3037,7 +3036,6 @@ def twistup(
 
         emm = emms[mode_idx]
 
-        # print("what is the value of offset:", alpha_offset_emm, epsilon_offset_emm)
         alpha, epsilon, cos_beta = pPrec.compute_evolved_spin_using_msa(
             Mf,
             mass_1,
@@ -3269,7 +3267,6 @@ def twist_22(cexp_i_alpha, theta_JN, beta_powers):
 
     for m in range(-2, 2 + 1):
         A2m2emm = cexp_im_alpha_l2[-m + 2] * d2m2[m + 2] * Y2mA[m + 2]
-        # print(f"m {m} and A2m2emm {A2m2emm[0]}")
         A22emmstar = cexp_im_alpha_l2[m + 2] * d22[m + 2] * jnp.conj(Y2mA[m + 2])
         hp_sum += A2m2emm + A22emmstar
         hc_sum += 1j * (A2m2emm - A22emmstar)
