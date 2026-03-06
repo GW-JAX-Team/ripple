@@ -960,7 +960,7 @@ def IMRPhenomHMEvaluateOnehlmMode(
     freqs_geom: Array, pHM: dict, ell: int, mm: int, phi0: float
 ):
     """
-    Copy of IMRPhenomHMEvaluateOnehlmMode in LALSimIMRPhenomHM.c
+    Implementation of IMRPhenomHMEvaluateOnehlmMode in LALSimIMRPhenomHM.c
     """
 
     # generate phase and amplitude for single l,m mode
@@ -999,7 +999,7 @@ def XLALSimPhenomUtilsPhenomPv2FinalSpin(
     m1: float, m2: float, chi1_l: float, chi2_l: float, chip: float
 ):
     """
-    Copy of XLALSimPhenomUtilsPhenomPv2FinalSpin in LALSimPhenomUtils.c
+    Implementation of XLALSimPhenomUtilsPhenomPv2FinalSpin in LALSimPhenomUtils.c
     Assuming m1 >= m2
     """
 
@@ -1036,7 +1036,7 @@ def init_PhenomHM_Storage(
 ):
     """
     Precompute a bunch of PhenomHM related quantities and store them
-    Copy of init_PhenomHM_Storage in LALSimIMRPhenomHM.c
+    Implementation of init_PhenomHM_Storage in LALSimIMRPhenomHM.c
     """
 
     p["m1"] = m1_SI / MSUN
@@ -1116,7 +1116,7 @@ def IMRPhenomHMGetRingdownFrequency(
     ell: int, mm: int, finalmass: float, finalspin: float
 ):
     """
-    Copy of IMRPhenomHMGetRingdownFrequency in LALSimIMRPhenomHM.c
+    Implementation of IMRPhenomHMGetRingdownFrequency in LALSimIMRPhenomHM.c
     """
 
     inv2Pi = 0.5 / PI
@@ -1287,7 +1287,7 @@ def IMRPhenomHMFreqDomainMap(Mflm, ell, mm, pHM, AmpFlag):
 def IMRPhenomHMAmplitude(freqs_geom: Array, pHM: dict, ell: int, mm: int):
     """
     Returns IMRPhenomHM amplitude evaluated at a set of input frequencies for the l,m mode
-    Copy of IMRPhenomHMAmplitude in LALSimIMRPhenomHM.c
+    Implementation of IMRPhenomHMAmplitude in LALSimIMRPhenomHM.c
     """
 
     # scale input frequencies according to PhenomHM model
@@ -1476,7 +1476,7 @@ def IMRPhenomHMOnePointFiveSpinPN(fM, ell, m, M1, M2, X1z, X2z):
 def IMRPhenomHMPhase(freqs_geom: Array, pHM: dict, ell: int, mm: int):
     """
     Returns IMRPhenomHM phase evaluated at a set of input frequencies for the l,m mode
-    Copy of IMRPhenomHMPhase in LALSimIMRPhenomHM.c
+    Implementation of IMRPhenomHMPhase in LALSimIMRPhenomHM.c
     """
 
     q = {}
@@ -1565,7 +1565,7 @@ def IMRPhenomHMPhase(freqs_geom: Array, pHM: dict, ell: int, mm: int):
 @jit
 def IMRPhenomHMPhasePreComp(q: dict, ell: int, emm: int, pHM: dict):
     """
-    Copy of IMRPhenomHMPhasePreComp in LALSimIMRPhenomHM.c
+    Implementation of IMRPhenomHMPhasePreComp in LALSimIMRPhenomHM.c
     """
 
     # NOTE: As long as Mfshift isn't >= fr then the value of the shift is arbitrary.
@@ -1647,7 +1647,7 @@ def IMRPhenomHMFreqDomainMapParams(
     ampFlag: bool,  # is ==1 then computes for amplitude, if ==0 then computes for phase
 ):
     """
-    Copy of the phase computation of IMRPhenomHMFreqDomainMapParams in LALSimIMRPhenomHM.c
+    Implementation of the phase computation of IMRPhenomHMFreqDomainMapParams in LALSimIMRPhenomHM.c
     """
 
     # Get mode index for array lookup
@@ -1705,7 +1705,7 @@ def IMRPhenomHMSlopeAmAndBm(
     pHM: dict,
 ):
     """
-    Copy of IMRPhenomHMSlopeAmAndBm in LALSimIMRPhenomHM.c
+    Implementation of IMRPhenomHMSlopeAmAndBm in LALSimIMRPhenomHM.c
     """
     # Get mode index for array lookup
     mode_idx = pHM["mode_index_map"][ell, mm]
@@ -1724,7 +1724,7 @@ def IMRPhenomHMTrd(
     Mf: float, Mf_RD_22: float, Mf_RD_lm: float, AmpFlag: bool, mode_idx: int, pHM: dict
 ):
     """
-    Copy of IMRPhenomHMTrd in LALSimIMRPhenomHM.c
+    Implementation of IMRPhenomHMTrd in LALSimIMRPhenomHM.c
     domain mapping function - ringdown
     """
 
@@ -1750,7 +1750,7 @@ def IMRPhenomHMMapParams(
     Br: float,
 ):
     """
-    Copy of IMRPhenomHMMapParams in LALSimIMRPhenomHM.c, line 557
+    Implementation of IMRPhenomHMMapParams in LALSimIMRPhenomHM.c, line 557
     """
     # Define function to output map params used depending on
     a = jnp.where(flm > fi, jnp.where(flm > fr, Ar, Am), Ai)
