@@ -389,6 +389,22 @@ class BetaPowers:
 
 
 def twist_22(cexp_i_alpha, theta_JN, beta_powers):
+    """
+    Compute the twisting contributions for l=2, m'=2 mode.
+
+    This function computes the sum over m of the Wigner-d matrix elements
+    and spherical harmonics for the (2,2) mode, following eq. 3.5-3.7
+    in the Precessing paper.
+
+    Args:
+        cexp_i_alpha: Complex exponential e^{i*alpha} (array over frequencies)
+        theta_JN: Angle between total angular momentum and line of sight
+        beta_powers: BetaPowers object containing powers of cos(beta/2) and sin(beta/2)
+
+    Returns:
+        hp_sum: Plus polarization contribution
+        hc_sum: Cross polarization contribution
+    """
     hp_sum = jnp.zeros_like(cexp_i_alpha, dtype=cexp_i_alpha.dtype)
     hc_sum = jnp.zeros_like(cexp_i_alpha, dtype=cexp_i_alpha.dtype)
 
