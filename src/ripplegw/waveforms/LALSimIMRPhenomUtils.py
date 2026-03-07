@@ -1,6 +1,7 @@
 import jax.numpy as jnp
 from jax import jit
 
+
 @jit
 def XLALSimPhenomUtilsChiP(m1, m2, s1x, s1y, s2x, s2y):
     """

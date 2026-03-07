@@ -1,6 +1,7 @@
 import jax.numpy as jnp
 import jax
 
+
 def XLALSimIMRPhenomXatan2tol(vy, vx, tol):
     cond = (jnp.abs(vy) < tol) & (jnp.abs(vx) < tol)
     return jax.lax.cond(

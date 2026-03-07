@@ -1,7 +1,7 @@
 import jax.numpy as jnp
 from jax_dataclasses import pytree_dataclass
-from dataclasses import field
 from .LALSimIMRPhenomX_PNR_coefficients import *
+
 
 @pytree_dataclass
 class IMRPhenomX_PNR_alpha_parameters:
@@ -9,6 +9,7 @@ class IMRPhenomX_PNR_alpha_parameters:
     Parameter structure for alpha angle coefficients.
     Reference: Sec. 8D in arXiv:2107.08876
     """
+
     A1: float
     A2: float
     A3: float
@@ -16,8 +17,7 @@ class IMRPhenomX_PNR_alpha_parameters:
 
 
 def IMRPhenomX_PNR_precompute_alpha_coefficients(
-    pWF: dict,
-    pPrec
+    pWF: dict, pPrec
 ) -> IMRPhenomX_PNR_alpha_parameters:
     """
     Precompute alpha coefficients for PNR angles.
@@ -40,15 +40,17 @@ def IMRPhenomX_PNR_precompute_alpha_coefficients(
 
     # Determine eta based on precession version
     # If version==330 and eta < 0.09, use 0.09; otherwise use pWF['eta']
-    eta_330 = jnp.where(pWF['eta'] >= 0.09, pPrec.eta, 0.09)
-    eta = jnp.where(pPrec.IMRPhenomXPrecVersion == 330, eta_330, pWF['eta'])
+    eta_330 = jnp.where(pWF["eta"] >= 0.09, pPrec.eta, 0.09)
+    eta = jnp.where(pPrec.IMRPhenomXPrecVersion == 330, eta_330, pWF["eta"])
 
     # Compute chi boundary
-    chiboundary = 0.80 - 0.20 * jnp.exp(-jnp.power((pWF['q'] - 6.0) / 1.5, 8))
+    chiboundary = 0.80 - 0.20 * jnp.exp(-jnp.power((pWF["q"] - 6.0) / 1.5, 8))
 
     # Determine chi based on precession version
     # If version==330 and chi_singleSpin > chiboundary, use chiboundary
-    chi_330 = jnp.where(pPrec.chi_singleSpin <= chiboundary, pPrec.chi_singleSpin, chiboundary)
+    chi_330 = jnp.where(
+        pPrec.chi_singleSpin <= chiboundary, pPrec.chi_singleSpin, chiboundary
+    )
     chi = jnp.where(pPrec.IMRPhenomXPrecVersion == 330, chi_330, pPrec.chi_singleSpin)
 
     costheta = pPrec.costheta_singleSpin
@@ -74,13 +76,4 @@ def IMRPhenomX_PNR_precompute_alpha_coefficients(
     # A4: no clamping needed
     A4 = IMRPhenomX_PNR_alpha_A4_coefficient(eta, chi, costheta)
 
-    return IMRPhenomX_PNR_alpha_parameters(
-        A1=A1,
-        A2=A2,
-        A3=A3,
-        A4=A4
-    )
-
-
-
-
+    return IMRPhenomX_PNR_alpha_parameters(A1=A1, A2=A2, A3=A3, A4=A4)

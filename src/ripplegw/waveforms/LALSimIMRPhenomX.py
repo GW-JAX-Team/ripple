@@ -4,9 +4,12 @@ from typing import Tuple, Optional, Dict, Any
 from ..typing import Array
 from ..constants import G, MSUN, C
 
-from .LALSimIMRPhenomX_precession import IMRPhenomXGetAndSetPrecessionVariables, IMRPhenomX_Return_phi_zeta_costhetaL_MSA
+from .LALSimIMRPhenomX_precession import (
+    IMRPhenomXGetAndSetPrecessionVariables,
+    IMRPhenomX_Return_phi_zeta_costhetaL_MSA,
+)
 from .LALSimIMRPhenomX_internals import IMRPhenomXSetWaveformVariables
-from copy import copy
+
 
 def XLALSimIMRPhenomXPMSAAngles(
     freqs: Array,
@@ -21,7 +24,7 @@ def XLALSimIMRPhenomXPMSAAngles(
     inclination: float,
     fRef_In: float,
     mprime: int,
-    lalParams: Optional[Dict[str, Any]] = None
+    lalParams: Optional[Dict[str, Any]] = None,
 ) -> Tuple[Array, Array, Array]:
     """
     Compute MSA (Minimum rotation Sppinning Approximation) Euler angles for IMRPhenomXP waveforms.
@@ -92,7 +95,7 @@ def XLALSimIMRPhenomXPMSAAngles(
     eta = (m1_SI * m2_SI) / ((m1_SI + m2_SI) ** 2)  # Symmetric mass ratio
 
     # Compute piGM for velocity calculation
-    piGM = jnp.pi * G * (m1_SI + m2_SI) / (C ** 3)
+    piGM = jnp.pi * G * (m1_SI + m2_SI) / (C**3)
 
     lalParams_aux = lalParams.copy()
 
@@ -110,7 +113,7 @@ def XLALSimIMRPhenomXPMSAAngles(
         distance=1.0,
         inclination=inclination,
         lalParams=lalParams_aux,
-        debug=False
+        debug=False,
     )
 
     # Initialize precession struct
@@ -126,7 +129,7 @@ def XLALSimIMRPhenomXPMSAAngles(
         chi2y=chi2y,
         chi2z=chi2z,
         lalParams=lalParams_aux,
-        debug_flag=False
+        debug_flag=False,
     )
 
     # Vectorized computation of angles over frequency array
@@ -150,5 +153,5 @@ def XLALSimIMRPhenomXPMSAAngles(
     # Vectorize over frequency array
 
     alphas, gammas, cosbetas = jax.vmap(compute_angles_at_freq)(freqs)
-    #print("JAX DEBUG pPrec.alpha_offset, pPrec.epsilon_offset", pPrec.alpha_offset, pPrec.epsilon_offset)
+    # print("JAX DEBUG pPrec.alpha_offset, pPrec.epsilon_offset", pPrec.alpha_offset, pPrec.epsilon_offset)
     return alphas, gammas, cosbetas

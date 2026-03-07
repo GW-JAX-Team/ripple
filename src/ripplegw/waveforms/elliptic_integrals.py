@@ -75,13 +75,7 @@ def ellint_F(phi: float, k: float, n_points: int = 1000) -> float:
 
     # Nested conditional: check k=0 first, then k=1, then general
     result = jnp.where(
-        is_k_zero,
-        case_k_zero(),
-        jnp.where(
-            is_k_one,
-            case_k_one(),
-            case_general()
-        )
+        is_k_zero, case_k_zero(), jnp.where(is_k_one, case_k_one(), case_general())
     )
 
     return result
@@ -211,9 +205,7 @@ def gsl_sf_elljac_e(u: float, m: float, max_iter: int = 16):
 
         k = jnp.sqrt(m)
         (a_final, c_final), (a_arr, c_arr) = jax.lax.scan(
-            landen_forward,
-            (jnp.ones_like(k), k),
-            jnp.arange(max_iter)
+            landen_forward, (jnp.ones_like(k), k), jnp.arange(max_iter)
         )
 
         # phi_n = 2^n * a_n * u (in the limit, this approaches the final angle)
@@ -230,7 +222,9 @@ def gsl_sf_elljac_e(u: float, m: float, max_iter: int = 16):
             sin_phi = jnp.sin(phi_curr)
             # The inverse transformation
             # phi_prev = (phi_curr + arcsin(c * sin(phi_curr) / a)) / 2
-            arg = jnp.clip(c_i * sin_phi / a_i, -1.0, 1.0)  # Clip to avoid numerical issues
+            arg = jnp.clip(
+                c_i * sin_phi / a_i, -1.0, 1.0
+            )  # Clip to avoid numerical issues
             phi_prev = 0.5 * (phi_curr + jnp.arcsin(arg))
 
             return phi_prev, None

@@ -16,6 +16,7 @@ class IMRPhenomX_PNR_beta_parameters:
     Parameter structure for beta angle coefficients.
     Reference: Sec. 8D in arXiv:2107.08876
     """
+
     B0: float
     B1: float
     B2: float
@@ -25,8 +26,7 @@ class IMRPhenomX_PNR_beta_parameters:
 
 
 def IMRPhenomX_PNR_precompute_beta_coefficients(
-    pWF: dict,
-    pPrec
+    pWF: dict, pPrec
 ) -> IMRPhenomX_PNR_beta_parameters:
     """
     Precompute beta coefficients for PNR angles.
@@ -49,15 +49,17 @@ def IMRPhenomX_PNR_precompute_beta_coefficients(
 
     # Determine eta based on precession version
     # If version==330 and eta < 0.09, use 0.09; otherwise use pWF['eta']
-    eta_330 = jnp.where(pWF['eta'] >= 0.09, pPrec.eta, 0.09)
-    eta = jnp.where(pPrec.IMRPhenomXPrecVersion == 330, eta_330, pWF['eta'])
+    eta_330 = jnp.where(pWF["eta"] >= 0.09, pPrec.eta, 0.09)
+    eta = jnp.where(pPrec.IMRPhenomXPrecVersion == 330, eta_330, pWF["eta"])
 
     # Compute chi boundary
-    chiboundary = 0.80 - 0.20 * jnp.exp(-jnp.power((pWF['q'] - 6.0) / 1.5, 8))
+    chiboundary = 0.80 - 0.20 * jnp.exp(-jnp.power((pWF["q"] - 6.0) / 1.5, 8))
 
     # Determine chi based on precession version
     # If version==330 and chi_singleSpin > chiboundary, use chiboundary
-    chi_330 = jnp.where(pPrec.chi_singleSpin <= chiboundary, pPrec.chi_singleSpin, chiboundary)
+    chi_330 = jnp.where(
+        pPrec.chi_singleSpin <= chiboundary, pPrec.chi_singleSpin, chiboundary
+    )
     chi = jnp.where(pPrec.IMRPhenomXPrecVersion == 330, chi_330, pPrec.chi_singleSpin)
 
     costheta = pPrec.costheta_singleSpin
@@ -77,19 +79,11 @@ def IMRPhenomX_PNR_precompute_beta_coefficients(
     B3 = B2 * B3_coeff
     B5 = IMRPhenomX_PNR_beta_B5_coefficient(eta, chi, costheta)
 
-    return IMRPhenomX_PNR_beta_parameters(
-        B0=B0,
-        B1=B1,
-        B2=B2,
-        B3=B3,
-        B4=B4,
-        B5=B5
-    )
+    return IMRPhenomX_PNR_beta_parameters(B0=B0, B1=B1, B2=B2, B3=B3, B4=B4, B5=B5)
 
 
 def IMRPhenomX_PNR_MR_ddbeta_expression(
-    Mf: float,
-    betaParams: IMRPhenomX_PNR_beta_parameters
+    Mf: float, betaParams: IMRPhenomX_PNR_beta_parameters
 ) -> float:
     """
     Second derivative of beta in merger-ringdown regime.
@@ -117,16 +111,25 @@ def IMRPhenomX_PNR_MR_ddbeta_expression(
     a = B2 * B4 * B4 - 2.0 * B3 * B4 * B4 * B5
     b = -3.0 * B3 * B4 + 3.0 * B1 * B4 * B4 - 3.0 * B3 * B4 * B4 * B5 * B5
     c = -3.0 * B2 * B4 + 6.0 * B1 * B4 * B4 * B5 - 3.0 * B2 * B4 * B4 * B5 * B5
-    d = (B3 - B1 * B4 - 2.0 * B2 * B4 * B5 + 2.0 * B3 * B4 * B5 * B5 +
-         3.0 * B1 * B4 * B4 * B5 * B5 - 2.0 * B2 * B4 * B4 * B5 * B5 * B5 +
-         B3 * B4 * B4 * B5 * B5 * B5 * B5)
+    d = (
+        B3
+        - B1 * B4
+        - 2.0 * B2 * B4 * B5
+        + 2.0 * B3 * B4 * B5 * B5
+        + 3.0 * B1 * B4 * B4 * B5 * B5
+        - 2.0 * B2 * B4 * B4 * B5 * B5 * B5
+        + B3 * B4 * B4 * B5 * B5 * B5 * B5
+    )
 
-    return 2.0 * (a * Mf * Mf * Mf + b * Mf * Mf + c * Mf + d) / jnp.power((1.0 + B4 * (B5 + Mf) * (B5 + Mf)), 3)
+    return (
+        2.0
+        * (a * Mf * Mf * Mf + b * Mf * Mf + c * Mf + d)
+        / jnp.power((1.0 + B4 * (B5 + Mf) * (B5 + Mf)), 3)
+    )
 
 
 def IMRPhenomX_PNR_MR_dddbeta_expression(
-    Mf: float,
-    betaParams: IMRPhenomX_PNR_beta_parameters
+    Mf: float, betaParams: IMRPhenomX_PNR_beta_parameters
 ) -> float:
     """
     Third derivative of beta in merger-ringdown regime.
@@ -154,19 +157,36 @@ def IMRPhenomX_PNR_MR_dddbeta_expression(
     a = -B2 * B4 * B4 + 2.0 * B3 * B4 * B4 * B5
     b = 4.0 * B3 * B4 - 4.0 * B1 * B4 * B4 + 4.0 * B3 * B4 * B4 * B5 * B5
     c = 6.0 * B2 * B4 - 12.0 * B1 * B4 * B4 * B5 + 6.0 * B2 * B4 * B4 * B5 * B5
-    d = (-4.0 * B3 + 4.0 * B1 * B4 + 8.0 * B2 * B4 * B5 - 8.0 * B3 * B4 * B5 * B5 -
-         12.0 * B1 * B4 * B4 * B5 * B5 + 8.0 * B2 * B4 * B4 * B5 * B5 * B5 -
-         4.0 * B3 * B4 * B4 * B5 * B5 * B5 * B5)
-    e = (-B2 - 2.0 * B3 * B5 + 4.0 * B1 * B4 * B5 + 2.0 * B2 * B4 * B5 * B5 -
-         4.0 * B3 * B4 * B5 * B5 * B5 - 4.0 * B1 * B4 * B4 * B5 * B5 * B5 +
-         3.0 * B2 * B4 * B4 * B5 * B5 * B5 * B5 - 2.0 * B3 * B4 * B4 * B5 * B5 * B5 * B5 * B5)
+    d = (
+        -4.0 * B3
+        + 4.0 * B1 * B4
+        + 8.0 * B2 * B4 * B5
+        - 8.0 * B3 * B4 * B5 * B5
+        - 12.0 * B1 * B4 * B4 * B5 * B5
+        + 8.0 * B2 * B4 * B4 * B5 * B5 * B5
+        - 4.0 * B3 * B4 * B4 * B5 * B5 * B5 * B5
+    )
+    e = (
+        -B2
+        - 2.0 * B3 * B5
+        + 4.0 * B1 * B4 * B5
+        + 2.0 * B2 * B4 * B5 * B5
+        - 4.0 * B3 * B4 * B5 * B5 * B5
+        - 4.0 * B1 * B4 * B4 * B5 * B5 * B5
+        + 3.0 * B2 * B4 * B4 * B5 * B5 * B5 * B5
+        - 2.0 * B3 * B4 * B4 * B5 * B5 * B5 * B5 * B5
+    )
 
-    return (6.0 * B4 * (a * Mf * Mf * Mf * Mf + b * Mf * Mf * Mf + c * Mf * Mf + d * Mf + e) /
-            jnp.power((1.0 + B4 * (B5 + Mf) * (B5 + Mf)), 4))
+    return (
+        6.0
+        * B4
+        * (a * Mf * Mf * Mf * Mf + b * Mf * Mf * Mf + c * Mf * Mf + d * Mf + e)
+        / jnp.power((1.0 + B4 * (B5 + Mf) * (B5 + Mf)), 4)
+    )
 
 
 def IMRPhenomX_PNR_single_inflection_point(
-    betaParams: IMRPhenomX_PNR_beta_parameters
+    betaParams: IMRPhenomX_PNR_beta_parameters,
 ) -> float:
     """
     Compute inflection point for beta connection frequency.
@@ -196,9 +216,15 @@ def IMRPhenomX_PNR_single_inflection_point(
     a = 2.0 * (B2 * B4 * B4 - 2.0 * B3 * B4 * B4 * B5)
     b = 6.0 * (-B3 * B4 + B1 * B4 * B4 - B3 * B4 * B4 * B5 * B5)
     c = 6.0 * (-B2 * B4 + 2.0 * B1 * B4 * B4 * B5 - B2 * B4 * B4 * B5 * B5)
-    d = 2.0 * (B3 - B1 * B4 - 2.0 * B2 * B4 * B5 + 2.0 * B3 * B4 * B5 * B5 +
-               3.0 * B1 * B4 * B4 * B5 * B5 - 2.0 * B2 * B4 * B4 * B5 * B5 * B5 +
-               B3 * B4 * B4 * B5 * B5 * B5 * B5)
+    d = 2.0 * (
+        B3
+        - B1 * B4
+        - 2.0 * B2 * B4 * B5
+        + 2.0 * B3 * B4 * B5 * B5
+        + 3.0 * B1 * B4 * B4 * B5 * B5
+        - 2.0 * B2 * B4 * B4 * B5 * B5 * B5
+        + B3 * B4 * B4 * B5 * B5 * B5 * B5
+    )
 
     # Convert to depressed cubic: t^3 + rt + s
     r = (3.0 * a * c - b * b) / (3.0 * a * a)
@@ -223,7 +249,7 @@ def IMRPhenomX_PNR_single_inflection_point(
 
 
 def IMRPhenomX_PNR_BetaConnectionFrequencies(
-    betaParams: IMRPhenomX_PNR_beta_parameters
+    betaParams: IMRPhenomX_PNR_beta_parameters,
 ) -> tuple:
     """
     Compute connection frequencies for beta angle.
@@ -254,17 +280,23 @@ def IMRPhenomX_PNR_BetaConnectionFrequencies(
 
     # Calculate derivative of beta at inflection point
     # Using MR_dbeta_expression (lines 680-693 in C code)
-    dbeta_inflection = ((2.0 * B3 * B4 * B5 - B2 * B4) * Mf_inflection * Mf_inflection +
-                       (2.0 * B3 - 2.0 * B1 * B4 + 2.0 * B3 * B4 * B5 * B5) * Mf_inflection +
-                       (B2 - 2.0 * B1 * B4 * B5 + B2 * B4 * B5 * B5)) / \
-                       jnp.power((1.0 + B4 * (Mf_inflection + B5) * (Mf_inflection + B5)), 2)
+    dbeta_inflection = (
+        (2.0 * B3 * B4 * B5 - B2 * B4) * Mf_inflection * Mf_inflection
+        + (2.0 * B3 - 2.0 * B1 * B4 + 2.0 * B3 * B4 * B5 * B5) * Mf_inflection
+        + (B2 - 2.0 * B1 * B4 * B5 + B2 * B4 * B5 * B5)
+    ) / jnp.power((1.0 + B4 * (Mf_inflection + B5) * (Mf_inflection + B5)), 2)
 
     # Compute extrema of beta (lines 793-796)
-    root_term = (B4 * (B2 - 2.0 * B3 * B5) * (B2 - 2.0 * B1 * B4 * B5 + B2 * B4 * B5 * B5) +
-                 (B3 - B1 * B4 + B3 * B4 * B5 * B5) * (B3 - B1 * B4 + B3 * B4 * B5 * B5))
+    root_term = B4 * (B2 - 2.0 * B3 * B5) * (
+        B2 - 2.0 * B1 * B4 * B5 + B2 * B4 * B5 * B5
+    ) + (B3 - B1 * B4 + B3 * B4 * B5 * B5) * (B3 - B1 * B4 + B3 * B4 * B5 * B5)
 
-    Mf_plus = ((B3 - B1 * B4 + B3 * B4 * B5 * B5) + jnp.sqrt(root_term)) / (B4 * (B2 - 2.0 * B3 * B5))
-    Mf_minus = ((B3 - B1 * B4 + B3 * B4 * B5 * B5) - jnp.sqrt(root_term)) / (B4 * (B2 - 2.0 * B3 * B5))
+    Mf_plus = ((B3 - B1 * B4 + B3 * B4 * B5 * B5) + jnp.sqrt(root_term)) / (
+        B4 * (B2 - 2.0 * B3 * B5)
+    )
+    Mf_minus = ((B3 - B1 * B4 + B3 * B4 * B5 * B5) - jnp.sqrt(root_term)) / (
+        B4 * (B2 - 2.0 * B3 * B5)
+    )
 
     # Classify extrema using second derivative (lines 799-812)
     ddbeta_Mf_plus = IMRPhenomX_PNR_MR_ddbeta_expression(Mf_plus, betaParams)
@@ -279,36 +311,45 @@ def IMRPhenomX_PNR_BetaConnectionFrequencies(
 
     # Maintain sign of dbeta_inflection in Eq. 56 (lines 818-830)
     sign = jnp.where(dbeta_inflection > 0.0, 1.0, -1.0)
-    chosen_dbeta = sign * ((dbeta_inflection / 100.0) * (dbeta_inflection / 100.0)) * 25.0
+    chosen_dbeta = (
+        sign * ((dbeta_inflection / 100.0) * (dbeta_inflection / 100.0)) * 25.0
+    )
 
     # Compute two possible square roots for Eq. 57 (lines 833-834)
-    d1 = 1.0 / dddbeta * (-ddbeta + jnp.sqrt(ddbeta * ddbeta + 2.0 * dddbeta * chosen_dbeta))
-    d2 = 1.0 / dddbeta * (-ddbeta - jnp.sqrt(ddbeta * ddbeta + 2.0 * dddbeta * chosen_dbeta))
+    d1 = (
+        1.0
+        / dddbeta
+        * (-ddbeta + jnp.sqrt(ddbeta * ddbeta + 2.0 * dddbeta * chosen_dbeta))
+    )
+    d2 = (
+        1.0
+        / dddbeta
+        * (-ddbeta - jnp.sqrt(ddbeta * ddbeta + 2.0 * dddbeta * chosen_dbeta))
+    )
 
     # Select delta based on logic from lines 840-855
     # Choose smallest positive if both positive, else d1 if d1>0, else d2
     both_positive = (d1 > 0.0) & (d2 > 0.0)
-    delta = jnp.where(both_positive, jnp.where(d1 < d2, d1, d2),
-                     jnp.where(d1 > 0.0, d1, d2))
+    delta = jnp.where(
+        both_positive, jnp.where(d1 < d2, d1, d2), jnp.where(d1 > 0.0, d1, d2)
+    )
 
     # Specify connection frequency based on Eq. 58 (lines 860-867)
-    Mf_low = jnp.where(Mf_inflection >= 0.06,
-                       Mf_inflection - 0.03,
-                       3.0 * Mf_inflection / 5.0)
+    Mf_low = jnp.where(
+        Mf_inflection >= 0.06, Mf_inflection - 0.03, 3.0 * Mf_inflection / 5.0
+    )
 
     # Determine Mf_IM based on shape of beta (lines 875-899)
     # First two panels of Fig. 10: (Mf_at_minimum > Mf_at_maximum) or (Mf_inflection > Mf_at_maximum)
     first_case = (Mf_at_minimum > Mf_at_maximum) | (Mf_inflection > Mf_at_maximum)
 
     # Within first case: use Eq. 57 if Mf_at_maximum >= Mf_low, else use Eq. 58
-    Mf_IM_first = jnp.where(Mf_at_maximum >= Mf_low,
-                           Mf_at_maximum + delta,
-                           Mf_low)
+    Mf_IM_first = jnp.where(Mf_at_maximum >= Mf_low, Mf_at_maximum + delta, Mf_low)
 
     # Right-most panel of Fig. 10
-    Mf_IM_second = jnp.where(Mf_at_minimum > 0.06,
-                            Mf_at_minimum - 0.03,
-                            3.0 * Mf_at_minimum / 5.0)
+    Mf_IM_second = jnp.where(
+        Mf_at_minimum > 0.06, Mf_at_minimum - 0.03, 3.0 * Mf_at_minimum / 5.0
+    )
 
     Mf_IM = jnp.where(first_case, Mf_IM_first, Mf_IM_second)
 

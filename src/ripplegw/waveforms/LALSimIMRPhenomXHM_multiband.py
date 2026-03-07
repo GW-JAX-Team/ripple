@@ -50,13 +50,13 @@ def XLALSimIMRPhenomXGridComp(fSTART: float, fEND: float, mydf: float) -> Dict:
     maxfreq = fSTART + mydf * nCoarseIntervals
 
     myGrid = {
-        'nIntervals': nCoarseIntervals,
-        'xStart': fSTART,
-        'xEndRequested': fEND,
-        'xMax': maxfreq,
-        'deltax': mydf,
-        'Length': nCoarseIntervals + 1,
-        'intdfRatio': 1  # Will be set by caller
+        "nIntervals": nCoarseIntervals,
+        "xStart": fSTART,
+        "xEndRequested": fEND,
+        "xMax": maxfreq,
+        "deltax": mydf,
+        "Length": nCoarseIntervals + 1,
+        "intdfRatio": 1,  # Will be set by caller
     }
 
     return myGrid
@@ -97,18 +97,18 @@ def deltaF_MergerRingdown(
     """
     phase_coeff = 0.0
 
-    if pWFHM['MixingOn'] == 0:
-        phase_coeff = pPhase['alphaL']
+    if pWFHM["MixingOn"] == 0:
+        phase_coeff = pPhase["alphaL"]
     else:
-        if pWFHM['IMRPhenomXHMRingdownPhaseVersion'] == 122019:
-            phase_coeff = pPhase['alphaL_S']
-        elif pWFHM['IMRPhenomXHMRingdownPhaseVersion'] == 122022:
-            phase_coeff = pPhase['RDCoefficient'][4]
+        if pWFHM["IMRPhenomXHMRingdownPhaseVersion"] == 122019:
+            phase_coeff = pPhase["alphaL_S"]
+        elif pWFHM["IMRPhenomXHMRingdownPhaseVersion"] == 122022:
+            phase_coeff = pPhase["RDCoefficient"][4]
 
-    amp_coeff = pAmp['RDCoefficient'][1] / (pAmp['RDCoefficient'][2] * pWFHM['fDAMP'])
+    amp_coeff = pAmp["RDCoefficient"][1] / (pAmp["RDCoefficient"][2] * pWFHM["fDAMP"])
 
-    dfmerger = deltaF_mergerBin(pWFHM['fDAMP'], phase_coeff, resTest)
-    dfringdown = deltaF_ringdownBin(pWFHM['fDAMP'], phase_coeff, amp_coeff, resTest)
+    dfmerger = deltaF_mergerBin(pWFHM["fDAMP"], phase_coeff, resTest)
+    dfringdown = deltaF_ringdownBin(pWFHM["fDAMP"], phase_coeff, amp_coeff, resTest)
 
     if dfmerger <= 0:
         raise ValueError(f"dfmerger = {dfmerger:.6e}. It must be > 0")
@@ -127,7 +127,7 @@ def XLALSimIMRPhenomXMultibandingGrid(
     dfpower: float,
     dfcoefficient: float,
     dfmerger: float,
-    dfringdown: float
+    dfringdown: float,
 ) -> Tuple[List[Dict], int]:
     """
     Build non-equally spaced coarse frequency grid for multibanding.
@@ -194,9 +194,13 @@ def XLALSimIMRPhenomXMultibandingGrid(
         nDerefineInspiralGrids = 0
     else:
         FrequencyFactor = jnp.power(2.0, 1.0 / dfpower)
-        origLogFreqFact = logbase(FrequencyFactor, fend / fStartInspDerefinement)  # eq 2.40
+        origLogFreqFact = logbase(
+            FrequencyFactor, fend / fStartInspDerefinement
+        )  # eq 2.40
         nDerefineInspiralGrids = int(jnp.ceil(origLogFreqFact))
-        fEndInsp = fStartInspDerefinement * jnp.power(FrequencyFactor, nDerefineInspiralGrids)
+        fEndInsp = fStartInspDerefinement * jnp.power(
+            FrequencyFactor, nDerefineInspiralGrids
+        )
 
     # Adjust transition frequencies for special cases
     if fEndInsp + evaldMf >= MfLorentzianEnd:
@@ -211,10 +215,10 @@ def XLALSimIMRPhenomXMultibandingGrid(
         mydf = evaldMf
         coarseGrid = XLALSimIMRPhenomXGridComp(fstartIn, fEndGrid0, mydf)
         allGrids[0] = coarseGrid
-        allGrids[0]['intdfRatio'] = 1
+        allGrids[0]["intdfRatio"] = 1
 
-        fStartInspDerefinement = coarseGrid['xMax']
-        df0 = 2 * coarseGrid['deltax']
+        fStartInspDerefinement = coarseGrid["xMax"]
+        df0 = 2 * coarseGrid["deltax"]
         df0original = 2 * df0original
 
     # Loop over inspiral derefinement grids
@@ -241,23 +245,23 @@ def XLALSimIMRPhenomXMultibandingGrid(
             coarseGrid = XLALSimIMRPhenomXGridComp(fSTART, fEND, mydf)
 
             df0original = 2 * df0original
-            nextfSTART = coarseGrid['xMax']
+            nextfSTART = coarseGrid["xMax"]
 
             allGrids[index + preComputeFirstGrid] = coarseGrid
-            allGrids[index + preComputeFirstGrid]['intdfRatio'] = intdfRatio
+            allGrids[index + preComputeFirstGrid]["intdfRatio"] = intdfRatio
 
             index = index + 1
 
-        fEndInsp = coarseGrid['xMax']
+        fEndInsp = coarseGrid["xMax"]
     else:
         if preComputeFirstGrid > 0:
-            fEndInsp = coarseGrid['xMax']
+            fEndInsp = coarseGrid["xMax"]
 
     # Add merger grid
     if nMergerGrid > 0:
         df0original = dfmerger
-        if 2 * coarseGrid['deltax'] < dfmerger:
-            df0original = 2 * coarseGrid['deltax']
+        if 2 * coarseGrid["deltax"] < dfmerger:
+            df0original = 2 * coarseGrid["deltax"]
 
         if df0original < evaldMf:
             mydf = evaldMf
@@ -277,7 +281,7 @@ def XLALSimIMRPhenomXMultibandingGrid(
             df0original = 2 * df0original
 
             allGrids[mergerIndex] = coarseGrid
-            allGrids[mergerIndex]['intdfRatio'] = intdfRatio
+            allGrids[mergerIndex]["intdfRatio"] = intdfRatio
         else:
             nMergerGrid = 0
 
@@ -291,8 +295,8 @@ def XLALSimIMRPhenomXMultibandingGrid(
             intdfRatio = int(jnp.floor(df0original / evaldMf))
             mydf = evaldMf * intdfRatio
 
-        fSTART = coarseGrid['xMax'] + mydf
-        if coarseGrid['xMax'] == fstartIn:
+        fSTART = coarseGrid["xMax"] + mydf
+        if coarseGrid["xMax"] == fstartIn:
             fSTART = fEndInsp
 
         RDindex = preComputeFirstGrid + nDerefineInspiralGrids + nMergerGrid
@@ -302,16 +306,19 @@ def XLALSimIMRPhenomXMultibandingGrid(
             df0original = 2 * df0original
 
             allGrids[RDindex] = coarseGrid
-            allGrids[RDindex]['intdfRatio'] = intdfRatio
+            allGrids[RDindex]["intdfRatio"] = intdfRatio
         else:
             nRingdownGrid = 0
 
-    nGridsUsed = preComputeFirstGrid + nDerefineInspiralGrids + nMergerGrid + nRingdownGrid
+    nGridsUsed = (
+        preComputeFirstGrid + nDerefineInspiralGrids + nMergerGrid + nRingdownGrid
+    )
 
     # Trim the list to actual size
     allGrids = [g for g in allGrids[:nGridsUsed] if g is not None]
 
     return allGrids, nGridsUsed
+
 
 def deltaF_mergerBin(fdamp: float, alpha4: float, abserror: float) -> float:
     """
@@ -331,7 +338,9 @@ def deltaF_mergerBin(fdamp: float, alpha4: float, abserror: float) -> float:
     return 4.0 * fdamp * jnp.sqrt(abserror / jnp.abs(alpha4)) / aux
 
 
-def deltaF_ringdownBin(fdamp: float, alpha4: float, LAMBDA: float, abserror: float) -> float:
+def deltaF_ringdownBin(
+    fdamp: float, alpha4: float, LAMBDA: float, abserror: float
+) -> float:
     """
     Correspond to eqs. 2.28 and 2.31 in arXiv:2001.10897.
 
