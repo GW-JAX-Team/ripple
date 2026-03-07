@@ -71,7 +71,8 @@ def compute_evolved_spin_using_msa(
     kappa:
     phiJ_Sf:
     """
-
+    inspiral_mask = Mf < 0.3
+    # Mf = jnp.clip(Mf, a_max=0.3)
     phenom_xp_convention = 1
     eta = mass_1 * mass_2 / jnp.power(mass_1 + mass_2, 2)
     Msec = (mass_1 + mass_2) * MTSUN
@@ -214,11 +215,11 @@ def compute_evolved_spin_using_msa(
         S2_norm_2=msa_init[31],
     )
 
-    alpha_out = vangles[0] - alpha_offset
-    epsilon_out = vangles[1] - epsilon_offset
-    cos_beta_out = vangles[2]
+    alpha_out = jnp.where(inspiral_mask, vangles[0] - alpha_offset, 0.0)
+    epsilon_out = jnp.where(inspiral_mask, vangles[1] - epsilon_offset, 0.0)
+    cos_beta_out = jnp.where(inspiral_mask, vangles[2], 0.0)
 
-    debug = False
+    debug = True
     if debug:
         jax.debug.print("ripple debug msa_init[0]  Omegaz0_coeff    = {}", msa_init[0])
         jax.debug.print("ripple debug msa_init[1]  Omegaz1_coeff    = {}", msa_init[1])
@@ -253,7 +254,50 @@ def compute_evolved_spin_using_msa(
         jax.debug.print("ripple debug msa_init[30] S1_norm_2        = {}", msa_init[30])
         jax.debug.print("ripple debug msa_init[31] S2_norm_2        = {}", msa_init[31])
         jax.debug.print("ripple debug  alpha_offset        = {}", alpha_offset)
-        jax.debug.print("ripple debug  epsilon_offset        = {}", epsilon_offset)
+        jax.debug.print("ripple debug  epsilon_offset      = {}", epsilon_offset)
+        jax.debug.print("ripple debug  emm                 = {}", emm)
+        jax.debug.print("ripple debug  vangles[0] (phi_z)  = {}", vangles[0])
+        jax.debug.print("ripple debug  vangles[1] (zeta)   = {}", vangles[1])
+        jax.debug.print("ripple debug  vangles[2] (cosbeta)= {}", vangles[2])
+        jax.debug.print("ripple debug  alpha_out           = {}", alpha_out)
+        jax.debug.print("ripple debug  epsilon_out         = {}", epsilon_out)
+        jax.debug.print("ripple debug  cos_beta_out        = {}", cos_beta_out)
+        jax.debug.print("ripple debug  Mf        = {}", Mf)
+
+        def _save_vangles(Mf_, va0, va1, va2, a_off, e_off, a_out, e_out, emm_):
+            import numpy as np
+
+            fname = f"ripple_debug_vangles_emm{int(emm_)}.dat"
+            data = np.column_stack(
+                [
+                    Mf_,
+                    va0,
+                    va1,
+                    va2,
+                    np.full_like(Mf_, float(a_off)),
+                    np.full_like(Mf_, float(e_off)),
+                    a_out,
+                    e_out,
+                ]
+            )
+            np.savetxt(
+                fname,
+                data,
+                header="Mf  vangles0(phi_z)  vangles1(zeta)  vangles2(cosbeta)  alpha_offset  epsilon_offset  alpha_out  epsilon_out",
+            )
+
+        jax.debug.callback(
+            _save_vangles,
+            Mf,
+            vangles[0],
+            vangles[1],
+            vangles[2],
+            alpha_offset,
+            epsilon_offset,
+            alpha_out,
+            epsilon_out,
+            emm,
+        )
 
     return alpha_out, epsilon_out, cos_beta_out
 

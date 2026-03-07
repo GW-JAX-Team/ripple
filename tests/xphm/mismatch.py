@@ -49,7 +49,9 @@ def setup_injection_parameters(N_WAVEFORMS, reference_frequency):
     """
     population = bilby.gw.prior.BBHPriorDict()
     population["chirp_mass"] = bilby.core.prior.Uniform(10, 100)
-    population["mass_ratio"] = bilby.core.prior.Uniform(0.5, 1)
+    population["mass_ratio"] = bilby.core.prior.Uniform(0.25, 1)
+    population["a_1"] = bilby.core.prior.Uniform(0.0, 0.99)
+    population["a_2"] = bilby.core.prior.Uniform(0.0, 0.99)
     population.pop("mass_1")
     population.pop("mass_2")
 

@@ -296,12 +296,21 @@ def twistup(
         compute_twist_for_mode
     )(mode_indices)
 
+    jax.debug.print(f"length of hp_twist_all_modes {jnp.shape(hp_twist_all_modes)}")
     _hp = jnp.sum(
         hlm.T * hp_twist_all_modes.T * jnp.exp(-1j * epsilon_all_modes.T) / 2, axis=1
     )
     _hc = jnp.sum(
         hlm.T * hc_twist_all_modes.T * jnp.exp(-1j * epsilon_all_modes.T) / 2, axis=1
     )
+
+    # LALSim zeros the contribution for Mf >= 0.3 (f_max_prime). Setting
+    # cos_beta=0 in compute_evolved_spin_using_msa does NOT produce a null
+    # rotation (beta=pi/2 gives cBetah=sBetah=1/sqrt(2)), so we must
+    # explicitly zero _hp/_hc here to match LALSim's behaviour.
+    inspiral_mask = Mf < 0.299999
+    _hp = jnp.where(inspiral_mask, _hp, 0.0)
+    _hc = jnp.where(inspiral_mask, _hc, 0.0)
 
     hp, hc = apply_polarization_rotation(zeta_polarisations, _hp, _hc)
 

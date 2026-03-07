@@ -177,7 +177,7 @@ def plot_xphm_comparison(
 
     ax[2].plot(f, np.real(ripple_hp), label="ripple")
     ax[2].plot(lal_f, np.real(lal_hp_data), label="lalsim", linestyle="--")
-    ax[2].set_xlim(5, 80)
+    ax[2].set_xlim(5, 300)
     ax[2].set_xlabel("Frequency [Hz]")
     ax[2].set_ylabel("Real(h+)")
     ax[2].legend()
@@ -246,6 +246,16 @@ def main():
         "mass_1_SI": 2.9522904722748898e32,
         "mass_2_SI": 1.5873437700742054e32,
     }
+
+    if False:
+        injection_parameters["spin_1x"] = 0.0
+        injection_parameters["spin_1y"] = 0.0
+        injection_parameters["spin_1z"] = 0.0
+
+        injection_parameters["spin_2x"] = 0.0
+        injection_parameters["spin_2y"] = 0.0
+        injection_parameters["spin_2z"] = 0.0
+
     minimum_frequency = 10
     maximum_frequency = 1024
     duration = 8.0
