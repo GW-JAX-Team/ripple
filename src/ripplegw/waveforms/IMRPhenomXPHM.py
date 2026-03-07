@@ -295,7 +295,7 @@ def twistup(
         compute_twist_for_mode
     )(mode_indices)
 
-    jax.debug.print(f"length of hp_twist_all_modes {jnp.shape(hp_twist_all_modes)}")
+    # jax.debug.print(f"length of hp_twist_all_modes {jnp.shape(hp_twist_all_modes)}")
     _hp = jnp.sum(
         hlm.T * hp_twist_all_modes.T * jnp.exp(-1j * epsilon_all_modes.T) / 2, axis=1
     )

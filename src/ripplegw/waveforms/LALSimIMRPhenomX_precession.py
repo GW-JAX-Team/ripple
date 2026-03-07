@@ -219,7 +219,7 @@ def compute_evolved_spin_using_msa(
     epsilon_out = jnp.where(inspiral_mask, vangles[1] - epsilon_offset, 0.0)
     cos_beta_out = jnp.where(inspiral_mask, vangles[2], 0.0)
 
-    debug = True
+    debug = False
     if debug:
         jax.debug.print("ripple debug msa_init[0]  Omegaz0_coeff    = {}", msa_init[0])
         jax.debug.print("ripple debug msa_init[1]  Omegaz1_coeff    = {}", msa_init[1])

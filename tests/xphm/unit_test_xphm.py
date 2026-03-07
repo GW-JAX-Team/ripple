@@ -247,15 +247,6 @@ def main():
         "mass_2_SI": 1.5873437700742054e32,
     }
 
-    if False:
-        injection_parameters["spin_1x"] = 0.0
-        injection_parameters["spin_1y"] = 0.0
-        injection_parameters["spin_1z"] = 0.0
-
-        injection_parameters["spin_2x"] = 0.0
-        injection_parameters["spin_2y"] = 0.0
-        injection_parameters["spin_2z"] = 0.0
-
     minimum_frequency = 10
     maximum_frequency = 1024
     duration = 8.0

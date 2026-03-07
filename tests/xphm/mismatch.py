@@ -8,13 +8,16 @@ from ripplegw.waveforms import IMRPhenomXPHM
 import lal
 from ripplegw.constants import MSUN
 from bilby.gw.utils import noise_weighted_inner_product
+from tqdm import tqdm
+import scienceplots
 
+scienceplots
+plt.style.use(["science"])
 psd = bilby.gw.detector.PowerSpectralDensity(psd_file="ET_D_psd.txt")
 
 """
-The mismatch seems to go up to 1e-2 for a specific set of mass and spins. 
-This needs to be fixed. 
-
+Script to compute mismatch between lalsimulation and ripple implementation of IMRPhenomXPHM waveform.
+The script will force lalsimulation to use MSA prescription. If lalsimulation falls back on NNLO, the script will ignore that waveform. 
 """
 
 
@@ -39,7 +42,10 @@ def compute_overlap(
         frequency_series_2, frequency_series_2, interpolated_psd, duration
     )
 
-    return inner_product / np.power(norm_1 * norm_2, 0.5)
+    overlap = inner_product / np.power(norm_1 * norm_2, 0.5)
+    overlap_real = np.real(overlap)
+
+    return abs(overlap_real)
 
 
 def setup_injection_parameters(N_WAVEFORMS, reference_frequency):
@@ -50,8 +56,6 @@ def setup_injection_parameters(N_WAVEFORMS, reference_frequency):
     population = bilby.gw.prior.BBHPriorDict()
     population["chirp_mass"] = bilby.core.prior.Uniform(10, 100)
     population["mass_ratio"] = bilby.core.prior.Uniform(0.25, 1)
-    population["a_1"] = bilby.core.prior.Uniform(0.0, 0.99)
-    population["a_2"] = bilby.core.prior.Uniform(0.0, 0.99)
     population.pop("mass_1")
     population.pop("mass_2")
 
@@ -79,7 +83,7 @@ def setup_injection_parameters(N_WAVEFORMS, reference_frequency):
 
 
 def plot_mismatch_histogram(collect_mismatch, output="mismatch_histogram.pdf"):
-    collect_mismatch = abs(np.real(np.array(collect_mismatch)))
+    collect_mismatch = np.real(np.array(collect_mismatch))
     fig, ax = plt.subplots(1, 1)
     _close_to_zero = np.log10(1e-20) - 1
     minimum_match = (
@@ -93,10 +97,10 @@ def plot_mismatch_histogram(collect_mismatch, output="mismatch_histogram.pdf"):
         cumulative=1,
         histtype="step",
         lw=2,
-        bins=10.0 ** np.linspace(minimum_match, maximum_match, 20),
+        bins=10.0 ** np.linspace(minimum_match, maximum_match, 40),
     )
-    ax.set_ylabel("Fraction of events")
-    ax.set_title(f"N = {len(collect_mismatch)}, XPHM")
+    ax.set_ylabel("Fraction of waveforms")
+    ax.set_title(f"N = {len(collect_mismatch)}")
     ax.set_xlabel("Mismatch")
     ax.set_xscale("log")
     ax.grid(alpha=0.5)
@@ -217,7 +221,7 @@ def compute_mismatch_loop(
     collect_mismatch = []
     N_injections = len(batch_injection_parameters["mass_1"])
 
-    for ii in range(N_injections):
+    for ii in tqdm(range(N_injections)):
         injection_parameters = {
             key: float(value[ii]) for key, value in batch_injection_parameters.items()
         }
@@ -252,9 +256,12 @@ def compute_mismatch_loop(
             duration,
         )
 
-        mismatch = 1 - plus_overlap
+        if plus_overlap > 1:
+            continue
+        mismatch = 1.0 - plus_overlap
         collect_mismatch.append(mismatch)
-        debug = True
+
+        debug = False
         if debug:
             log_mismatch = np.log10(abs(np.real(mismatch)))
             if log_mismatch > -4:
@@ -267,8 +274,8 @@ def compute_mismatch_loop(
 
 
 def main():
-    N_injections = int(200)
-    seed = 99
+    N_injections = int(1e4)
+    seed = 2
     np.random.seed(seed)
     bilby.core.utils.random.seed(seed)
     # Frequency settings
@@ -297,3 +304,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# %%
