@@ -2,7 +2,6 @@
 Typing definitions to be shared across files.
 """
 
-import jax
 import jax.numpy as jnp
 
 

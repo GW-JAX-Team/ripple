@@ -245,19 +245,16 @@ def IMRPhenomX_Inspiral_Phase_22_d23(
                 )
                 - 44331.41741405198 * S2
                 + eta
-                * (
-                    50644.13475990821
-                    + 157036.45676788126 * S
-                    + 126736.43159783827 * S2
-                )
+                * (50644.13475990821 + 157036.45676788126 * S + 126736.43159783827 * S2)
                 + eta3
-                * (
-                    -593633.5370110178
-                    - 325423.99477314285 * S
-                    + 847483.2999508682 * S2
-                )
+                * (-593633.5370110178 - 325423.99477314285 * S + 847483.2999508682 * S2)
             )
-        ) / (-1.5232497464826662 - 3.062957826830017 * S - 1.130185486082531 * S2 + 1.0 * S3)
+        ) / (
+            -1.5232497464826662
+            - 3.062957826830017 * S
+            - 1.130185486082531 * S2
+            + 1.0 * S3
+        )
 
         uneqSpin = 3843.083992827935 * dchi * delta * eta
 
@@ -273,11 +270,7 @@ def IMRPhenomX_Inspiral_Phase_22_d23(
                 + 30617.553968012628 * S
                 + 5296.659585425608 * S2
                 + eta
-                * (
-                    -49447.74841021405
-                    - 94312.78229903466 * S
-                    - 5731.614612941746 * S3
-                )
+                * (-49447.74841021405 - 94312.78229903466 * S - 5731.614612941746 * S3)
                 + 2609.50444822972 * S3
                 + 5206.717656940992 * S4
                 + eta2
@@ -291,12 +284,8 @@ def IMRPhenomX_Inspiral_Phase_22_d23(
             )
         ) / (1.5668927528319367 + 1.0 * S)
 
-        uneqSpin = (
-            -95.38600275845481 * dchi2 * eta
-            + dchi
-            * delta
-            * eta
-            * (3271.8128884730654 + 12399.826237672185 * eta + 9343.380589951552 * S)
+        uneqSpin = -95.38600275845481 * dchi2 * eta + dchi * delta * eta * (
+            3271.8128884730654 + 12399.826237672185 * eta + 9343.380589951552 * S
         )
 
     elif InspPhaseFlag == 114:  # Extended, 4 pseudo PN coefficients
@@ -331,7 +320,12 @@ def IMRPhenomX_Inspiral_Phase_22_d23(
                     + 4.357599992831832e6 * S2
                 )
             )
-        ) / (-3.190220646817508 - 3.4308485421201387 * S - 0.6347932583034377 * S2 + 1.0 * S3)
+        ) / (
+            -3.190220646817508
+            - 3.4308485421201387 * S
+            - 0.6347932583034377 * S2
+            + 1.0 * S3
+        )
 
         uneqSpin = 24906.33337911219 * dchi * delta * eta2
 
@@ -449,11 +443,15 @@ def IMRPhenomX_Inspiral_Phase_22_v3(
                     + 895372.155565861 * S2
                 )
             )
-        ) / (-9.675704197652225 + 3.5804521763363075 * S + 2.5298346636273306 * S2 + 1.0 * S3)
+        ) / (
+            -9.675704197652225
+            + 3.5804521763363075 * S
+            + 2.5298346636273306 * S2
+            + 1.0 * S3
+        )
 
-        uneqSpin = (
-            -1296.9289110696955 * dchi2 * eta
-            + dchi * delta * eta * (-24708.109411857182 + 24703.28267342699 * eta + 47752.17032707405 * S)
+        uneqSpin = -1296.9289110696955 * dchi2 * eta + dchi * delta * eta * (
+            -24708.109411857182 + 24703.28267342699 * eta + 47752.17032707405 * S
         )
 
     elif InspPhaseFlag == 105:  # Canonical, 4 pseudo PN terms
@@ -473,18 +471,10 @@ def IMRPhenomX_Inspiral_Phase_22_v3(
                 - 50.547943589389966 * S
                 + eta3 * S * (-15355.56020802297 + 20159.588079899433 * S)
                 + eta2
-                * (
-                    -286.9576245212502
-                    + 2795.982637986682 * S
-                    - 2633.1870842242447 * S2
-                )
+                * (-286.9576245212502 + 2795.982637986682 * S - 2633.1870842242447 * S2)
                 - 1.0824224105690476 * S2
                 + eta
-                * (
-                    -123.78531181532225
-                    + 136.1961976556154 * S
-                    - 7.534890781638552 * S3
-                )
+                * (-123.78531181532225 + 136.1961976556154 * S - 7.534890781638552 * S3)
                 + 5.973206330664007 * S3
                 + eta4
                 * (
@@ -494,11 +484,13 @@ def IMRPhenomX_Inspiral_Phase_22_v3(
                     + 1584.1515277998406 * S3
                 )
             )
-        ) / (-0.0015307616935628491 + (0.0010676159178395538 - 0.25 * eta3 + 1.0 * eta4) * S)
+        ) / (
+            -0.0015307616935628491
+            + (0.0010676159178395538 - 0.25 * eta3 + 1.0 * eta4) * S
+        )
 
-        uneqSpin = (
-            -1357.9794908614106 * dchi2 * eta
-            + dchi * delta * eta * (-23093.829989687543 + 21908.057881789653 * eta + 49493.91485992256 * S)
+        uneqSpin = -1357.9794908614106 * dchi2 * eta + dchi * delta * eta * (
+            -23093.829989687543 + 21908.057881789653 * eta + 49493.91485992256 * S
         )
 
     elif InspPhaseFlag == 114:  # Extended, 3 pseudo PN terms
@@ -531,14 +523,15 @@ def IMRPhenomX_Inspiral_Phase_22_v3(
                 )
                 * S2
             )
-        ) / (1.0 - 0.056846656084188936 * S - 0.32681474740130184 * S2 - 0.30562055811022015 * S3)
+        ) / (
+            1.0
+            - 0.056846656084188936 * S
+            - 0.32681474740130184 * S2
+            - 0.30562055811022015 * S3
+        )
 
-        uneqSpin = (
-            -1182.4036752941936 * dchi2 * eta
-            + dchi
-            * delta
-            * eta
-            * (-0.39185419821851025 - 99764.21095663306 * eta + 41826.177356107364 * S)
+        uneqSpin = -1182.4036752941936 * dchi2 * eta + dchi * delta * eta * (
+            -0.39185419821851025 - 99764.21095663306 * eta + 41826.177356107364 * S
         )
 
     elif InspPhaseFlag == 115:  # Extended, 4 pseudo PN terms
@@ -578,14 +571,13 @@ def IMRPhenomX_Inspiral_Phase_22_v3(
                     + 768.6183344184254 * S3
                 )
             )
-        ) / (-0.0007758753818017038 + (0.0005304023864415552 - 0.25000000000000006 * eta3 + 1.0 * eta4) * S)
+        ) / (
+            -0.0007758753818017038
+            + (0.0005304023864415552 - 0.25000000000000006 * eta3 + 1.0 * eta4) * S
+        )
 
-        uneqSpin = (
-            -1223.769262298142 * dchi2 * eta
-            + dchi
-            * delta
-            * eta
-            * (-16.705471562129436 - 93771.93750060834 * eta + 43675.70151058481 * S)
+        uneqSpin = -1223.769262298142 * dchi2 * eta + dchi * delta * eta * (
+            -16.705471562129436 - 93771.93750060834 * eta + 43675.70151058481 * S
         )
 
     else:
@@ -663,10 +655,21 @@ def IMRPhenomX_Inspiral_Phase_22_d43(
             * (
                 -299.6987332025542
                 - 106.2596940493108 * S
-                + eta3 * (2383.4907865977148 - 13637.11364447208 * S - 14808.138346145908 * S2)
-                + eta * (1205.2993091547498 - 508.05838536573464 * S - 1453.1997617403304 * S2)
+                + eta3
+                * (2383.4907865977148 - 13637.11364447208 * S - 14808.138346145908 * S2)
+                + eta
+                * (
+                    1205.2993091547498
+                    - 508.05838536573464 * S
+                    - 1453.1997617403304 * S2
+                )
                 + 132.22338129554674 * S2
-                + eta2 * (-2438.4917103042208 + 5032.341879949591 * S + 7026.9206794027405 * S2)
+                + eta2
+                * (
+                    -2438.4917103042208
+                    + 5032.341879949591 * S
+                    + 7026.9206794027405 * S2
+                )
             )
         ) / (0.03089183275944264 + 1.0 * eta3 * S - 0.010670764224621489 * S2)
 
@@ -678,9 +681,11 @@ def IMRPhenomX_Inspiral_Phase_22_d43(
         )
 
         eqSpin = (
-            (-4285.982163759047 + 24558.689969419473 * eta - 49270.2296311733 * eta2) * S
+            (-4285.982163759047 + 24558.689969419473 * eta - 49270.2296311733 * eta2)
+            * S
             + eta * (-24205.71407420114 + 70777.38402634041 * eta) * S2
-            + (2250.661418551257 + 187.95136178643946 * eta - 11976.624134935797 * eta2) * S3
+            + (2250.661418551257 + 187.95136178643946 * eta - 11976.624134935797 * eta2)
+            * S3
         ) / (1.0 - 0.7220334077284601 * S)
 
         uneqSpin = dchi * delta * eta * (339.69292150803585 - 3459.894150148715 * S)
@@ -703,7 +708,12 @@ def IMRPhenomX_Inspiral_Phase_22_d43(
             )
         ) / (
             0.1491519640750958
-            + (-0.0008208549820159909 - 0.15468508831447628 * eta + 0.7266887643762937 * eta2) * S
+            + (
+                -0.0008208549820159909
+                - 0.15468508831447628 * eta
+                + 0.7266887643762937 * eta2
+            )
+            * S
             + (0.02282542856845755 - 0.445924460572114 * eta + 1.0 * eta2) * S2
         )
 
@@ -779,11 +789,7 @@ def IMRPhenomX_Inspiral_Phase_22_d53(
                 )
                 - 7394.9595046977365 * S2
                 + eta
-                * (
-                    -87820.37490863055
-                    + 53564.4178831741 * S
-                    + 34070.909093771494 * S2
-                )
+                * (-87820.37490863055 + 53564.4178831741 * S + 34070.909093771494 * S2)
                 + eta3
                 * (
                     -248096.84257893753
@@ -813,24 +819,12 @@ def IMRPhenomX_Inspiral_Phase_22_d53(
                 16182.268123259992
                 + 3513.8535400032874 * S
                 + eta2
-                * (
-                    343388.99445324624
-                    - 240407.0282222587 * S
-                    - 312202.59917289804 * S2
-                )
+                * (343388.99445324624 - 240407.0282222587 * S - 312202.59917289804 * S2)
                 - 10814.056847109632 * S2
                 + eta
-                * (
-                    -94090.9232151429
-                    + 35305.66247590705 * S
-                    + 65450.36389642103 * S2
-                )
+                * (-94090.9232151429 + 35305.66247590705 * S + 65450.36389642103 * S2)
                 + eta3
-                * (
-                    -484443.15601144277
-                    + 449511.3965208116 * S
-                    + 552355.592066788 * S2
-                )
+                * (-484443.15601144277 + 449511.3965208116 * S + 552355.592066788 * S2)
             )
         ) / (-1.4720837917195788 + 1.0 * S)
 
@@ -845,9 +839,9 @@ def IMRPhenomX_Inspiral_Phase_22_d53(
     return noSpin + eqSpin + uneqSpin
 
 
-
-
-def IMRPhenomX_Inspiral_Amp_22_v2(eta: float, S: float, dchi: float, delta: float, InsAmpFlag: int) -> float:
+def IMRPhenomX_Inspiral_Amp_22_v2(
+    eta: float, S: float, dchi: float, delta: float, InsAmpFlag: int
+) -> float:
     """
     Value of amplitude collocation point at 2/4 f^A_T, defined in Eq. 5.7 of arXiv:2001.11412
 
@@ -872,18 +866,20 @@ def IMRPhenomX_Inspiral_Amp_22_v2(eta: float, S: float, dchi: float, delta: floa
 
     if InsAmpFlag == 103:
         noSpin = (
-            (-0.015178276424448592 - 0.06098548699809163*eta + 0.4845148547154606*eta2)
-            / (1. + 0.09799277215675059*eta)
-        )
+            -0.015178276424448592
+            - 0.06098548699809163 * eta
+            + 0.4845148547154606 * eta2
+        ) / (1.0 + 0.09799277215675059 * eta)
 
         eqSpin = (
-            ((0.02300153747158323 + 0.10495263104245876*eta2)*S
-             + (0.04834642258922544 - 0.14189350657140673*eta)*eta*S3
-             + (0.01761591799745109 - 0.14404522791467844*eta2)*S2)
-            / (1. - 0.7340448493183307*S)
-        )
+            (0.02300153747158323 + 0.10495263104245876 * eta2) * S
+            + (0.04834642258922544 - 0.14189350657140673 * eta) * eta * S3
+            + (0.01761591799745109 - 0.14404522791467844 * eta2) * S2
+        ) / (1.0 - 0.7340448493183307 * S)
 
-        uneqSpin = dchi*delta*eta4*(0.0018724905795891192 + 34.90874132485147*eta)
+        uneqSpin = (
+            dchi * delta * eta4 * (0.0018724905795891192 + 34.90874132485147 * eta)
+        )
 
         return noSpin + eqSpin + uneqSpin
     else:
@@ -892,7 +888,10 @@ def IMRPhenomX_Inspiral_Amp_22_v2(eta: float, S: float, dchi: float, delta: floa
             f"Valid values are 103."
         )
 
-def IMRPhenomX_Inspiral_Amp_22_v3(eta: float, S: float, dchi: float, delta: float, InsAmpFlag: int) -> float:
+
+def IMRPhenomX_Inspiral_Amp_22_v3(
+    eta: float, S: float, dchi: float, delta: float, InsAmpFlag: int
+) -> float:
     """
     Value of amplitude collocation point at 3/4 f^A_T, defined in Eq. 5.7 of arXiv:2001.11412
 
@@ -914,17 +913,22 @@ def IMRPhenomX_Inspiral_Amp_22_v3(eta: float, S: float, dchi: float, delta: floa
 
     if InsAmpFlag == 103:
         noSpin = (
-            (-0.058572000924124644 - 1.1970535595488723*eta + 8.4630293045015*eta2)
-            / (1. + 15.430818840453686*eta)
-        )
+            -0.058572000924124644 - 1.1970535595488723 * eta + 8.4630293045015 * eta2
+        ) / (1.0 + 15.430818840453686 * eta)
 
         eqSpin = (
-            ((-0.08746408292050666 + eta*(-0.20646621646484237 - 0.21291764491897636*S)
-              + eta2*(0.788717372588848 + 0.8282888482429105*S) - 0.018924013869130434*S)*S)
-            / (-1.332123330797879 + 1.*S)
-        )
+            (
+                -0.08746408292050666
+                + eta * (-0.20646621646484237 - 0.21291764491897636 * S)
+                + eta2 * (0.788717372588848 + 0.8282888482429105 * S)
+                - 0.018924013869130434 * S
+            )
+            * S
+        ) / (-1.332123330797879 + 1.0 * S)
 
-        uneqSpin = dchi*delta*eta4*(0.004389995099201855 + 105.84553997647659*eta)
+        uneqSpin = (
+            dchi * delta * eta4 * (0.004389995099201855 + 105.84553997647659 * eta)
+        )
 
         return noSpin + eqSpin + uneqSpin
     else:
@@ -933,7 +937,10 @@ def IMRPhenomX_Inspiral_Amp_22_v3(eta: float, S: float, dchi: float, delta: floa
             f"Valid values are 103."
         )
 
-def IMRPhenomX_Inspiral_Amp_22_v4(eta: float, S: float, dchi: float, delta: float, InsAmpFlag: int) -> float:
+
+def IMRPhenomX_Inspiral_Amp_22_v4(
+    eta: float, S: float, dchi: float, delta: float, InsAmpFlag: int
+) -> float:
     """
     Value of amplitude collocation point at 4/4 f^A_T, defined in Eq. 5.7 of arXiv:2001.11412
 
@@ -957,18 +964,26 @@ def IMRPhenomX_Inspiral_Amp_22_v4(eta: float, S: float, dchi: float, delta: floa
 
     if InsAmpFlag == 103:
         noSpin = (
-            (-0.16212854591357853 + 1.617404703616985*eta - 3.186012733446088*eta2 + 5.629598195000046*eta3)
-            / (1. + 0.04507019231274476*eta)
-        )
+            -0.16212854591357853
+            + 1.617404703616985 * eta
+            - 3.186012733446088 * eta2
+            + 5.629598195000046 * eta3
+        ) / (1.0 + 0.04507019231274476 * eta)
 
         eqSpin = (
-            (S*(1.0055835408962206 + eta2*(18.353433894421833 - 18.80590889704093*S) - 0.31443470118113853*S
-                + eta*(-4.127597118865669 + 5.215501942120774*S) + eta3*(-41.0378120175805
-                  + 19.099315016873643*S)))
-            / (5.852706459485663 - 5.717874483424523*S + 1.*S2)
-        )
+            S
+            * (
+                1.0055835408962206
+                + eta2 * (18.353433894421833 - 18.80590889704093 * S)
+                - 0.31443470118113853 * S
+                + eta * (-4.127597118865669 + 5.215501942120774 * S)
+                + eta3 * (-41.0378120175805 + 19.099315016873643 * S)
+            )
+        ) / (5.852706459485663 - 5.717874483424523 * S + 1.0 * S2)
 
-        uneqSpin = dchi*delta*eta4*(0.05575955418803233 + 208.92352600701068*eta)
+        uneqSpin = (
+            dchi * delta * eta4 * (0.05575955418803233 + 208.92352600701068 * eta)
+        )
 
         return noSpin + eqSpin + uneqSpin
     else:
@@ -978,8 +993,9 @@ def IMRPhenomX_Inspiral_Amp_22_v4(eta: float, S: float, dchi: float, delta: floa
         )
 
 
-
-def IMRPhenomX_Inspiral_Amp_22_rho1(v1: float, v2: float, v3: float, F1: float, F2: float, F3: float, InsAmpFlag: int) -> float:
+def IMRPhenomX_Inspiral_Amp_22_rho1(
+    v1: float, v2: float, v3: float, F1: float, F2: float, F3: float, InsAmpFlag: int
+) -> float:
     """
     Get Pseudo PN coefficient at f^(7/3)
 
@@ -996,17 +1012,17 @@ def IMRPhenomX_Inspiral_Amp_22_rho1(v1: float, v2: float, v3: float, F1: float, 
         Pseudo-PN coefficient rho1
     """
     if InsAmpFlag == 103:
-        f1p1o3 = F1 ** (1.0/3.0)  # f1^(1/3)
-        f2p1o3 = F2 ** (1.0/3.0)  # f2^(1/3)
-        f3p1o3 = F3 ** (1.0/3.0)  # f3^(1/3)
+        f1p1o3 = F1 ** (1.0 / 3.0)  # f1^(1/3)
+        f2p1o3 = F2 ** (1.0 / 3.0)  # f2^(1/3)
+        f3p1o3 = F3 ** (1.0 / 3.0)  # f3^(1/3)
 
-        f1p7o3 = f1p1o3 ** 7  # f1^(7/3)
+        f1p7o3 = f1p1o3**7  # f1^(7/3)
         f1p8o3 = f1p7o3 * f1p1o3  # f1^(8/3)
 
-        f2p7o3 = f2p1o3 ** 7  # f2^(7/3)
+        f2p7o3 = f2p1o3**7  # f2^(7/3)
         f2p8o3 = f2p7o3 * f2p1o3  # f2^(8/3)
 
-        f3p7o3 = f3p1o3 ** 7  # f3^(7/3)
+        f3p7o3 = f3p1o3**7  # f3^(7/3)
         f3p8o3 = f3p7o3 * f3p1o3  # f3^(8/3)
 
         F1_3 = F1 * F1 * F1
@@ -1014,9 +1030,20 @@ def IMRPhenomX_Inspiral_Amp_22_rho1(v1: float, v2: float, v3: float, F1: float, 
         F3_3 = F3 * F3 * F3
 
         retVal = (
-            -(f2p8o3*F3_3*v1) + F2_3*f3p8o3*v1 + f1p8o3*F3_3*v2
-            - F1_3*f3p8o3*v2 - f1p8o3*F2_3*v3 + F1_3*f2p8o3*v3
-        ) / (f1p7o3*(f1p1o3 - f2p1o3)*f2p7o3*(f1p1o3 - f3p1o3)*(f2p1o3 - f3p1o3)*f3p7o3)
+            -(f2p8o3 * F3_3 * v1)
+            + F2_3 * f3p8o3 * v1
+            + f1p8o3 * F3_3 * v2
+            - F1_3 * f3p8o3 * v2
+            - f1p8o3 * F2_3 * v3
+            + F1_3 * f2p8o3 * v3
+        ) / (
+            f1p7o3
+            * (f1p1o3 - f2p1o3)
+            * f2p7o3
+            * (f1p1o3 - f3p1o3)
+            * (f2p1o3 - f3p1o3)
+            * f3p7o3
+        )
 
         return retVal
     else:
@@ -1025,7 +1052,10 @@ def IMRPhenomX_Inspiral_Amp_22_rho1(v1: float, v2: float, v3: float, F1: float, 
             f"Valid values are 103."
         )
 
-def IMRPhenomX_Inspiral_Amp_22_rho2(v1: float, v2: float, v3: float, F1: float, F2: float, F3: float, InsAmpFlag: int) -> float:
+
+def IMRPhenomX_Inspiral_Amp_22_rho2(
+    v1: float, v2: float, v3: float, F1: float, F2: float, F3: float, InsAmpFlag: int
+) -> float:
     """
     Get Pseudo PN coefficient at f^(8/3)
 
@@ -1042,22 +1072,33 @@ def IMRPhenomX_Inspiral_Amp_22_rho2(v1: float, v2: float, v3: float, F1: float, 
         Pseudo-PN coefficient rho2
     """
     if InsAmpFlag == 103:
-        f1p1o3 = F1 ** (1.0/3.0)  # f1^(1/3)
-        f2p1o3 = F2 ** (1.0/3.0)  # f2^(1/3)
-        f3p1o3 = F3 ** (1.0/3.0)  # f3^(1/3)
+        f1p1o3 = F1 ** (1.0 / 3.0)  # f1^(1/3)
+        f2p1o3 = F2 ** (1.0 / 3.0)  # f2^(1/3)
+        f3p1o3 = F3 ** (1.0 / 3.0)  # f3^(1/3)
 
-        f1p7o3 = f1p1o3 ** 7  # f1^(7/3)
-        f2p7o3 = f2p1o3 ** 7  # f2^(7/3)
-        f3p7o3 = f3p1o3 ** 7  # f3^(7/3)
+        f1p7o3 = f1p1o3**7  # f1^(7/3)
+        f2p7o3 = f2p1o3**7  # f2^(7/3)
+        f3p7o3 = f3p1o3**7  # f3^(7/3)
 
         F1_3 = F1 * F1 * F1
         F2_3 = F2 * F2 * F2
         F3_3 = F3 * F3 * F3
 
         retVal = (
-            f2p7o3*F3_3*v1 - F2_3*f3p7o3*v1 - f1p7o3*F3_3*v2
-            + F1_3*f3p7o3*v2 + f1p7o3*F2_3*v3 - F1_3*f2p7o3*v3
-        ) / (f1p7o3*(f1p1o3 - f2p1o3)*f2p7o3*(f1p1o3 - f3p1o3)*(f2p1o3 - f3p1o3)*f3p7o3)
+            f2p7o3 * F3_3 * v1
+            - F2_3 * f3p7o3 * v1
+            - f1p7o3 * F3_3 * v2
+            + F1_3 * f3p7o3 * v2
+            + f1p7o3 * F2_3 * v3
+            - F1_3 * f2p7o3 * v3
+        ) / (
+            f1p7o3
+            * (f1p1o3 - f2p1o3)
+            * f2p7o3
+            * (f1p1o3 - f3p1o3)
+            * (f2p1o3 - f3p1o3)
+            * f3p7o3
+        )
 
         return retVal
     else:
@@ -1066,7 +1107,10 @@ def IMRPhenomX_Inspiral_Amp_22_rho2(v1: float, v2: float, v3: float, F1: float, 
             f"Valid values are 103."
         )
 
-def IMRPhenomX_Inspiral_Amp_22_rho3(v1: float, v2: float, v3: float, F1: float, F2: float, F3: float, InsAmpFlag: int) -> float:
+
+def IMRPhenomX_Inspiral_Amp_22_rho3(
+    v1: float, v2: float, v3: float, F1: float, F2: float, F3: float, InsAmpFlag: int
+) -> float:
     """
     Get Pseudo PN coefficient at f^(9/3)
 
@@ -1083,23 +1127,34 @@ def IMRPhenomX_Inspiral_Amp_22_rho3(v1: float, v2: float, v3: float, F1: float, 
         Pseudo-PN coefficient rho3
     """
     if InsAmpFlag == 103:
-        f1p1o3 = F1 ** (1.0/3.0)  # f1^(1/3)
-        f2p1o3 = F2 ** (1.0/3.0)  # f2^(1/3)
-        f3p1o3 = F3 ** (1.0/3.0)  # f3^(1/3)
+        f1p1o3 = F1 ** (1.0 / 3.0)  # f1^(1/3)
+        f2p1o3 = F2 ** (1.0 / 3.0)  # f2^(1/3)
+        f3p1o3 = F3 ** (1.0 / 3.0)  # f3^(1/3)
 
-        f1p7o3 = f1p1o3 ** 7  # f1^(7/3)
+        f1p7o3 = f1p1o3**7  # f1^(7/3)
         f1p8o3 = f1p7o3 * f1p1o3  # f1^(8/3)
 
-        f2p7o3 = f2p1o3 ** 7  # f2^(7/3)
+        f2p7o3 = f2p1o3**7  # f2^(7/3)
         f2p8o3 = f2p7o3 * f2p1o3  # f2^(8/3)
 
-        f3p7o3 = f3p1o3 ** 7  # f3^(7/3)
+        f3p7o3 = f3p1o3**7  # f3^(7/3)
         f3p8o3 = f3p7o3 * f3p1o3  # f3^(8/3)
 
         retVal = (
-            f2p8o3*f3p7o3*v1 - f2p7o3*f3p8o3*v1 - f1p8o3*f3p7o3*v2
-            + f1p7o3*f3p8o3*v2 + f1p8o3*f2p7o3*v3 - f1p7o3*f2p8o3*v3
-        ) / (f1p7o3*(f1p1o3 - f2p1o3)*f2p7o3*(f1p1o3 - f3p1o3)*(f2p1o3 - f3p1o3)*f3p7o3)
+            f2p8o3 * f3p7o3 * v1
+            - f2p7o3 * f3p8o3 * v1
+            - f1p8o3 * f3p7o3 * v2
+            + f1p7o3 * f3p8o3 * v2
+            + f1p8o3 * f2p7o3 * v3
+            - f1p7o3 * f2p8o3 * v3
+        ) / (
+            f1p7o3
+            * (f1p1o3 - f2p1o3)
+            * f2p7o3
+            * (f1p1o3 - f3p1o3)
+            * (f2p1o3 - f3p1o3)
+            * f3p7o3
+        )
 
         return retVal
     else:
@@ -1108,7 +1163,10 @@ def IMRPhenomX_Inspiral_Amp_22_rho3(v1: float, v2: float, v3: float, F1: float, 
             f"Valid values are 103."
         )
 
-def IMRPhenomX_Inspiral_Amp_22_Ansatz(Mf: float, powers_of_Mf: 'IMRPhenomX_UsefulPowers', pWF: dict, pAmp: dict) -> float:
+
+def IMRPhenomX_Inspiral_Amp_22_Ansatz(
+    Mf: float, powers_of_Mf: "IMRPhenomX_UsefulPowers", pWF: dict, pAmp: dict
+) -> float:
     """
     TaylorF2 PN Amplitude + pseudo-PN coefficients
 
@@ -1121,29 +1179,32 @@ def IMRPhenomX_Inspiral_Amp_22_Ansatz(Mf: float, powers_of_Mf: 'IMRPhenomX_Usefu
     Returns:
         PN amplitude value
     """
-    InsAmpFlag = pWF.get('IMRPhenomXInspiralAmpVersion', 103)
+    InsAmpFlag = pWF.get("IMRPhenomXInspiralAmpVersion", 103)
 
     if InsAmpFlag == 103:
         # Re-factor expression to match C code structure
         pnAmp = (
-            pAmp['pnInitial']  # 1.0
-            + powers_of_Mf.one_third * pAmp['pnOneThird']
-            + powers_of_Mf.two_thirds * pAmp['pnTwoThirds']
-            + Mf * pAmp['pnThreeThirds']
-            + Mf * (
-                powers_of_Mf.one_third * pAmp['pnFourThirds']
-                + powers_of_Mf.two_thirds * pAmp['pnFiveThirds']
-                + Mf * pAmp['pnSixThirds']
-                + Mf * (
-                    powers_of_Mf.one_third * pAmp['rho1']
-                    + powers_of_Mf.two_thirds * pAmp['rho2']
-                    + Mf * pAmp['rho3']
+            pAmp["pnInitial"]  # 1.0
+            + powers_of_Mf.one_third * pAmp["pnOneThird"]
+            + powers_of_Mf.two_thirds * pAmp["pnTwoThirds"]
+            + Mf * pAmp["pnThreeThirds"]
+            + Mf
+            * (
+                powers_of_Mf.one_third * pAmp["pnFourThirds"]
+                + powers_of_Mf.two_thirds * pAmp["pnFiveThirds"]
+                + Mf * pAmp["pnSixThirds"]
+                + Mf
+                * (
+                    powers_of_Mf.one_third * pAmp["rho1"]
+                    + powers_of_Mf.two_thirds * pAmp["rho2"]
+                    + Mf * pAmp["rho3"]
                 )
             )
         )
         return pnAmp
     else:
         return 0.0
+
 
 def IMRPhenomX_Inspiral_Amp_22_DAnsatz(Mf: float, pWF: dict, pAmp: dict) -> float:
     """
@@ -1159,15 +1220,15 @@ def IMRPhenomX_Inspiral_Amp_22_DAnsatz(Mf: float, pWF: dict, pAmp: dict) -> floa
     """
     import math
 
-    InsAmpFlag = pWF.get('IMRPhenomXInspiralAmpVersion', 103)
+    InsAmpFlag = pWF.get("IMRPhenomXInspiralAmpVersion", 103)
 
     if InsAmpFlag == 103:
-        eta = pWF['eta']
-        chi1L = pWF['chi1L']
-        chi2L = pWF['chi2L']
-        rho1 = pAmp['rho1']
-        rho2 = pAmp['rho2']
-        rho3 = pAmp['rho3']
+        eta = pWF["eta"]
+        chi1L = pWF["chi1L"]
+        chi2L = pWF["chi2L"]
+        rho1 = pAmp["rho1"]
+        rho2 = pAmp["rho2"]
+        rho3 = pAmp["rho3"]
 
         chi1L2 = chi1L * chi1L
         chi1L3 = chi1L2 * chi1L
@@ -1178,23 +1239,103 @@ def IMRPhenomX_Inspiral_Amp_22_DAnsatz(Mf: float, pWF: dict, pAmp: dict) -> floa
         Mf2 = Mf * Mf
         LALPi = math.pi
 
-        delta = pWF['delta']
+        delta = pWF["delta"]
 
         DAmpIns = (
-            ((chi2L*(81 - 81*delta - 44*eta) + chi1L*(81*(1 + delta) - 44*eta))*LALPi)/48.
-            + ((-969 + 1804*eta)*(LALPi**(2./3.)))/(1008.*(Mf**(1./3.)))
-            + ((-27312085 - 10287648*chi2L2 + 10287648*chi2L2*delta - 10287648*chi1L2*(1 + delta)
-               + 24*(-1975055 + 857304*chi1L2 - 994896*chi1L*chi2L + 857304*chi2L2)*eta + 35371056*eta2)*(LALPi**(4./3.))*(Mf**(1./3.)))/6.096384e6
-            + (5*(LALPi**(5./3.))*(-6048*chi1L3*(-1 - delta + (3 + delta)*eta) + chi1L*(287213*(1 + delta) - 4*(93414 + 2083*delta)*eta - 35632*eta2)
-                     + chi2L*(-((287213 + 6048*chi2L2)*(-1 + delta)) + 4*(-93414 + 1512*chi2L2*(-3 + delta) + 2083*delta)*eta - 35632*eta2)
-                     + 42840*(-1 + 4*eta)*LALPi)*(Mf**(2./3.)))/96768.
-            - ((LALPi**2.0)*(-336*(-3248849057 + 1809550512*chi1L2 - 2954929824*chi1L*chi2L + 1809550512*chi2L2)*eta2 - 324322727232*eta3
-                  + 7*(177520268561 + 29362199328*chi2L2 - 29362199328*chi2L2*delta + 29362199328*chi1L2*(1 + delta)
-                  + 12160253952*(chi1L + chi2L + chi1L*delta - chi2L*delta)*LALPi)
-                  + 12*eta*(-545384828789 + 49568837472*chi1L*chi2L - 12312458928*chi2L2 - 21943440288*chi2L2*delta
-                  + 77616*chi1L2*(-158633 + 282718*delta) - 8345272320*(chi1L + chi2L)*LALPi
-                  + 21384760320*(LALPi**2.0)))*Mf)/3.0042980352e10
-            + (7.0/3.0)*(Mf**(4.0/3.0))*rho1 + (8.0/3.0)*(Mf**(5.0/3.0))*rho2 + 3*Mf2*rho3
+            (
+                (
+                    chi2L * (81 - 81 * delta - 44 * eta)
+                    + chi1L * (81 * (1 + delta) - 44 * eta)
+                )
+                * LALPi
+            )
+            / 48.0
+            + ((-969 + 1804 * eta) * (LALPi ** (2.0 / 3.0)))
+            / (1008.0 * (Mf ** (1.0 / 3.0)))
+            + (
+                (
+                    -27312085
+                    - 10287648 * chi2L2
+                    + 10287648 * chi2L2 * delta
+                    - 10287648 * chi1L2 * (1 + delta)
+                    + 24
+                    * (
+                        -1975055
+                        + 857304 * chi1L2
+                        - 994896 * chi1L * chi2L
+                        + 857304 * chi2L2
+                    )
+                    * eta
+                    + 35371056 * eta2
+                )
+                * (LALPi ** (4.0 / 3.0))
+                * (Mf ** (1.0 / 3.0))
+            )
+            / 6.096384e6
+            + (
+                5
+                * (LALPi ** (5.0 / 3.0))
+                * (
+                    -6048 * chi1L3 * (-1 - delta + (3 + delta) * eta)
+                    + chi1L
+                    * (
+                        287213 * (1 + delta)
+                        - 4 * (93414 + 2083 * delta) * eta
+                        - 35632 * eta2
+                    )
+                    + chi2L
+                    * (
+                        -((287213 + 6048 * chi2L2) * (-1 + delta))
+                        + 4
+                        * (-93414 + 1512 * chi2L2 * (-3 + delta) + 2083 * delta)
+                        * eta
+                        - 35632 * eta2
+                    )
+                    + 42840 * (-1 + 4 * eta) * LALPi
+                )
+                * (Mf ** (2.0 / 3.0))
+            )
+            / 96768.0
+            - (
+                (LALPi**2.0)
+                * (
+                    -336
+                    * (
+                        -3248849057
+                        + 1809550512 * chi1L2
+                        - 2954929824 * chi1L * chi2L
+                        + 1809550512 * chi2L2
+                    )
+                    * eta2
+                    - 324322727232 * eta3
+                    + 7
+                    * (
+                        177520268561
+                        + 29362199328 * chi2L2
+                        - 29362199328 * chi2L2 * delta
+                        + 29362199328 * chi1L2 * (1 + delta)
+                        + 12160253952
+                        * (chi1L + chi2L + chi1L * delta - chi2L * delta)
+                        * LALPi
+                    )
+                    + 12
+                    * eta
+                    * (
+                        -545384828789
+                        + 49568837472 * chi1L * chi2L
+                        - 12312458928 * chi2L2
+                        - 21943440288 * chi2L2 * delta
+                        + 77616 * chi1L2 * (-158633 + 282718 * delta)
+                        - 8345272320 * (chi1L + chi2L) * LALPi
+                        + 21384760320 * (LALPi**2.0)
+                    )
+                )
+                * Mf
+            )
+            / 3.0042980352e10
+            + (7.0 / 3.0) * (Mf ** (4.0 / 3.0)) * rho1
+            + (8.0 / 3.0) * (Mf ** (5.0 / 3.0)) * rho2
+            + 3 * Mf2 * rho3
         )
 
         return DAmpIns
@@ -1205,7 +1346,9 @@ def IMRPhenomX_Inspiral_Amp_22_DAnsatz(Mf: float, pWF: dict, pAmp: dict) -> floa
         )
 
 
-def IMRPhenomX_Inspiral_Phase_22_AnsatzInt(Mf: float, powers_of_Mf: 'IMRPhenomX_UsefulPowers', pPhase: dict) -> float:
+def IMRPhenomX_Inspiral_Phase_22_AnsatzInt(
+    Mf: float, powers_of_Mf: "IMRPhenomX_UsefulPowers", pPhase: dict
+) -> float:
     """
     Compute the inspiral phase using TaylorF2 PN expansion with pseudo-PN coefficients.
 
@@ -1258,64 +1401,64 @@ def IMRPhenomX_Inspiral_Phase_22_AnsatzInt(Mf: float, powers_of_Mf: 'IMRPhenomX_
 
     # The PN Phasing series is normalised by: 3 / (128 * eta * pi^{5/3})
     # -2: f^{-7/3}, v = -2; -1PN
-    phasing += pPhase['phi_minus2'] / powers_of_Mf.two_thirds
+    phasing += pPhase["phi_minus2"] / powers_of_Mf.two_thirds
 
     # -1: f^{-6/3}, v = -1; -0.5PN
-    phasing += pPhase['phi_minus1'] / powers_of_Mf.one_third
+    phasing += pPhase["phi_minus1"] / powers_of_Mf.one_third
 
     # 0: f^{-5/3}, v = 0; Newtonian
-    phasing += pPhase['phi0']
+    phasing += pPhase["phi0"]
 
     # 1: f^{-4/3}, v = 1; 0.5PN
-    phasing += pPhase['phi1'] * powers_of_Mf.one_third
+    phasing += pPhase["phi1"] * powers_of_Mf.one_third
 
     # 2: f^{-3/3}, v = 2; 1.0PN
-    phasing += pPhase['phi2'] * powers_of_Mf.two_thirds
+    phasing += pPhase["phi2"] * powers_of_Mf.two_thirds
 
     # 3: f^{-2/3}, v = 3; 1.5PN
-    phasing += pPhase['phi3'] * Mf
+    phasing += pPhase["phi3"] * Mf
 
     # 4: f^{-1/3}, v = 4; 2.0PN
-    phasing += pPhase['phi4'] * powers_of_Mf.four_thirds
+    phasing += pPhase["phi4"] * powers_of_Mf.four_thirds
 
     # 5: f^{0}, v = 5; 2.5PN; phi_initial = -LAL_PI_4
-    phasing += pPhase['phi5'] * powers_of_Mf.five_thirds
+    phasing += pPhase["phi5"] * powers_of_Mf.five_thirds
 
     # 5L: f^{0}, v = 5; 2.5PN Log terms
-    phasing += pPhase['phi5L'] * powers_of_Mf.five_thirds * powers_of_Mf.log
+    phasing += pPhase["phi5L"] * powers_of_Mf.five_thirds * powers_of_Mf.log
 
     # 6: f^{+1/3}; v = 6; 3.0PN
-    phasing += pPhase['phi6'] * powers_of_Mf.two
+    phasing += pPhase["phi6"] * powers_of_Mf.two
 
     # 6L: f^{+1/3}; v = 6; 3.0PN Log terms
-    phasing += pPhase['phi6L'] * powers_of_Mf.two * powers_of_Mf.log
+    phasing += pPhase["phi6L"] * powers_of_Mf.two * powers_of_Mf.log
 
     # 7: f^{+2/3}: v = 7; 3.5PN
-    phasing += pPhase['phi7'] * powers_of_Mf.seven_thirds
+    phasing += pPhase["phi7"] * powers_of_Mf.seven_thirds
 
     # 8: f^{+3/3}; v = 8; 4.0PN
-    phasing += pPhase['phi8'] * powers_of_Mf.eight_thirds
+    phasing += pPhase["phi8"] * powers_of_Mf.eight_thirds
 
     # 8L: f^{+3/3}; v = 8; 4.0PN Log terms
-    phasing += pPhase['phi8L'] * powers_of_Mf.eight_thirds * powers_of_Mf.log
+    phasing += pPhase["phi8L"] * powers_of_Mf.eight_thirds * powers_of_Mf.log
 
     # 9: f^{+4/3}; v = 9; 4.5PN
-    phasing += pPhase['phi9'] * powers_of_Mf.three
+    phasing += pPhase["phi9"] * powers_of_Mf.three
 
     # 9L: f^{+4/3}; v = 9; 4.5PN Log terms
-    phasing += pPhase['phi9L'] * powers_of_Mf.three * powers_of_Mf.log
+    phasing += pPhase["phi9L"] * powers_of_Mf.three * powers_of_Mf.log
 
     # Now add in the pseudo-PN Coefficients
     phasing += (
-        pPhase['sigma1'] * powers_of_Mf.eight_thirds
-        + pPhase['sigma2'] * powers_of_Mf.three
-        + pPhase['sigma3'] * powers_of_Mf.one_third * powers_of_Mf.three
-        + pPhase['sigma4'] * powers_of_Mf.two_thirds * powers_of_Mf.three
-        + pPhase['sigma5'] * powers_of_Mf.itself * powers_of_Mf.three
+        pPhase["sigma1"] * powers_of_Mf.eight_thirds
+        + pPhase["sigma2"] * powers_of_Mf.three
+        + pPhase["sigma3"] * powers_of_Mf.one_third * powers_of_Mf.three
+        + pPhase["sigma4"] * powers_of_Mf.two_thirds * powers_of_Mf.three
+        + pPhase["sigma5"] * powers_of_Mf.itself * powers_of_Mf.three
     )
 
     # This completes the TaylorF2 PN phasing series
-    phasing = phasing * pPhase['phiNorm'] * powers_of_Mf.m_five_thirds
+    phasing = phasing * pPhase["phiNorm"] * powers_of_Mf.m_five_thirds
 
     # Add initial phasing: -pi/4
     # phasing += pPhase['phi_initial']
@@ -1358,57 +1501,57 @@ def IMRPhenomX_Inspiral_Phase_22_Ansatz(Mf: float, powers_of_Mf, pPhase: dict) -
 
     # Assemble PN phase derivative series
     # f^{-2/3}, v = -2; -1PN
-    phaseIN += pPhase['dphi_minus2'] / powers_of_Mf.two_thirds
+    phaseIN += pPhase["dphi_minus2"] / powers_of_Mf.two_thirds
 
     # f^{-1/3}, v = -1; -0.5PN
-    phaseIN += pPhase['dphi_minus1'] / powers_of_Mf.one_third
+    phaseIN += pPhase["dphi_minus1"] / powers_of_Mf.one_third
 
     # f^{0/3}, v = 0; Newtonian
-    phaseIN += pPhase['dphi0']
+    phaseIN += pPhase["dphi0"]
 
     # f^{1/3}, v = 1; 0.5PN
-    phaseIN += pPhase['dphi1'] * powers_of_Mf.one_third
+    phaseIN += pPhase["dphi1"] * powers_of_Mf.one_third
 
     # f^{2/3}, v = 2; 1.0PN
-    phaseIN += pPhase['dphi2'] * powers_of_Mf.two_thirds
+    phaseIN += pPhase["dphi2"] * powers_of_Mf.two_thirds
 
     # f^{3/3}, v = 3; 1.5PN
-    phaseIN += pPhase['dphi3'] * Mf
+    phaseIN += pPhase["dphi3"] * Mf
 
     # f^{4/3}, v = 4; 2.0PN
-    phaseIN += pPhase['dphi4'] * powers_of_Mf.four_thirds
+    phaseIN += pPhase["dphi4"] * powers_of_Mf.four_thirds
 
     # f^{5/3}, v = 5; 2.5PN
-    phaseIN += pPhase['dphi5'] * powers_of_Mf.five_thirds
+    phaseIN += pPhase["dphi5"] * powers_of_Mf.five_thirds
 
     # f^{6/3}, v = 6; 3.0PN
-    phaseIN += pPhase['dphi6'] * powers_of_Mf.two
+    phaseIN += pPhase["dphi6"] * powers_of_Mf.two
 
     # f^{6/3}, v = 6; 3.0PN Log[f] terms
-    phaseIN += pPhase['dphi6L'] * powers_of_Mf.two * powers_of_Mf.log
+    phaseIN += pPhase["dphi6L"] * powers_of_Mf.two * powers_of_Mf.log
 
     # f^{7/3}, v = 7; 3.5PN
-    phaseIN += pPhase['dphi7'] * powers_of_Mf.seven_thirds
+    phaseIN += pPhase["dphi7"] * powers_of_Mf.seven_thirds
 
     # f^{8/3}, v = 8; 4.0PN
-    phaseIN += pPhase['dphi8'] * powers_of_Mf.eight_thirds
+    phaseIN += pPhase["dphi8"] * powers_of_Mf.eight_thirds
 
     # f^{8/3}, v = 8; 4.0PN Log[f] terms
-    phaseIN += pPhase['dphi8L'] * powers_of_Mf.eight_thirds * powers_of_Mf.log
+    phaseIN += pPhase["dphi8L"] * powers_of_Mf.eight_thirds * powers_of_Mf.log
 
     # f^{9/3}, v = 9; 4.5PN
-    phaseIN += pPhase['dphi9'] * powers_of_Mf.three
+    phaseIN += pPhase["dphi9"] * powers_of_Mf.three
 
     # f^{9/3}, v = 9; 4.5PN Log[f] terms
-    phaseIN += pPhase['dphi9L'] * powers_of_Mf.three * powers_of_Mf.log
+    phaseIN += pPhase["dphi9L"] * powers_of_Mf.three * powers_of_Mf.log
 
     # Add pseudo-PN coefficients
     phaseIN += (
-        pPhase['a0'] * powers_of_Mf.eight_thirds
-        + pPhase['a1'] * powers_of_Mf.three
-        + pPhase['a2'] * powers_of_Mf.eight_thirds * powers_of_Mf.two_thirds
-        + pPhase['a3'] * powers_of_Mf.eight_thirds * powers_of_Mf.itself
-        + pPhase['a4'] * powers_of_Mf.eight_thirds * powers_of_Mf.four_thirds
+        pPhase["a0"] * powers_of_Mf.eight_thirds
+        + pPhase["a1"] * powers_of_Mf.three
+        + pPhase["a2"] * powers_of_Mf.eight_thirds * powers_of_Mf.two_thirds
+        + pPhase["a3"] * powers_of_Mf.eight_thirds * powers_of_Mf.itself
+        + pPhase["a4"] * powers_of_Mf.eight_thirds * powers_of_Mf.four_thirds
     )
 
     # Apply overall normalization: (5 / (128 * pi^{5/3})) * f^{-8/3}

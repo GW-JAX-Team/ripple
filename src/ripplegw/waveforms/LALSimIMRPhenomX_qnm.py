@@ -1,6 +1,3 @@
-import jax.numpy as jnp
-
-
 def evaluate_QNMfit_fring22(finalDimlessSpin):
     """
     Evaluate the QNM fit for the ringdown frequency of the (2,2) mode.
