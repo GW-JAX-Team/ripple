@@ -252,6 +252,26 @@ def twistup(
         cBetah, sBetah = IMRPhenomXWignerdCoefficients_cosbeta(cos_beta)
 
         cexp_i_alpha = jnp.exp(1j * alpha)
+        debug = False
+        if debug:
+
+            def _save_cexp(real, imag, epsilon_, cBetah_, sBetah_, emm):
+                import numpy as np
+
+                with open(f"ripple_debug_cexp_i_alpha_{emm}.dat", "a") as f:
+                    np.savetxt(
+                        f, np.column_stack([real, imag, epsilon_, cBetah_, sBetah_])
+                    )
+
+            jax.debug.callback(
+                _save_cexp,
+                cexp_i_alpha.real,
+                cexp_i_alpha.imag,
+                epsilon,
+                cBetah,
+                sBetah,
+                emm,
+            )
 
         beta_powers = BetaPowers.from_half_angle_trig(cBetah, sBetah)
 

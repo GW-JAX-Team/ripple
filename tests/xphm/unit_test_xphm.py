@@ -58,24 +58,52 @@ def generate_lalsimulation_xphm_waveform(
     lalsim.SimInspiralWaveformParamsInsertPhenomXPHMThresholdMband(lalparams, 0.0)
     lalsim.SimInspiralWaveformParamsInsertPhenomXPrecVersion(lalparams, 223)
 
-    hp, hc = lalsim.SimIMRPhenomXPHM(
-        injection_parameters["mass_1_SI"],
-        injection_parameters["mass_2_SI"],
-        injection_parameters["spin_1x"],
-        injection_parameters["spin_1y"],
-        injection_parameters["spin_1z"],
-        injection_parameters["spin_2x"],
-        injection_parameters["spin_2y"],
-        injection_parameters["spin_2z"],
-        injection_parameters["distance_SI"],
-        injection_parameters["iota"],
-        injection_parameters["phase"],
-        minimum_frequency,
-        maximum_frequency,
-        1 / duration,
-        reference_frequency,
-        lalparams,
-    )
+    try:
+        hp, hc = lalsim.SimIMRPhenomXPHM(
+            injection_parameters["mass_1_SI"],
+            injection_parameters["mass_2_SI"],
+            injection_parameters["spin_1x"],
+            injection_parameters["spin_1y"],
+            injection_parameters["spin_1z"],
+            injection_parameters["spin_2x"],
+            injection_parameters["spin_2y"],
+            injection_parameters["spin_2z"],
+            injection_parameters["luminosity_distance_SI"],
+            injection_parameters["iota"],
+            injection_parameters["phase"],
+            minimum_frequency,
+            maximum_frequency,
+            1 / duration,
+            reference_frequency,
+            lalparams,
+        )
+
+    except Exception as e:
+        print(f"Failed with: {e}")
+
+        print(
+            "Evaluating the waveform failed with an error.\n"
+            + "The parameters were {}\n".format(injection_parameters)
+        )
+
+        frequency_array_length = int(duration * maximum_frequency) + 1
+
+        hp = lal.CreateCOMPLEX16FrequencySeries(
+            "hplus",
+            lal.LIGOTimeGPS(0),
+            0.0,
+            1 / duration,
+            lal.DimensionlessUnit,
+            frequency_array_length,
+        )
+        hc = lal.CreateCOMPLEX16FrequencySeries(
+            "hcross",
+            lal.LIGOTimeGPS(0),
+            0.0,
+            1 / duration,
+            lal.DimensionlessUnit,
+            frequency_array_length,
+        )
     return hp, hc
 
 
@@ -90,6 +118,7 @@ def generate_ripple_xphm_waveform(
     Wrapper to call the ripple XPHM waveform.
     """
     frequency_array = jnp.arange(minimum_frequency, maximum_frequency, 1 / duration)
+
     hp, hc = IMRPhenomXPHM.generate_xphm(
         injection_parameters["mass_1"],
         injection_parameters["mass_2"],
@@ -105,6 +134,7 @@ def generate_ripple_xphm_waveform(
         frequency_array,
         reference_frequency,
     )
+
     return hp, hc
 
 
@@ -184,36 +214,36 @@ def main():
     """
 
     injection_parameters = {
-        "mass_ratio": 0.7327068719493379,
-        "chirp_mass": 40.21851619436802,
-        "luminosity_distance": 3591.7174866455944,
-        "dec": -0.5755423434101768,
-        "ra": 1.912839917660547,
-        "theta_jn": 1.6888647787268254,
-        "psi": 0.1969818317310661,
+        "mass_ratio": 0.3064977607967601,
+        "chirp_mass": 93.88321707875129,
+        "luminosity_distance": 4320.569794212493,
+        "dec": -0.5340624003795874,
+        "ra": 1.3155913002794608,
+        "theta_jn": 0.8231599643967205,
+        "psi": 1.8350045296023523,
         "phase": 0.0,
-        "a_1": 0.13622939251161847,
-        "a_2": 0.5078492220952112,
-        "tilt_1": 2.346879763100818,
-        "tilt_2": 2.638869136967795,
-        "phi_12": 1.2341920041064134,
-        "phi_jl": 1.1824420407687204,
-        "total_mass": 93.74281750701586,
-        "mass_1": 54.101948243301464,
-        "mass_2": 39.64086926371439,
+        "a_1": 0.8397132152576712,
+        "a_2": 0.8404086003139519,
+        "tilt_1": 1.991385939862487,
+        "tilt_2": 1.6627955891549548,
+        "phi_12": 1.5821686909994463,
+        "phi_jl": 3.1850539903859567,
+        "total_mass": 263.0643414344638,
+        "mass_1": 201.35077864506675,
+        "mass_2": 61.713562789397066,
         "reference_frequency": 50.0,
-        "iota": 1.5974619941546846,
-        "spin_1x": -0.013859979166069767,
-        "spin_1y": -0.09622879788950928,
-        "spin_1z": -0.0954272855023169,
-        "spin_2x": 0.21707702207214383,
-        "spin_2y": -0.11291667037919641,
-        "spin_2z": -0.44501485865246915,
-        "phi_1": 4.569341234651292,
-        "phi_2": 5.803533238757705,
-        "distance_SI": 1.1082882127592829e26,
-        "mass_1_SI": 1.0757684791097569e32,
-        "mass_2_SI": 7.882229572702067e31,
+        "iota": 1.251623019954885,
+        "spin_1x": -0.75972063827847,
+        "spin_1y": -0.10195130315671634,
+        "spin_1z": -0.3428538572581289,
+        "spin_2x": 0.12072966707872562,
+        "spin_2y": -0.828100172269349,
+        "spin_2z": -0.07720795073171269,
+        "phi_1": 3.274991471430194,
+        "phi_2": 4.85716016242964,
+        "luminosity_distance_SI": 1.3331885353270261e26,
+        "mass_1_SI": 4.00367875730589e32,
+        "mass_2_SI": 1.2271185740638104e32,
     }
 
     minimum_frequency = 10

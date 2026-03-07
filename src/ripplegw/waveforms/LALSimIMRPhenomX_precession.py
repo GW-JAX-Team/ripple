@@ -218,6 +218,43 @@ def compute_evolved_spin_using_msa(
     epsilon_out = vangles[1] - epsilon_offset
     cos_beta_out = vangles[2]
 
+    debug = False
+    if debug:
+        jax.debug.print("ripple debug msa_init[0]  Omegaz0_coeff    = {}", msa_init[0])
+        jax.debug.print("ripple debug msa_init[1]  Omegaz1_coeff    = {}", msa_init[1])
+        jax.debug.print("ripple debug msa_init[2]  Omegaz2_coeff    = {}", msa_init[2])
+        jax.debug.print("ripple debug msa_init[3]  Omegaz3_coeff    = {}", msa_init[3])
+        jax.debug.print("ripple debug msa_init[4]  Omegaz4_coeff    = {}", msa_init[4])
+        jax.debug.print("ripple debug msa_init[5]  Omegaz5_coeff    = {}", msa_init[5])
+        jax.debug.print("ripple debug msa_init[6]  Omegazeta0_coeff = {}", msa_init[6])
+        jax.debug.print("ripple debug msa_init[7]  Omegazeta1_coeff = {}", msa_init[7])
+        jax.debug.print("ripple debug msa_init[8]  Omegazeta2_coeff = {}", msa_init[8])
+        jax.debug.print("ripple debug msa_init[9]  Omegazeta3_coeff = {}", msa_init[9])
+        jax.debug.print("ripple debug msa_init[10] Omegazeta4_coeff = {}", msa_init[10])
+        jax.debug.print("ripple debug msa_init[11] Omegazeta5_coeff = {}", msa_init[11])
+        jax.debug.print("ripple debug msa_init[12] g0               = {}", msa_init[12])
+        jax.debug.print("ripple debug msa_init[13] c1               = {}", msa_init[13])
+        jax.debug.print("ripple debug msa_init[14] c1_over_eta      = {}", msa_init[14])
+        jax.debug.print("ripple debug msa_init[15] SAv2             = {}", msa_init[15])
+        jax.debug.print("ripple debug msa_init[16] Seff             = {}", msa_init[16])
+        jax.debug.print("ripple debug msa_init[17] dotS1Ln          = {}", msa_init[17])
+        jax.debug.print("ripple debug msa_init[18] dotS2Ln          = {}", msa_init[18])
+        jax.debug.print("ripple debug msa_init[19] S_0_norm         = {}", msa_init[19])
+        jax.debug.print("ripple debug msa_init[20] psi0             = {}", msa_init[20])
+        jax.debug.print("ripple debug msa_init[21] psi1             = {}", msa_init[21])
+        jax.debug.print("ripple debug msa_init[22] psi2             = {}", msa_init[22])
+        jax.debug.print("ripple debug msa_init[23] phiz_0           = {}", msa_init[23])
+        jax.debug.print("ripple debug msa_init[24] zeta_0           = {}", msa_init[24])
+        jax.debug.print("ripple debug msa_init[25] constants_L_0    = {}", msa_init[25])
+        jax.debug.print("ripple debug msa_init[26] constants_L_1    = {}", msa_init[26])
+        jax.debug.print("ripple debug msa_init[27] constants_L_2    = {}", msa_init[27])
+        jax.debug.print("ripple debug msa_init[28] constants_L_3    = {}", msa_init[28])
+        jax.debug.print("ripple debug msa_init[29] constants_L_4    = {}", msa_init[29])
+        jax.debug.print("ripple debug msa_init[30] S1_norm_2        = {}", msa_init[30])
+        jax.debug.print("ripple debug msa_init[31] S2_norm_2        = {}", msa_init[31])
+        jax.debug.print("ripple debug  alpha_offset        = {}", alpha_offset)
+        jax.debug.print("ripple debug  epsilon_offset        = {}", epsilon_offset)
+
     return alpha_out, epsilon_out, cos_beta_out
 
 

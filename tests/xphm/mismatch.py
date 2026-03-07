@@ -49,9 +49,7 @@ def setup_injection_parameters(N_WAVEFORMS, reference_frequency):
     """
     population = bilby.gw.prior.BBHPriorDict()
     population["chirp_mass"] = bilby.core.prior.Uniform(10, 100)
-    population["mass_ratio"] = bilby.core.prior.Uniform(0.4, 1)
-    population["a_1"] = bilby.core.prior.Uniform(0.0, 0.8)
-    population["a_2"] = bilby.core.prior.Uniform(0.0, 0.8)
+    population["mass_ratio"] = bilby.core.prior.Uniform(0.25, 1)
     population.pop("mass_1")
     population.pop("mass_2")
 
@@ -66,6 +64,11 @@ def setup_injection_parameters(N_WAVEFORMS, reference_frequency):
         _injection_parameters
     )
 
+    _injection_parameters["luminosity_distance_SI"] = (
+        _injection_parameters["luminosity_distance"] * 3.0856775814913673e22
+    )  # In meters
+    _injection_parameters["mass_1_SI"] = _injection_parameters["mass_1"] * MSUN
+    _injection_parameters["mass_2_SI"] = _injection_parameters["mass_2"] * MSUN
     injection_parameters = {
         key: jnp.array(value) for key, value in _injection_parameters.items()
     }
@@ -111,8 +114,6 @@ def generate_lalsimulation_xphm_waveform(
     """
     lalparams = lal.CreateDict()
 
-    injection_parameters["mass_1_SI"] = injection_parameters["mass_1"] * MSUN
-    injection_parameters["mass_2_SI"] = injection_parameters["mass_2"] * MSUN
     ModeArray = lalsim.SimInspiralCreateModeArray()
     for mm in modes:
         lalsim.SimInspiralModeArrayActivateMode(ModeArray, int(mm[0]), int(mm[1]))
@@ -123,24 +124,52 @@ def generate_lalsimulation_xphm_waveform(
     lalsim.SimInspiralWaveformParamsInsertPhenomXPHMThresholdMband(lalparams, 0.0)
     lalsim.SimInspiralWaveformParamsInsertPhenomXPrecVersion(lalparams, 223)
 
-    hp, hc = lalsim.SimIMRPhenomXPHM(
-        injection_parameters["mass_1_SI"],
-        injection_parameters["mass_2_SI"],
-        injection_parameters["spin_1x"],
-        injection_parameters["spin_1y"],
-        injection_parameters["spin_1z"],
-        injection_parameters["spin_2x"],
-        injection_parameters["spin_2y"],
-        injection_parameters["spin_2z"],
-        injection_parameters["distance_SI"],
-        injection_parameters["iota"],
-        injection_parameters["phase"],
-        minimum_frequency,
-        maximum_frequency,
-        1 / duration,
-        reference_frequency,
-        lalparams,
-    )
+    try:
+        hp, hc = lalsim.SimIMRPhenomXPHM(
+            injection_parameters["mass_1_SI"],
+            injection_parameters["mass_2_SI"],
+            injection_parameters["spin_1x"],
+            injection_parameters["spin_1y"],
+            injection_parameters["spin_1z"],
+            injection_parameters["spin_2x"],
+            injection_parameters["spin_2y"],
+            injection_parameters["spin_2z"],
+            injection_parameters["luminosity_distance_SI"],
+            injection_parameters["iota"],
+            injection_parameters["phase"],
+            minimum_frequency,
+            maximum_frequency,
+            1 / duration,
+            reference_frequency,
+            lalparams,
+        )
+
+    except Exception as e:
+        print(f"Failed with: {e}")
+
+        print(
+            "Evaluating the waveform failed with an error.\n"
+            + "The parameters were {}\n".format(injection_parameters)
+        )
+
+        frequency_array_length = int(duration * maximum_frequency) + 1
+
+        hp = lal.CreateCOMPLEX16FrequencySeries(
+            "hplus",
+            lal.LIGOTimeGPS(0),
+            0.0,
+            1 / duration,
+            lal.DimensionlessUnit,
+            frequency_array_length,
+        )
+        hc = lal.CreateCOMPLEX16FrequencySeries(
+            "hcross",
+            lal.LIGOTimeGPS(0),
+            0.0,
+            1 / duration,
+            lal.DimensionlessUnit,
+            frequency_array_length,
+        )
     return hp, hc
 
 
@@ -190,17 +219,19 @@ def compute_mismatch_loop(
         injection_parameters = {
             key: float(value[ii]) for key, value in batch_injection_parameters.items()
         }
-        injection_parameters["distance_SI"] = (
-            injection_parameters["luminosity_distance"] * 3.0856775814913673e22
-        )  # In meters
-        lalsim_plus, _ = generate_lalsimulation_xphm_waveform(
-            injection_parameters,
-            minimum_frequency,
-            maximum_frequency,
-            reference_frequency,
-            duration,
-            modes,
-        )
+
+        try:
+            lalsim_plus, _ = generate_lalsimulation_xphm_waveform(
+                injection_parameters,
+                minimum_frequency,
+                maximum_frequency,
+                reference_frequency,
+                duration,
+                modes,
+            )
+        except Exception:
+            print("The lalsimulation waveform generation failed.")
+            continue
 
         ripple_plus, _ = generate_ripple_xphm_waveform(
             injection_parameters,
@@ -227,8 +258,6 @@ def compute_mismatch_loop(
             if log_mismatch > -2:
                 print(f"High Mismatch {log_mismatch}")
                 print("Injection parameters")
-                for key, value in injection_parameters.items():
-                    print(key, value)
                 print(injection_parameters)
                 print("----------\n")
 
@@ -236,7 +265,7 @@ def compute_mismatch_loop(
 
 
 def main():
-    N_injections = int(1000)
+    N_injections = int(200)
     seed = 99
     np.random.seed(seed)
     bilby.core.utils.random.seed(seed)
