@@ -6,7 +6,7 @@ import jax
 import jax.numpy as jnp
 from ..constants import MTSUN, MPC, PI, TWO_PI, MRSUN
 from jaxtyping import Array
-from ripplegw import Mc_eta_to_ms, lambda_tildes_to_lambdas
+from ripplegw.conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from .IMRPhenom_tidal_utils import get_quadparam_octparam, get_kappa
 from ripplegw.waveforms.IMRPhenomD import Phase, Amp, get_IIb_raw_phase
 from .IMRPhenomD_utils import (
@@ -443,7 +443,7 @@ def gen_IMRPhenomD_NRTidalv2(
     Psi -= t0 * ((f * M_s) - Mf_ref) + Psi_ref
     ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] - 2 * theta_extrinsic[2]
     Psi += ext_phase_contrib
-    fcut_above = lambda f: (fM_CUT / M_s)
+    fcut_above = lambda f: fM_CUT / M_s
     fcut_below = lambda f: f[jnp.abs(f - (fM_CUT / M_s)).argmin() - 1]
     fcut_true = jax.lax.cond((fM_CUT / M_s) > f[-1], fcut_above, fcut_below, f)
     Psi = Psi * jnp.heaviside(fcut_true - f, 0.0) + 2.0 * PI * jnp.heaviside(

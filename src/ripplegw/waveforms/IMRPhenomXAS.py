@@ -5,7 +5,7 @@ from ..constants import EulerGamma, MTSUN, MPC, C, PI
 from ripplegw.waveforms import IMRPhenomX_utils
 from jaxtyping import Array
 
-from ripplegw import Mc_eta_to_ms
+from ripplegw.conversions import Mc_eta_to_ms
 
 eqspin_indx = 10
 uneqspin_indx = 39
@@ -765,8 +765,8 @@ def Phase(f: Array, theta: Array, phase_coeffs: Array) -> Array:
     alpha1 = dphi_Ins_match_f1 - dphi_Int_match_f1
     alpha0 = phi_Ins_match_f1 - phi_Int_match_f1 - alpha1 * f1_Ms
 
-    phi_Int_func = (
-        lambda fM_s_: get_intermediate_raw_phase(
+    phi_Int_func = lambda fM_s_: (
+        get_intermediate_raw_phase(
             fM_s_, theta, phase_coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL
         )
         + alpha1 * fM_s_

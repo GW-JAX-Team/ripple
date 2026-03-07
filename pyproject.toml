@@ -7,6 +7,9 @@ requires-python = ">=3.11"
 authors = [
     { name = "Thomas Edwards", email = "tedwards2412@gmail.com" },
 ]
+maintainers = [
+  {name = "Thomas Ng", email = "thomas.ng@nikhef.nl"}
+]
 license = { file = "LICENSE" }
 keywords = ["gravitational waves", "jax"]
 classifiers = [
@@ -23,27 +26,15 @@ dependencies = [
     "numpy>=1,<3",
 ]
 
-[project.urls]
-Documentation = "https://ripple.readthedocs.io/en/latest/"
-"Bug Tracker" = "https://github.com/GW-JAX-Team/ripple"
-
 [project.optional-dependencies]
-docs = [
-    "mkdocs-gen-files==0.6.0",
-    "mkdocs-jupyter==0.25.1",
-    "mkdocs-literate-nav==0.6.2",
-    "mkdocs-material==9.7.1",
-    "mkdocs==1.6.1",
-    "mkdocstrings[python]==1.0.0",
-    "pymdown-extensions==10.20",
-]
 cuda = [
     "jax[cuda]>=0.8.2",
 ]
 
 [dependency-groups]
-dev = [
-    "ripplegw",
+test = [
+    "matplotlib>=3.7.0",
+    "pandas>=2.0.0",
     "pre-commit>=4.2.0",
     "coverage>=7.7.0",
     "coveralls>=4.0.1",
@@ -53,6 +44,25 @@ dev = [
     "tqdm>=4.66.0",
     # "pyright>=1.1.402",  # Temporarily disabled - re-enable once type errors are fixed
 ]
+cross-validation = [
+    "lalsuite",
+]
+doc = [
+    "mkdocs-gen-files==0.6.0",
+    "mkdocs-jupyter==0.25.1",
+    "mkdocs-literate-nav==0.6.2",
+    "mkdocs-material==9.7.1",
+    "mkdocs==1.6.1",
+    "mkdocstrings[python]==1.0.3",
+    "pymdown-extensions==10.20.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/GW-JAX-Team/ripple"
+Documentation = "https://ripple.readthedocs.io"
+Repository = "https://github.com/GW-JAX-Team/ripple"
+"Bug Tracker" = "https://github.com/GW-JAX-Team/ripple/issues"
+Changelog = "https://github.com/GW-JAX-Team/ripple/releases"
 
 [tool.uv.sources]
 ripplegw = { workspace = true }
@@ -60,6 +70,10 @@ ripplegw = { workspace = true }
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+norecursedirs = ["tests/cross_validation", "tests/benchmarks"]
 
 [tool.ruff.lint]
 ignore = [
