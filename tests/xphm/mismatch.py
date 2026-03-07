@@ -28,6 +28,9 @@ def compute_overlap(
     maximum_frequency,
     duration,
 ):
+    """
+    Wrapper around bilby.gw.utils.noise_weighted_inner_product
+    """
     frequency_array = np.arange(minimum_frequency, maximum_frequency, 1 / duration)
     interpolated_psd = psd.power_spectral_density_interpolated(frequency_array)
 
@@ -83,6 +86,9 @@ def setup_injection_parameters(N_WAVEFORMS, reference_frequency):
 
 
 def plot_mismatch_histogram(collect_mismatch, output="mismatch_histogram.pdf"):
+    """
+    Plotting function for the mismatch histogram.
+    """
     collect_mismatch = np.real(np.array(collect_mismatch))
     fig, ax = plt.subplots(1, 1)
     _close_to_zero = np.log10(1e-20) - 1
@@ -116,7 +122,7 @@ def generate_lalsimulation_xphm_waveform(
     modes,
 ):
     """
-    Wrapper to call the lalsimulation XPHM waveform.
+    Wrapper to call the lalsimulation XPHM waveform. If lalsimulation falls back on 102 (NNLO prescription), the function will print a warning.
     """
     lalparams = lal.CreateDict()
 
