@@ -18,7 +18,6 @@ from .LALSimIMRPhenomUtils import XLALSimPhenomUtilsChiP
 from .IMRPhenomD_utils import (
     EradRational0815,
     get_coeffs,
-    get_transition_frequencies,
     get_transition_frequencies_from_fRD_fdamp,
 )
 from .IMRPhenomD import Phase as IMRPhenomD_Phase
@@ -470,6 +469,7 @@ def twist_22(cexp_i_alpha, theta_JN, beta_powers):
     d2m2 = jnp.array([d22[4], -d22[3], d22[2], -d22[1], d22[0]])
 
     for m in range(-2, 2 + 1):
+        # Compute transfer function
         A2m2emm = cexp_im_alpha_l2[-m + 2] * d2m2[m + 2] * Y2mA[m + 2]
         A22emmstar = cexp_im_alpha_l2[m + 2] * d22[m + 2] * jnp.conj(Y2mA[m + 2])
         hp_sum += A2m2emm + A22emmstar
@@ -945,8 +945,16 @@ def XLALSimIMRPhenomHMGethlmModes(
 
     theta = jnp.array([pHM["m1"], pHM["m2"], pHM["chi1z"], pHM["chi2z"]])
     PhenomD_coeffs = get_coeffs(theta)
-    PhenomD_transition_freqs = get_transition_frequencies(
-        theta, PhenomD_coeffs[5], PhenomD_coeffs[6]
+
+    # Use PhenomPv2 fRD/fdamp (from QNMData with PhenomPv2 final spin, stored in pHM)
+    # to match LALSim's IMRPhenomDSetupAmpAndPhaseCoefficients with pHM->finspin.
+    # Mode phases also use these same QNM frequencies (Mf_RD_22_PhenomD, Mf_DM_22_PhenomD),
+    # so phi0 must be consistent with them.
+    M_s = pHM["Mtot"] * MTSUN
+    f_RD_phenomPv2 = pHM["Mf_RD_22_PhenomD"] / M_s
+    f_damp_phenomPv2 = pHM["Mf_DM_22_PhenomD"] / M_s
+    PhenomD_transition_freqs = get_transition_frequencies_from_fRD_fdamp(
+        theta, PhenomD_coeffs[5], PhenomD_coeffs[6], f_RD_phenomPv2, f_damp_phenomPv2
     )
 
     phi_22_at_f_ref = IMRPhenomD_Phase(

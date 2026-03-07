@@ -177,7 +177,7 @@ def plot_xphm_comparison(
 
     ax[2].plot(f, np.real(ripple_hp), label="ripple")
     ax[2].plot(lal_f, np.real(lal_hp_data), label="lalsim", linestyle="--")
-    ax[2].set_xlim(5, 300)
+    ax[2].set_xlim(5, 50)
     ax[2].set_xlabel("Frequency [Hz]")
     ax[2].set_ylabel("Real(h+)")
     ax[2].legend()
