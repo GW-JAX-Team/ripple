@@ -255,7 +255,7 @@ def compute_mismatch_loop(
         debug = True
         if debug:
             log_mismatch = np.log10(abs(np.real(mismatch)))
-            if log_mismatch > -2:
+            if log_mismatch > -4:
                 print(f"High Mismatch {log_mismatch}")
                 print("Injection parameters")
                 print(injection_parameters)
