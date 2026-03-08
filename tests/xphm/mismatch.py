@@ -155,34 +155,18 @@ def generate_lalsimulation_xphm_waveform(
             reference_frequency,
             lalparams,
         )
+        return hp, hc
 
     except Exception as e:
         print(f"Failed with: {e}")
 
         print(
-            "Evaluating the waveform failed with an error.\n"
+            "Waveform computation failed with an error.\n"
             + "The parameters were {}\n".format(injection_parameters)
         )
 
-        frequency_array_length = int(duration * maximum_frequency) + 1
-
-        hp = lal.CreateCOMPLEX16FrequencySeries(
-            "hplus",
-            lal.LIGOTimeGPS(0),
-            0.0,
-            1 / duration,
-            lal.DimensionlessUnit,
-            frequency_array_length,
-        )
-        hc = lal.CreateCOMPLEX16FrequencySeries(
-            "hcross",
-            lal.LIGOTimeGPS(0),
-            0.0,
-            1 / duration,
-            lal.DimensionlessUnit,
-            frequency_array_length,
-        )
-    return hp, hc
+       
+        return None, None
 
 
 def generate_ripple_xphm_waveform(
@@ -232,17 +216,17 @@ def compute_mismatch_loop(
             key: float(value[ii]) for key, value in batch_injection_parameters.items()
         }
 
-        try:
-            lalsim_plus, _ = generate_lalsimulation_xphm_waveform(
-                injection_parameters,
-                minimum_frequency,
-                maximum_frequency,
-                reference_frequency,
-                duration,
-                modes,
-            )
-        except Exception:
-            print("The lalsimulation waveform generation failed.")
+
+        lalsim_plus, _ = generate_lalsimulation_xphm_waveform(
+            injection_parameters,
+            minimum_frequency,
+            maximum_frequency,
+            reference_frequency,
+            duration,
+            modes,
+        )
+
+        if lalsim_plus is None:
             continue
 
         ripple_plus, _ = generate_ripple_xphm_waveform(
@@ -281,7 +265,7 @@ def compute_mismatch_loop(
 
 def main():
     N_injections = int(1e4)
-    seed = 2
+    seed = 200
     np.random.seed(seed)
     bilby.core.utils.random.seed(seed)
     # Frequency settings
@@ -310,5 +294,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# %%
