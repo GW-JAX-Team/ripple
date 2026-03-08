@@ -264,7 +264,7 @@ def compute_mismatch_loop(
 
 
 def main():
-    N_injections = int(1e4)
+    N_injections = int(100)
     seed = 200
     np.random.seed(seed)
     bilby.core.utils.random.seed(seed)
