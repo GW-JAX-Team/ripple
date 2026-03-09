@@ -169,7 +169,8 @@ def benchmark_waveform_ripple(
 
         if is_precessing:
             # theta_lal = [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
-            # Ripple IMRPhenomPv2 expects [Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
+            # Ripple precessing waveforms (IMRPhenomPv2, IMRPhenomXPHM) expect:
+            #   [Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
             s1x, s1y, s1z = theta_lal[2], theta_lal[3], theta_lal[4]
             s2x, s2y, s2z = theta_lal[5], theta_lal[6], theta_lal[7]
             dist_mpc = theta_lal[8]
@@ -320,7 +321,43 @@ def benchmark_waveform_lal(
         m1_kg = theta[0] * lal.MSUN_SI
         m2_kg = theta[1] * lal.MSUN_SI
 
-        if is_precessing:
+        if waveform_name == "IMRPhenomXPHM":
+            # theta = [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
+            s1x, s1y, s1z = theta[2], theta[3], theta[4]
+            s2x, s2y, s2z = theta[5], theta[6], theta[7]
+            distance = theta[8] * 1e6 * lal.PC_SI
+            phi_ref = theta[10]
+            inclination = theta[11]
+
+            lalparams = lal.CreateDict()
+            ModeArray = lalsim.SimInspiralCreateModeArray()
+            for el, em in [(2, 1), (2, 2), (3, 2), (3, 3), (4, 4)]:
+                lalsim.SimInspiralModeArrayActivateMode(ModeArray, el, em)
+            lalsim.SimInspiralWaveformParamsInsertModeArray(lalparams, ModeArray)
+            lalsim.SimInspiralWaveformParamsInsertPhenomXPHMTwistPhenomHM(lalparams, 1)
+            lalsim.SimInspiralWaveformParamsInsertPhenomXPHMMBandVersion(lalparams, 0)
+            lalsim.SimInspiralWaveformParamsInsertPhenomXPHMThresholdMband(lalparams, 0.0)
+            lalsim.SimInspiralWaveformParamsInsertPhenomXPrecVersion(lalparams, 223)
+
+            lalsim.SimIMRPhenomXPHM(
+                m1_kg,
+                m2_kg,
+                s1x,
+                s1y,
+                s1z,
+                s2x,
+                s2y,
+                s2z,
+                distance,
+                inclination,
+                phi_ref,
+                f_l,
+                f_u,
+                df,
+                f_ref,
+                lalparams,
+            )
+        elif is_precessing:
             # theta = [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
             s1x, s1y, s1z = theta[2], theta[3], theta[4]
             s2x, s2y, s2z = theta[5], theta[6], theta[7]
@@ -423,6 +460,7 @@ ALL_WAVEFORMS = [
     "IMRPhenomXAS_NRTidalv3",
     "TaylorF2",
     "IMRPhenomPv2",
+    "IMRPhenomXPHM",
 ]
 
 

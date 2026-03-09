@@ -1,5 +1,4 @@
 import jax
-from jax import jit
 import jax.numpy as jnp
 from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
 from ..constants import C, PI, MSUN, MTSUN, MRSUN, MPC
@@ -36,7 +35,6 @@ GMsun_over_c2_Gpc = GMsun_over_c2 / uGpc
 CSHIFT = jnp.array([0.0, PI / 2.0, 0.0, -PI / 2.0, PI, PI / 2.0, 0.0])
 
 
-@jit
 def generate_xphm(
     mass_1,
     mass_2,
@@ -110,7 +108,6 @@ def generate_xphm(
     return hp, hc
 
 
-@jit
 def twistup(
     Mf,
     mass_1,
@@ -781,7 +778,6 @@ def twist_44(cexp_i_alpha, theta_JN, beta_powers):
     return hp_sum, hc_sum
 
 
-@jit
 def apply_polarization_rotation(zeta_polarization, _hp, _hc):
     """Apply polarization rotation to waveform components.
 
@@ -810,7 +806,6 @@ def apply_polarization_rotation(zeta_polarization, _hp, _hc):
     return hp, hc
 
 
-@jit
 def IMRPhenomXWignerdCoefficients_cosbeta(cos_beta):
     """
     Compute cos(beta/2) and sin(beta/2) from cos(beta).
@@ -838,7 +833,6 @@ def IMRPhenomXWignerdCoefficients_cosbeta(cos_beta):
     return cos_beta_half, sin_beta_half
 
 
-@jit
 def XLALSimIMRPhenomXUtilsHztoMf(fHz: float, Mtot_Msun: float) -> float:
     """
     Convert frequency from Hz to geometric units (Mf).
@@ -859,7 +853,6 @@ def XLALSimIMRPhenomXUtilsHztoMf(fHz: float, Mtot_Msun: float) -> float:
     return fHz * Mtot_Msun * MTSUN
 
 
-@jit
 def XLALSimIMRPhenomHMGethlmModes(
     freqs: Array,
     m1_SI: float,
@@ -949,7 +942,6 @@ def XLALSimIMRPhenomHMGethlmModes(
     return hlms
 
 
-@jit
 def IMRPhenomHMEvaluateOnehlmMode(
     freqs_geom: Array, pHM: dict, ell: int, mm: int, phi0: float
 ):
@@ -988,7 +980,6 @@ def IMRPhenomHMEvaluateOnehlmMode(
     return amp_lm * jnp.exp(-1j * (phase_term1 + phase_term2))
 
 
-@jit
 def XLALSimPhenomUtilsPhenomPv2FinalSpin(
     m1: float, m2: float, chi1_l: float, chi2_l: float, chip: float
 ):
@@ -1011,7 +1002,6 @@ def XLALSimPhenomUtilsPhenomPv2FinalSpin(
     return jnp.copysign(1.0, af_parallel) * jnp.sqrt(Sperp**2 + af_parallel**2)
 
 
-@jit
 def init_PhenomHM_Storage(
     p: dict,
     m1_SI: float,
@@ -1105,7 +1095,6 @@ def init_PhenomHM_Storage(
     return p
 
 
-@jit
 def IMRPhenomHMGetRingdownFrequency(
     ell: int, mm: int, finalmass: float, finalspin: float
 ):
@@ -1126,7 +1115,6 @@ def IMRPhenomHMGetRingdownFrequency(
     return fringdown, fdamp
 
 
-@jit
 def SimRingdownCW_KAPPA(jf: float, ell: int, emm: int):
     """
     Domain mapping for dimnesionless BH spin
@@ -1136,7 +1124,6 @@ def SimRingdownCW_KAPPA(jf: float, ell: int, emm: int):
     return alpha**beta
 
 
-@jit
 def SimRingdownCW_CW07102016(kappa: float, ell: int, input_m: int, n: int):
     """
     Dimensionless QNM Frequencies: Note that name encodes date of writing
@@ -1268,7 +1255,6 @@ def SimRingdownCW_CW07102016(kappa: float, ell: int, input_m: int, n: int):
     )
 
 
-@jit
 def IMRPhenomHMFreqDomainMap(Mflm, ell, mm, pHM, AmpFlag):
     """Map input frequency Mflm to the effective 22-mode frequency Mf22 for the (ell, mm) mode."""
     # Mflm here has the same meaning as Mf_wf in XLALSimIMRPhenomHMFreqDomainMapHM (old deleted function).
@@ -1278,7 +1264,6 @@ def IMRPhenomHMFreqDomainMap(Mflm, ell, mm, pHM, AmpFlag):
     return Mf22
 
 
-@jit
 def IMRPhenomHMAmplitude(freqs_geom: Array, pHM: dict, ell: int, mm: int):
     """
     Returns IMRPhenomHM amplitude evaluated at a set of input frequencies for the l,m mode
@@ -1388,7 +1373,6 @@ def IMRPhenomHMAmplitude(freqs_geom: Array, pHM: dict, ell: int, mm: int):
     return amps * rescaling
 
 
-@jit
 def IMRPhenomHMOnePointFiveSpinPN(fM, ell, m, M1, M2, X1z, X2z):
     """
     Implementation of IMRPhenomHMOnePointFiveSpinPN from LALSimIMRPhenomHM.c
@@ -1467,7 +1451,6 @@ def IMRPhenomHMOnePointFiveSpinPN(fM, ell, m, M1, M2, X1z, X2z):
     return M * M * PI * jnp.sqrt(eta * 2.0 / 3) * v ** (-3.5) * jnp.abs(Hlm)
 
 
-@jit
 def IMRPhenomHMPhase(freqs_geom: Array, pHM: dict, ell: int, mm: int):
     """
     Returns IMRPhenomHM phase evaluated at a set of input frequencies for the l,m mode
@@ -1557,7 +1540,6 @@ def IMRPhenomHMPhase(freqs_geom: Array, pHM: dict, ell: int, mm: int):
     return phase
 
 
-@jit
 def IMRPhenomHMPhasePreComp(q: dict, ell: int, emm: int, pHM: dict):
     """
     Implementation of IMRPhenomHMPhasePreComp in LALSimIMRPhenomHM.c
@@ -1633,7 +1615,6 @@ def IMRPhenomHMPhasePreComp(q: dict, ell: int, emm: int, pHM: dict):
     return q
 
 
-@jit
 def IMRPhenomHMFreqDomainMapParams(
     flm: float,  # input waveform frequency
     ell: int,  # spherical harmonics ell mode
@@ -1688,7 +1669,6 @@ def IMRPhenomHMFreqDomainMapParams(
     return a, b
 
 
-@jit
 def IMRPhenomHMSlopeAmAndBm(
     mm: int,
     fi: float,
@@ -1714,7 +1694,6 @@ def IMRPhenomHMSlopeAmAndBm(
     return Am, Bm
 
 
-@jit
 def IMRPhenomHMTrd(
     Mf: float, Mf_RD_22: float, Mf_RD_lm: float, AmpFlag: bool, mode_idx: int, pHM: dict
 ):
@@ -1732,7 +1711,6 @@ def IMRPhenomHMTrd(
     )
 
 
-@jit
 def IMRPhenomHMMapParams(
     flm: float,
     fi: float,
@@ -1753,7 +1731,6 @@ def IMRPhenomHMMapParams(
     return a, b
 
 
-@jit
 def XLALSimPhenomUtilsChiP(m1, m2, s1x, s1y, s2x, s2y):
     """
     Compute the effective precession parameter chip.
