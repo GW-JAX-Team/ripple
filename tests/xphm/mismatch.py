@@ -263,7 +263,7 @@ def compute_mismatch_loop(
 
 def main():
     N_injections = int(1e4)
-    seed = 200
+    seed = 201
     np.random.seed(seed)
     bilby.core.utils.random.seed(seed)
     # Frequency settings
