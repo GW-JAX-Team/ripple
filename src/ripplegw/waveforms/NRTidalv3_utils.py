@@ -96,7 +96,7 @@ def _get_merger_frequency(theta: Array):
 
     Momega_merger = nu * Qfit * TWO_PI
 
-    # convert from angular frequency to frequency (divide by 2*pi) and then convert from dimensionless frequency to Hz (divide by mtot * LAL_MTSUN_SI)
+    # convert from angular frequency to frequency (divide by 2*pi) and then convert from dimensionless frequency to Hz (divide by mtot * LAL_MTSUN)
     fHz_merger = Momega_merger / TWO_PI / (M * MTSUN)
 
     return fHz_merger
