@@ -28,7 +28,7 @@ jobs:
       - name: Install dependencies
         run: uv sync --python ${{ matrix.python-version }} --group test
       - name: Run tests
-        run: uv run pytest --cov=ripplegw --cov-report=term-missing tests/unit tests/integration --ignore=tests/cross_validation --ignore=tests/benchmarks
+        run: uv run pytest --cov=ripplegw --cov-report=term-missing tests/unit tests/integration tests/cross_validation/test_lal_constants.py --ignore=tests/benchmarks
       - name: Upload coverage to Coveralls
         if: matrix.python-version == '3.12'
         env:
