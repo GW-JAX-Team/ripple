@@ -2,7 +2,7 @@ import jax
 from jax import jit
 import jax.numpy as jnp
 from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
-from ..constants import C, PI, MSUN, MTSUN_SI, MTSUN, MRSUN, MPC
+from ..constants import C, PI, MSUN, MTSUN, MRSUN, MPC
 from jaxtyping import Array
 from .spherical_harmonics import (
     compute_sminus2_l2,
@@ -25,7 +25,7 @@ from .IMRPhenomD import get_IIb_raw_phase
 from .IMRPhenomPv2_utils import FinalSpin0815
 
 uGpc = 3.085677581491367278913937957796471611e25
-GMsun_over_c2 = MTSUN_SI * C
+GMsun_over_c2 = MTSUN * C
 GMsun_over_c2_Gpc = GMsun_over_c2 / uGpc
 
 
@@ -63,7 +63,7 @@ def generate_xphm(
     # amp0 = Mtot * MRSUN * Mtot * MTSUN / distance
     # where Mtot is in solar masses and distance is in meters
     dist_m = distance * MPC  # distance in meters
-    amp0 = Mtot * MRSUN * Mtot * MTSUN_SI / dist_m
+    amp0 = Mtot * MRSUN * Mtot * MTSUN / dist_m
 
     extra_params = {
         "ModeArray": jnp.array(
@@ -855,8 +855,8 @@ def XLALSimIMRPhenomXUtilsHztoMf(fHz: float, Mtot_Msun: float) -> float:
     float
         Geometric frequency Mf
     """
-    # Mtot in seconds = Mtot_Msun * MTSUN_SI
-    return fHz * Mtot_Msun * MTSUN_SI
+    # Mtot in seconds = Mtot_Msun * MTSUN
+    return fHz * Mtot_Msun * MTSUN
 
 
 @jit

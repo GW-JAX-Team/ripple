@@ -11,7 +11,7 @@ from .IMRPhenomD_utils import (
 )
 
 from .IMRPhenomD_QNMdata import fM_CUT
-from ..constants import EulerGamma, MTSUN, MPC, C, PI
+from ..constants import EULERGAMMA, MTSUN, MPC, C, PI
 from jaxtyping import Array
 from ripplegw.conversions import Mc_eta_to_ms
 
@@ -89,7 +89,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
         (
             11583.231236531 / 4.694215680
             - 640.0 / 3.0 * PI * PI
-            - 684.8 / 2.1 * EulerGamma
+            - 684.8 / 2.1 * EULERGAMMA
         )
         + eta * (-15737.765635 / 3.048192 + 225.5 / 1.2 * PI * PI)
         + eta * eta * 76.055 / 1.728
