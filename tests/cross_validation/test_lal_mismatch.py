@@ -50,7 +50,7 @@ pytestmark = pytest.mark.skipif(
 # Default parameter bounds for random sampling
 DEFAULT_BOUNDS = {
     "m": [0.5, 3.0],  # Masses (solar masses) - BNS range
-    "chi": [0.0, 0.1],  # Spins (low for BNS)
+    "chi": [-0.05, 0.05],  # Aligned spins (BNS physical range; both signs tested)
     "lambda": [0.0, 5000.0],  # Tidal parameters
     "d_L": [30.0, 500.0],  # Distance (Mpc)
 }
@@ -70,13 +70,13 @@ N_SAMPLES_FULL = 200
 # implementations; simpler/more-analytical waveforms achieve near-machine
 # precision while complex NR-calibrated ones accumulate more rounding error.
 MISMATCH_THRESHOLDS = {
-    "IMRPhenomD": 1e-5,
-    "IMRPhenomXAS": 1e-10,
-    "IMRPhenomD_NRTidalv2": 1e-1,  # TODO: investigate large discrepancy
-    "IMRPhenomXAS_NRTidalv3": 1e-7,
-    "TaylorF2": 1e-10,
-    "IMRPhenomPv2": 1e-4,
-    "IMRPhenomXPHM": 1e-3,
+    "IMRPhenomD": 1e-5,         # observed max ~1e-7 over 10 samples
+    "IMRPhenomXAS": 1e-12,      # near machine precision (~3e-14)
+    "IMRPhenomD_NRTidalv2": 1e-9,   # observed max ~6e-11
+    "IMRPhenomXAS_NRTidalv3": 1e-7,  # observed max ~6e-9
+    "TaylorF2": 1e-14,          # at float64 machine epsilon (~3e-16)
+    "IMRPhenomPv2": 1e-4,       # observed max ~2e-6
+    "IMRPhenomXPHM": 1e-3,      # active development (PR #95); expected to exceed
 }
 DEFAULT_MISMATCH_THRESHOLD = 1e-5  # fallback for unknown waveforms
 
