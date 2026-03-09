@@ -1,6 +1,6 @@
 import jax.numpy as jnp
 import jax
-from ..constants import GAMMA, MSUN, G, C
+from ..constants import EULERGAMMA, MSUN, G, C
 from .elliptic_integrals import ellint_F
 from .elliptic_integrals import gsl_sf_elljac_e
 
@@ -51,7 +51,7 @@ def IMRPhenomX_Initialize_MSA_System(
             16447322263.0 / 7276500.0
             + jnp.pi * jnp.pi * 512.0 / 5.0
             - LAL_LN2 * 109568.0 / 175.0
-            - GAMMA * 54784.0 / 175.0
+            - EULERGAMMA * 54784.0 / 175.0
         ),
         (-56198689.0 / 11340.0 + jnp.pi * jnp.pi * 902.0 / 5.0),
         1623.0 / 140.0,
