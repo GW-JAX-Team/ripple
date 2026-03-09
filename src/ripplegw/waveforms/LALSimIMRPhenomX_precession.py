@@ -408,8 +408,15 @@ def compute_thetaJN_and_kappa(
 
     # Compress line 772 - 781
     # /* Get angle between J0 and LN (z-direction) */
+    # thetaJ_Sf = jax.lax.cond(
+    #     J0 < 1e-10, lambda _: 0.0, lambda _: jnp.acos(J0z_Sf / J0), operand=None
+    # )
+
     thetaJ_Sf = jax.lax.cond(
-        J0 < 1e-10, lambda _: 0.0, lambda _: jnp.acos(J0z_Sf / J0), operand=None
+        J0 < 1e-10,
+        lambda _: 0.0,
+        lambda _: jnp.acos(jnp.clip(J0z_Sf / J0, -1.0, 1.0)),
+        operand=None,
     )
 
     # Line 783
@@ -485,8 +492,15 @@ def compute_zeta_polarization(
 
     # Compress line 772 - 781
     # /* Get angle between J0 and LN (z-direction) */
+    # thetaJ_Sf = jax.lax.cond(
+    #    J0 < 1e-10, lambda _: 0.0, lambda _: jnp.acos(J0z_Sf / J0), operand=None
+    # )
+
     thetaJ_Sf = jax.lax.cond(
-        J0 < 1e-10, lambda _: 0.0, lambda _: jnp.acos(J0z_Sf / J0), operand=None
+        J0 < 1e-10,
+        lambda _: 0.0,
+        lambda _: jnp.acos(jnp.clip(J0z_Sf / J0, -1.0, 1.0)),
+        operand=None,
     )
 
     # Line 783

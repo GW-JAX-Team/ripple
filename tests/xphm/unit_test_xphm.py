@@ -9,7 +9,7 @@ from ripplegw.waveforms import IMRPhenomXPHM
 import bilby
 from bilby.gw.utils import noise_weighted_inner_product
 
-psd = bilby.gw.detector.PowerSpectralDensity(psd_file="ET_D_psd.txt")
+psd = bilby.gw.detector.PowerSpectralDensity(psd_file="./ET_D_psd.txt")
 
 
 def compute_overlap(

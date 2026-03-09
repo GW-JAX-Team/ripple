@@ -14,7 +14,7 @@ jax.config.update("jax_enable_x64", True)
 
 scienceplots
 plt.style.use(["science"])
-psd = bilby.gw.detector.PowerSpectralDensity(psd_file="ET_D_psd.txt")
+psd = bilby.gw.detector.PowerSpectralDensity(psd_file="./ET_D_psd.txt")
 
 """
 Script to compute mismatch between lalsimulation and ripple implementation of IMRPhenomXPHM waveform.
@@ -263,8 +263,8 @@ def compute_mismatch_loop(
 
 
 def main():
-    N_injections = int(1e4)
-    seed = 201
+    N_injections = int(100)
+    seed = 2012
     np.random.seed(seed)
     bilby.core.utils.random.seed(seed)
     # Frequency settings
