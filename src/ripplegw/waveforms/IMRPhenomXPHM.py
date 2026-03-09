@@ -195,35 +195,22 @@ def twistup(
         )
     )
 
-    theta_JN, Nz_Jf, Nx_Jf, phiJ_Sf, kappa = pPrec.compute_thetaJN_and_kappa(
-        mass_1_fraction,
-        mass_2_fraction,
-        chi1x,
-        chi1y,
-        chi1z,
-        chi2x,
-        chi2y,
-        chi2z,
-        LRef,
-        phiRef_In,
-        inclination,
-    )
-
-    zeta_polarisations = pPrec.compute_zeta_polarization(
-        mass_1_fraction,
-        mass_2_fraction,
-        chi1x,
-        chi1y,
-        chi1z,
-        chi2x,
-        chi2y,
-        chi2z,
-        LRef,
-        phiRef_In,
-        inclination,
-        Nz_Jf,
-        Nx_Jf,
-        kappa,
+    # Fused call: compute J0, thetaJN, kappa, and zeta_polarization in one pass
+    # (avoids recomputing J0/thetaJ_Sf/phiJ_Sf twice).
+    theta_JN, Nz_Jf, Nx_Jf, phiJ_Sf, kappa, zeta_polarisations = (
+        pPrec.compute_thetaJN_kappa_and_zeta(
+            mass_1_fraction,
+            mass_2_fraction,
+            chi1x,
+            chi1y,
+            chi1z,
+            chi2x,
+            chi2y,
+            chi2z,
+            LRef,
+            phiRef_In,
+            inclination,
+        )
     )
 
     # Compute MSA precession constants once (independent of emm and Mf) so they
@@ -241,64 +228,50 @@ def twistup(
         kappa,
         phiJ_Sf,
     )
-    _twist_emms = jnp.array([1, 2, 2, 3, 4], dtype=jnp.int32)
+    # Unrolled per-mode twist: eliminates jax.lax.switch branch overhead and
+    # the jax.vmap over modes.  Modes 22 and 32 share emm=2, so we only call
+    # compute_evolved_spin_given_setup 4 times instead of 5.
 
-    def compute_twist_for_mode(mode_idx):
-        # mode_idx: 0->21, 1->22, 2->32, 3->33, 4->44
-        emm = _twist_emms[mode_idx]
+    # Mode 21 – emm = 1
+    alpha_1, eps_1, cos_beta_1 = pPrec.compute_evolved_spin_given_setup(
+        Mf, 1, _msa_setup
+    )
+    cBetah_1, sBetah_1 = IMRPhenomXWignerdCoefficients_cosbeta(cos_beta_1)
+    beta_powers_1 = BetaPowers.from_half_angle_trig(cBetah_1, sBetah_1)
+    hp_21, hc_21 = twist_21(jnp.exp(1j * alpha_1), theta_JN, beta_powers_1)
 
-        alpha, epsilon, cos_beta = pPrec.compute_evolved_spin_given_setup(
-            Mf,
-            emm,
-            _msa_setup,
-        )
+    # Modes 22 and 32 – both use emm = 2; compute angles once and reuse
+    alpha_2, eps_2, cos_beta_2 = pPrec.compute_evolved_spin_given_setup(
+        Mf, 2, _msa_setup
+    )
+    cBetah_2, sBetah_2 = IMRPhenomXWignerdCoefficients_cosbeta(cos_beta_2)
+    beta_powers_2 = BetaPowers.from_half_angle_trig(cBetah_2, sBetah_2)
+    cexp_i_alpha_2 = jnp.exp(1j * alpha_2)
+    hp_22, hc_22 = twist_22(cexp_i_alpha_2, theta_JN, beta_powers_2)
+    hp_32, hc_32 = twist_32(cexp_i_alpha_2, theta_JN, beta_powers_2)
 
-        cBetah, sBetah = IMRPhenomXWignerdCoefficients_cosbeta(cos_beta)
+    # Mode 33 – emm = 3
+    alpha_3, eps_3, cos_beta_3 = pPrec.compute_evolved_spin_given_setup(
+        Mf, 3, _msa_setup
+    )
+    cBetah_3, sBetah_3 = IMRPhenomXWignerdCoefficients_cosbeta(cos_beta_3)
+    beta_powers_3 = BetaPowers.from_half_angle_trig(cBetah_3, sBetah_3)
+    hp_33, hc_33 = twist_33(jnp.exp(1j * alpha_3), theta_JN, beta_powers_3)
 
-        cexp_i_alpha = jnp.exp(1j * alpha)
-        debug = False
-        if debug:
+    # Mode 44 – emm = 4
+    alpha_4, eps_4, cos_beta_4 = pPrec.compute_evolved_spin_given_setup(
+        Mf, 4, _msa_setup
+    )
+    cBetah_4, sBetah_4 = IMRPhenomXWignerdCoefficients_cosbeta(cos_beta_4)
+    beta_powers_4 = BetaPowers.from_half_angle_trig(cBetah_4, sBetah_4)
+    hp_44, hc_44 = twist_44(jnp.exp(1j * alpha_4), theta_JN, beta_powers_4)
 
-            def _save_cexp(real, imag, epsilon_, cBetah_, sBetah_, emm):
-                import numpy as np
-
-                with open(f"ripple_debug_cexp_i_alpha_{emm}.dat", "a") as f:
-                    np.savetxt(
-                        f, np.column_stack([real, imag, epsilon_, cBetah_, sBetah_])
-                    )
-
-            jax.debug.callback(
-                _save_cexp,
-                cexp_i_alpha.real,
-                cexp_i_alpha.imag,
-                epsilon,
-                cBetah,
-                sBetah,
-                emm,
-            )
-
-        beta_powers = BetaPowers.from_half_angle_trig(cBetah, sBetah)
-
-        # Select the appropriate twist function based on mode_idx
-        # Order: 21, 22, 32, 33, 44
-        hp_twist, hc_twist = jax.lax.switch(
-            mode_idx,
-            [
-                lambda: twist_21(cexp_i_alpha, theta_JN, beta_powers),
-                lambda: twist_22(cexp_i_alpha, theta_JN, beta_powers),
-                lambda: twist_32(cexp_i_alpha, theta_JN, beta_powers),
-                lambda: twist_33(cexp_i_alpha, theta_JN, beta_powers),
-                # lambda: twist_43(cexp_i_alpha, pPrec.theta_JN, beta_powers),
-                lambda: twist_44(cexp_i_alpha, theta_JN, beta_powers),
-            ],
-        )
-
-        return hp_twist, hc_twist, epsilon * emm
-
-    mode_indices = jnp.arange(5, dtype=jnp.int32)  # 0 to 4 for modes 21, 22, 32, 33, 44
-    hp_twist_all_modes, hc_twist_all_modes, epsilon_all_modes = jax.vmap(
-        compute_twist_for_mode
-    )(mode_indices)
+    # Stack into (5, N) matching the old vmap output layout
+    hp_twist_all_modes = jnp.stack([hp_21, hp_22, hp_32, hp_33, hp_44], axis=0)
+    hc_twist_all_modes = jnp.stack([hc_21, hc_22, hc_32, hc_33, hc_44], axis=0)
+    epsilon_all_modes = jnp.stack(
+        [eps_1 * 1, eps_2 * 2, eps_2 * 2, eps_3 * 3, eps_4 * 4], axis=0
+    )
 
     # jax.debug.print(f"length of hp_twist_all_modes {jnp.shape(hp_twist_all_modes)}")
     exp_neg_i_epsilon = jnp.exp(-1j * epsilon_all_modes.T) / 2

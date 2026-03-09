@@ -577,6 +577,79 @@ def compute_zeta_polarization(
 
 
 @jit
+def compute_thetaJN_kappa_and_zeta(
+    mass_1,
+    mass_2,
+    chi1x,
+    chi1y,
+    chi1z,
+    chi2x,
+    chi2y,
+    chi2z,
+    LRef,
+    phiRef_In,
+    inclination,
+):
+    """Compute thetaJN, Nz_Jf, Nx_Jf, phiJ_Sf, kappa, and zeta_polarization.
+
+    Fuses compute_thetaJN_and_kappa with compute_zeta_polarization so that the
+    total angular momentum vector J0, thetaJ_Sf, and phiJ_Sf are computed only
+    once instead of twice.
+
+    Returns:
+        thetaJN, Nz_Jf, Nx_Jf, phiJ_Sf, kappa, zeta_polarization
+    """
+    mass1_2 = mass_1 * mass_1
+    mass2_2 = mass_2 * mass_2
+
+    J0x_Sf = mass1_2 * chi1x + mass2_2 * chi2x
+    J0y_Sf = mass1_2 * chi1y + mass2_2 * chi2y
+    J0z_Sf = mass1_2 * chi1z + mass2_2 * chi2z + LRef
+
+    J0_Sf = jnp.array([J0x_Sf, J0y_Sf, J0z_Sf])
+    J0 = jnp.sqrt(J0x_Sf * J0x_Sf + J0y_Sf * J0y_Sf + J0z_Sf * J0z_Sf)
+
+    thetaJ_Sf = jax.lax.cond(
+        J0 < 1e-10,
+        lambda _: 0.0,
+        lambda _: jnp.acos(jnp.clip(J0z_Sf / J0, -1.0, 1.0)),
+        operand=None,
+    )
+
+    MAX_TOL_ATAN = 1.0e-15
+    tol_condition = (jnp.abs(J0x_Sf) < MAX_TOL_ATAN) & (jnp.abs(J0y_Sf) < MAX_TOL_ATAN)
+    phiJ_Sf = get_phiJ_Sf(tol_condition, J0_Sf)
+
+    # --- Part 1: kappa and thetaJN (from compute_thetaJN_and_kappa) ---
+    Nx_Sf = jnp.sin(inclination) * jnp.cos((jnp.pi / 2.0) - phiRef_In)
+    Ny_Sf = jnp.sin(inclination) * jnp.sin((jnp.pi / 2.0) - phiRef_In)
+    Nz_Sf = jnp.cos(inclination)
+    N_Sf = jnp.array([Nx_Sf, Ny_Sf, Nz_Sf])
+
+    vout = IMRPhenomX_rotate_z(-phiJ_Sf, N_Sf)
+    vout = IMRPhenomX_rotate_y(-thetaJ_Sf, vout)
+    kappa = XLALSimIMRPhenomXatan2tol(vout[1], vout[0], MAX_TOL_ATAN)
+
+    thetaJN, Nz_Jf, Nx_Jf = thetaJN_Nz_Nx_1_6_7(N_Sf, J0_Sf, J0)
+
+    # --- Part 2: zeta_polarization (from compute_zeta_polarization) ---
+    Xx_Sf = -jnp.cos(inclination) * jnp.sin(phiRef_In)
+    Xy_Sf = -jnp.cos(inclination) * jnp.cos(phiRef_In)
+    Xz_Sf = +jnp.sin(inclination)
+    v = jnp.array([Xx_Sf, Xy_Sf, Xz_Sf])
+    vout = IMRPhenomX_rotate_z(-phiJ_Sf, v)
+    vout = IMRPhenomX_rotate_y(-thetaJ_Sf, vout)
+    vout = IMRPhenomX_rotate_z(-kappa, vout)
+
+    PArun_Jf, QArun_Jf = PQ_Arun_1_6_7(Nx_Jf, Nz_Jf)
+    XdotPArun = vout[0] * PArun_Jf[0] + vout[1] * PArun_Jf[1] + vout[2] * PArun_Jf[2]
+    XdotQArun = vout[0] * QArun_Jf[0] + vout[1] * QArun_Jf[1] + vout[2] * QArun_Jf[2]
+    zeta_polarization = jnp.atan2(XdotQArun, XdotPArun)
+
+    return thetaJN, Nz_Jf, Nx_Jf, phiJ_Sf, kappa, zeta_polarization
+
+
+@jit
 def PQ_Arun_1_6_7(Nx_Jf, Nz_Jf):
     # Get polar angle of X vector in J frame in the P,Q basis of Arun et al
     PArunx_Jf = Nz_Jf
