@@ -3,7 +3,7 @@ from jax import jit
 import jax.numpy as jnp
 from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
 from ..constants import C, PI, MSUN, MTSUN_SI, MTSUN, MRSUN, MPC
-from ..typing import Array
+from jaxtyping import Array
 from .spherical_harmonics import (
     compute_sminus2_l2,
     compute_sminus2_l3,
