@@ -75,7 +75,9 @@ def check_is_tidal(waveform_name: str) -> bool:
 
     all_waveforms = bns_waveforms + bbh_waveforms
     if waveform_name not in all_waveforms:
-        raise ValueError(f"Waveform approximant {waveform_name} not supported by ripple")
+        raise ValueError(
+            f"Waveform approximant {waveform_name} not supported by ripple"
+        )
 
     return waveform_name in bns_waveforms
 
@@ -108,7 +110,9 @@ def get_jitted_waveform(waveform_name: str, fs: jnp.ndarray, f_ref: float):
         ValueError: If the waveform is not supported.
     """
     if waveform_name == "IMRPhenomD":
-        from ripplegw.waveforms.IMRPhenomD import gen_IMRPhenomD_hphc as waveform_generator
+        from ripplegw.waveforms.IMRPhenomD import (
+            gen_IMRPhenomD_hphc as waveform_generator,
+        )
 
         @jax.jit
         def waveform(theta):
@@ -154,7 +158,9 @@ def get_jitted_waveform(waveform_name: str, fs: jnp.ndarray, f_ref: float):
             return hp, hc
 
     elif waveform_name == "IMRPhenomPv2":
-        from ripplegw.waveforms.IMRPhenomPv2 import gen_IMRPhenomPv2_hphc as waveform_generator
+        from ripplegw.waveforms.IMRPhenomPv2 import (
+            gen_IMRPhenomPv2_hphc as waveform_generator,
+        )
 
         @jax.jit
         def waveform(theta):
@@ -170,7 +176,9 @@ def get_jitted_waveform(waveform_name: str, fs: jnp.ndarray, f_ref: float):
             return hp, hc
 
     else:
-        raise ValueError(f"Waveform approximant {waveform_name} not supported by ripple")
+        raise ValueError(
+            f"Waveform approximant {waveform_name} not supported by ripple"
+        )
 
     return waveform
 
@@ -205,7 +213,7 @@ def get_lal_waveform(
         ImportError: If LALSuite is not available.
     """
     check_lal_available()
-    
+
     # Convert JAX arrays to Python floats if necessary
     f_l = float(f_l)
     f_u = float(f_u)
@@ -462,9 +470,7 @@ def generate_random_params(
         booleans = theta[:, 0] < theta[:, 1]
         booleans = np.repeat(booleans[:, np.newaxis], theta.shape[1], axis=1)
         if is_tidal:
-            theta = np.where(
-                booleans, theta[:, [1, 0, 3, 2, 5, 4, 6, 7, 8, 9]], theta
-            )
+            theta = np.where(booleans, theta[:, [1, 0, 3, 2, 5, 4, 6, 7, 8, 9]], theta)
         else:
             theta = np.where(booleans, theta[:, [1, 0, 3, 2, 4, 5, 6, 7]], theta)
     else:

@@ -335,9 +335,12 @@ def test_waveform_mismatch(
         chi1z, chi2z = theta_batch[:, 2], theta_batch[:, 3]
         lambda1, lambda2 = theta_batch[:, 4], theta_batch[:, 5]
         df_data = {
-            "m1": m1, "m2": m2,
-            "chi1z": chi1z, "chi2z": chi2z,
-            "lambda1": lambda1, "lambda2": lambda2,
+            "m1": m1,
+            "m2": m2,
+            "chi1z": chi1z,
+            "chi2z": chi2z,
+            "lambda1": lambda1,
+            "lambda2": lambda2,
             "dist_mpc": theta_batch[:, 6],
             "tc": theta_batch[:, 7],
             "phi_ref": theta_batch[:, 8],
@@ -352,9 +355,14 @@ def test_waveform_mismatch(
         s2x, s2y, s2z = theta_batch[:, 5], theta_batch[:, 6], theta_batch[:, 7]
         chi1z, chi2z = s1z, s2z
         df_data = {
-            "m1": m1, "m2": m2,
-            "s1x": s1x, "s1y": s1y, "s1z": s1z,
-            "s2x": s2x, "s2y": s2y, "s2z": s2z,
+            "m1": m1,
+            "m2": m2,
+            "s1x": s1x,
+            "s1y": s1y,
+            "s1z": s1z,
+            "s2x": s2x,
+            "s2y": s2y,
+            "s2z": s2z,
             "chi1_mag": np.sqrt(s1x**2 + s1y**2 + s1z**2),
             "chi2_mag": np.sqrt(s2x**2 + s2y**2 + s2z**2),
             "dist_mpc": theta_batch[:, 8],
@@ -369,8 +377,10 @@ def test_waveform_mismatch(
         m1, m2 = theta_batch[:, 0], theta_batch[:, 1]
         chi1z, chi2z = theta_batch[:, 2], theta_batch[:, 3]
         df_data = {
-            "m1": m1, "m2": m2,
-            "chi1z": chi1z, "chi2z": chi2z,
+            "m1": m1,
+            "m2": m2,
+            "chi1z": chi1z,
+            "chi2z": chi2z,
             "dist_mpc": theta_batch[:, 4],
             "tc": theta_batch[:, 5],
             "phi_ref": theta_batch[:, 6],
@@ -387,7 +397,9 @@ def test_waveform_mismatch(
     if is_precessing:
         df["chi_eff"] = (df["m1"] * df["s1z"] + df["m2"] * df["s2z"]) / df["m_total"]
     else:
-        df["chi_eff"] = (df["m1"] * df["chi1z"] + df["m2"] * df["chi2z"]) / df["m_total"]
+        df["chi_eff"] = (df["m1"] * df["chi1z"] + df["m2"] * df["chi2z"]) / df[
+            "m_total"
+        ]
     df["log10_mismatch"] = np.log10(np.abs(df["mismatch"].clip(1e-30)))
     df = df.sort_values(by="mismatch", ascending=False)
     df.to_csv(results_file, index=False)
@@ -418,8 +430,12 @@ def test_waveform_mismatch(
     # (0,0) - histogram
     ax = axes[0, 0]
     ax.hist(log10_m_finite, bins=30, edgecolor="black", alpha=0.8)
-    ax.axvline(log10_thresh, color="red", linestyle="--",
-               label=f"threshold = {mismatch_threshold:.0e}")
+    ax.axvline(
+        log10_thresh,
+        color="red",
+        linestyle="--",
+        label=f"threshold = {mismatch_threshold:.0e}",
+    )
     ax.set_xlabel(r"$\log_{10}$(mismatch)")
     ax.set_ylabel("Count")
     ax.set_title("Mismatch distribution")
@@ -427,8 +443,14 @@ def test_waveform_mismatch(
 
     # (0,1) - mismatch vs total mass
     ax = axes[0, 1]
-    sc = ax.scatter(df["m_total"][finite_mask], log10_m_finite,
-                    c=log10_m_finite, cmap="viridis", s=20, alpha=0.8)
+    sc = ax.scatter(
+        df["m_total"][finite_mask],
+        log10_m_finite,
+        c=log10_m_finite,
+        cmap="viridis",
+        s=20,
+        alpha=0.8,
+    )
     ax.axhline(log10_thresh, color="red", linestyle="--")
     ax.set_xlabel(r"$M_{\rm total}\;[M_\odot]$")
     ax.set_ylabel(r"$\log_{10}$(mismatch)")
@@ -439,10 +461,12 @@ def test_waveform_mismatch(
     ax = axes[1, 0]
     if is_tidal:
         # Compute lambda_tilde from lambda1, lambda2, m1, m2
-        eta = df["m1"] * df["m2"] / df["m_total"]**2
+        eta = df["m1"] * df["m2"] / df["m_total"] ** 2
         x_vals = (8.0 / 13.0) * (
             (1 + 7 * eta - 31 * eta**2) * (df["lambda1"] + df["lambda2"])
-            + (1 - 4 * eta)**0.5 * (1 + 9 * eta - 11 * eta**2) * (df["lambda1"] - df["lambda2"])
+            + (1 - 4 * eta) ** 0.5
+            * (1 + 9 * eta - 11 * eta**2)
+            * (df["lambda1"] - df["lambda2"])
         )
         x_label = r"$\tilde{\Lambda}$"
     elif is_precessing:
@@ -451,8 +475,14 @@ def test_waveform_mismatch(
     else:
         x_vals = df["chi_eff"]
         x_label = r"$\chi_{\rm eff}$"
-    sc = ax.scatter(x_vals[finite_mask], log10_m_finite,
-                    c=log10_m_finite, cmap="viridis", s=20, alpha=0.8)
+    sc = ax.scatter(
+        x_vals[finite_mask],
+        log10_m_finite,
+        c=log10_m_finite,
+        cmap="viridis",
+        s=20,
+        alpha=0.8,
+    )
     ax.axhline(log10_thresh, color="red", linestyle="--")
     ax.set_xlabel(x_label)
     ax.set_ylabel(r"$\log_{10}$(mismatch)")
@@ -461,8 +491,14 @@ def test_waveform_mismatch(
 
     # (1,1) - 2D: m1 vs m2 colored by mismatch
     ax = axes[1, 1]
-    sc = ax.scatter(df["m1"][finite_mask], df["m2"][finite_mask],
-                    c=log10_m_finite, cmap="plasma", s=30, alpha=0.9)
+    sc = ax.scatter(
+        df["m1"][finite_mask],
+        df["m2"][finite_mask],
+        c=log10_m_finite,
+        cmap="plasma",
+        s=30,
+        alpha=0.9,
+    )
     ax.set_xlabel(r"$m_1\;[M_\odot]$")
     ax.set_ylabel(r"$m_2\;[M_\odot]$")
     ax.set_title(r"$m_1$ vs $m_2$ (colour = $\log_{10}$ mismatch)")
@@ -496,16 +532,16 @@ def test_waveform_mismatch(
             "min": float(np.min(finite_mismatches)),
             "max": float(max_mismatch),
             "threshold": mismatch_threshold,
-            "passed": bool(len(failed_params) == 0 and max_mismatch < mismatch_threshold),
+            "passed": bool(
+                len(failed_params) == 0 and max_mismatch < mismatch_threshold
+            ),
         }
     )
 
-    assert (
-        len(failed_params) == 0
-    ), f"{len(failed_params)}/{n_samples} samples failed"
-    assert (
-        max_mismatch < mismatch_threshold
-    ), f"Max mismatch {max_mismatch:.2e} exceeds threshold {mismatch_threshold:.2e}"
+    assert len(failed_params) == 0, f"{len(failed_params)}/{n_samples} samples failed"
+    assert max_mismatch < mismatch_threshold, (
+        f"Max mismatch {max_mismatch:.2e} exceeds threshold {mismatch_threshold:.2e}"
+    )
 
 
 # ============================================================================
@@ -538,7 +574,9 @@ def test_imrphenomd_single_point(freq_params, psd_data):
 
     print(f"\nIMRPhenomD single point mismatch: {mismatch:.2e}")
     threshold = get_mismatch_threshold(waveform_name)
-    assert mismatch < threshold, f"Mismatch {mismatch:.2e} too large (threshold {threshold:.0e})"
+    assert mismatch < threshold, (
+        f"Mismatch {mismatch:.2e} too large (threshold {threshold:.0e})"
+    )
 
 
 def test_imrphenomxas_single_point(freq_params, psd_data):
@@ -566,4 +604,6 @@ def test_imrphenomxas_single_point(freq_params, psd_data):
 
     print(f"\nIMRPhenomXAS single point mismatch: {mismatch:.2e}")
     threshold = get_mismatch_threshold(waveform_name)
-    assert mismatch < threshold, f"Mismatch {mismatch:.2e} too large (threshold {threshold:.0e})"
+    assert mismatch < threshold, (
+        f"Mismatch {mismatch:.2e} too large (threshold {threshold:.0e})"
+    )

@@ -165,7 +165,6 @@ def generate_lalsimulation_xphm_waveform(
             + "The parameters were {}\n".format(injection_parameters)
         )
 
-       
         return None, None
 
 
@@ -215,7 +214,6 @@ def compute_mismatch_loop(
         injection_parameters = {
             key: float(value[ii]) for key, value in batch_injection_parameters.items()
         }
-
 
         lalsim_plus, _ = generate_lalsimulation_xphm_waveform(
             injection_parameters,

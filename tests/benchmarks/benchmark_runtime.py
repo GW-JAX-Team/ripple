@@ -67,7 +67,8 @@ def get_hardware_info():
     info["jax_version"] = jax.__version__
     devices = jax.devices()
     info["jax_devices"] = [
-        {"platform": str(d.platform), "device_kind": str(d.device_kind)} for d in devices
+        {"platform": str(d.platform), "device_kind": str(d.device_kind)}
+        for d in devices
     ]
     info["jax_default_backend"] = jax.default_backend()
 
@@ -82,7 +83,9 @@ def get_hardware_info():
     # LAL version (if available)
     if LAL_AVAILABLE:
         try:
-            info["lal_version"] = getattr(lal.version, "verbose", getattr(lal, "__version__", "unknown"))
+            info["lal_version"] = getattr(
+                lal.version, "verbose", getattr(lal, "__version__", "unknown")
+            )
         except Exception:
             info["lal_version"] = "unknown"
         try:
@@ -211,7 +214,9 @@ def benchmark_waveform_ripple(
                 tc = theta_lal[5]
                 phic = theta_lal[6]
                 inclination = theta_lal[7]
-                theta_ripple = jnp.array([Mc, eta, s1z, s2z, dist_mpc, tc, phic, inclination])
+                theta_ripple = jnp.array(
+                    [Mc, eta, s1z, s2z, dist_mpc, tc, phic, inclination]
+                )
 
             theta_batch_ripple.append(theta_ripple)
 
@@ -505,8 +510,12 @@ def main():
             results.append(result)
 
             print("\nRipple Results:")
-            print(f"  Single call: {result['single_call_ms_mean']:.4f} ± {result['single_call_ms_std']:.4f} ms")
-            print(f"  Vmapped call: {result['vmapped_call_ms_mean']:.4f} ± {result['vmapped_call_ms_std']:.4f} ms")
+            print(
+                f"  Single call: {result['single_call_ms_mean']:.4f} ± {result['single_call_ms_std']:.4f} ms"
+            )
+            print(
+                f"  Vmapped call: {result['vmapped_call_ms_mean']:.4f} ± {result['vmapped_call_ms_std']:.4f} ms"
+            )
             print(f"  Speedup (vmap): {result['speedup_vmap']:.2f}x")
 
         except Exception as e:
@@ -516,7 +525,9 @@ def main():
         # LAL benchmark
         if args.with_lal:
             try:
-                lal_result = benchmark_waveform_lal(waveform_name, n_params=args.n_params)
+                lal_result = benchmark_waveform_lal(
+                    waveform_name, n_params=args.n_params
+                )
                 if lal_result:
                     # Merge LAL results into the ripple results
                     ripple_entry = None
@@ -528,8 +539,14 @@ def main():
 
                     print("\nLAL Results:")
                     print(f"  Single call: {lal_result['lal_call_ms']:.4f} ms")
-                    if ripple_entry is not None and "single_call_ms_mean" in ripple_entry:
-                        speedup_lal = lal_result["lal_call_ms"] / ripple_entry["single_call_ms_mean"]
+                    if (
+                        ripple_entry is not None
+                        and "single_call_ms_mean" in ripple_entry
+                    ):
+                        speedup_lal = (
+                            lal_result["lal_call_ms"]
+                            / ripple_entry["single_call_ms_mean"]
+                        )
                         print(f"  Speedup (ripple single vs LAL): {speedup_lal:.2f}x")
 
             except Exception as e:

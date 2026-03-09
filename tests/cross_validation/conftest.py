@@ -11,13 +11,13 @@ from datetime import datetime
 from pathlib import Path
 
 import jax
-import numpy as np
 import pytest
 
 
 # ---------------------------------------------------------------------------
 # Session-level results store
 # ---------------------------------------------------------------------------
+
 
 def pytest_configure(config):
     """Attach a shared results store to the pytest config object."""
@@ -38,6 +38,7 @@ def pytest_addoption(parser):
 def n_samples(request):
     """Number of random samples to test per waveform (set via --n-samples)."""
     return request.config.getoption("--n-samples")
+
 
 @pytest.fixture(scope="session")
 def cross_val_results(request):
@@ -64,6 +65,7 @@ def cross_val_results(request):
 # ---------------------------------------------------------------------------
 # Terminal summary hook
 # ---------------------------------------------------------------------------
+
 
 def _hardware_info() -> dict:
     """Collect hardware / runtime information."""
@@ -108,7 +110,9 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     terminalreporter.write_line(f"  Python     : {hw['python']}")
     terminalreporter.write_line(f"  JAX        : {hw['jax_version']}")
     terminalreporter.write_line(f"  Devices    : {', '.join(hw['jax_devices'])}")
-    terminalreporter.write_line(f"  Precision  : {hw['float_dtype']} (x64_enabled={hw['x64_enabled']})")
+    terminalreporter.write_line(
+        f"  Precision  : {hw['float_dtype']} (x64_enabled={hw['x64_enabled']})"
+    )
     terminalreporter.write_line(f"  Timestamp  : {hw['timestamp']}")
     terminalreporter.write_line("")
 
