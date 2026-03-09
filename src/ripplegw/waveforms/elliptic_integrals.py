@@ -7,11 +7,9 @@ specifically the incomplete elliptic integral of the first kind (F).
 
 import jax
 import jax.numpy as jnp
-from jax import jit
 from jax.scipy.integrate import trapezoid
 
 
-@jit
 def ellint_F(phi: float, k: float, n_points: int = 1000) -> float:
     """
     Compute the incomplete elliptic integral of the first kind.
@@ -81,7 +79,6 @@ def ellint_F(phi: float, k: float, n_points: int = 1000) -> float:
     return result
 
 
-@jit
 def ellint_Kcomp(k: float, n_points: int = 1000) -> float:
     """
     Compute the complete elliptic integral of the first kind.
@@ -100,7 +97,6 @@ def ellint_Kcomp(k: float, n_points: int = 1000) -> float:
     return ellint_F(jnp.pi / 2.0, k, n_points)
 
 
-@jit
 def ellint_F_carlson(phi: float, k: float) -> float:
     """
     Compute the incomplete elliptic integral of the first kind using Carlson's method.
@@ -126,7 +122,6 @@ def ellint_F_carlson(phi: float, k: float) -> float:
     return ellint_F(phi, k)
 
 
-@jit
 def gsl_sf_elljac_e(u: float, m: float, max_iter: int = 16):
     """
     Compute the Jacobian elliptic functions sn(u|m), cn(u|m), dn(u|m).

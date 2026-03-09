@@ -3,11 +3,9 @@ import jax
 from ..constants import GAMMA, MSUN, G, C
 from .elliptic_integrals import ellint_F
 from .elliptic_integrals import gsl_sf_elljac_e
-from jax import jit
 
 
 # /** This function initializes all the core variables required for the MSA system. This will be called first. */
-@jit
 def IMRPhenomX_Initialize_MSA_System(
     mass_1,
     mass_2,
@@ -588,7 +586,6 @@ def IMRPhenomX_Initialize_MSA_System(
     )
 
 
-@jit
 def IMRPhenomX_Return_Roots_MSA(
     LNorm: float,
     JNorm: float,
@@ -711,7 +708,6 @@ def IMRPhenomX_Return_Roots_MSA(
     return roots_array
 
 
-@jit
 def IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(
     LNorm: float,
     JNorm: float,
@@ -791,7 +787,6 @@ def IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(
     return jnp.array([B_coeff, C_coeff, D_coeff])
 
 
-@jit
 def IMRPhenomX_Get_PN_sigma(
     a: float,
     b: float,
@@ -817,7 +812,6 @@ def IMRPhenomX_Get_PN_sigma(
     return inveta * (a * dotS1S2 - b * dotS1L * dotS2L)
 
 
-@jit
 def IMRPhenomX_Get_PN_tau(
     a: float,
     b: float,
@@ -850,7 +844,6 @@ def IMRPhenomX_Get_PN_tau(
     ) / eta
 
 
-@jit
 def IMRPhenomX_Get_PN_beta(
     a: float,
     b: float,
@@ -874,7 +867,6 @@ def IMRPhenomX_Get_PN_beta(
     return dotS1L * (a + b * qq) + dotS2L * (a + b / qq)
 
 
-@jit
 def compute_constants_L(eta, dotS1L, dotS2L, q):
     """
     Compute coefficients for PN orbital angular momentum at 3PN.
@@ -935,7 +927,6 @@ def compute_constants_L(eta, dotS1L, dotS2L, q):
     return constants_L_0, constants_L_1, constants_L_2, constants_L_3, constants_L_4
 
 
-@jit
 def compute_spin_norm_squared(chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, mass_1, mass_2):
     """
     Compute the squared norms of the dimensionless spin vectors S1 and S2.
@@ -965,7 +956,6 @@ def compute_spin_norm_squared(chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, mass_1, 
     return S1_norm_2, S2_norm_2
 
 
-@jit
 def compute_psi0(
     Smi2: float,
     Spl2: float,
@@ -1058,7 +1048,6 @@ def compute_psi0(
     return jax.lax.cond(condition, psi0_zero, psi0_nonzero)
 
 
-@jit
 def IMRPhenomX_psiofv(v, v2, psi0, psi1, psi2, g0, delta_qq):
     """
     Compute psi(v) for the MSA approximation.
@@ -1086,7 +1075,6 @@ def IMRPhenomX_psiofv(v, v2, psi0, psi1, psi2, g0, delta_qq):
     return psi0 - 0.75 * g0 * delta_qq * (1.0 + psi1 * v + psi2 * v2) / (v2 * v)
 
 
-@jit
 def IMRPhenomX_vector_cross_product(v1: jnp.ndarray, v2: jnp.ndarray) -> jnp.ndarray:
     """
     Calculate cross product of two 3D vectors
@@ -1101,7 +1089,6 @@ def IMRPhenomX_vector_cross_product(v1: jnp.ndarray, v2: jnp.ndarray) -> jnp.nda
     return jnp.cross(v1, v2)
 
 
-@jit
 def IMRPhenomX_Return_Constants_c_MSA(
     v: float,
     JNorm: float,
@@ -1184,7 +1171,6 @@ def IMRPhenomX_Return_Constants_c_MSA(
     return jnp.array([x, y, z])
 
 
-@jit
 def IMRPhenomX_Return_Constants_d_MSA(
     LNorm: float,
     JNorm: float,
@@ -1227,7 +1213,6 @@ def IMRPhenomX_Return_Constants_d_MSA(
     return jnp.array([x, y, z])
 
 
-@jit
 def IMRPhenomX_Return_Psi_MSA(
     v: float,
     v2: float,
@@ -1262,7 +1247,6 @@ def IMRPhenomX_Return_Psi_MSA(
     return -0.75 * g0 * delta_qq * (1.0 + psi1 * v + psi2 * v2) / (v2 * v)
 
 
-@jit
 def IMRPhenomX_Return_Psi_dot_MSA(
     v: float,
     Seff: float,
@@ -1299,7 +1283,6 @@ def IMRPhenomX_Return_Psi_dot_MSA(
     return psi_dot
 
 
-@jit
 def IMRPhenomX_Return_MSA_Corrections_MSA(
     v: float,
     LNorm: float,
@@ -1475,7 +1458,6 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
     return jnp.stack([vMSA_x, vMSA_y, jnp.zeros_like(vMSA_x)], axis=0)
 
 
-@jit
 def IMRPhenomX_Return_phiz_MSA(
     v: float,
     JNorm: float,
@@ -1607,7 +1589,6 @@ def IMRPhenomX_Return_phiz_MSA(
     return phiz_out
 
 
-@jit
 def IMRPhenomX_Return_zeta_MSA(
     v: float,
     eta: float,
@@ -1674,7 +1655,6 @@ def IMRPhenomX_Return_zeta_MSA(
     return zeta_out
 
 
-@jit
 def IMRPhenomX_vector_sum(v1: jnp.ndarray, v2: jnp.ndarray) -> jnp.ndarray:
     """
     Calculate sum of two 3D vectors
@@ -1689,7 +1669,6 @@ def IMRPhenomX_vector_sum(v1: jnp.ndarray, v2: jnp.ndarray) -> jnp.ndarray:
     return v1 + v2
 
 
-@jit
 def IMRPhenomX_vector_L2_norm(v1: jnp.ndarray) -> float:
     """
     Calculate L2 norm of a 3D vector
@@ -1703,7 +1682,6 @@ def IMRPhenomX_vector_L2_norm(v1: jnp.ndarray) -> float:
     return jnp.linalg.norm(v1)
 
 
-@jit
 def IMRPhenomX_vector_scalar(v1: jnp.ndarray, a: float) -> jnp.ndarray:
     """
     Multiply a vector by a scalar
@@ -1719,13 +1697,11 @@ def IMRPhenomX_vector_scalar(v1: jnp.ndarray, a: float) -> jnp.ndarray:
     return v2
 
 
-@jit
 def IMRPhenomX_JNorm_MSA(LNorm: float, c1_over_eta: float, SAv2: float) -> float:
     JNorm2 = LNorm * LNorm + 2.0 * LNorm * c1_over_eta + SAv2
     return jnp.sqrt(JNorm2)
 
 
-@jit
 def IMRPhenomX_L_norm_3PN_of_v(
     v: jax.Array,
     L_norm: float,
@@ -1773,7 +1749,6 @@ def IMRPhenomX_L_norm_3PN_of_v(
     return L_norm3PN
 
 
-@jit
 def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
     v: float,
     eta: float,
@@ -1969,7 +1944,6 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
     return jnp.array([vout1, vout2, vout3])
 
 
-@jit
 def IMRPhenomX_costhetaLJ(L_norm: float, J_norm: float, S_norm: float) -> float:
     costhetaLJ = 0.5 * (J_norm**2 + L_norm**2 - S_norm**2) / (L_norm * J_norm)
 
@@ -1979,7 +1953,6 @@ def IMRPhenomX_costhetaLJ(L_norm: float, J_norm: float, S_norm: float) -> float:
     return costhetaLJ
 
 
-@jit
 def IMRPhenomX_Return_SNorm_MSA(
     v: float,
     Smi2: float,
@@ -2041,7 +2014,6 @@ def IMRPhenomX_Return_SNorm_MSA(
     return jnp.sqrt(SNorm2)
 
 
-@jit
 def IMRPhenomX_vector_dot_product(v1: jnp.ndarray, v2: jnp.ndarray) -> float:
     """
     Calculate dot product of two 3D vectors

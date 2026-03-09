@@ -2,7 +2,6 @@ import jax.numpy as jnp
 from ..constants import MTSUN
 import jax
 from jax_dataclasses import pytree_dataclass
-from jax import jit
 
 from .initialise_MSA_system import (
     IMRPhenomX_Initialize_MSA_System,
@@ -27,7 +26,6 @@ class CommonConstants:
     MAX_TOL_ATAN: float = 1.0e-15
 
 
-@jit
 def compute_evolved_spin_using_msa(
     Mf,
     mass_1,
@@ -285,7 +283,6 @@ def compute_evolved_spin_using_msa(
     return alpha_out, epsilon_out, cos_beta_out
 
 
-@jit
 def compute_vangles(
     Mf,
     emm,
@@ -382,7 +379,6 @@ def compute_vangles(
     return vangles
 
 
-@jit
 def compute_thetaJN_and_kappa(
     mass_1,
     mass_2,
@@ -463,7 +459,6 @@ def compute_thetaJN_and_kappa(
     return thetaJN, Nz_Jf, Nx_Jf, phiJ_Sf, kappa
 
 
-@jit
 def compute_zeta_polarization(
     mass_1,
     mass_2,
@@ -576,7 +571,6 @@ def compute_zeta_polarization(
     return zeta_polarization
 
 
-@jit
 def compute_thetaJN_kappa_and_zeta(
     mass_1,
     mass_2,
@@ -649,7 +643,6 @@ def compute_thetaJN_kappa_and_zeta(
     return thetaJN, Nz_Jf, Nx_Jf, phiJ_Sf, kappa, zeta_polarization
 
 
-@jit
 def PQ_Arun_1_6_7(Nx_Jf, Nz_Jf):
     # Get polar angle of X vector in J frame in the P,Q basis of Arun et al
     PArunx_Jf = Nz_Jf
@@ -665,7 +658,6 @@ def PQ_Arun_1_6_7(Nx_Jf, Nz_Jf):
     )
 
 
-@jit
 def thetaJN_Nz_Nx_1_6_7(N_Sf, J0_Sf, J0):
     # Line 957-962
 
@@ -683,7 +675,6 @@ def thetaJN_Nz_Nx_1_6_7(N_Sf, J0_Sf, J0):
     return thetaJN, Nz_Jf, Nx_Jf
 
 
-@jit
 def get_phiJ_Sf(tol_condition, J0_Sf):
     """
     Compute phiJ_Sf based on tolerance condition.
@@ -702,7 +693,6 @@ def get_phiJ_Sf(tol_condition, J0_Sf):
     return phiJ_Sf
 
 
-@jit
 def Get_alphaepsilon_atfref(
     mprime,
     piM,
@@ -805,7 +795,6 @@ def Get_alphaepsilon_atfref(
     return alpha_offset, epsilon_offset
 
 
-@jit
 def Get_alphaepsilon_atfref_pflag_true(
     omega_ref,
     alpha0,
@@ -905,7 +894,6 @@ def Get_alphaepsilon_atfref_pflag_true(
     return alpha_offset, epsilon_offset
 
 
-@jit
 def flag_222_223_twoPN_non_spinning_orbitan_angular_momentum(
     eta, eta2, chi1L, chi2L, delta, power_of_lalpi_2
 ):
@@ -931,7 +919,6 @@ def flag_222_223_twoPN_non_spinning_orbitan_angular_momentum(
     return jnp.array([L0, L1, L2, L3, L4, L5, L6, L7, L8, L8L])
 
 
-@jit
 def set_epsilon0(phenom_xp_convention, phiJ_Sf):
     epsilon0 = jax.lax.cond(
         jnp.isin(phenom_xp_convention, jnp.array([1, 6])),
@@ -1003,7 +990,6 @@ class MSAPrecessionSetup:
     S2_norm_2: float
 
 
-@jit
 def compute_msa_precession_setup(
     mass_1,
     mass_2,
@@ -1222,7 +1208,6 @@ def compute_evolved_spin_given_setup(Mf, emm, setup: MSAPrecessionSetup):
     return alpha_out, epsilon_out, cos_beta_out
 
 
-@jit
 def XLALSimIMRPhenomXUtilsHztoMf(fHz: float, Mtot_Msun: float) -> float:
     """
     Convert frequency from Hz to geometric units (Mf).
@@ -1242,7 +1227,6 @@ def XLALSimIMRPhenomXUtilsHztoMf(fHz: float, Mtot_Msun: float) -> float:
     return fHz * Mtot_Msun * MTSUN
 
 
-@jit
 def XLALSimIMRPhenomXUtilsMftoHz(Mf: float, Mtot_Msun: float) -> float:
     """
     Convert frequency from geometric units (Mf) to Hz.
@@ -1262,7 +1246,6 @@ def XLALSimIMRPhenomXUtilsMftoHz(Mf: float, Mtot_Msun: float) -> float:
     return Mf / (Mtot_Msun * MTSUN)
 
 
-@jit
 def IMRPhenomX_rotate_z(angle, v):
     """
     Rotate a 3D vector v = (vx, vy, vz) about the z-axis by given angle.
@@ -1285,7 +1268,6 @@ def IMRPhenomX_rotate_z(angle, v):
     return jnp.array([vx_rot, vy_rot, vz_rot])
 
 
-@jit
 def IMRPhenomX_rotate_y(angle, v):
     """
     Rotate a 3D vector v = (vx, vy, vz) about the y-axis by a given angle.
