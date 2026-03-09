@@ -870,6 +870,285 @@ def set_epsilon0(phenom_xp_convention, phiJ_Sf):
     return epsilon0
 
 
+# ---------------------------------------------------------------------------
+# MSA precession setup helpers – hoist the emm-invariant work out of the
+# per-mode vmap to avoid recomputing it five times per waveform call.
+# ---------------------------------------------------------------------------
+
+
+@pytree_dataclass
+class MSAPrecessionSetup:
+    """Pre-computed MSA precession constants that are invariant to emm and Mf.
+
+    Compute once via compute_msa_precession_setup and pass into
+    compute_evolved_spin_given_setup inside any jax.vmap over modes.
+    """
+
+    eta: float
+    eta2: float
+    eta3: float
+    eta4: float
+    inveta: float
+    SAv: float
+    SAv2: float
+    invSAv: float
+    invSAv2: float
+    qq: float
+    delta_qq: float
+    alpha_offset: float
+    epsilon_offset: float
+    c1: float
+    c1_over_eta: float
+    Seff: float
+    dotS1Ln: float
+    dotS2Ln: float
+    S_0_norm: float
+    psi0: float
+    psi1: float
+    psi2: float
+    g0: float
+    Omegaz0_coeff: float
+    Omegaz1_coeff: float
+    Omegaz2_coeff: float
+    Omegaz3_coeff: float
+    Omegaz4_coeff: float
+    Omegaz5_coeff: float
+    phiz_0: float
+    Omegazeta0_coeff: float
+    Omegazeta1_coeff: float
+    Omegazeta2_coeff: float
+    Omegazeta3_coeff: float
+    Omegazeta4_coeff: float
+    Omegazeta5_coeff: float
+    zeta_0: float
+    constants_L_0: float
+    constants_L_1: float
+    constants_L_2: float
+    constants_L_3: float
+    constants_L_4: float
+    S1_norm_2: float
+    S2_norm_2: float
+
+
+@jit
+def compute_msa_precession_setup(
+    mass_1,
+    mass_2,
+    chi1x,
+    chi1y,
+    chi1z,
+    chi2x,
+    chi2y,
+    chi2z,
+    reference_frequency,
+    kappa,
+    phiJ_Sf,
+) -> MSAPrecessionSetup:
+    """Compute MSA precession constants invariant to emm and Mf.
+
+    Replaces the emm-invariant prefix of compute_evolved_spin_using_msa.
+    Call once per waveform evaluation; pass the result to
+    compute_evolved_spin_given_setup inside any vmap over modes.
+    """
+    phenom_xp_convention = 1
+    eta = mass_1 * mass_2 / jnp.power(mass_1 + mass_2, 2)
+    Msec = (mass_1 + mass_2) * MTSUN
+    piM = jnp.pi * Msec
+
+    msa_init = IMRPhenomX_Initialize_MSA_System(
+        mass_1=mass_1,
+        mass_2=mass_2,
+        chi1x=chi1x,
+        chi1y=chi1y,
+        chi1z=chi1z,
+        chi2x=chi2x,
+        chi2y=chi2y,
+        chi2z=chi2z,
+        reference_frequency=reference_frequency,
+    )
+
+    alpha0 = jnp.pi - kappa
+    epsilon0 = set_epsilon0(phenom_xp_convention, phiJ_Sf)
+    mprime_for_offset = 2
+
+    eta2 = jnp.power(eta, 2)
+    eta3 = jnp.power(eta, 3)
+    eta4 = jnp.power(eta, 4)
+    inveta = jnp.power(eta, -1)
+
+    SAv2 = msa_init[15]
+    SAv = jnp.sqrt(SAv2)
+    invSAv = jnp.power(SAv, -1)
+    invSAv2 = jnp.power(SAv2, -1)
+
+    qq = mass_2 / mass_1
+    delta_qq = (1 - qq) / (1 + qq)
+
+    alpha_offset, epsilon_offset = Get_alphaepsilon_atfref(
+        mprime_for_offset,
+        piM,
+        reference_frequency,
+        alpha0,
+        epsilon0,
+        eta=eta,
+        eta2=eta2,
+        eta3=eta3,
+        eta4=eta4,
+        inveta=inveta,
+        SAv=SAv,
+        SAv2=SAv2,
+        invSAv=invSAv,
+        invSAv2=invSAv2,
+        qq=qq,
+        delta_qq=delta_qq,
+        Omegaz0_coeff=msa_init[0],
+        Omegaz1_coeff=msa_init[1],
+        Omegaz2_coeff=msa_init[2],
+        Omegaz3_coeff=msa_init[3],
+        Omegaz4_coeff=msa_init[4],
+        Omegaz5_coeff=msa_init[5],
+        Omegazeta0_coeff=msa_init[6],
+        Omegazeta1_coeff=msa_init[7],
+        Omegazeta2_coeff=msa_init[8],
+        Omegazeta3_coeff=msa_init[9],
+        Omegazeta4_coeff=msa_init[10],
+        Omegazeta5_coeff=msa_init[11],
+        g0=msa_init[12],
+        c1=msa_init[13],
+        c1_over_eta=msa_init[14],
+        Seff=msa_init[16],
+        dotS1Ln=msa_init[17],
+        dotS2Ln=msa_init[18],
+        S_0_norm=msa_init[19],
+        psi0=msa_init[20],
+        psi1=msa_init[21],
+        psi2=msa_init[22],
+        phiz_0=msa_init[23],
+        zeta_0=msa_init[24],
+        constants_L_0=msa_init[25],
+        constants_L_1=msa_init[26],
+        constants_L_2=msa_init[27],
+        constants_L_3=msa_init[28],
+        constants_L_4=msa_init[29],
+        S1_norm_2=msa_init[30],
+        S2_norm_2=msa_init[31],
+    )
+
+    return MSAPrecessionSetup(
+        eta=eta,
+        eta2=eta2,
+        eta3=eta3,
+        eta4=eta4,
+        inveta=inveta,
+        SAv=SAv,
+        SAv2=SAv2,
+        invSAv=invSAv,
+        invSAv2=invSAv2,
+        qq=qq,
+        delta_qq=delta_qq,
+        alpha_offset=alpha_offset,
+        epsilon_offset=epsilon_offset,
+        c1=msa_init[13],
+        c1_over_eta=msa_init[14],
+        Seff=msa_init[16],
+        dotS1Ln=msa_init[17],
+        dotS2Ln=msa_init[18],
+        S_0_norm=msa_init[19],
+        psi0=msa_init[20],
+        psi1=msa_init[21],
+        psi2=msa_init[22],
+        g0=msa_init[12],
+        Omegaz0_coeff=msa_init[0],
+        Omegaz1_coeff=msa_init[1],
+        Omegaz2_coeff=msa_init[2],
+        Omegaz3_coeff=msa_init[3],
+        Omegaz4_coeff=msa_init[4],
+        Omegaz5_coeff=msa_init[5],
+        phiz_0=msa_init[23],
+        Omegazeta0_coeff=msa_init[6],
+        Omegazeta1_coeff=msa_init[7],
+        Omegazeta2_coeff=msa_init[8],
+        Omegazeta3_coeff=msa_init[9],
+        Omegazeta4_coeff=msa_init[10],
+        Omegazeta5_coeff=msa_init[11],
+        zeta_0=msa_init[24],
+        constants_L_0=msa_init[25],
+        constants_L_1=msa_init[26],
+        constants_L_2=msa_init[27],
+        constants_L_3=msa_init[28],
+        constants_L_4=msa_init[29],
+        S1_norm_2=msa_init[30],
+        S2_norm_2=msa_init[31],
+    )
+
+
+def compute_evolved_spin_given_setup(Mf, emm, setup: MSAPrecessionSetup):
+    """Compute precession angles for mode emm using pre-computed MSA setup.
+
+    This is the emm-dependent part of compute_evolved_spin_using_msa.
+    Suitable for use inside jax.vmap over harmonic modes.
+
+    Args:
+        Mf: Dimensionless frequency array.
+        emm: Azimuthal mode number m.
+        setup: Pre-computed MSAPrecessionSetup from compute_msa_precession_setup.
+
+    Returns:
+        alpha, epsilon, cos_beta arrays over Mf.
+    """
+    inspiral_mask = Mf < 0.3
+    vangles = compute_vangles(
+        Mf=Mf,
+        emm=emm,
+        eta=setup.eta,
+        eta2=setup.eta2,
+        eta3=setup.eta3,
+        eta4=setup.eta4,
+        inveta=setup.inveta,
+        c1=setup.c1,
+        c1_over_eta=setup.c1_over_eta,
+        SAv=setup.SAv,
+        SAv2=setup.SAv2,
+        invSAv=setup.invSAv,
+        invSAv2=setup.invSAv2,
+        constants_L_0=setup.constants_L_0,
+        constants_L_1=setup.constants_L_1,
+        constants_L_2=setup.constants_L_2,
+        constants_L_3=setup.constants_L_3,
+        constants_L_4=setup.constants_L_4,
+        S1_norm_2=setup.S1_norm_2,
+        S2_norm_2=setup.S2_norm_2,
+        qq=setup.qq,
+        delta_qq=setup.delta_qq,
+        Seff=setup.Seff,
+        dotS1Ln=setup.dotS1Ln,
+        dotS2Ln=setup.dotS2Ln,
+        S_0_norm=setup.S_0_norm,
+        psi0=setup.psi0,
+        psi1=setup.psi1,
+        psi2=setup.psi2,
+        g0=setup.g0,
+        Omegaz0_coeff=setup.Omegaz0_coeff,
+        Omegaz1_coeff=setup.Omegaz1_coeff,
+        Omegaz2_coeff=setup.Omegaz2_coeff,
+        Omegaz3_coeff=setup.Omegaz3_coeff,
+        Omegaz4_coeff=setup.Omegaz4_coeff,
+        Omegaz5_coeff=setup.Omegaz5_coeff,
+        phiz_0=setup.phiz_0,
+        Omegazeta0_coeff=setup.Omegazeta0_coeff,
+        Omegazeta1_coeff=setup.Omegazeta1_coeff,
+        Omegazeta2_coeff=setup.Omegazeta2_coeff,
+        Omegazeta3_coeff=setup.Omegazeta3_coeff,
+        Omegazeta4_coeff=setup.Omegazeta4_coeff,
+        Omegazeta5_coeff=setup.Omegazeta5_coeff,
+        zeta_0=setup.zeta_0,
+    )
+    alpha_out = jnp.where(inspiral_mask, vangles[0] - setup.alpha_offset, 0.0)
+    epsilon_out = jnp.where(inspiral_mask, vangles[1] - setup.epsilon_offset, 0.0)
+    cos_beta_out = jnp.where(inspiral_mask, vangles[2], 0.0)
+    return alpha_out, epsilon_out, cos_beta_out
+
+
 @jit
 def XLALSimIMRPhenomXUtilsHztoMf(fHz: float, Mtot_Msun: float) -> float:
     """

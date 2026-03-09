@@ -226,26 +226,31 @@ def twistup(
         kappa,
     )
 
+    # Compute MSA precession constants once (independent of emm and Mf) so they
+    # are not redundantly recomputed for each of the 5 modes inside the vmap.
+    _msa_setup = pPrec.compute_msa_precession_setup(
+        mass_1,
+        mass_2,
+        chi1x,
+        chi1y,
+        chi1z,
+        chi2x,
+        chi2y,
+        chi2z,
+        reference_frequency,
+        kappa,
+        phiJ_Sf,
+    )
+    _twist_emms = jnp.array([1, 2, 2, 3, 4], dtype=jnp.int32)
+
     def compute_twist_for_mode(mode_idx):
         # mode_idx: 0->21, 1->22, 2->32, 3->33, 4->44
-        emms = jnp.array([1, 2, 2, 3, 4], dtype=jnp.int32)
+        emm = _twist_emms[mode_idx]
 
-        emm = emms[mode_idx]
-
-        alpha, epsilon, cos_beta = pPrec.compute_evolved_spin_using_msa(
+        alpha, epsilon, cos_beta = pPrec.compute_evolved_spin_given_setup(
             Mf,
-            mass_1,
-            mass_2,
-            chi1x,
-            chi1y,
-            chi1z,
-            chi2x,
-            chi2y,
-            chi2z,
             emm,
-            reference_frequency,
-            kappa,
-            phiJ_Sf,
+            _msa_setup,
         )
 
         cBetah, sBetah = IMRPhenomXWignerdCoefficients_cosbeta(cos_beta)
@@ -296,12 +301,9 @@ def twistup(
     )(mode_indices)
 
     # jax.debug.print(f"length of hp_twist_all_modes {jnp.shape(hp_twist_all_modes)}")
-    _hp = jnp.sum(
-        hlm.T * hp_twist_all_modes.T * jnp.exp(-1j * epsilon_all_modes.T) / 2, axis=1
-    )
-    _hc = jnp.sum(
-        hlm.T * hc_twist_all_modes.T * jnp.exp(-1j * epsilon_all_modes.T) / 2, axis=1
-    )
+    exp_neg_i_epsilon = jnp.exp(-1j * epsilon_all_modes.T) / 2
+    _hp = jnp.sum(hlm.T * hp_twist_all_modes.T * exp_neg_i_epsilon, axis=1)
+    _hc = jnp.sum(hlm.T * hc_twist_all_modes.T * exp_neg_i_epsilon, axis=1)
 
     # LALSim zeros the contribution for Mf >= 0.3 (f_max_prime). Setting
     # cos_beta=0 in compute_evolved_spin_using_msa does NOT produce a null
@@ -424,15 +426,13 @@ def twist_22(cexp_i_alpha, theta_JN, beta_powers):
         hp_sum: Plus polarization contribution
         hc_sum: Cross polarization contribution
     """
-    hp_sum = jnp.zeros_like(cexp_i_alpha, dtype=cexp_i_alpha.dtype)
-    hc_sum = jnp.zeros_like(cexp_i_alpha, dtype=cexp_i_alpha.dtype)
-
     # Complex exponential powers of alpha
     cexp_2i_alpha = cexp_i_alpha * cexp_i_alpha
 
     cexp_mi_alpha = 1.0 / cexp_i_alpha
     cexp_m2i_alpha = cexp_mi_alpha * cexp_mi_alpha
 
+    # shape (5, N): rows indexed by m+2 for m in -2..2
     cexp_im_alpha_l2 = jnp.stack(
         [
             cexp_m2i_alpha,
@@ -444,16 +444,17 @@ def twist_22(cexp_i_alpha, theta_JN, beta_powers):
         axis=0,
     )
 
-    Y2m2 = compute_sminus2_l2(theta_JN, m=-2)
-    Y2m1 = compute_sminus2_l2(theta_JN, m=-1)
-    Y20 = compute_sminus2_l2(theta_JN, m=0)
-    Y21 = compute_sminus2_l2(theta_JN, m=1)
-    Y22 = compute_sminus2_l2(theta_JN, m=2)
-    Y2mA = jnp.array([Y2m2, Y2m1, Y20, Y21, Y22])
+    Y2mA = jnp.array(
+        [
+            compute_sminus2_l2(theta_JN, m=-2),
+            compute_sminus2_l2(theta_JN, m=-1),
+            compute_sminus2_l2(theta_JN, m=0),
+            compute_sminus2_l2(theta_JN, m=1),
+            compute_sminus2_l2(theta_JN, m=2),
+        ]
+    )
 
-    # Wigner-d coefficients
-    # d^2_{-2,2}, d^2_{-1,2}, d^2_{0,2}, d^2_{1,2}, d^2_{2,2}
-
+    # Wigner-d coefficients – shape (5, N)
     d22 = jnp.array(
         [
             beta_powers.sBetah4,
@@ -465,15 +466,14 @@ def twist_22(cexp_i_alpha, theta_JN, beta_powers):
     )
 
     # Exploit symmetry d^2_{-m,-2} = (-1)^m d^2_{-m,2}. See eq. A2 of Precessing paper
-    # d^2_{-2,-2}, d^2_{-1,-2}, d^2_{0,-2}, d^2_{1,-2}, d^2_{2,-2}
     d2m2 = jnp.array([d22[4], -d22[3], d22[2], -d22[1], d22[0]])
 
-    for m in range(-2, 2 + 1):
-        # Compute transfer function
-        A2m2emm = cexp_im_alpha_l2[-m + 2] * d2m2[m + 2] * Y2mA[m + 2]
-        A22emmstar = cexp_im_alpha_l2[m + 2] * d22[m + 2] * jnp.conj(Y2mA[m + 2])
-        hp_sum += A2m2emm + A22emmstar
-        hc_sum += 1j * (A2m2emm - A22emmstar)
+    # Vectorised sum over m=-2..2.  The -m+2 index pattern equals reversed order.
+    # Shapes: cexp_im_alpha_l2 (5,N), d2m2 (5,N), Y2mA (5,) -> broadcast to (5,N)
+    A2m2emm = cexp_im_alpha_l2[::-1] * d2m2 * Y2mA[:, None]
+    A22emmstar = cexp_im_alpha_l2 * d22 * jnp.conj(Y2mA)[:, None]
+    hp_sum = jnp.sum(A2m2emm + A22emmstar, axis=0)
+    hc_sum = jnp.sum(1j * (A2m2emm - A22emmstar), axis=0)
 
     return hp_sum, hc_sum
 
@@ -495,14 +495,12 @@ def twist_21(cexp_i_alpha, theta_JN, beta_powers):
         hp_sum: Plus polarization contribution
         hc_sum: Cross polarization contribution
     """
-    hp_sum = jnp.zeros_like(cexp_i_alpha, dtype=cexp_i_alpha.dtype)
-    hc_sum = jnp.zeros_like(cexp_i_alpha, dtype=cexp_i_alpha.dtype)
-
     # Complex exponential powers of alpha
     cexp_2i_alpha = cexp_i_alpha * cexp_i_alpha
     cexp_mi_alpha = 1.0 / cexp_i_alpha
     cexp_m2i_alpha = cexp_mi_alpha * cexp_mi_alpha
 
+    # shape (5, N): rows indexed by m+2 for m in -2..2
     cexp_im_alpha_l2 = jnp.stack(
         [
             cexp_m2i_alpha,
@@ -514,15 +512,17 @@ def twist_21(cexp_i_alpha, theta_JN, beta_powers):
         axis=0,
     )
 
-    Y2m2 = compute_sminus2_l2(theta_JN, m=-2)
-    Y2m1 = compute_sminus2_l2(theta_JN, m=-1)
-    Y20 = compute_sminus2_l2(theta_JN, m=0)
-    Y21 = compute_sminus2_l2(theta_JN, m=1)
-    Y22 = compute_sminus2_l2(theta_JN, m=2)
-    Y2mA = jnp.array([Y2m2, Y2m1, Y20, Y21, Y22])
+    Y2mA = jnp.array(
+        [
+            compute_sminus2_l2(theta_JN, m=-2),
+            compute_sminus2_l2(theta_JN, m=-1),
+            compute_sminus2_l2(theta_JN, m=0),
+            compute_sminus2_l2(theta_JN, m=1),
+            compute_sminus2_l2(theta_JN, m=2),
+        ]
+    )
 
-    # Wigner-d coefficients for m'=1
-    # d^2_{-2,1}, d^2_{-1,1}, d^2_{0,1}, d^2_{1,1}, d^2_{2,1}
+    # Wigner-d coefficients for m'=1 – shape (5, N)
     d21 = jnp.array(
         [
             2.0 * beta_powers.cBetah * beta_powers.sBetah3,
@@ -538,15 +538,13 @@ def twist_21(cexp_i_alpha, theta_JN, beta_powers):
     )
 
     # Exploit symmetry d^2_{-m,-1} = -(-1)^m d^2_{m,1}. See eq. A2 of Precessing paper.
-    # d^2_{-2,-1}, d^2_{-1,-1}, d^2_{0,-1}, d^2_{1,-1}, d^2_{2,-1}
     d2m1 = jnp.array([-d21[4], d21[3], -d21[2], d21[1], -d21[0]])
 
-    for m in range(-2, 2 + 1):
-        # Transfer functions, see eqs. 3.5-3.7 in Precessing paper.
-        A2m1emm = cexp_im_alpha_l2[-m + 2] * d2m1[m + 2] * Y2mA[m + 2]
-        A21emmstar = cexp_im_alpha_l2[m + 2] * d21[m + 2] * jnp.conj(Y2mA[m + 2])
-        hp_sum += A2m1emm + A21emmstar
-        hc_sum += 1j * (A2m1emm - A21emmstar)
+    # Vectorised sum over m=-2..2.  The -m+2 index pattern equals reversed order.
+    A2m1emm = cexp_im_alpha_l2[::-1] * d2m1 * Y2mA[:, None]
+    A21emmstar = cexp_im_alpha_l2 * d21 * jnp.conj(Y2mA)[:, None]
+    hp_sum = jnp.sum(A2m1emm + A21emmstar, axis=0)
+    hc_sum = jnp.sum(1j * (A2m1emm - A21emmstar), axis=0)
 
     return hp_sum, hc_sum
 
@@ -568,9 +566,6 @@ def twist_33(cexp_i_alpha, theta_JN, beta_powers):
         hp_sum: Plus polarization contribution
         hc_sum: Cross polarization contribution
     """
-    hp_sum = jnp.zeros_like(cexp_i_alpha, dtype=cexp_i_alpha.dtype)
-    hc_sum = jnp.zeros_like(cexp_i_alpha, dtype=cexp_i_alpha.dtype)
-
     # Complex exponential powers of alpha
     cexp_2i_alpha = cexp_i_alpha * cexp_i_alpha
     cexp_3i_alpha = cexp_i_alpha * cexp_2i_alpha
@@ -578,6 +573,7 @@ def twist_33(cexp_i_alpha, theta_JN, beta_powers):
     cexp_m2i_alpha = cexp_mi_alpha * cexp_mi_alpha
     cexp_m3i_alpha = cexp_mi_alpha * cexp_m2i_alpha
 
+    # shape (7, N): rows indexed by m+3 for m in -3..3
     cexp_im_alpha_l3 = jnp.stack(
         [
             cexp_m3i_alpha,
@@ -591,17 +587,19 @@ def twist_33(cexp_i_alpha, theta_JN, beta_powers):
         axis=0,
     )
 
-    Y3m3 = compute_sminus2_l3(theta=theta_JN, m=-3)
-    Y3m2 = compute_sminus2_l3(theta=theta_JN, m=-2)
-    Y3m1 = compute_sminus2_l3(theta=theta_JN, m=-1)
-    Y30 = compute_sminus2_l3(theta=theta_JN, m=0)
-    Y31 = compute_sminus2_l3(theta=theta_JN, m=1)
-    Y32 = compute_sminus2_l3(theta=theta_JN, m=2)
-    Y33 = compute_sminus2_l3(theta=theta_JN, m=3)
-    Y3mA = jnp.array([Y3m3, Y3m2, Y3m1, Y30, Y31, Y32, Y33])
+    Y3mA = jnp.array(
+        [
+            compute_sminus2_l3(theta=theta_JN, m=-3),
+            compute_sminus2_l3(theta=theta_JN, m=-2),
+            compute_sminus2_l3(theta=theta_JN, m=-1),
+            compute_sminus2_l3(theta=theta_JN, m=0),
+            compute_sminus2_l3(theta=theta_JN, m=1),
+            compute_sminus2_l3(theta=theta_JN, m=2),
+            compute_sminus2_l3(theta=theta_JN, m=3),
+        ]
+    )
 
-    # Wigner-d coefficients for m'=3
-    # d^3_{-3,3}, d^3_{-2,3}, d^3_{-1,3}, d^3_{0,3}, d^3_{1,3}, d^3_{2,3}, d^3_{3,3}
+    # Wigner-d coefficients for m'=3 – shape (7, N)
     sqrt6 = jnp.sqrt(6.0)
     sqrt15 = jnp.sqrt(15.0)
     sqrt5 = jnp.sqrt(5.0)
@@ -619,15 +617,13 @@ def twist_33(cexp_i_alpha, theta_JN, beta_powers):
     )
 
     # Exploit symmetry d^3_{-m,-3} = -(-1)^m d^3_{m,3}. See eq. A2 of Precessing paper.
-    # d^3_{-3,-3}, d^3_{-2,-3}, d^3_{-1,-3}, d^3_{0,-3}, d^3_{1,-3}, d^3_{2,-3}, d^3_{3,-3}
     d3m3 = jnp.array([d33[6], -d33[5], d33[4], -d33[3], d33[2], -d33[1], d33[0]])
 
-    for m in range(-3, 3 + 1):
-        # Transfer functions
-        A3m3emm = cexp_im_alpha_l3[-m + 3] * d3m3[m + 3] * Y3mA[m + 3]
-        A33emmstar = cexp_im_alpha_l3[m + 3] * d33[m + 3] * jnp.conj(Y3mA[m + 3])
-        hp_sum += A3m3emm - A33emmstar
-        hc_sum += 1j * (A3m3emm + A33emmstar)
+    # Vectorised sum over m=-3..3.  The -m+3 index pattern equals reversed order.
+    A3m3emm = cexp_im_alpha_l3[::-1] * d3m3 * Y3mA[:, None]
+    A33emmstar = cexp_im_alpha_l3 * d33 * jnp.conj(Y3mA)[:, None]
+    hp_sum = jnp.sum(A3m3emm - A33emmstar, axis=0)
+    hc_sum = jnp.sum(1j * (A3m3emm + A33emmstar), axis=0)
 
     return hp_sum, hc_sum
 
@@ -649,9 +645,6 @@ def twist_32(cexp_i_alpha, theta_JN, beta_powers):
         hp_sum: Plus polarization contribution
         hc_sum: Cross polarization contribution
     """
-    hp_sum = jnp.zeros_like(cexp_i_alpha, dtype=cexp_i_alpha.dtype)
-    hc_sum = jnp.zeros_like(cexp_i_alpha, dtype=cexp_i_alpha.dtype)
-
     # Complex exponential powers of alpha
     cexp_2i_alpha = cexp_i_alpha * cexp_i_alpha
     cexp_3i_alpha = cexp_i_alpha * cexp_2i_alpha
@@ -659,6 +652,7 @@ def twist_32(cexp_i_alpha, theta_JN, beta_powers):
     cexp_m2i_alpha = cexp_mi_alpha * cexp_mi_alpha
     cexp_m3i_alpha = cexp_mi_alpha * cexp_m2i_alpha
 
+    # shape (7, N): rows indexed by m+3 for m in -3..3
     cexp_im_alpha_l3 = jnp.stack(
         [
             cexp_m3i_alpha,
@@ -672,17 +666,19 @@ def twist_32(cexp_i_alpha, theta_JN, beta_powers):
         axis=0,
     )
 
-    Y3m3 = compute_sminus2_l3(theta=theta_JN, m=-3)
-    Y3m2 = compute_sminus2_l3(theta=theta_JN, m=-2)
-    Y3m1 = compute_sminus2_l3(theta=theta_JN, m=-1)
-    Y30 = compute_sminus2_l3(theta=theta_JN, m=0)
-    Y31 = compute_sminus2_l3(theta=theta_JN, m=1)
-    Y32 = compute_sminus2_l3(theta=theta_JN, m=2)
-    Y33 = compute_sminus2_l3(theta=theta_JN, m=3)
-    Y3mA = jnp.array([Y3m3, Y3m2, Y3m1, Y30, Y31, Y32, Y33])
+    Y3mA = jnp.array(
+        [
+            compute_sminus2_l3(theta=theta_JN, m=-3),
+            compute_sminus2_l3(theta=theta_JN, m=-2),
+            compute_sminus2_l3(theta=theta_JN, m=-1),
+            compute_sminus2_l3(theta=theta_JN, m=0),
+            compute_sminus2_l3(theta=theta_JN, m=1),
+            compute_sminus2_l3(theta=theta_JN, m=2),
+            compute_sminus2_l3(theta=theta_JN, m=3),
+        ]
+    )
 
-    # Wigner-d coefficients for m'=2
-    # d^3_{-3,2}, d^3_{-2,2}, d^3_{-1,2}, d^3_{0,2}, d^3_{1,2}, d^3_{2,2}, d^3_{3,2}
+    # Wigner-d coefficients for m'=2 – shape (7, N)
     sqrt6 = jnp.sqrt(6.0)
     sqrt10 = jnp.sqrt(10.0)
     sqrt30 = jnp.sqrt(30.0)
@@ -711,15 +707,13 @@ def twist_32(cexp_i_alpha, theta_JN, beta_powers):
     )
 
     # Exploit symmetry d^3_{-m,-2} = (-1)^m d^3_{m,2}. See eq. A2 of Precessing paper.
-    # d^3_{-3,-2}, d^3_{-2,-2}, d^3_{-1,-2}, d^3_{0,-2}, d^3_{1,-2}, d^3_{2,-2}, d^3_{3,-2}
     d3m2 = jnp.array([-d32[6], d32[5], -d32[4], d32[3], -d32[2], d32[1], -d32[0]])
 
-    for m in range(-3, 3 + 1):
-        # Transfer functions, see eqs. 3.5-3.7 in Precessing paper.
-        A3m2emm = cexp_im_alpha_l3[-m + 3] * d3m2[m + 3] * Y3mA[m + 3]
-        A32emmstar = cexp_im_alpha_l3[m + 3] * d32[m + 3] * jnp.conj(Y3mA[m + 3])
-        hp_sum += A3m2emm - A32emmstar
-        hc_sum += 1j * (A3m2emm + A32emmstar)
+    # Vectorised sum over m=-3..3.  The -m+3 index pattern equals reversed order.
+    A3m2emm = cexp_im_alpha_l3[::-1] * d3m2 * Y3mA[:, None]
+    A32emmstar = cexp_im_alpha_l3 * d32 * jnp.conj(Y3mA)[:, None]
+    hp_sum = jnp.sum(A3m2emm - A32emmstar, axis=0)
+    hc_sum = jnp.sum(1j * (A3m2emm + A32emmstar), axis=0)
 
     return hp_sum, hc_sum
 
@@ -741,9 +735,6 @@ def twist_44(cexp_i_alpha, theta_JN, beta_powers):
         hp_sum: Plus polarization contribution
         hc_sum: Cross polarization contribution
     """
-    hp_sum = jnp.zeros_like(cexp_i_alpha, dtype=cexp_i_alpha.dtype)
-    hc_sum = jnp.zeros_like(cexp_i_alpha, dtype=cexp_i_alpha.dtype)
-
     # Complex exponential powers of alpha
     cexp_2i_alpha = cexp_i_alpha * cexp_i_alpha
     cexp_3i_alpha = cexp_i_alpha * cexp_2i_alpha
@@ -753,6 +744,7 @@ def twist_44(cexp_i_alpha, theta_JN, beta_powers):
     cexp_m3i_alpha = cexp_mi_alpha * cexp_m2i_alpha
     cexp_m4i_alpha = cexp_mi_alpha * cexp_m3i_alpha
 
+    # shape (9, N): rows indexed by m+4 for m in -4..4
     cexp_im_alpha_l4 = jnp.stack(
         [
             cexp_m4i_alpha,
@@ -768,19 +760,21 @@ def twist_44(cexp_i_alpha, theta_JN, beta_powers):
         axis=0,
     )
 
-    Y4m4 = compute_sminus2_l4(theta=theta_JN, m=-4)
-    Y4m3 = compute_sminus2_l4(theta=theta_JN, m=-3)
-    Y4m2 = compute_sminus2_l4(theta=theta_JN, m=-2)
-    Y4m1 = compute_sminus2_l4(theta=theta_JN, m=-1)
-    Y40 = compute_sminus2_l4(theta=theta_JN, m=0)
-    Y41 = compute_sminus2_l4(theta=theta_JN, m=1)
-    Y42 = compute_sminus2_l4(theta=theta_JN, m=2)
-    Y43 = compute_sminus2_l4(theta=theta_JN, m=3)
-    Y44 = compute_sminus2_l4(theta=theta_JN, m=4)
-    Y4mA = jnp.array([Y4m4, Y4m3, Y4m2, Y4m1, Y40, Y41, Y42, Y43, Y44])
+    Y4mA = jnp.array(
+        [
+            compute_sminus2_l4(theta=theta_JN, m=-4),
+            compute_sminus2_l4(theta=theta_JN, m=-3),
+            compute_sminus2_l4(theta=theta_JN, m=-2),
+            compute_sminus2_l4(theta=theta_JN, m=-1),
+            compute_sminus2_l4(theta=theta_JN, m=0),
+            compute_sminus2_l4(theta=theta_JN, m=1),
+            compute_sminus2_l4(theta=theta_JN, m=2),
+            compute_sminus2_l4(theta=theta_JN, m=3),
+            compute_sminus2_l4(theta=theta_JN, m=4),
+        ]
+    )
 
-    # Wigner-d coefficients for m'=4
-    # d^4_{-4,4}, d^4_{-3,4}, d^4_{-2,4}, d^4_{-1,4}, d^4_{0,4}, d^4_{1,4}, d^4_{2,4}, d^4_{3,4}, d^4_{4,4}
+    # Wigner-d coefficients for m'=4 – shape (9, N)
     sqrt2 = jnp.sqrt(2.0)
     sqrt7 = jnp.sqrt(7.0)
     sqrt14 = jnp.sqrt(14.0)
@@ -801,17 +795,15 @@ def twist_44(cexp_i_alpha, theta_JN, beta_powers):
     )
 
     # Exploit symmetry d^4_{-m,-4} = (-1)^m d^4_{m,4}. See eq. A2 of Precessing paper.
-    # d^4_{-4,-4}, d^4_{-3,-4}, d^4_{-2,-4}, d^4_{-1,-4}, d^4_{0,-4}, d^4_{1,-4}, d^4_{2,-4}, d^4_{3,-4}, d^4_{4,-4}
     d4m4 = jnp.array(
         [d44[8], -d44[7], d44[6], -d44[5], d44[4], -d44[3], d44[2], -d44[1], d44[0]]
     )
 
-    for m in range(-4, 4 + 1):
-        # Transfer functions, see eqs. 3.5-3.7 in Precessing paper.
-        A4m4emm = cexp_im_alpha_l4[-m + 4] * d4m4[m + 4] * Y4mA[m + 4]
-        A44emmstar = cexp_im_alpha_l4[m + 4] * d44[m + 4] * jnp.conj(Y4mA[m + 4])
-        hp_sum += A4m4emm + A44emmstar
-        hc_sum += 1j * (A4m4emm - A44emmstar)
+    # Vectorised sum over m=-4..4.  The -m+4 index pattern equals reversed order.
+    A4m4emm = cexp_im_alpha_l4[::-1] * d4m4 * Y4mA[:, None]
+    A44emmstar = cexp_im_alpha_l4 * d44 * jnp.conj(Y4mA)[:, None]
+    hp_sum = jnp.sum(A4m4emm + A44emmstar, axis=0)
+    hc_sum = jnp.sum(1j * (A4m4emm - A44emmstar), axis=0)
 
     return hp_sum, hc_sum
 
