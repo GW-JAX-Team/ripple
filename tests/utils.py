@@ -71,7 +71,7 @@ def check_is_tidal(waveform_name: str) -> bool:
         ValueError: If the waveform is not supported.
     """
     bns_waveforms = ["IMRPhenomD_NRTidalv2", "TaylorF2", "IMRPhenomXAS_NRTidalv3"]
-    bbh_waveforms = ["IMRPhenomD", "IMRPhenomXAS", "IMRPhenomPv2", "SineGaussian"]
+    bbh_waveforms = ["IMRPhenomD", "IMRPhenomXAS", "IMRPhenomPv2", "IMRPhenomXPHM", "SineGaussian"]
 
     all_waveforms = bns_waveforms + bbh_waveforms
     if waveform_name not in all_waveforms:
@@ -91,7 +91,7 @@ def check_is_precessing(waveform_name: str) -> bool:
     Returns:
         True if the waveform includes precession, False otherwise.
     """
-    precessing_waveforms = ["IMRPhenomPv2"]
+    precessing_waveforms = ["IMRPhenomPv2", "IMRPhenomXPHM"]
     return waveform_name in precessing_waveforms
 
 
@@ -167,6 +167,32 @@ def get_jitted_waveform(waveform_name: str, fs: jnp.ndarray, f_ref: float):
             hp, hc = waveform_generator(fs, theta, f_ref)
             return hp, hc
 
+    elif waveform_name == "IMRPhenomXPHM":
+        from ripplegw.waveforms.IMRPhenomXPHM import generate_xphm
+        from ripplegw.conversions import Mc_eta_to_ms
+
+        @jax.jit
+        def waveform(theta):
+            # theta = [Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, tc, phic, inclination]
+            # consistent with the precessing-waveform convention used by this test suite
+            m1, m2 = Mc_eta_to_ms(jnp.array([theta[0], theta[1]]))
+            hp, hc = generate_xphm(
+                m1,
+                m2,
+                theta[2],
+                theta[3],
+                theta[4],
+                theta[5],
+                theta[6],
+                theta[7],
+                theta[8],   # distance in Mpc
+                theta[11],  # inclination
+                theta[10],  # phi0
+                fs,
+                f_ref,
+            )
+            return hp, hc
+
     elif waveform_name == "SineGaussian":
         from ripplegw.waveforms.SineGaussian import gen_SineGaussian_hphc
 
@@ -222,7 +248,48 @@ def get_lal_waveform(
 
     approximant = lalsim.SimInspiralGetApproximantFromString(waveform_name)
 
-    if is_precessing:
+    if waveform_name == "IMRPhenomXPHM":
+        # XPHM requires SimIMRPhenomXPHM directly with MSA prescription params.
+        # SimInspiralChooseFDWaveform cannot set the PhenomXPrecVersion flag needed
+        # to guarantee the MSA prescription that the ripple implementation uses.
+        # theta = [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, tc, phic, inclination]
+        m1_kg = theta[0] * lal.MSUN_SI
+        m2_kg = theta[1] * lal.MSUN_SI
+        s1x, s1y, s1z = theta[2], theta[3], theta[4]
+        s2x, s2y, s2z = theta[5], theta[6], theta[7]
+        distance = theta[8] * 1e6 * lal.PC_SI
+        phi_ref = theta[10]
+        inclination = theta[11]
+
+        lalparams = lal.CreateDict()
+        ModeArray = lalsim.SimInspiralCreateModeArray()
+        for el, em in [(2, 1), (2, 2), (3, 2), (3, 3), (4, 4)]:
+            lalsim.SimInspiralModeArrayActivateMode(ModeArray, el, em)
+        lalsim.SimInspiralWaveformParamsInsertModeArray(lalparams, ModeArray)
+        lalsim.SimInspiralWaveformParamsInsertPhenomXPHMTwistPhenomHM(lalparams, 1)
+        lalsim.SimInspiralWaveformParamsInsertPhenomXPHMMBandVersion(lalparams, 0)
+        lalsim.SimInspiralWaveformParamsInsertPhenomXPHMThresholdMband(lalparams, 0.0)
+        lalsim.SimInspiralWaveformParamsInsertPhenomXPrecVersion(lalparams, 223)
+
+        hp, hc = lalsim.SimIMRPhenomXPHM(
+            m1_kg,
+            m2_kg,
+            s1x,
+            s1y,
+            s1z,
+            s2x,
+            s2y,
+            s2z,
+            distance,
+            inclination,
+            phi_ref,
+            f_l,
+            f_u,
+            df,
+            f_ref,
+            lalparams,
+        )
+    elif is_precessing:
         # Precessing waveform: theta = [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
         m1_kg = theta[0] * lal.MSUN_SI
         m2_kg = theta[1] * lal.MSUN_SI
