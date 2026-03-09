@@ -97,8 +97,6 @@ def IMRPhenomX_Initialize_MSA_System(
 
     #    /* \delta and powers of \delta in terms of q < 1, should just be m1 - m2 */
     delta_qq = (1.0 - q) / (1.0 + q)
-    delta2_qq = delta_qq * delta_qq
-    delta3_qq = delta_qq * delta2_qq
 
     # Initialize empty vectors (using dictionaries to represent vectors)
 
@@ -204,7 +202,7 @@ def IMRPhenomX_Initialize_MSA_System(
     c_1_over_eta = c_1 / eta
 
     # Average spin couplings over one precession cycle: A9 - A14 of arXiv:1703.03967
-    omqsq = (1.0 - q) * (1.0 - q) + 1e-16
+    # omqsq = (1.0 - q) * (1.0 - q) + 1e-16
     # omq2 = (1.0 - q * q) + 1e-16
 
     # Precession averaged spin couplings, Eq. A9 - A14 of arXiv:1703.03967, note that we only use the initial values
@@ -261,6 +259,7 @@ def IMRPhenomX_Initialize_MSA_System(
             eta,
         )
     )
+    """
     a5 = eta * (
         domegadt_constants_NS[7]
         + eta * (domegadt_constants_NS[8])
@@ -272,6 +271,7 @@ def IMRPhenomX_Initialize_MSA_System(
             q,
         )
     )
+    """
 
     # Useful powers of a_0
     a0_2 = a0 * a0
@@ -284,13 +284,13 @@ def IMRPhenomX_Initialize_MSA_System(
     g2 = -(a2 / a0_2)
     g3 = -(a3 / a0_2)
     g4 = -(a4 * a0 - a2_2) / a0_3
-    g5 = 0.0  # -(a5 * a0 - 2.0 * a3 * a2) / a0_3
+    # g5 = 0.0  # -(a5 * a0 - 2.0 * a3 * a2) / a0_3
 
     # Useful powers of delta
     delta = delta_qq
     delta2 = delta * delta
-    delta3 = delta * delta2
-    delta4 = delta * delta3
+    # delta3 = delta * delta2
+    # delta4 = delta * delta3
 
     # \psi_1 is defined in Eq. C1 of Appendix C in PRD, 95, 104004, (2017), arXiv:1703.03967
     psi1 = 3.0 * (2.0 * eta2 * Seff - c_1) / (eta * delta2)
@@ -440,11 +440,13 @@ def IMRPhenomX_Initialize_MSA_System(
     ) - adD * fdD * fdD
 
     # Eq. D15 in PRD, 95, 104004, (2017), arXiv:1703.03967
+    """
     Omegaz5 = (
         (cdD - adDfdD + adDhdD_2) * fdD * (Seff + 2.0 * hdD)
         - (cdD + adDhdD_2 - 2.0 * adDfdD) * hdD_2 * (Seff + hdD)
         - adDfdD * fdD * hdD
     )
+    """
 
     # Coefficients of Eq. 65, as defined in Equations D16 - D21 of PRD, 95, 104004, (2017), arXiv:1703.03967
     Omegaz0_coeff = 3.0 * g0 * Omegaz0
@@ -461,7 +463,7 @@ def IMRPhenomX_Initialize_MSA_System(
     Omegazeta2 = Omegaz2 + Omegaz1 * c1oveta2
     Omegazeta3 = Omegaz3 + Omegaz2 * c1oveta2 + gdD
     Omegazeta4 = Omegaz4 + Omegaz3 * c1oveta2 - gdD * Seff - gdD * hdD
-    Omegazeta5 = Omegaz5 + Omegaz4 * c1oveta2 + gdD * hdD * Seff + gdD * (hdD_2 - fdD)
+    # Omegazeta5 = Omegaz5 + Omegaz4 * c1oveta2 + gdD * hdD * Seff + gdD * (hdD_2 - fdD)
 
     Omegazeta0_coeff = -g0 * Omegazeta0
     Omegazeta1_coeff = -1.5 * g0 * Omegazeta1
@@ -1413,18 +1415,20 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
 
     tan_psi = jnp.tan(psi)
     atan_psi = jnp.arctan(tan_psi)
+    """
+    # C1 = -0.5 * (c0 / d0 - 2.0 * (c0 + c2 + c4) / nc_num)
 
-    C1 = -0.5 * (c0 / d0 - 2.0 * (c0 + c2 + c4) / nc_num)
     C2num = (
         c0 * (-2.0 * d0 * d4 + d2 * d2 + d2 * d4)
         - c2 * d0 * (d2 + 2.0 * d4)
         + c4 * d0 * (two_d0 + d2)
     )
+    """
     C2den = 2.0 * d0 * sd * (d0 + d2 + d4)
-    C2 = C2num / C2den
+    # C2 = C2num / C2den
 
-    Cphi = C1 + C2
-    Dphi = C1 - C2
+    # Cphi = C1 + C2
+    # Dphi = C1 - C2
 
     def compute_Cphi_term():
         return (
