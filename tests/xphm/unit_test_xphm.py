@@ -20,6 +20,7 @@ Unit test to
 
 """
 
+
 def compute_overlap(
     frequency_series_1,
     frequency_series_2,
