@@ -1,4 +1,3 @@
-# %%
 import numpy as np
 import matplotlib.pyplot as plt
 import bilby
@@ -10,6 +9,8 @@ from ripplegw.constants import MSUN
 from bilby.gw.utils import noise_weighted_inner_product
 from tqdm import tqdm
 import scienceplots
+import jax
+jax.config.update("jax_enable_x64", True)
 
 scienceplots
 plt.style.use(["science"])

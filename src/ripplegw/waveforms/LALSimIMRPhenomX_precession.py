@@ -9,8 +9,6 @@ from .initialise_MSA_system import (
     IMRPhenomX_Return_phi_zeta_costhetaL_MSA,
 )
 
-jax.config.update("jax_enable_x64", True)
-
 
 @pytree_dataclass
 class CommonConstants:
