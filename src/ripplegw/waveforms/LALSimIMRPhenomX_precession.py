@@ -580,7 +580,7 @@ def PQ_Arun_1_6_7(Nx_Jf, Nz_Jf):
     )
 
 
-`@jit`
+@jit
 def thetaJN_Nz_Nx_1_6_7(N_Sf, J0_Sf, J0):
     # Line 957-962
 

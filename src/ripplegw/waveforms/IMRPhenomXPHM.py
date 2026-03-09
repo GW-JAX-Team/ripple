@@ -52,6 +52,7 @@ def generate_xphm(
     frequency_array,
     reference_frequency,
 ):
+    """Generate IMRPhenomXPHM plus and cross polarizations."""
     Mf = XLALSimIMRPhenomXUtilsHztoMf(frequency_array, mass_1 + mass_2)
 
     m1_SI = mass_1 * MSUN
@@ -909,6 +910,7 @@ def XLALSimIMRPhenomHMGethlmModes(
     f_ref: float,
     extraParams: dict,
 ):
+    """Compute all hlm modes for IMRPhenomXPHM. JAX translation of XLALSimIMRPhenomHMGethlmModes."""
     ModeArray = extraParams["ModeArray"]
 
     pHM = {}
@@ -1303,6 +1305,7 @@ def SimRingdownCW_CW07102016(kappa: float, ell: int, input_m: int, n: int):
 
 @jit
 def IMRPhenomHMFreqDomainMap(Mflm, ell, mm, pHM, AmpFlag):
+    """Map input frequency Mflm to the effective 22-mode frequency Mf22 for the (ell, mm) mode."""
     # Mflm here has the same meaning as Mf_wf in XLALSimIMRPhenomHMFreqDomainMapHM (old deleted function).
     # Following variables not used in this funciton but are returned in IMRPhenomHMFreqDomainMapParams
     a, b = IMRPhenomHMFreqDomainMapParams(Mflm, ell, mm, pHM, AmpFlag)
