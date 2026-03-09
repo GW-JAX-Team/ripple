@@ -1,7 +1,7 @@
 # from math import PI
 import jax
 import jax.numpy as jnp
-from ..constants import EulerGamma, MTSUN, MPC, C, PI
+from ..constants import EULERGAMMA, MTSUN, MPC, C, PI
 from ripplegw.waveforms import IMRPhenomX_utils
 from jaxtyping import Array
 
@@ -84,7 +84,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, phase_coeffs: Array) -> Array:
             11583231236531.0 / 4.69421568e9
             - (5.0 * eta * (3147553127.0 + 588.0 * eta * (-45633.0 + 102260.0 * eta)))
             / 3.048192e6
-            - (6848.0 * EulerGamma) / 21.0
+            - (6848.0 * EULERGAMMA) / 21.0
             - (640.0 * PI**2.0) / 3.0
             + (2255.0 * eta * PI**2.0) / 12.0
             - (13696.0 * jnp.log(2.0)) / 21.0

@@ -50,16 +50,16 @@ pytestmark = pytest.mark.skipif(
 # Default parameter bounds for random sampling
 DEFAULT_BOUNDS = {
     "m": [0.5, 3.0],  # Masses (solar masses) - BNS range
-    "chi": [0.0, 0.05],  # Spins (low for BNS)
+    "chi": [-0.05, 0.05],  # Aligned spins (BNS physical range; both signs tested)
     "lambda": [0.0, 5000.0],  # Tidal parameters
-    "d_L": [30.0, 300.0],  # Distance (Mpc)
+    "d_L": [30.0, 500.0],  # Distance (Mpc)
 }
 
 BBH_BOUNDS = {
-    "m": [5.0, 50.0],  # Masses (solar masses) - BBH range
+    "m": [5.0, 100.0],  # Masses (solar masses) - BBH range
     "chi": [-0.99, 0.99],  # Spins
     "lambda": [0.0, 0.0],  # No tidal
-    "d_L": [100.0, 1000.0],  # Distance (Mpc)
+    "d_L": [100.0, 3000.0],  # Distance (Mpc)
 }
 
 # Maximum number of random samples when running the full suite
@@ -70,12 +70,13 @@ N_SAMPLES_FULL = 200
 # implementations; simpler/more-analytical waveforms achieve near-machine
 # precision while complex NR-calibrated ones accumulate more rounding error.
 MISMATCH_THRESHOLDS = {
-    "IMRPhenomD": 1e-5,
-    "IMRPhenomXAS": 1e-10,
-    "IMRPhenomD_NRTidalv2": 1e-1,  # TODO: investigate large discrepancy
-    "IMRPhenomXAS_NRTidalv3": 1e-7,
-    "TaylorF2": 1e-10,
-    "IMRPhenomPv2": 1e-4,
+    "IMRPhenomD": 1e-5,         # observed max ~1e-7 over 10 samples
+    "IMRPhenomXAS": 1e-12,      # near machine precision (~3e-14)
+    "IMRPhenomD_NRTidalv2": 1e-9,   # observed max ~6e-11
+    "IMRPhenomXAS_NRTidalv3": 1e-7,  # observed max ~6e-9
+    "TaylorF2": 1e-14,          # at float64 machine epsilon (~3e-16)
+    "IMRPhenomPv2": 1e-4,       # observed max ~2e-6
+    "IMRPhenomXPHM": 1e-3,      # active development (PR #95); expected to exceed
 }
 DEFAULT_MISMATCH_THRESHOLD = 1e-5  # fallback for unknown waveforms
 
@@ -131,8 +132,8 @@ def compute_ripple_lal_mismatch(
     # Convert parameters to ripple format
     if is_precessing:
         # Precessing: theta_lal = [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
-        # Ripple IMRPhenomPv2 expects: [Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, tc, phiRef, incl]
-        # Both LAL and ripple use Cartesian spins; only need to convert (m1, m2) -> (Mc, eta)
+        # Ripple precessing waveforms (IMRPhenomPv2, IMRPhenomXPHM) expect:
+        #   [Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, tc, phiRef, incl]
         m1 = theta_lal[0]
         m2 = theta_lal[1]
         Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
@@ -257,6 +258,7 @@ def psd_data():
         ("IMRPhenomXAS_NRTidalv3", DEFAULT_BOUNDS),
         ("TaylorF2", DEFAULT_BOUNDS),
         ("IMRPhenomPv2", BBH_BOUNDS),
+        ("IMRPhenomXPHM", BBH_BOUNDS),
     ],
 )
 def test_waveform_mismatch(
@@ -335,9 +337,12 @@ def test_waveform_mismatch(
         chi1z, chi2z = theta_batch[:, 2], theta_batch[:, 3]
         lambda1, lambda2 = theta_batch[:, 4], theta_batch[:, 5]
         df_data = {
-            "m1": m1, "m2": m2,
-            "chi1z": chi1z, "chi2z": chi2z,
-            "lambda1": lambda1, "lambda2": lambda2,
+            "m1": m1,
+            "m2": m2,
+            "chi1z": chi1z,
+            "chi2z": chi2z,
+            "lambda1": lambda1,
+            "lambda2": lambda2,
             "dist_mpc": theta_batch[:, 6],
             "tc": theta_batch[:, 7],
             "phi_ref": theta_batch[:, 8],
@@ -352,9 +357,14 @@ def test_waveform_mismatch(
         s2x, s2y, s2z = theta_batch[:, 5], theta_batch[:, 6], theta_batch[:, 7]
         chi1z, chi2z = s1z, s2z
         df_data = {
-            "m1": m1, "m2": m2,
-            "s1x": s1x, "s1y": s1y, "s1z": s1z,
-            "s2x": s2x, "s2y": s2y, "s2z": s2z,
+            "m1": m1,
+            "m2": m2,
+            "s1x": s1x,
+            "s1y": s1y,
+            "s1z": s1z,
+            "s2x": s2x,
+            "s2y": s2y,
+            "s2z": s2z,
             "chi1_mag": np.sqrt(s1x**2 + s1y**2 + s1z**2),
             "chi2_mag": np.sqrt(s2x**2 + s2y**2 + s2z**2),
             "dist_mpc": theta_batch[:, 8],
@@ -369,8 +379,10 @@ def test_waveform_mismatch(
         m1, m2 = theta_batch[:, 0], theta_batch[:, 1]
         chi1z, chi2z = theta_batch[:, 2], theta_batch[:, 3]
         df_data = {
-            "m1": m1, "m2": m2,
-            "chi1z": chi1z, "chi2z": chi2z,
+            "m1": m1,
+            "m2": m2,
+            "chi1z": chi1z,
+            "chi2z": chi2z,
             "dist_mpc": theta_batch[:, 4],
             "tc": theta_batch[:, 5],
             "phi_ref": theta_batch[:, 6],
@@ -387,7 +399,9 @@ def test_waveform_mismatch(
     if is_precessing:
         df["chi_eff"] = (df["m1"] * df["s1z"] + df["m2"] * df["s2z"]) / df["m_total"]
     else:
-        df["chi_eff"] = (df["m1"] * df["chi1z"] + df["m2"] * df["chi2z"]) / df["m_total"]
+        df["chi_eff"] = (df["m1"] * df["chi1z"] + df["m2"] * df["chi2z"]) / df[
+            "m_total"
+        ]
     df["log10_mismatch"] = np.log10(np.abs(df["mismatch"].clip(1e-30)))
     df = df.sort_values(by="mismatch", ascending=False)
     df.to_csv(results_file, index=False)
@@ -418,31 +432,42 @@ def test_waveform_mismatch(
     # (0,0) - histogram
     ax = axes[0, 0]
     ax.hist(log10_m_finite, bins=30, edgecolor="black", alpha=0.8)
-    ax.axvline(log10_thresh, color="red", linestyle="--",
-               label=f"threshold = {mismatch_threshold:.0e}")
+    ax.axvline(
+        log10_thresh,
+        color="red",
+        linestyle="--",
+        label=f"threshold = {mismatch_threshold:.0e}",
+    )
     ax.set_xlabel(r"$\log_{10}$(mismatch)")
     ax.set_ylabel("Count")
     ax.set_title("Mismatch distribution")
     ax.legend()
 
-    # (0,1) - mismatch vs total mass
+    # (0,1) - mass ratio vs total mass colored by mismatch
     ax = axes[0, 1]
-    sc = ax.scatter(df["m_total"][finite_mask], log10_m_finite,
-                    c=log10_m_finite, cmap="viridis", s=20, alpha=0.8)
-    ax.axhline(log10_thresh, color="red", linestyle="--")
+    sc = ax.scatter(
+        df["m_total"][finite_mask],
+        df["mass_ratio"][finite_mask],
+        c=log10_m_finite,
+        cmap="viridis",
+        s=20,
+        alpha=0.8,
+    )
     ax.set_xlabel(r"$M_{\rm total}\;[M_\odot]$")
-    ax.set_ylabel(r"$\log_{10}$(mismatch)")
-    ax.set_title("Mismatch vs total mass")
+    ax.set_ylabel(r"$q = m_2/m_1$")
+    ax.set_title(r"Mass plane (colour = $\log_{10}$ mismatch)")
     fig.colorbar(sc, ax=ax, label=r"$\log_{10}$(mismatch)")
 
     # (1,0) - mismatch vs chi_eff / lambda_tilde / chi_mag
     ax = axes[1, 0]
     if is_tidal:
         # Compute lambda_tilde from lambda1, lambda2, m1, m2
-        eta = df["m1"] * df["m2"] / df["m_total"]**2
+        eta = df["m1"] * df["m2"] / df["m_total"] ** 2
         x_vals = (8.0 / 13.0) * (
             (1 + 7 * eta - 31 * eta**2) * (df["lambda1"] + df["lambda2"])
-            + (1 - 4 * eta)**0.5 * (1 + 9 * eta - 11 * eta**2) * (df["lambda1"] - df["lambda2"])
+            + (1 - 4 * eta) ** 0.5
+            * (1 + 9 * eta - 11 * eta**2)
+            * (df["lambda1"] - df["lambda2"])
         )
         x_label = r"$\tilde{\Lambda}$"
     elif is_precessing:
@@ -451,18 +476,29 @@ def test_waveform_mismatch(
     else:
         x_vals = df["chi_eff"]
         x_label = r"$\chi_{\rm eff}$"
-    sc = ax.scatter(x_vals[finite_mask], log10_m_finite,
-                    c=log10_m_finite, cmap="viridis", s=20, alpha=0.8)
-    ax.axhline(log10_thresh, color="red", linestyle="--")
+    sc = ax.scatter(
+        x_vals[finite_mask],
+        df["inclination"][finite_mask],
+        c=log10_m_finite,
+        cmap="viridis",
+        s=20,
+        alpha=0.8,
+    )
     ax.set_xlabel(x_label)
-    ax.set_ylabel(r"$\log_{10}$(mismatch)")
-    ax.set_title(f"Mismatch vs {x_label}")
+    ax.set_ylabel(r"Inclination [rad]")
+    ax.set_title(f"{x_label} vs inclination (colour = $\log_{{10}}$ mismatch)")
     fig.colorbar(sc, ax=ax, label=r"$\log_{10}$(mismatch)")
 
     # (1,1) - 2D: m1 vs m2 colored by mismatch
     ax = axes[1, 1]
-    sc = ax.scatter(df["m1"][finite_mask], df["m2"][finite_mask],
-                    c=log10_m_finite, cmap="plasma", s=30, alpha=0.9)
+    sc = ax.scatter(
+        df["m1"][finite_mask],
+        df["m2"][finite_mask],
+        c=log10_m_finite,
+        cmap="plasma",
+        s=30,
+        alpha=0.9,
+    )
     ax.set_xlabel(r"$m_1\;[M_\odot]$")
     ax.set_ylabel(r"$m_2\;[M_\odot]$")
     ax.set_title(r"$m_1$ vs $m_2$ (colour = $\log_{10}$ mismatch)")
@@ -496,74 +532,13 @@ def test_waveform_mismatch(
             "min": float(np.min(finite_mismatches)),
             "max": float(max_mismatch),
             "threshold": mismatch_threshold,
-            "passed": bool(len(failed_params) == 0 and max_mismatch < mismatch_threshold),
+            "passed": bool(
+                len(failed_params) == 0 and max_mismatch < mismatch_threshold
+            ),
         }
     )
 
-    assert (
-        len(failed_params) == 0
-    ), f"{len(failed_params)}/{n_samples} samples failed"
-    assert (
-        max_mismatch < mismatch_threshold
-    ), f"Max mismatch {max_mismatch:.2e} exceeds threshold {mismatch_threshold:.2e}"
-
-
-# ============================================================================
-# Individual waveform tests for focused debugging
-# ============================================================================
-
-
-def test_imrphenomd_single_point(freq_params, psd_data):
-    """Test IMRPhenomD with a single known-good parameter set."""
-    check_lal_available()
-
-    waveform_name = "IMRPhenomD"
-    f_l = freq_params["f_l"]
-    f_u = freq_params["f_u"]
-    f_sampling = freq_params["f_sampling"]
-    T = freq_params["T"]
-    f_ref = freq_params["f_ref"]
-    psd_freqs, psd = psd_data
-
-    fs = get_freqs(f_l, f_u, f_sampling, T)
-    df = fs[1] - fs[0]
-
-    # Known-good parameters
-    theta_lal = np.array([30.0, 25.0, 0.5, -0.3, 400.0, 0.0, 0.5, 0.8])
-
-    mismatch_hp, mismatch_hc = compute_ripple_lal_mismatch(
-        waveform_name, theta_lal, fs, f_l, f_u, df, f_ref, psd, psd_freqs
+    assert len(failed_params) == 0, f"{len(failed_params)}/{n_samples} samples failed"
+    assert max_mismatch < mismatch_threshold, (
+        f"Max mismatch {max_mismatch:.2e} exceeds threshold {mismatch_threshold:.2e}"
     )
-    mismatch = max(mismatch_hp, mismatch_hc)
-
-    print(f"\nIMRPhenomD single point mismatch: {mismatch:.2e}")
-    threshold = get_mismatch_threshold(waveform_name)
-    assert mismatch < threshold, f"Mismatch {mismatch:.2e} too large (threshold {threshold:.0e})"
-
-
-def test_imrphenomxas_single_point(freq_params, psd_data):
-    """Test IMRPhenomXAS with a single known-good parameter set."""
-    check_lal_available()
-
-    waveform_name = "IMRPhenomXAS"
-    f_l = freq_params["f_l"]
-    f_u = freq_params["f_u"]
-    f_sampling = freq_params["f_sampling"]
-    T = freq_params["T"]
-    f_ref = freq_params["f_ref"]
-    psd_freqs, psd = psd_data
-
-    fs = get_freqs(f_l, f_u, f_sampling, T)
-    df = fs[1] - fs[0]
-
-    # Known-good parameters
-    theta_lal = np.array([30.0, 25.0, 0.5, -0.3, 400.0, 0.0, 0.5, 0.8])
-
-    mismatch_hp, mismatch_hc = compute_ripple_lal_mismatch(
-        waveform_name, theta_lal, fs, f_l, f_u, df, f_ref, psd, psd_freqs
-    )
-    mismatch = max(mismatch_hp, mismatch_hc)
-
-    print(f"\nIMRPhenomXAS single point mismatch: {mismatch:.2e}")
-    threshold = get_mismatch_threshold(waveform_name)
-    assert mismatch < threshold, f"Mismatch {mismatch:.2e} too large (threshold {threshold:.0e})"

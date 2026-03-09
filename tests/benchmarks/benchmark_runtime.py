@@ -67,7 +67,8 @@ def get_hardware_info():
     info["jax_version"] = jax.__version__
     devices = jax.devices()
     info["jax_devices"] = [
-        {"platform": str(d.platform), "device_kind": str(d.device_kind)} for d in devices
+        {"platform": str(d.platform), "device_kind": str(d.device_kind)}
+        for d in devices
     ]
     info["jax_default_backend"] = jax.default_backend()
 
@@ -82,7 +83,9 @@ def get_hardware_info():
     # LAL version (if available)
     if LAL_AVAILABLE:
         try:
-            info["lal_version"] = getattr(lal.version, "verbose", getattr(lal, "__version__", "unknown"))
+            info["lal_version"] = getattr(
+                lal.version, "verbose", getattr(lal, "__version__", "unknown")
+            )
         except Exception:
             info["lal_version"] = "unknown"
         try:
@@ -166,7 +169,8 @@ def benchmark_waveform_ripple(
 
         if is_precessing:
             # theta_lal = [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
-            # Ripple IMRPhenomPv2 expects [Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
+            # Ripple precessing waveforms (IMRPhenomPv2, IMRPhenomXPHM) expect:
+            #   [Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
             s1x, s1y, s1z = theta_lal[2], theta_lal[3], theta_lal[4]
             s2x, s2y, s2z = theta_lal[5], theta_lal[6], theta_lal[7]
             dist_mpc = theta_lal[8]
@@ -211,7 +215,9 @@ def benchmark_waveform_ripple(
                 tc = theta_lal[5]
                 phic = theta_lal[6]
                 inclination = theta_lal[7]
-                theta_ripple = jnp.array([Mc, eta, s1z, s2z, dist_mpc, tc, phic, inclination])
+                theta_ripple = jnp.array(
+                    [Mc, eta, s1z, s2z, dist_mpc, tc, phic, inclination]
+                )
 
             theta_batch_ripple.append(theta_ripple)
 
@@ -315,7 +321,43 @@ def benchmark_waveform_lal(
         m1_kg = theta[0] * lal.MSUN_SI
         m2_kg = theta[1] * lal.MSUN_SI
 
-        if is_precessing:
+        if waveform_name == "IMRPhenomXPHM":
+            # theta = [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
+            s1x, s1y, s1z = theta[2], theta[3], theta[4]
+            s2x, s2y, s2z = theta[5], theta[6], theta[7]
+            distance = theta[8] * 1e6 * lal.PC_SI
+            phi_ref = theta[10]
+            inclination = theta[11]
+
+            lalparams = lal.CreateDict()
+            ModeArray = lalsim.SimInspiralCreateModeArray()
+            for el, em in [(2, 1), (2, 2), (3, 2), (3, 3), (4, 4)]:
+                lalsim.SimInspiralModeArrayActivateMode(ModeArray, el, em)
+            lalsim.SimInspiralWaveformParamsInsertModeArray(lalparams, ModeArray)
+            lalsim.SimInspiralWaveformParamsInsertPhenomXPHMTwistPhenomHM(lalparams, 1)
+            lalsim.SimInspiralWaveformParamsInsertPhenomXPHMMBandVersion(lalparams, 0)
+            lalsim.SimInspiralWaveformParamsInsertPhenomXPHMThresholdMband(lalparams, 0.0)
+            lalsim.SimInspiralWaveformParamsInsertPhenomXPrecVersion(lalparams, 223)
+
+            lalsim.SimIMRPhenomXPHM(
+                m1_kg,
+                m2_kg,
+                s1x,
+                s1y,
+                s1z,
+                s2x,
+                s2y,
+                s2z,
+                distance,
+                inclination,
+                phi_ref,
+                f_l,
+                f_u,
+                df,
+                f_ref,
+                lalparams,
+            )
+        elif is_precessing:
             # theta = [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
             s1x, s1y, s1z = theta[2], theta[3], theta[4]
             s2x, s2y, s2z = theta[5], theta[6], theta[7]
@@ -418,6 +460,7 @@ ALL_WAVEFORMS = [
     "IMRPhenomXAS_NRTidalv3",
     "TaylorF2",
     "IMRPhenomPv2",
+    "IMRPhenomXPHM",
 ]
 
 
@@ -505,8 +548,12 @@ def main():
             results.append(result)
 
             print("\nRipple Results:")
-            print(f"  Single call: {result['single_call_ms_mean']:.4f} ± {result['single_call_ms_std']:.4f} ms")
-            print(f"  Vmapped call: {result['vmapped_call_ms_mean']:.4f} ± {result['vmapped_call_ms_std']:.4f} ms")
+            print(
+                f"  Single call: {result['single_call_ms_mean']:.4f} ± {result['single_call_ms_std']:.4f} ms"
+            )
+            print(
+                f"  Vmapped call: {result['vmapped_call_ms_mean']:.4f} ± {result['vmapped_call_ms_std']:.4f} ms"
+            )
             print(f"  Speedup (vmap): {result['speedup_vmap']:.2f}x")
 
         except Exception as e:
@@ -516,7 +563,9 @@ def main():
         # LAL benchmark
         if args.with_lal:
             try:
-                lal_result = benchmark_waveform_lal(waveform_name, n_params=args.n_params)
+                lal_result = benchmark_waveform_lal(
+                    waveform_name, n_params=args.n_params
+                )
                 if lal_result:
                     # Merge LAL results into the ripple results
                     ripple_entry = None
@@ -528,8 +577,14 @@ def main():
 
                     print("\nLAL Results:")
                     print(f"  Single call: {lal_result['lal_call_ms']:.4f} ms")
-                    if ripple_entry is not None and "single_call_ms_mean" in ripple_entry:
-                        speedup_lal = lal_result["lal_call_ms"] / ripple_entry["single_call_ms_mean"]
+                    if (
+                        ripple_entry is not None
+                        and "single_call_ms_mean" in ripple_entry
+                    ):
+                        speedup_lal = (
+                            lal_result["lal_call_ms"]
+                            / ripple_entry["single_call_ms_mean"]
+                        )
                         print(f"  Speedup (ripple single vs LAL): {speedup_lal:.2f}x")
 
             except Exception as e:

@@ -49,7 +49,18 @@ def bns_tidal_params():
     phic = 0.5
     inclination = 0.8
     return jnp.array(
-        [Mc, eta, chi1, chi2, lambda_tilde, delta_lambda_tilde, dist_mpc, tc, phic, inclination]
+        [
+            Mc,
+            eta,
+            chi1,
+            chi2,
+            lambda_tilde,
+            delta_lambda_tilde,
+            dist_mpc,
+            tc,
+            phic,
+            inclination,
+        ]
     )
 
 
@@ -65,7 +76,22 @@ def bbh_precessing_params():
     phic = 0.5
     inclination = 0.8
     # IMRPhenomPv2 expects: [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, tc, phiRef, incl]
-    return jnp.array([m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, tc, phic, inclination])
+    return jnp.array(
+        [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, tc, phic, inclination]
+    )
+
+
+@pytest.fixture
+def bbh_xphm_params():
+    """Fixed parameter set for IMRPhenomXPHM (precessing multi-mode BBH)."""
+    m1, m2 = 50.0, 30.0
+    s1x, s1y, s1z = 0.2, 0.1, -0.3
+    s2x, s2y, s2z = -0.1, 0.3, 0.1
+    dist_mpc = 500.0
+    inclination = 0.8
+    phi0 = 0.5
+    # generate_xphm expects: (m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, inclination, phi0, fs, f_ref)
+    return m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, inclination, phi0
 
 
 @pytest.fixture
@@ -347,7 +373,9 @@ def test_imrphenomd_nrtidalv2_vmap(test_freq_grid, bns_tidal_params):
 
 def test_imrphenomxas_nrtidalv3_basic(test_freq_grid, bns_tidal_params):
     """Test IMRPhenomXAS_NRTidalv3 waveform generation."""
-    from ripplegw.waveforms.IMRPhenomXAS_NRTidalv3 import gen_IMRPhenomXAS_NRTidalv3_hphc
+    from ripplegw.waveforms.IMRPhenomXAS_NRTidalv3 import (
+        gen_IMRPhenomXAS_NRTidalv3_hphc,
+    )
 
     fs = test_freq_grid
     f_ref = 20.0
@@ -357,7 +385,9 @@ def test_imrphenomxas_nrtidalv3_basic(test_freq_grid, bns_tidal_params):
 
 def test_imrphenomxas_nrtidalv3_jit(test_freq_grid, bns_tidal_params):
     """Test that IMRPhenomXAS_NRTidalv3 works with JIT compilation."""
-    from ripplegw.waveforms.IMRPhenomXAS_NRTidalv3 import gen_IMRPhenomXAS_NRTidalv3_hphc
+    from ripplegw.waveforms.IMRPhenomXAS_NRTidalv3 import (
+        gen_IMRPhenomXAS_NRTidalv3_hphc,
+    )
 
     fs = test_freq_grid
     f_ref = 20.0
@@ -372,7 +402,9 @@ def test_imrphenomxas_nrtidalv3_jit(test_freq_grid, bns_tidal_params):
 
 def test_imrphenomxas_nrtidalv3_vmap(test_freq_grid, bns_tidal_params):
     """Test that IMRPhenomXAS_NRTidalv3 works with vmap."""
-    from ripplegw.waveforms.IMRPhenomXAS_NRTidalv3 import gen_IMRPhenomXAS_NRTidalv3_hphc
+    from ripplegw.waveforms.IMRPhenomXAS_NRTidalv3 import (
+        gen_IMRPhenomXAS_NRTidalv3_hphc,
+    )
 
     fs = test_freq_grid
     f_ref = 20.0
@@ -433,7 +465,75 @@ def test_taylorf2_vmap(test_freq_grid, bns_tidal_params):
 
     waveform_vmapped = jax.vmap(lambda theta: gen_TaylorF2_hphc(fs, theta, f_ref))
     hp_batch, hc_batch = waveform_vmapped(theta_batch)
-    
+
+    assert hp_batch.shape == (batch_size, len(fs))
+    assert hc_batch.shape == (batch_size, len(fs))
+    assert jnp.all(jnp.isfinite(hp_batch))
+    assert jnp.all(jnp.isfinite(hc_batch))
+
+
+# ============================================================================
+# Test IMRPhenomXPHM (precessing multi-mode BBH)
+# ============================================================================
+
+
+def test_imrphenomxphm_basic(test_freq_grid, bbh_xphm_params):
+    """Test IMRPhenomXPHM waveform generation."""
+    from ripplegw.waveforms.IMRPhenomXPHM import generate_xphm
+
+    fs = test_freq_grid
+    f_ref = 20.0
+    m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, inclination, phi0 = bbh_xphm_params
+    hp, hc = generate_xphm(m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, inclination, phi0, fs, f_ref)
+    assert_waveform_valid(hp, hc, fs)
+
+
+def test_imrphenomxphm_jit(test_freq_grid, bbh_xphm_params):
+    """Test that IMRPhenomXPHM works with JIT compilation."""
+    from ripplegw.waveforms.IMRPhenomXPHM import generate_xphm
+
+    fs = test_freq_grid
+    f_ref = 20.0
+    m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, inclination, phi0 = bbh_xphm_params
+
+    @jax.jit
+    def waveform_jitted(m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, inclination, phi0):
+        return generate_xphm(m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, inclination, phi0, fs, f_ref)
+
+    hp, hc = waveform_jitted(m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, inclination, phi0)
+    assert_waveform_valid(hp, hc, fs)
+
+
+def test_imrphenomxphm_vmap(test_freq_grid, bbh_xphm_params):
+    """Test that IMRPhenomXPHM works with vmap over a batch of parameters."""
+    from ripplegw.waveforms.IMRPhenomXPHM import generate_xphm
+
+    fs = test_freq_grid
+    f_ref = 20.0
+    m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, inclination, phi0 = bbh_xphm_params
+
+    batch_size = 3
+    generate_xphm_batched = jax.vmap(
+        generate_xphm,
+        in_axes=(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, None, None),
+    )
+
+    hp_batch, hc_batch = generate_xphm_batched(
+        jnp.full(batch_size, m1),
+        jnp.full(batch_size, m2),
+        jnp.full(batch_size, s1x),
+        jnp.full(batch_size, s1y),
+        jnp.full(batch_size, s1z),
+        jnp.full(batch_size, s2x),
+        jnp.full(batch_size, s2y),
+        jnp.full(batch_size, s2z),
+        jnp.full(batch_size, dist_mpc),
+        jnp.full(batch_size, inclination),
+        jnp.full(batch_size, phi0),
+        fs,
+        f_ref,
+    )
+
     assert hp_batch.shape == (batch_size, len(fs))
     assert hc_batch.shape == (batch_size, len(fs))
     assert jnp.all(jnp.isfinite(hp_batch))

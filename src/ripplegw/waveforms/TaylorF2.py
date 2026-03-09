@@ -3,7 +3,7 @@ This file implements the TaylorF2 waveform, as described in the LALSuite library
 """
 
 import jax.numpy as jnp
-from ..constants import EulerGamma, MTSUN, MPC, PI, MRSUN
+from ..constants import EULERGAMMA, MTSUN, MPC, PI, MRSUN
 from jaxtyping import Array
 from ripplegw.conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from .IMRPhenom_tidal_utils import get_quadparam_octparam
@@ -199,7 +199,7 @@ def get_PNPhasing_F2(
     phasing_coeffs["6PN"] = (
         11583.231236531 / 4.694215680
         - 640.0 / 3.0 * PI * PI
-        - 684.8 / 2.1 * EulerGamma
+        - 684.8 / 2.1 * EULERGAMMA
         + eta * (-15737.765635 / 3.048192 + 225.5 / 1.2 * PI * PI)
         + eta * eta * 76.055 / 1.728
         - eta * eta * eta * 127.825 / 1.296
