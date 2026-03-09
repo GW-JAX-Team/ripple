@@ -11,6 +11,14 @@ from bilby.gw.utils import noise_weighted_inner_product
 
 psd = bilby.gw.detector.PowerSpectralDensity(psd_file="./ET_D_psd.txt")
 
+"""
+Unit test to 
+
+1. generate one XPHM waveform using ripple and lalsimulation.
+2. Plot them
+3. Compute match between them. 
+
+"""
 
 def compute_overlap(
     frequency_series_1,

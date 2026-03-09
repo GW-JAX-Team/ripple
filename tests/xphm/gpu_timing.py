@@ -46,7 +46,7 @@ def setup_injection_parameters(N_WAVEFORMS, reference_frequency):
 
 
 def main():
-    N_injections = int(10)
+    N_injections = int(1e3)
     seed = 3232
     np.random.seed(seed)
     bilby.core.utils.random.seed(seed)
