@@ -580,12 +580,18 @@ def PQ_Arun_1_6_7(Nx_Jf, Nz_Jf):
     )
 
 
-@jit
+`@jit`
 def thetaJN_Nz_Nx_1_6_7(N_Sf, J0_Sf, J0):
     # Line 957-962
 
     J0dotN = (J0_Sf[0] * N_Sf[0]) + (J0_Sf[1] * N_Sf[1]) + (J0_Sf[2] * N_Sf[2])
-    thetaJN = jnp.acos(J0dotN / J0)
+    cos_thetaJN = jax.lax.cond(
+        J0 < 1e-10,
+        lambda _: 1.0,
+        lambda _: jnp.clip(J0dotN / J0, -1.0, 1.0),
+        operand=None,
+    )
+    thetaJN = jnp.acos(cos_thetaJN)
     Nz_Jf = jnp.cos(thetaJN)
     Nx_Jf = jnp.sin(thetaJN)
 
