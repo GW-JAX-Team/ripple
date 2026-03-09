@@ -54,8 +54,8 @@ def main():
     bilby.core.utils.random.seed(seed)
     # Frequency settings
     minimum_frequency = 20.0
-    maximum_frequency = 512.0
-    duration = 4.0
+    maximum_frequency = 1024.0
+    duration = 8.0
     reference_frequency = 50.0
     frequency_array = jnp.arange(minimum_frequency, maximum_frequency, 1.0 / duration)
 
