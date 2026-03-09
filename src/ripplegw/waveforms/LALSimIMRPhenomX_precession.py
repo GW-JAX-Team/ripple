@@ -1,7 +1,7 @@
+import dataclasses
 import jax.numpy as jnp
 from ..constants import MTSUN
 import jax
-from jax_dataclasses import pytree_dataclass
 
 from .initialise_MSA_system import (
     IMRPhenomX_Initialize_MSA_System,
@@ -9,7 +9,8 @@ from .initialise_MSA_system import (
 )
 
 
-@pytree_dataclass
+@jax.tree_util.register_dataclass
+@dataclasses.dataclass
 class CommonConstants:
     sqrt2: float = 1.4142135623730951
     sqrt5: float = 2.23606797749978981
@@ -936,7 +937,8 @@ def set_epsilon0(phenom_xp_convention, phiJ_Sf):
 # ---------------------------------------------------------------------------
 
 
-@pytree_dataclass
+@jax.tree_util.register_dataclass
+@dataclasses.dataclass
 class MSAPrecessionSetup:
     """Pre-computed MSA precession constants that are invariant to emm and Mf.
 
