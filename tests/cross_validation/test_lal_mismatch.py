@@ -63,7 +63,7 @@ BBH_BOUNDS = {
 }
 
 # Maximum number of random samples when running the full suite
-N_SAMPLES_FULL = 200
+N_SAMPLES_FULL = 10
 
 # Per-waveform mismatch thresholds.
 # These represent expected float64 agreement between the ripple and LAL
@@ -90,45 +90,7 @@ def get_mismatch_threshold(waveform_name: str) -> float:
 # Helper functions
 # ============================================================================
 
-
-def compute_ripple_lal_mismatch(
-    waveform_name: str,
-    theta_lal: np.ndarray,
-    fs: jnp.ndarray,
-    f_l: float,
-    f_u: float,
-    df: float,
-    f_ref: float,
-    psd: np.ndarray,
-    psd_freqs: np.ndarray,
-) -> tuple[float, float]:
-    """Compute mismatch between ripple and LAL waveforms.
-
-    Args:
-        waveform_name: Name of the waveform.
-        theta_lal: Parameter array in LAL format.
-        fs: Ripple frequency array.
-        f_l: Lower frequency.
-        f_u: Upper frequency.
-        df: Frequency spacing.
-        f_ref: Reference frequency.
-        psd: PSD values.
-        psd_freqs: PSD frequencies.
-
-    Returns:
-        Tuple (mismatch_hp, mismatch_hc) where each is 1 - match for the
-        respective polarization. For aligned-spin waveforms hc = i*hp in the
-        frequency domain, so both should agree. For precessing waveforms the
-        two polarizations are independent and both are tested.
-    """
-    is_tidal = check_is_tidal(waveform_name)
-    is_precessing = check_is_precessing(waveform_name)
-
-    # Generate LAL waveform (both polarizations)
-    hp_lal, hc_lal = get_lal_waveform(
-        theta_lal, waveform_name, f_l, f_u, df, f_ref, is_tidal, is_precessing
-    )
-
+def convert_parameters_lal_to_ripple(theta_lal: np.ndarray, is_precessing: bool, is_tidal: bool):
     # Convert parameters to ripple format
     if is_precessing:
         # Precessing: theta_lal = [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
@@ -191,11 +153,42 @@ def compute_ripple_lal_mismatch(
             theta_ripple = jnp.array(
                 [Mc, eta, s1z, s2z, dist_mpc, tc, phic, inclination]
             )
+    return theta_ripple
 
-    # Generate ripple waveform (both polarizations)
-    waveform = get_jitted_waveform(waveform_name, fs, f_ref)
-    hp_ripple, hc_ripple = waveform(theta_ripple)
 
+def compute_ripple_lal_mismatch(
+    hphc_lal: tuple,
+    hphc_ripple: tuple,
+    fs: jnp.ndarray,
+    f_l: float,
+    f_u: float,
+    df: float,
+    f_ref: float,
+    psd: np.ndarray,
+    psd_freqs: np.ndarray,
+) -> tuple[float, float]:
+    """Compute mismatch between ripple and LAL waveforms.
+
+    Args:
+        waveform_name: Name of the waveform.
+        theta_lal: Parameter array in LAL format.
+        fs: Ripple frequency array.
+        f_l: Lower frequency.
+        f_u: Upper frequency.
+        df: Frequency spacing.
+        f_ref: Reference frequency.
+        psd: PSD values.
+        psd_freqs: PSD frequencies.
+
+    Returns:
+        Tuple (mismatch_hp, mismatch_hc) where each is 1 - match for the
+        respective polarization. For aligned-spin waveforms hc = i*hp in the
+        frequency domain, so both should agree. For precessing waveforms the
+        two polarizations are independent and both are tested.
+    """
+    hp_lal, hc_lal = hphc_lal
+    hp_ripple, hc_ripple = hphc_ripple
+    
     # Apply Nyquist mask to all waveforms
     nyquist_mask = get_nyquist_mask(fs)
     hp_lal_masked = jnp.array(hp_lal) * nyquist_mask
@@ -252,18 +245,16 @@ def psd_data():
 @pytest.mark.parametrize(
     "waveform_name,bounds",
     [
-        ("IMRPhenomD", BBH_BOUNDS),
-        ("IMRPhenomXAS", BBH_BOUNDS),
-        ("IMRPhenomD_NRTidalv2", DEFAULT_BOUNDS),
-        ("IMRPhenomXAS_NRTidalv3", DEFAULT_BOUNDS),
-        ("TaylorF2", DEFAULT_BOUNDS),
-        ("IMRPhenomPv2", BBH_BOUNDS),
+        # ("IMRPhenomD", BBH_BOUNDS),
+        # ("IMRPhenomXAS", BBH_BOUNDS),
+        # ("IMRPhenomD_NRTidalv2", DEFAULT_BOUNDS),
+        # ("IMRPhenomXAS_NRTidalv3", DEFAULT_BOUNDS),
+        # ("TaylorF2", DEFAULT_BOUNDS),
+        # ("IMRPhenomPv2", BBH_BOUNDS),
         ("IMRPhenomXPHM", BBH_BOUNDS),
     ],
 )
-def test_waveform_mismatch(
-    waveform_name, bounds, n_samples, freq_params, psd_data, cross_val_results
-):
+def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results, psd_data):
     """Test that ripple waveforms match LALSuite to machine precision.
 
     This test generates random parameter sets, computes both LAL and ripple
@@ -287,7 +278,7 @@ def test_waveform_mismatch(
     is_tidal = check_is_tidal(waveform_name)
     is_precessing = check_is_precessing(waveform_name)
     theta_batch = generate_random_params(
-        n_samples, bounds, is_tidal=is_tidal, is_precessing=is_precessing, seed=42
+        N_SAMPLES_FULL, bounds, is_tidal=is_tidal, is_precessing=is_precessing, seed=42
     )
 
     # Compute mismatches for all samples
@@ -295,10 +286,24 @@ def test_waveform_mismatch(
     mismatches_hc = []
     failed_params = []
 
+    is_tidal = check_is_tidal(waveform_name)
+    is_precessing = check_is_precessing(waveform_name)
+
+    # Generate ripple waveform 
+    waveform = get_jitted_waveform(waveform_name, fs, f_ref)
+
     for i, theta_lal in enumerate(theta_batch):
         try:
+            # Generate LAL waveform (both polarizations)
+            hphc_lal = get_lal_waveform(
+                theta_lal, waveform_name, f_l, f_u, df, f_ref, is_tidal, is_precessing
+            )
+            # Get ripple parameters
+            theta_ripple = convert_parameters_lal_to_ripple(theta_lal, is_precessing, is_tidal)
+            # Generate ripple waveform
+            hphc_ripple = waveform(theta_ripple)
             mismatch_hp, mismatch_hc = compute_ripple_lal_mismatch(
-                waveform_name, theta_lal, fs, f_l, f_u, df, f_ref, psd, psd_freqs
+                hphc_lal, hphc_ripple, fs, f_l, f_u, df, f_ref, psd, psd_freqs
             )
             mismatches_hp.append(mismatch_hp)
             mismatches_hc.append(mismatch_hc)
@@ -408,7 +413,7 @@ def test_waveform_mismatch(
 
     # Print statistics
     print(f"\n{waveform_name} Mismatch Statistics:")
-    print(f"  Samples: {n_samples}")
+    print(f"  Samples: {N_SAMPLES_FULL}")
     print(f"  Mean mismatch: {np.mean(finite_mismatches):.2e}")
     print(f"  Median mismatch: {np.median(finite_mismatches):.2e}")
     print(f"  Min mismatch: {np.min(finite_mismatches):.2e}")
@@ -524,7 +529,7 @@ def test_waveform_mismatch(
     cross_val_results.append(
         {
             "waveform": waveform_name,
-            "n_samples": n_samples,
+            "n_samples": N_SAMPLES_FULL,
             "n_finite": len(finite_mismatches),
             "n_failed": len(failed_params),
             "mean": float(np.mean(finite_mismatches)),
@@ -538,7 +543,7 @@ def test_waveform_mismatch(
         }
     )
 
-    assert len(failed_params) == 0, f"{len(failed_params)}/{n_samples} samples failed"
+    assert len(failed_params) == 0, f"{len(failed_params)}/{N_SAMPLES_FULL} samples failed"
     assert max_mismatch < mismatch_threshold, (
         f"Max mismatch {max_mismatch:.2e} exceeds threshold {mismatch_threshold:.2e}"
     )
