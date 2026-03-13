@@ -2,10 +2,10 @@
 import jax
 import jax.numpy as jnp
 from ..constants import EULERGAMMA, MTSUN, MPC, C, PI
-from ripplegw.waveforms import IMRPhenomX_utils
+from . import IMRPhenomX_utils
 from jaxtyping import Array
 
-from ripplegw.conversions import Mc_eta_to_ms
+from ..conversions import Mc_eta_to_ms
 
 eqspin_indx = 10
 uneqspin_indx = 39

@@ -1,4 +1,4 @@
-from ripplegw.interfaces import (
+from .interfaces import (
     IMRPhenomD,
     IMRPhenomPv2,
     TaylorF2,

@@ -1,6 +1,6 @@
 import jax
 import jax.numpy as jnp
-from ripplegw.conversions import Mc_eta_to_ms
+from ..conversions import Mc_eta_to_ms
 
 from ..constants import MTSUN
 from .IMRPhenomD import Phase as PhDPhase

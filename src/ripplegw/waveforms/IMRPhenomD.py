@@ -13,7 +13,7 @@ from .IMRPhenomD_utils import (
 from .IMRPhenomD_QNMdata import fM_CUT
 from ..constants import EULERGAMMA, MTSUN, MPC, C, PI
 from jaxtyping import Array
-from ripplegw.conversions import Mc_eta_to_ms
+from ..conversions import Mc_eta_to_ms
 
 
 def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
