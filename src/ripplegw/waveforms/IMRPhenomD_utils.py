@@ -38,7 +38,7 @@ def EradRational0815_s(eta, s):
 
 
 def EradRational0815(eta, chi1, chi2):
-    Seta = jnp.sqrt(1.0 - 4.0 * eta)
+    Seta = jnp.sqrt(jnp.abs(1.0 - 4.0 * eta))
     m1 = 0.5 * (1.0 + Seta)
     m2 = 0.5 * (1.0 - Seta)
     m1s = m1 * m1
@@ -181,7 +181,7 @@ def get_coeffs(theta: Array) -> Array:
     # Definition of chiPN from lalsuite
     chi_s = (chi1 + chi2) / 2.0
     chi_a = (chi1 - chi2) / 2.0
-    seta = (1 - 4 * eta) ** (1 / 2)
+    seta = jnp.abs(1 - 4 * eta) ** (1 / 2)
     chiPN = chi_s * (1 - 76 * eta / 113) + seta * chi_a
 
     coeff = (

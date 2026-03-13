@@ -28,7 +28,7 @@ def ROTATEY(angle, x, y, z):
 
 
 def FinalSpin0815(eta, chi1, chi2):
-    Seta = jnp.sqrt(1.0 - 4.0 * eta)
+    Seta = jnp.sqrt(jnp.abs(1.0 - 4.0 * eta))
     m1 = 0.5 * (1.0 + Seta)
     m2 = 0.5 * (1.0 - Seta)
     m1s = m1 * m1

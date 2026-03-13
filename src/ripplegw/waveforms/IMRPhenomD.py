@@ -222,7 +222,7 @@ def get_inspiral_Amp(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     eta2 = eta * eta
     eta3 = eta * eta2
 
-    Seta = jnp.sqrt(1.0 - 4.0 * eta)
+    Seta = jnp.sqrt(jnp.abs(1.0 - 4.0 * eta))
     SetaPlus1 = 1.0 + Seta
 
     # Spin variables

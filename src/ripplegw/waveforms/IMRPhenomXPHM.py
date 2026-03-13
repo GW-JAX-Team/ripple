@@ -993,8 +993,6 @@ def XLALSimPhenomUtilsPhenomPv2FinalSpin(
 
     q_factor = m1 / M
 
-    # # This is needed to stabilize JAX derivatives
-    # Seta = jnp.sqrt(jnp.where(eta<0.25, 1.0 - 4.0*eta, 0.))
     af_parallel = FinalSpin0815(eta, chi1_l, chi2_l)
 
     Sperp = chip * q_factor * q_factor
