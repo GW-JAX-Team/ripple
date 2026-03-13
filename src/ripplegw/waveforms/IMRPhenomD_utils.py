@@ -1,10 +1,8 @@
-from typing import Tuple
-
-import jax.numpy as jnp
 import jax
+import jax.numpy as jnp
+from jaxtyping import Array, Float
 
 from ..constants import MTSUN
-from jaxtyping import Array
 
 from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
 
@@ -38,7 +36,7 @@ def EradRational0815_s(eta, s):
 
 
 def EradRational0815(eta, chi1, chi2):
-    Seta = jnp.sqrt(1.0 - 4.0 * eta)
+    Seta = jnp.sqrt(jnp.abs(1.0 - 4.0 * eta))
     m1 = 0.5 * (1.0 + Seta)
     m2 = 0.5 * (1.0 - Seta)
     m1s = m1 * m1
@@ -103,8 +101,17 @@ def get_fRD_fdamp(m1, m2, chi1, chi2):
 
 
 def get_transition_frequencies(
-    theta: Array, gamma2: float, gamma3: float
-) -> Tuple[float, float, float, float, float, float]:
+    theta: Float[Array, "4"],
+    gamma2: Float,
+    gamma3: Float,
+) -> tuple[
+    Float,
+    Float,
+    Float,
+    Float,
+    Float,
+    Float,
+]:
     m1, m2, chi1, chi2 = theta
     M = m1 + m2
     f_RD, f_damp = get_fRD_fdamp(m1, m2, chi1, chi2)
@@ -134,8 +141,19 @@ def get_transition_frequencies(
 
 
 def get_transition_frequencies_from_fRD_fdamp(
-    theta: Array, gamma2: float, gamma3: float, f_RD: float, f_damp: float
-) -> Tuple[float, float, float, float, float, float]:
+    theta: Float[Array, "4"],
+    gamma2: Float,
+    gamma3: Float,
+    f_RD: Float,
+    f_damp: Float,
+) -> tuple[
+    Float,
+    Float,
+    Float,
+    Float,
+    Float,
+    Float,
+]:
     """
     Compute transition frequencies using externally provided fRD and fdamp.
 
@@ -169,7 +187,7 @@ def get_transition_frequencies_from_fRD_fdamp(
     return f1, f2, f3, f4, f_RD, f_damp
 
 
-def get_coeffs(theta: Array) -> Array:
+def get_coeffs(theta: Float[Array, "4"]) -> Float[Array, "19"]:
     # Retrives the coefficients needed to produce the waveform
 
     m1, m2, chi1, chi2 = theta
@@ -181,7 +199,7 @@ def get_coeffs(theta: Array) -> Array:
     # Definition of chiPN from lalsuite
     chi_s = (chi1 + chi2) / 2.0
     chi_a = (chi1 - chi2) / 2.0
-    seta = (1 - 4 * eta) ** (1 / 2)
+    seta = jnp.abs(1 - 4 * eta) ** (1 / 2)
     chiPN = chi_s * (1 - 76 * eta / 113) + seta * chi_a
 
     coeff = (

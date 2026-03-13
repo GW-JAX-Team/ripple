@@ -5,10 +5,11 @@ This file implements the NRTidalv2 corrections that can be applied to any BBH ba
 import jax
 import jax.numpy as jnp
 from ..constants import MTSUN, MPC, PI, TWO_PI, MRSUN
-from jaxtyping import Array
-from ripplegw.conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
+from jaxtyping import Array, Float
+from typing import Optional
+from ..conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from .IMRPhenom_tidal_utils import get_quadparam_octparam, get_kappa
-from ripplegw.waveforms.IMRPhenomD import Phase, Amp, get_IIb_raw_phase
+from .IMRPhenomD import Phase, Amp, get_IIb_raw_phase
 from .IMRPhenomD_utils import (
     get_coeffs,
     get_transition_frequencies,
@@ -84,30 +85,30 @@ get_planck_taper.defjvps(
 )
 
 
-def get_amp0_lal(M: float, distance: float):
+def get_amp0_lal(M: Float, distance: Float):
     """
     Get the amp0 prefactor as defined in LAL in LALSimIMRPhenomD, line 331.
 
     Args:
-        M (float): Total mass in solar masses
-        distance (float): Distance to the source in Mpc.
+        M (Float): Total mass in solar masses
+        distance (Float): Distance to the source in Mpc.
 
     Returns:
-        float: amp0 from LAL.
+        Float: amp0 from LAL.
     """
     amp0 = 2.0 * jnp.sqrt(5.0 / (64.0 * PI)) * M * MRSUN * M * MTSUN / distance
     return amp0
 
 
-def get_tidal_amplitude(x: Array, theta: Array, kappa: float, distance: float = 1):
+def get_tidal_amplitude(x: Array, theta: Array, kappa: Float, distance: Float = 1):
     """
     Get the tidal amplitude corrections as given in equation (24) of the NRTidal paper.
 
     Args:
         x (Array): Angular frequency, in particular, x = (pi M f)^(2/3)
         theta (Array): Intrinsic parameters (mass1, mass2, chi1, chi2, lambda1, lambda2)
-        kappa (float): Tidal parameter kappa
-        distance (float, optional): Distance to the source in Mpc.
+        kappa (Float): Tidal parameter kappa
+        distance (Float, optional): Distance to the source in Mpc.
 
     Returns:
         Array: Tidal amplitude corrections A_T from NRTidalv2 paper.
@@ -284,16 +285,16 @@ def get_spin_phase_correction(x: Array, theta: Array) -> Array:
     return psi_SS
 
 
-def _get_merger_frequency(theta: Array, kappa: float = None):
+def _get_merger_frequency(theta: Array, kappa: Optional[Float] = None) -> Float:
     """
     Computes the merger frequency in Hz of the given system. This is defined in equation (11) in https://arxiv.org/abs/1804.02235 and the lal source code.
 
     Args:
         theta (Array): Intrinsic parameters with order (m1, m2, chi1, chi2, lambda1, lambda2)
-        kappa (float, optional): Tidal parameter kappa. Defaults to None, so that it is computed from the given parameters theta.
+        kappa (Optional[Float]): Tidal parameter kappa. Defaults to None, so that it is computed from the given parameters theta.
 
     Returns:
-        float: The merger frequency in Hz.
+        Float: The merger frequency in Hz.
     """
 
     # Compute auxiliary quantities
@@ -305,6 +306,7 @@ def _get_merger_frequency(theta: Array, kappa: float = None):
 
     if kappa is None:
         kappa = get_kappa(theta)
+    assert kappa is not None
     kappa_2 = kappa * kappa
 
     # Initialize coefficients

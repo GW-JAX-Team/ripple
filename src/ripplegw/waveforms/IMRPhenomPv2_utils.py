@@ -1,14 +1,13 @@
 import jax
 import jax.numpy as jnp
 
-from typing import Tuple
 from ..constants import MTSUN
 import numpy as np
 from .IMRPhenomD_utils import (
     EradRational0815,
     FinalSpin0815_s,
 )
-from jaxtyping import Array
+from jaxtyping import Array, Float
 from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
 
 MAX_TOL_ATAN = 1.0e-15
@@ -28,7 +27,7 @@ def ROTATEY(angle, x, y, z):
 
 
 def FinalSpin0815(eta, chi1, chi2):
-    Seta = jnp.sqrt(1.0 - 4.0 * eta)
+    Seta = jnp.sqrt(jnp.abs(1.0 - 4.0 * eta))
     m1 = 0.5 * (1.0 + Seta)
     m2 = 0.5 * (1.0 - Seta)
     m1s = m1 * m1
@@ -38,18 +37,18 @@ def FinalSpin0815(eta, chi1, chi2):
 
 
 def convert_spins(
-    m1: float,
-    m2: float,
-    f_ref: float,
-    phiRef: float,
-    incl: float,
-    s1x: float,
-    s1y: float,
-    s1z: float,
-    s2x: float,
-    s2y: float,
-    s2z: float,
-) -> Tuple[float, float, float, float, float, float, float]:
+    m1: Float,
+    m2: Float,
+    f_ref: Float,
+    phiRef: Float,
+    incl: Float,
+    s1x: Float,
+    s1y: Float,
+    s1z: Float,
+    s2x: Float,
+    s2y: Float,
+    s2z: Float,
+) -> tuple[Float, Float, Float, Float, Float, Float, Float]:
     # m1 = m1_SI / MSUN  # Masses in solar masses
     # m2 = m2_SI / MSUN
     M = m1 + m2
@@ -90,7 +89,7 @@ def convert_spins(
     thetaJ_sf = jnp.arccos(J0z_sf / J0)
 
     no_inplane_J0 = (jnp.abs(J0x_sf) < MAX_TOL_ATAN) & (jnp.abs(J0y_sf) < MAX_TOL_ATAN)
-    phiJ_sf = jnp.where(
+    phiJ_sf: Float = jnp.where(
         no_inplane_J0,
         jnp.pi / 2.0 - phiRef,  # This is the aligned-spin case
         jnp.arctan2(J0y_sf, J0x_sf),
@@ -120,7 +119,7 @@ def convert_spins(
     tmp_x, tmp_y, tmp_z = ROTATEZ(kappa, tmp_x, tmp_y, tmp_z)
 
     no_inplane_LN = (jnp.abs(tmp_x) < MAX_TOL_ATAN) & (jnp.abs(tmp_y) < MAX_TOL_ATAN)
-    alpha0 = jnp.where(
+    alpha0: Float = jnp.where(
         no_inplane_LN,
         jnp.pi,  # This is the aligned-spin case
         jnp.arctan2(tmp_y, tmp_x),
@@ -174,6 +173,7 @@ def convert_spins(
 
 def SpinWeightedY(theta, phi, s, l, m):  # noqa: E741
     "copied from SphericalHarmonics.c in LAL"
+    fac: Float = jnp.zeros_like(theta)
     if s == -2:
         if l == 2:
             if m == -2:
@@ -383,10 +383,10 @@ def phP_get_fRD_fdamp(m1, m2, chi1_l, chi2_l, chip):
 
 def phP_get_transition_frequencies(
     theta: Array,
-    gamma2: float,
-    gamma3: float,
-    chip: float,
-) -> Tuple[float, float, float, float, float, float]:
+    gamma2: Float,
+    gamma3: Float,
+    chip: Float,
+) -> tuple[Float, Float, Float, Float, Float, Float]:
     # m1 > m2 should hold here
 
     m1, m2, chi1, chi2 = theta

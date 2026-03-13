@@ -4,7 +4,7 @@ import jax
 import jax.numpy as jnp
 from ..constants import MTSUN, PI
 from jaxtyping import Array
-from ripplegw.conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
+from ..conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from .IMRPhenom_tidal_utils import get_kappa
 from .IMRPhenomD_NRTidalv2 import (
     get_spin_phase_correction,
@@ -21,7 +21,7 @@ from .NRTidalv3_utils import (
     fullTidalPhaseCorrection,
     changePhase_if_min,
 )
-from ripplegw.waveforms import IMRPhenomX_utils
+from . import IMRPhenomX_utils
 from .IMRPhenomXAS import Amp, Phase
 
 

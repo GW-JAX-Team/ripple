@@ -1,5 +1,6 @@
 ci:
   autoupdate_branch: ripple-dev
+  skip: [uv-lock]
 
 repos:
   - repo: https://github.com/astral-sh/uv-pre-commit
@@ -17,10 +18,9 @@ repos:
       - id: ruff-format
         files: src/
   
-  # Temporarily disabled - re-enable once type errors are fixed
-  # - repo: https://github.com/RobertCraigie/pyright-python
-  #   rev: v1.1.408
-  #   hooks:
-  #   - id: pyright
-  #     files: src/
-  #     additional_dependencies: [jax, jaxtyping, pytest, typing_extensions, numpy]
+  - repo: https://github.com/RobertCraigie/pyright-python
+    rev: v1.1.408
+    hooks:
+    - id: pyright
+      files: src/
+      additional_dependencies: [jax, jaxtyping, typing_extensions, numpy]

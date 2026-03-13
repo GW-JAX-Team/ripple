@@ -48,14 +48,17 @@ cross-validation = [
     "lalsuite",
 ]
 doc = [
-    "mkdocs-gen-files==0.6.0",
-    "mkdocs-jupyter==0.25.1",
-    "mkdocs-literate-nav==0.6.2",
-    "mkdocs-material==9.7.1",
-    "mkdocs==1.6.1",
-    "mkdocstrings[python]==1.0.3",
-    "pymdown-extensions==10.20.1",
+    "mkdocs-gen-files",
+    "mkdocs-jupyter",
+    "mkdocs-literate-nav",
+    "mkdocs-material",
+    "mkdocs",
+    "mkdocstrings[python]",
+    "pymdown-extensions",
 ]
+
+[project.scripts]
+ripple_time = "ripplegw.benchmarks.timings.timing:main"
 
 [project.urls]
 Homepage = "https://github.com/GW-JAX-Team/ripple"
@@ -73,7 +76,7 @@ build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-norecursedirs = ["tests/cross_validation", "tests/benchmarks"]
+norecursedirs = ["tests/cross_validation"]
 
 [tool.ruff.lint]
 ignore = [

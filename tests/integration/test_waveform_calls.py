@@ -1,8 +1,8 @@
-"""Integration tests for top-level waveform calling interface.
+"""Integration tests for waveform generation.
 
-These tests verify that all supported waveform models can be generated
-successfully, produce valid outputs (finite, correct shape, complex-valued),
-and work with JAX transformations (JIT, vmap, grad).
+Each test class covers one approximant and tests both the low-level
+``gen_<approximant>_hphc`` function (array params) and the top-level
+callable class exported from ``ripplegw`` (dict params).
 
 These tests do NOT compare against LALSuite - that's done in cross_validation/.
 """
@@ -11,136 +11,142 @@ import jax
 import jax.numpy as jnp
 import pytest
 
+from ripplegw import (
+    IMRPhenomD,
+    IMRPhenomD_NRTidalv2,
+    IMRPhenomPv2,
+    IMRPhenomXAS,
+    IMRPhenomXAS_NRTidalv3,
+    SineGaussian,
+    TaylorF2,
+    waveform_preset,
+)
 from ripplegw.conversions import ms_to_Mc_eta, lambdas_to_lambda_tildes
 
 jax.config.update("jax_enable_x64", True)
 
 
 # ============================================================================
-# Test parameters for each waveform type
+# Fixtures — array params (for low-level gen function tests)
 # ============================================================================
 
 
 @pytest.fixture
 def bbh_aligned_params():
-    """Fixed parameter set for aligned-spin BBH waveforms."""
+    """Array params for aligned-spin BBH: [Mc, eta, chi1, chi2, d, tc, phic, iota]."""
     m1, m2 = 30.0, 25.0
     Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
-    chi1, chi2 = 0.5, -0.3
-    dist_mpc = 400.0
-    tc = 0.0
-    phic = 0.5
-    inclination = 0.8
-    return jnp.array([Mc, eta, chi1, chi2, dist_mpc, tc, phic, inclination])
+    return jnp.array([Mc, eta, 0.5, -0.3, 400.0, 0.0, 0.5, 0.8])
 
 
 @pytest.fixture
 def bns_tidal_params():
-    """Fixed parameter set for BNS waveforms with tidal effects."""
+    """Array params for BNS (lambda-tilde convention): [Mc, eta, chi1, chi2, lt, dlt, d, tc, phic, iota]."""
     m1, m2 = 1.4, 1.3
     Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
-    chi1, chi2 = 0.05, -0.02
-    lambda1, lambda2 = 500.0, 400.0
     lambda_tilde, delta_lambda_tilde = lambdas_to_lambda_tildes(
-        jnp.array([lambda1, lambda2, m1, m2])
+        jnp.array([500.0, 400.0, m1, m2])
     )
-    dist_mpc = 100.0
-    tc = 0.0
-    phic = 0.5
-    inclination = 0.8
-    return jnp.array(
-        [
-            Mc,
-            eta,
-            chi1,
-            chi2,
-            lambda_tilde,
-            delta_lambda_tilde,
-            dist_mpc,
-            tc,
-            phic,
-            inclination,
-        ]
-    )
+    return jnp.array([Mc, eta, 0.05, -0.02, lambda_tilde, delta_lambda_tilde, 100.0, 0.0, 0.5, 0.8])
 
 
 @pytest.fixture
 def bbh_precessing_params():
-    """Fixed parameter set for precessing BBH waveforms (IMRPhenomPv2)."""
+    """Array params for IMRPhenomPv2: [Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, d, tc, phic, iota]."""
     m1, m2 = 30.0, 25.0
-    # Spin parameters: s1x, s1y, s1z, s2x, s2y, s2z
-    s1x, s1y, s1z = 0.1, 0.2, 0.3
-    s2x, s2y, s2z = -0.1, 0.15, -0.2
-    dist_mpc = 400.0
-    tc = 0.0
-    phic = 0.5
-    inclination = 0.8
-    # IMRPhenomPv2 expects: [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, tc, phiRef, incl]
-    return jnp.array(
-        [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, tc, phic, inclination]
-    )
+    Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
+    return jnp.array([Mc, eta, 0.1, 0.2, 0.3, -0.1, 0.15, -0.2, 400.0, 0.0, 0.5, 0.8])
 
 
 @pytest.fixture
 def bbh_xphm_params():
-    """Fixed parameter set for IMRPhenomXPHM (precessing multi-mode BBH)."""
-    m1, m2 = 50.0, 30.0
-    s1x, s1y, s1z = 0.2, 0.1, -0.3
-    s2x, s2y, s2z = -0.1, 0.3, 0.1
-    dist_mpc = 500.0
-    inclination = 0.8
-    phi0 = 0.5
-    # generate_xphm expects: (m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, inclination, phi0, fs, f_ref)
-    return m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, inclination, phi0
+    """Scalar params for IMRPhenomXPHM generate_xphm positional call."""
+    return 50.0, 30.0, 0.2, 0.1, -0.3, -0.1, 0.3, 0.1, 500.0, 0.8, 0.5
 
 
 @pytest.fixture
 def sinegaussian_params():
-    """Fixed parameter set for SineGaussian burst waveforms."""
-    quality = 10.0
-    frequency = 100.0
-    hrss = 1e-21
-    phase = 0.5
-    eccentricity = 0.3
-    return jnp.array([quality, frequency, hrss, phase, eccentricity])
+    """Array params for SineGaussian: [quality, frequency, hrss, phase, eccentricity]."""
+    return jnp.array([10.0, 100.0, 1e-21, 0.5, 0.3])
+
+
+# ============================================================================
+# Fixtures — dict params (for top-level approximant class tests)
+# ============================================================================
+
+
+@pytest.fixture
+def bbh_aligned_dict():
+    """Dict params for aligned-spin BBH approximant classes."""
+    m1, m2 = 30.0, 25.0
+    Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
+    return {"M_c": float(Mc), "eta": float(eta), "s1_z": 0.5, "s2_z": -0.3,
+            "d_L": 400.0, "phase_c": 0.5, "iota": 0.8}
+
+
+@pytest.fixture
+def bbh_precessing_dict():
+    """Dict params for IMRPhenomPv2 approximant class."""
+    m1, m2 = 30.0, 25.0
+    Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
+    return {"M_c": float(Mc), "eta": float(eta),
+            "s1_x": 0.1, "s1_y": 0.2, "s1_z": 0.3,
+            "s2_x": -0.1, "s2_y": 0.15, "s2_z": -0.2,
+            "d_L": 400.0, "phase_c": 0.5, "iota": 0.8}
+
+
+@pytest.fixture
+def bns_tidal_dict():
+    """Dict params for tidal approximant classes (lambda_1/lambda_2)."""
+    m1, m2 = 1.4, 1.3
+    Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
+    return {"M_c": float(Mc), "eta": float(eta), "s1_z": 0.05, "s2_z": -0.02,
+            "lambda_1": 500.0, "lambda_2": 400.0, "d_L": 100.0, "phase_c": 0.5, "iota": 0.8}
+
+
+@pytest.fixture
+def bns_tidal_tilde_dict():
+    """Dict params for tidal approximant classes (lambda_tilde/delta_lambda_tilde)."""
+    m1, m2 = 1.4, 1.3
+    Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
+    lt, dlt = lambdas_to_lambda_tildes(jnp.array([500.0, 400.0, m1, m2]))
+    return {"M_c": float(Mc), "eta": float(eta), "s1_z": 0.05, "s2_z": -0.02,
+            "lambda_tilde": float(lt), "delta_lambda_tilde": float(dlt),
+            "d_L": 100.0, "phase_c": 0.5, "iota": 0.8}
+
+
+@pytest.fixture
+def sinegaussian_dict():
+    """Dict params for SineGaussian approximant class."""
+    return {"Q": 10.0, "f_0": 100.0, "hrss": 1e-21, "phase": 0.5, "e": 0.3}
+
+
+# ============================================================================
+# Fixtures — grids
+# ============================================================================
 
 
 @pytest.fixture
 def test_time_grid():
-    """Time grid for time-domain waveforms (SineGaussian)."""
-    fs_sampling = 4096.0  # Sample rate
-    duration = 1.0  # Duration in seconds
-    t = jnp.arange(-duration / 2, duration / 2, 1 / fs_sampling)
-    return t
+    fs_sampling, duration = 4096.0, 1.0
+    return jnp.arange(-duration / 2, duration / 2, 1 / fs_sampling)
 
 
 @pytest.fixture
 def test_freq_grid():
-    """Frequency grid for testing."""
-    f_l = 20.0
-    f_u = 1024.0
-    f_sampling = 2048.0
-    T = 16.0
+    f_l, f_u, f_sampling, T = 20.0, 1024.0, 2048.0, 16.0
     delta_t = 1 / f_sampling
-    tlen = int(round(T / delta_t))
-    freqs = jnp.fft.rfftfreq(tlen, delta_t)
-    fs = freqs[(freqs > f_l) & (freqs < f_u)]
-    return fs
+    freqs = jnp.fft.rfftfreq(int(round(T / delta_t)), delta_t)
+    return freqs[(freqs > f_l) & (freqs < f_u)]
 
 
 # ============================================================================
-# Helper functions
+# Helpers
 # ============================================================================
 
 
-def assert_waveform_valid(hp, hc, fs):
-    """Assert that a waveform output is valid.
-
-    Checks:
-    - Output shape matches frequency grid
-    - All values are finite (no NaN/Inf)
-    - Output is complex-valued
-    """
+def assert_fd_valid(hp, hc, fs):
+    """Assert frequency-domain (hp, hc) are finite and complex."""
     assert hp.shape == fs.shape, f"hp shape {hp.shape} != fs shape {fs.shape}"
     assert hc.shape == fs.shape, f"hc shape {hc.shape} != fs shape {fs.shape}"
     assert jnp.all(jnp.isfinite(hp)), "hp contains NaN or Inf"
@@ -149,451 +155,420 @@ def assert_waveform_valid(hp, hc, fs):
     assert jnp.iscomplexobj(hc), "hc is not complex-valued"
 
 
-# ============================================================================
-# Test IMRPhenomD (aligned-spin BBH)
-# ============================================================================
-
-
-def test_imrphenomd_basic(test_freq_grid, bbh_aligned_params):
-    """Test IMRPhenomD waveform generation."""
-    from ripplegw.waveforms.IMRPhenomD import gen_IMRPhenomD_hphc
-
-    fs = test_freq_grid
-    f_ref = 20.0
-    hp, hc = gen_IMRPhenomD_hphc(fs, bbh_aligned_params, f_ref)
-    assert_waveform_valid(hp, hc, fs)
-
-
-def test_imrphenomd_jit(test_freq_grid, bbh_aligned_params):
-    """Test that IMRPhenomD works with JIT compilation."""
-    from ripplegw.waveforms.IMRPhenomD import gen_IMRPhenomD_hphc
-
-    fs = test_freq_grid
-    f_ref = 20.0
-
-    @jax.jit
-    def waveform_jitted(theta):
-        return gen_IMRPhenomD_hphc(fs, theta, f_ref)
-
-    hp, hc = waveform_jitted(bbh_aligned_params)
-    assert_waveform_valid(hp, hc, fs)
-
-
-def test_imrphenomd_vmap(test_freq_grid, bbh_aligned_params):
-    """Test that IMRPhenomD works with vmap."""
-    from ripplegw.waveforms.IMRPhenomD import gen_IMRPhenomD_hphc
-
-    fs = test_freq_grid
-    f_ref = 20.0
-
-    # Create a batch of parameters
-    batch_size = 5
-    theta_batch = jnp.tile(bbh_aligned_params, (batch_size, 1))
-
-    waveform_vmapped = jax.vmap(lambda theta: gen_IMRPhenomD_hphc(fs, theta, f_ref))
-    hp_batch, hc_batch = waveform_vmapped(theta_batch)
-
-    assert hp_batch.shape == (batch_size, len(fs))
-    assert hc_batch.shape == (batch_size, len(fs))
-    assert jnp.all(jnp.isfinite(hp_batch))
-    assert jnp.all(jnp.isfinite(hc_batch))
-
-
-def test_imrphenomd_grad(test_freq_grid, bbh_aligned_params):
-    """Test that IMRPhenomD is differentiable."""
-    from ripplegw.waveforms.IMRPhenomD import gen_IMRPhenomD_hphc
-
-    fs = test_freq_grid
-    f_ref = 20.0
-
-    def waveform_real(theta):
-        hp, _ = gen_IMRPhenomD_hphc(fs, theta, f_ref)
-        return jnp.sum(jnp.abs(hp) ** 2)
-
-    # Just check that gradient computation doesn't error
-    grad_fn = jax.grad(waveform_real)
-    grad = grad_fn(bbh_aligned_params)
-    assert grad.shape == bbh_aligned_params.shape
-    assert jnp.all(jnp.isfinite(grad))
-
-
-# ============================================================================
-# Test IMRPhenomXAS (aligned-spin BBH)
-# ============================================================================
-
-
-def test_imrphenomxas_basic(test_freq_grid, bbh_aligned_params):
-    """Test IMRPhenomXAS waveform generation."""
-    from ripplegw.waveforms.IMRPhenomXAS import gen_IMRPhenomXAS_hphc
-
-    fs = test_freq_grid
-    f_ref = 20.0
-    hp, hc = gen_IMRPhenomXAS_hphc(fs, bbh_aligned_params, f_ref)
-    assert_waveform_valid(hp, hc, fs)
-
-
-def test_imrphenomxas_jit(test_freq_grid, bbh_aligned_params):
-    """Test that IMRPhenomXAS works with JIT compilation."""
-    from ripplegw.waveforms.IMRPhenomXAS import gen_IMRPhenomXAS_hphc
-
-    fs = test_freq_grid
-    f_ref = 20.0
-
-    @jax.jit
-    def waveform_jitted(theta):
-        return gen_IMRPhenomXAS_hphc(fs, theta, f_ref)
-
-    hp, hc = waveform_jitted(bbh_aligned_params)
-    assert_waveform_valid(hp, hc, fs)
-
-
-def test_imrphenomxas_vmap(test_freq_grid, bbh_aligned_params):
-    """Test that IMRPhenomXAS works with vmap."""
-    from ripplegw.waveforms.IMRPhenomXAS import gen_IMRPhenomXAS_hphc
-
-    fs = test_freq_grid
-    f_ref = 20.0
-
-    batch_size = 5
-    theta_batch = jnp.tile(bbh_aligned_params, (batch_size, 1))
-
-    waveform_vmapped = jax.vmap(lambda theta: gen_IMRPhenomXAS_hphc(fs, theta, f_ref))
-    hp_batch, hc_batch = waveform_vmapped(theta_batch)
-
-    assert hp_batch.shape == (batch_size, len(fs))
-    assert hc_batch.shape == (batch_size, len(fs))
-    assert jnp.all(jnp.isfinite(hp_batch))
-    assert jnp.all(jnp.isfinite(hc_batch))
-
-
-# ============================================================================
-# Test IMRPhenomPv2 (precessing BBH)
-# ============================================================================
-
-
-def test_imrphenompv2_basic(test_freq_grid, bbh_precessing_params):
-    """Test IMRPhenomPv2 waveform generation."""
-    from ripplegw.waveforms.IMRPhenomPv2 import gen_IMRPhenomPv2
-
-    fs = test_freq_grid
-    f_ref = 20.0
-    hp, hc = gen_IMRPhenomPv2(fs, bbh_precessing_params, f_ref)
-    assert_waveform_valid(hp, hc, fs)
-
-
-def test_imrphenompv2_jit(test_freq_grid, bbh_precessing_params):
-    """Test that IMRPhenomPv2 works with JIT compilation."""
-    from ripplegw.waveforms.IMRPhenomPv2 import gen_IMRPhenomPv2
-
-    fs = test_freq_grid
-    f_ref = 20.0
-
-    @jax.jit
-    def waveform_jitted(theta):
-        return gen_IMRPhenomPv2(fs, theta, f_ref)
-
-    hp, hc = waveform_jitted(bbh_precessing_params)
-    assert_waveform_valid(hp, hc, fs)
-
-
-def test_imrphenompv2_vmap(test_freq_grid, bbh_precessing_params):
-    """Test that IMRPhenomPv2 works with vmap."""
-    from ripplegw.waveforms.IMRPhenomPv2 import gen_IMRPhenomPv2
-
-    fs = test_freq_grid
-    f_ref = 20.0
-
-    batch_size = 5
-    theta_batch = jnp.tile(bbh_precessing_params, (batch_size, 1))
-
-    waveform_vmapped = jax.vmap(lambda theta: gen_IMRPhenomPv2(fs, theta, f_ref))
-    hp_batch, hc_batch = waveform_vmapped(theta_batch)
-
-    assert hp_batch.shape == (batch_size, len(fs))
-    assert hc_batch.shape == (batch_size, len(fs))
-    assert jnp.all(jnp.isfinite(hp_batch))
-    assert jnp.all(jnp.isfinite(hc_batch))
-
-
-# ============================================================================
-# Test IMRPhenomD_NRTidalv2 (BNS with tidal)
-# ============================================================================
-
-
-def test_imrphenomd_nrtidalv2_basic(test_freq_grid, bns_tidal_params):
-    """Test IMRPhenomD_NRTidalv2 waveform generation."""
-    from ripplegw.waveforms.IMRPhenomD_NRTidalv2 import gen_IMRPhenomD_NRTidalv2_hphc
-
-    fs = test_freq_grid
-    f_ref = 20.0
-    hp, hc = gen_IMRPhenomD_NRTidalv2_hphc(fs, bns_tidal_params, f_ref)
-    assert_waveform_valid(hp, hc, fs)
-
-
-def test_imrphenomd_nrtidalv2_jit(test_freq_grid, bns_tidal_params):
-    """Test that IMRPhenomD_NRTidalv2 works with JIT compilation."""
-    from ripplegw.waveforms.IMRPhenomD_NRTidalv2 import gen_IMRPhenomD_NRTidalv2_hphc
-
-    fs = test_freq_grid
-    f_ref = 20.0
-
-    @jax.jit
-    def waveform_jitted(theta):
-        return gen_IMRPhenomD_NRTidalv2_hphc(fs, theta, f_ref)
-
-    hp, hc = waveform_jitted(bns_tidal_params)
-    assert_waveform_valid(hp, hc, fs)
-
-
-def test_imrphenomd_nrtidalv2_vmap(test_freq_grid, bns_tidal_params):
-    """Test that IMRPhenomD_NRTidalv2 works with vmap."""
-    from ripplegw.waveforms.IMRPhenomD_NRTidalv2 import gen_IMRPhenomD_NRTidalv2_hphc
-
-    fs = test_freq_grid
-    f_ref = 20.0
-
-    batch_size = 5
-    theta_batch = jnp.tile(bns_tidal_params, (batch_size, 1))
-
-    waveform_vmapped = jax.vmap(
-        lambda theta: gen_IMRPhenomD_NRTidalv2_hphc(fs, theta, f_ref)
-    )
-    hp_batch, hc_batch = waveform_vmapped(theta_batch)
-
-    assert hp_batch.shape == (batch_size, len(fs))
-    assert hc_batch.shape == (batch_size, len(fs))
-    assert jnp.all(jnp.isfinite(hp_batch))
-    assert jnp.all(jnp.isfinite(hc_batch))
-
-
-# ============================================================================
-# Test IMRPhenomXAS_NRTidalv3 (BNS with tidal)
-# ============================================================================
-
-
-def test_imrphenomxas_nrtidalv3_basic(test_freq_grid, bns_tidal_params):
-    """Test IMRPhenomXAS_NRTidalv3 waveform generation."""
-    from ripplegw.waveforms.IMRPhenomXAS_NRTidalv3 import (
-        gen_IMRPhenomXAS_NRTidalv3_hphc,
-    )
-
-    fs = test_freq_grid
-    f_ref = 20.0
-    hp, hc = gen_IMRPhenomXAS_NRTidalv3_hphc(fs, bns_tidal_params, f_ref)
-    assert_waveform_valid(hp, hc, fs)
-
-
-def test_imrphenomxas_nrtidalv3_jit(test_freq_grid, bns_tidal_params):
-    """Test that IMRPhenomXAS_NRTidalv3 works with JIT compilation."""
-    from ripplegw.waveforms.IMRPhenomXAS_NRTidalv3 import (
-        gen_IMRPhenomXAS_NRTidalv3_hphc,
-    )
-
-    fs = test_freq_grid
-    f_ref = 20.0
-
-    @jax.jit
-    def waveform_jitted(theta):
-        return gen_IMRPhenomXAS_NRTidalv3_hphc(fs, theta, f_ref)
-
-    hp, hc = waveform_jitted(bns_tidal_params)
-    assert_waveform_valid(hp, hc, fs)
-
-
-def test_imrphenomxas_nrtidalv3_vmap(test_freq_grid, bns_tidal_params):
-    """Test that IMRPhenomXAS_NRTidalv3 works with vmap."""
-    from ripplegw.waveforms.IMRPhenomXAS_NRTidalv3 import (
-        gen_IMRPhenomXAS_NRTidalv3_hphc,
-    )
-
-    fs = test_freq_grid
-    f_ref = 20.0
-
-    batch_size = 5
-    theta_batch = jnp.tile(bns_tidal_params, (batch_size, 1))
-
-    waveform_vmapped = jax.vmap(
-        lambda theta: gen_IMRPhenomXAS_NRTidalv3_hphc(fs, theta, f_ref)
-    )
-    hp_batch, hc_batch = waveform_vmapped(theta_batch)
-
-    assert hp_batch.shape == (batch_size, len(fs))
-    assert hc_batch.shape == (batch_size, len(fs))
-    assert jnp.all(jnp.isfinite(hp_batch))
-    assert jnp.all(jnp.isfinite(hc_batch))
-
-
-# ============================================================================
-# Test TaylorF2 (PN inspiral with tidal)
-# ============================================================================
-
-
-def test_taylorf2_basic(test_freq_grid, bns_tidal_params):
-    """Test TaylorF2 waveform generation."""
-    from ripplegw.waveforms.TaylorF2 import gen_TaylorF2_hphc
-
-    fs = test_freq_grid
-    f_ref = 20.0
-    hp, hc = gen_TaylorF2_hphc(fs, bns_tidal_params, f_ref)
-    assert_waveform_valid(hp, hc, fs)
-
-
-def test_taylorf2_jit(test_freq_grid, bns_tidal_params):
-    """Test that TaylorF2 works with JIT compilation."""
-    from ripplegw.waveforms.TaylorF2 import gen_TaylorF2_hphc
-
-    fs = test_freq_grid
-    f_ref = 20.0
-
-    @jax.jit
-    def waveform_jitted(theta):
-        return gen_TaylorF2_hphc(fs, theta, f_ref)
-
-    hp, hc = waveform_jitted(bns_tidal_params)
-    assert_waveform_valid(hp, hc, fs)
-
-
-def test_taylorf2_vmap(test_freq_grid, bns_tidal_params):
-    """Test that TaylorF2 works with vmap."""
-    from ripplegw.waveforms.TaylorF2 import gen_TaylorF2_hphc
-
-    fs = test_freq_grid
-    f_ref = 20.0
-
-    batch_size = 5
-    theta_batch = jnp.tile(bns_tidal_params, (batch_size, 1))
-
-    waveform_vmapped = jax.vmap(lambda theta: gen_TaylorF2_hphc(fs, theta, f_ref))
-    hp_batch, hc_batch = waveform_vmapped(theta_batch)
-
-    assert hp_batch.shape == (batch_size, len(fs))
-    assert hc_batch.shape == (batch_size, len(fs))
-    assert jnp.all(jnp.isfinite(hp_batch))
-    assert jnp.all(jnp.isfinite(hc_batch))
-
-
-# ============================================================================
-# Test IMRPhenomXPHM (precessing multi-mode BBH)
-# ============================================================================
-
-
-def test_imrphenomxphm_basic(test_freq_grid, bbh_xphm_params):
-    """Test IMRPhenomXPHM waveform generation."""
-    from ripplegw.waveforms.IMRPhenomXPHM import generate_xphm
-
-    fs = test_freq_grid
-    f_ref = 20.0
-    m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, inclination, phi0 = bbh_xphm_params
-    hp, hc = generate_xphm(m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, inclination, phi0, fs, f_ref)
-    assert_waveform_valid(hp, hc, fs)
-
-
-def test_imrphenomxphm_jit(test_freq_grid, bbh_xphm_params):
-    """Test that IMRPhenomXPHM works with JIT compilation."""
-    from ripplegw.waveforms.IMRPhenomXPHM import generate_xphm
-
-    fs = test_freq_grid
-    f_ref = 20.0
-    m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, inclination, phi0 = bbh_xphm_params
-
-    @jax.jit
-    def waveform_jitted(m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, inclination, phi0):
-        return generate_xphm(m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, inclination, phi0, fs, f_ref)
-
-    hp, hc = waveform_jitted(m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, inclination, phi0)
-    assert_waveform_valid(hp, hc, fs)
-
-
-def test_imrphenomxphm_vmap(test_freq_grid, bbh_xphm_params):
-    """Test that IMRPhenomXPHM works with vmap over a batch of parameters."""
-    from ripplegw.waveforms.IMRPhenomXPHM import generate_xphm
-
-    fs = test_freq_grid
-    f_ref = 20.0
-    m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, inclination, phi0 = bbh_xphm_params
-
-    batch_size = 3
-    generate_xphm_batched = jax.vmap(
-        generate_xphm,
-        in_axes=(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, None, None),
-    )
-
-    hp_batch, hc_batch = generate_xphm_batched(
-        jnp.full(batch_size, m1),
-        jnp.full(batch_size, m2),
-        jnp.full(batch_size, s1x),
-        jnp.full(batch_size, s1y),
-        jnp.full(batch_size, s1z),
-        jnp.full(batch_size, s2x),
-        jnp.full(batch_size, s2y),
-        jnp.full(batch_size, s2z),
-        jnp.full(batch_size, dist_mpc),
-        jnp.full(batch_size, inclination),
-        jnp.full(batch_size, phi0),
-        fs,
-        f_ref,
-    )
-
-    assert hp_batch.shape == (batch_size, len(fs))
-    assert hc_batch.shape == (batch_size, len(fs))
-    assert jnp.all(jnp.isfinite(hp_batch))
-    assert jnp.all(jnp.isfinite(hc_batch))
-
-
-# ============================================================================
-# SineGaussian tests (time-domain burst)
-# ============================================================================
-
-
-def test_sinegaussian_basic(test_time_grid, sinegaussian_params):
-    """Test SineGaussian waveform generation (time-domain)."""
-    from ripplegw.waveforms.SineGaussian import gen_SineGaussian_hphc
-
-    t = test_time_grid
-    hp, hc = gen_SineGaussian_hphc(t, sinegaussian_params)
-
+def assert_td_valid(hp, hc, t):
+    """Assert time-domain (hp, hc) are finite and real."""
     assert hp.shape == t.shape, f"hp shape {hp.shape} != t shape {t.shape}"
     assert hc.shape == t.shape, f"hc shape {hc.shape} != t shape {t.shape}"
     assert jnp.all(jnp.isfinite(hp)), "hp contains NaN or Inf"
     assert jnp.all(jnp.isfinite(hc)), "hc contains NaN or Inf"
-    # SineGaussian returns real-valued waveforms (time-domain)
-    assert not jnp.iscomplexobj(hp), "hp should be real-valued for time-domain"
-    assert not jnp.iscomplexobj(hc), "hc should be real-valued for time-domain"
+    assert not jnp.iscomplexobj(hp), "hp should be real-valued"
+    assert not jnp.iscomplexobj(hc), "hc should be real-valued"
 
 
-def test_sinegaussian_jit(test_time_grid, sinegaussian_params):
-    """Test that SineGaussian works with JIT compilation."""
-    from ripplegw.waveforms.SineGaussian import gen_SineGaussian_hphc
-
-    t = test_time_grid
-
-    @jax.jit
-    def waveform_jitted(theta):
-        return gen_SineGaussian_hphc(t, theta)
-
-    hp, hc = waveform_jitted(sinegaussian_params)
-    assert hp.shape == t.shape
-    assert hc.shape == t.shape
-    assert jnp.all(jnp.isfinite(hp))
-    assert jnp.all(jnp.isfinite(hc))
+def assert_approx_fd_valid(output, fs):
+    """Assert approximant dict output {"p": hp, "c": hc} is finite and complex."""
+    assert_fd_valid(output["p"], output["c"], fs)
 
 
-def test_sinegaussian_vmap(test_time_grid, sinegaussian_params):
-    """Test that SineGaussian works with vmap."""
-    from ripplegw.waveforms.SineGaussian import gen_SineGaussian_hphc
+def assert_approx_td_valid(output, t):
+    """Assert approximant dict output {"p": hp, "c": hc} is finite and real."""
+    assert_td_valid(output["p"], output["c"], t)
 
-    t = test_time_grid
 
-    batch_size = 5
-    theta_batch = jnp.tile(sinegaussian_params, (batch_size, 1))
+def batch_dict(params, batch_size):
+    """Expand a scalar-valued param dict to a batched dict of 1-D arrays."""
+    return {k: jnp.full(batch_size, float(v)) for k, v in params.items()}
 
-    waveform_vmapped = jax.vmap(lambda theta: gen_SineGaussian_hphc(t, theta))
-    hp_batch, hc_batch = waveform_vmapped(theta_batch)
 
-    assert hp_batch.shape == (batch_size, len(t))
-    assert hc_batch.shape == (batch_size, len(t))
-    assert jnp.all(jnp.isfinite(hp_batch))
-    assert jnp.all(jnp.isfinite(hc_batch))
-    # SineGaussian is time-domain, so output should be real
-    assert jnp.all(jnp.isreal(hp_batch))
-    assert jnp.all(jnp.isreal(hc_batch))
+# ============================================================================
+# Tests per approximant
+# ============================================================================
+
+
+class TestIMRPhenomD:
+    # --- low-level gen function ---
+    def test_gen_basic(self, test_freq_grid, bbh_aligned_params):
+        from ripplegw.waveforms.IMRPhenomD import gen_IMRPhenomD_hphc
+        hp, hc = gen_IMRPhenomD_hphc(test_freq_grid, bbh_aligned_params, 20.0)
+        assert_fd_valid(hp, hc, test_freq_grid)
+
+    def test_gen_jit(self, test_freq_grid, bbh_aligned_params):
+        from ripplegw.waveforms.IMRPhenomD import gen_IMRPhenomD_hphc
+        fs, f_ref = test_freq_grid, 20.0
+        hp, hc = jax.jit(lambda t: gen_IMRPhenomD_hphc(fs, t, f_ref))(bbh_aligned_params)
+        assert_fd_valid(hp, hc, fs)
+
+    def test_gen_vmap(self, test_freq_grid, bbh_aligned_params):
+        from ripplegw.waveforms.IMRPhenomD import gen_IMRPhenomD_hphc
+        fs, f_ref, batch_size = test_freq_grid, 20.0, 5
+        batch = jnp.tile(bbh_aligned_params, (batch_size, 1))
+        hp_b, hc_b = jax.vmap(lambda t: gen_IMRPhenomD_hphc(fs, t, f_ref))(batch)
+        assert hp_b.shape == (batch_size, len(fs))
+        assert jnp.all(jnp.isfinite(hp_b))
+
+    def test_gen_grad(self, test_freq_grid, bbh_aligned_params):
+        from ripplegw.waveforms.IMRPhenomD import gen_IMRPhenomD_hphc
+        fs, f_ref = test_freq_grid, 20.0
+
+        def loss(theta):
+            hp, _ = gen_IMRPhenomD_hphc(fs, theta, f_ref)
+            return jnp.sum(jnp.abs(hp) ** 2)
+
+        grad = jax.grad(loss)(bbh_aligned_params)
+        assert grad.shape == bbh_aligned_params.shape
+        assert jnp.all(jnp.isfinite(grad))
+
+    # --- top-level approximant class ---
+    def test_basic(self, test_freq_grid, bbh_aligned_dict):
+        output = IMRPhenomD(f_ref=20.0)(test_freq_grid, bbh_aligned_dict)
+        assert_approx_fd_valid(output, test_freq_grid)
+
+    def test_jit(self, test_freq_grid, bbh_aligned_dict):
+        model = IMRPhenomD(f_ref=20.0)
+        output = jax.jit(model)(test_freq_grid, bbh_aligned_dict)
+        assert_approx_fd_valid(output, test_freq_grid)
+
+    def test_vmap(self, test_freq_grid, bbh_aligned_dict):
+        model = IMRPhenomD(f_ref=20.0)
+        fs, batch_size = test_freq_grid, 4
+        out = jax.vmap(lambda p: model(fs, p))(batch_dict(bbh_aligned_dict, batch_size))
+        assert out["p"].shape == (batch_size, len(fs))
+        assert jnp.all(jnp.isfinite(out["p"]))
+
+    def test_repr(self):
+        assert repr(IMRPhenomD(f_ref=20.0)) == "IMRPhenomD(f_ref=20.0)"
+
+    def test_in_waveform_preset(self):
+        assert "IMRPhenomD" in waveform_preset
+        assert isinstance(waveform_preset["IMRPhenomD"](f_ref=20.0), IMRPhenomD)
+
+
+class TestIMRPhenomXAS:
+    # --- low-level gen function ---
+    def test_gen_basic(self, test_freq_grid, bbh_aligned_params):
+        from ripplegw.waveforms.IMRPhenomXAS import gen_IMRPhenomXAS_hphc
+        hp, hc = gen_IMRPhenomXAS_hphc(test_freq_grid, bbh_aligned_params, 20.0)
+        assert_fd_valid(hp, hc, test_freq_grid)
+
+    def test_gen_jit(self, test_freq_grid, bbh_aligned_params):
+        from ripplegw.waveforms.IMRPhenomXAS import gen_IMRPhenomXAS_hphc
+        fs, f_ref = test_freq_grid, 20.0
+        hp, hc = jax.jit(lambda t: gen_IMRPhenomXAS_hphc(fs, t, f_ref))(bbh_aligned_params)
+        assert_fd_valid(hp, hc, fs)
+
+    def test_gen_vmap(self, test_freq_grid, bbh_aligned_params):
+        from ripplegw.waveforms.IMRPhenomXAS import gen_IMRPhenomXAS_hphc
+        fs, f_ref, batch_size = test_freq_grid, 20.0, 5
+        batch = jnp.tile(bbh_aligned_params, (batch_size, 1))
+        hp_b, hc_b = jax.vmap(lambda t: gen_IMRPhenomXAS_hphc(fs, t, f_ref))(batch)
+        assert hp_b.shape == (batch_size, len(fs))
+        assert jnp.all(jnp.isfinite(hp_b))
+
+    # --- top-level approximant class ---
+    def test_basic(self, test_freq_grid, bbh_aligned_dict):
+        output = IMRPhenomXAS(f_ref=20.0)(test_freq_grid, bbh_aligned_dict)
+        assert_approx_fd_valid(output, test_freq_grid)
+
+    def test_jit(self, test_freq_grid, bbh_aligned_dict):
+        model = IMRPhenomXAS(f_ref=20.0)
+        output = jax.jit(model)(test_freq_grid, bbh_aligned_dict)
+        assert_approx_fd_valid(output, test_freq_grid)
+
+    def test_vmap(self, test_freq_grid, bbh_aligned_dict):
+        model = IMRPhenomXAS(f_ref=20.0)
+        fs, batch_size = test_freq_grid, 4
+        out = jax.vmap(lambda p: model(fs, p))(batch_dict(bbh_aligned_dict, batch_size))
+        assert out["p"].shape == (batch_size, len(fs))
+        assert jnp.all(jnp.isfinite(out["p"]))
+
+    def test_repr(self):
+        assert repr(IMRPhenomXAS(f_ref=20.0)) == "IMRPhenomXAS(f_ref=20.0)"
+
+    def test_in_waveform_preset(self):
+        assert "IMRPhenomXAS" in waveform_preset
+        assert isinstance(waveform_preset["IMRPhenomXAS"](f_ref=20.0), IMRPhenomXAS)
+
+
+class TestIMRPhenomPv2:
+    # --- low-level gen function ---
+    def test_gen_basic(self, test_freq_grid, bbh_precessing_params):
+        from ripplegw.waveforms.IMRPhenomPv2 import gen_IMRPhenomPv2_hphc
+        hp, hc = gen_IMRPhenomPv2_hphc(test_freq_grid, bbh_precessing_params, 20.0)
+        assert_fd_valid(hp, hc, test_freq_grid)
+
+    def test_gen_jit(self, test_freq_grid, bbh_precessing_params):
+        from ripplegw.waveforms.IMRPhenomPv2 import gen_IMRPhenomPv2_hphc
+        fs, f_ref = test_freq_grid, 20.0
+        hp, hc = jax.jit(lambda t: gen_IMRPhenomPv2_hphc(fs, t, f_ref))(bbh_precessing_params)
+        assert_fd_valid(hp, hc, fs)
+
+    def test_gen_vmap(self, test_freq_grid, bbh_precessing_params):
+        from ripplegw.waveforms.IMRPhenomPv2 import gen_IMRPhenomPv2_hphc
+        fs, f_ref, batch_size = test_freq_grid, 20.0, 5
+        batch = jnp.tile(bbh_precessing_params, (batch_size, 1))
+        hp_b, hc_b = jax.vmap(lambda t: gen_IMRPhenomPv2_hphc(fs, t, f_ref))(batch)
+        assert hp_b.shape == (batch_size, len(fs))
+        assert jnp.all(jnp.isfinite(hp_b))
+
+    # --- top-level approximant class ---
+    def test_basic(self, test_freq_grid, bbh_precessing_dict):
+        output = IMRPhenomPv2(f_ref=20.0)(test_freq_grid, bbh_precessing_dict)
+        assert_approx_fd_valid(output, test_freq_grid)
+
+    def test_jit(self, test_freq_grid, bbh_precessing_dict):
+        model = IMRPhenomPv2(f_ref=20.0)
+        output = jax.jit(model)(test_freq_grid, bbh_precessing_dict)
+        assert_approx_fd_valid(output, test_freq_grid)
+
+    def test_vmap(self, test_freq_grid, bbh_precessing_dict):
+        model = IMRPhenomPv2(f_ref=20.0)
+        fs, batch_size = test_freq_grid, 4
+        out = jax.vmap(lambda p: model(fs, p))(batch_dict(bbh_precessing_dict, batch_size))
+        assert out["p"].shape == (batch_size, len(fs))
+        assert jnp.all(jnp.isfinite(out["p"]))
+
+    def test_repr(self):
+        assert repr(IMRPhenomPv2(f_ref=20.0)) == "IMRPhenomPv2(f_ref=20.0)"
+
+    def test_in_waveform_preset(self):
+        assert "IMRPhenomPv2" in waveform_preset
+        assert isinstance(waveform_preset["IMRPhenomPv2"](f_ref=20.0), IMRPhenomPv2)
+
+
+class TestIMRPhenomD_NRTidalv2:
+    # --- low-level gen function ---
+    def test_gen_basic(self, test_freq_grid, bns_tidal_params):
+        from ripplegw.waveforms.IMRPhenomD_NRTidalv2 import gen_IMRPhenomD_NRTidalv2_hphc
+        hp, hc = gen_IMRPhenomD_NRTidalv2_hphc(test_freq_grid, bns_tidal_params, 20.0)
+        assert_fd_valid(hp, hc, test_freq_grid)
+
+    def test_gen_jit(self, test_freq_grid, bns_tidal_params):
+        from ripplegw.waveforms.IMRPhenomD_NRTidalv2 import gen_IMRPhenomD_NRTidalv2_hphc
+        fs, f_ref = test_freq_grid, 20.0
+        hp, hc = jax.jit(lambda t: gen_IMRPhenomD_NRTidalv2_hphc(fs, t, f_ref))(bns_tidal_params)
+        assert_fd_valid(hp, hc, fs)
+
+    def test_gen_vmap(self, test_freq_grid, bns_tidal_params):
+        from ripplegw.waveforms.IMRPhenomD_NRTidalv2 import gen_IMRPhenomD_NRTidalv2_hphc
+        fs, f_ref, batch_size = test_freq_grid, 20.0, 5
+        batch = jnp.tile(bns_tidal_params, (batch_size, 1))
+        hp_b, hc_b = jax.vmap(lambda t: gen_IMRPhenomD_NRTidalv2_hphc(fs, t, f_ref))(batch)
+        assert hp_b.shape == (batch_size, len(fs))
+        assert jnp.all(jnp.isfinite(hp_b))
+
+    # --- top-level approximant class ---
+    def test_basic_lambda(self, test_freq_grid, bns_tidal_dict):
+        output = IMRPhenomD_NRTidalv2(f_ref=20.0, use_lambda_tildes=False)(test_freq_grid, bns_tidal_dict)
+        assert_approx_fd_valid(output, test_freq_grid)
+
+    def test_basic_lambda_tildes(self, test_freq_grid, bns_tidal_tilde_dict):
+        output = IMRPhenomD_NRTidalv2(f_ref=20.0, use_lambda_tildes=True)(test_freq_grid, bns_tidal_tilde_dict)
+        assert_approx_fd_valid(output, test_freq_grid)
+
+    def test_jit(self, test_freq_grid, bns_tidal_dict):
+        model = IMRPhenomD_NRTidalv2(f_ref=20.0, use_lambda_tildes=False)
+        output = jax.jit(model)(test_freq_grid, bns_tidal_dict)
+        assert_approx_fd_valid(output, test_freq_grid)
+
+    def test_vmap(self, test_freq_grid, bns_tidal_dict):
+        model = IMRPhenomD_NRTidalv2(f_ref=20.0, use_lambda_tildes=False)
+        fs, batch_size = test_freq_grid, 4
+        out = jax.vmap(lambda p: model(fs, p))(batch_dict(bns_tidal_dict, batch_size))
+        assert out["p"].shape == (batch_size, len(fs))
+        assert jnp.all(jnp.isfinite(out["p"]))
+
+    def test_in_waveform_preset(self):
+        assert "IMRPhenomD_NRTidalv2" in waveform_preset
+        assert isinstance(waveform_preset["IMRPhenomD_NRTidalv2"](f_ref=20.0), IMRPhenomD_NRTidalv2)
+
+
+class TestIMRPhenomXAS_NRTidalv3:
+    # --- low-level gen function ---
+    def test_gen_basic(self, test_freq_grid, bns_tidal_params):
+        from ripplegw.waveforms.IMRPhenomXAS_NRTidalv3 import gen_IMRPhenomXAS_NRTidalv3_hphc
+        hp, hc = gen_IMRPhenomXAS_NRTidalv3_hphc(test_freq_grid, bns_tidal_params, 20.0)
+        assert_fd_valid(hp, hc, test_freq_grid)
+
+    def test_gen_jit(self, test_freq_grid, bns_tidal_params):
+        from ripplegw.waveforms.IMRPhenomXAS_NRTidalv3 import gen_IMRPhenomXAS_NRTidalv3_hphc
+        fs, f_ref = test_freq_grid, 20.0
+        hp, hc = jax.jit(lambda t: gen_IMRPhenomXAS_NRTidalv3_hphc(fs, t, f_ref))(bns_tidal_params)
+        assert_fd_valid(hp, hc, fs)
+
+    def test_gen_vmap(self, test_freq_grid, bns_tidal_params):
+        from ripplegw.waveforms.IMRPhenomXAS_NRTidalv3 import gen_IMRPhenomXAS_NRTidalv3_hphc
+        fs, f_ref, batch_size = test_freq_grid, 20.0, 5
+        batch = jnp.tile(bns_tidal_params, (batch_size, 1))
+        hp_b, hc_b = jax.vmap(lambda t: gen_IMRPhenomXAS_NRTidalv3_hphc(fs, t, f_ref))(batch)
+        assert hp_b.shape == (batch_size, len(fs))
+        assert jnp.all(jnp.isfinite(hp_b))
+
+    # --- top-level approximant class ---
+    def test_basic_lambda(self, test_freq_grid, bns_tidal_dict):
+        output = IMRPhenomXAS_NRTidalv3(f_ref=20.0, use_lambda_tildes=False)(test_freq_grid, bns_tidal_dict)
+        assert_approx_fd_valid(output, test_freq_grid)
+
+    def test_basic_lambda_tildes(self, test_freq_grid, bns_tidal_tilde_dict):
+        output = IMRPhenomXAS_NRTidalv3(f_ref=20.0, use_lambda_tildes=True)(test_freq_grid, bns_tidal_tilde_dict)
+        assert_approx_fd_valid(output, test_freq_grid)
+
+    def test_jit(self, test_freq_grid, bns_tidal_dict):
+        model = IMRPhenomXAS_NRTidalv3(f_ref=20.0, use_lambda_tildes=False)
+        output = jax.jit(model)(test_freq_grid, bns_tidal_dict)
+        assert_approx_fd_valid(output, test_freq_grid)
+
+    def test_vmap(self, test_freq_grid, bns_tidal_dict):
+        model = IMRPhenomXAS_NRTidalv3(f_ref=20.0, use_lambda_tildes=False)
+        fs, batch_size = test_freq_grid, 4
+        out = jax.vmap(lambda p: model(fs, p))(batch_dict(bns_tidal_dict, batch_size))
+        assert out["p"].shape == (batch_size, len(fs))
+        assert jnp.all(jnp.isfinite(out["p"]))
+
+    def test_in_waveform_preset(self):
+        assert "IMRPhenomXAS_NRTidalv3" in waveform_preset
+        assert isinstance(waveform_preset["IMRPhenomXAS_NRTidalv3"](f_ref=20.0), IMRPhenomXAS_NRTidalv3)
+
+
+class TestTaylorF2:
+    # --- low-level gen function ---
+    def test_gen_basic(self, test_freq_grid, bns_tidal_params):
+        from ripplegw.waveforms.TaylorF2 import gen_TaylorF2_hphc
+        hp, hc = gen_TaylorF2_hphc(test_freq_grid, bns_tidal_params, 20.0)
+        assert_fd_valid(hp, hc, test_freq_grid)
+
+    def test_gen_jit(self, test_freq_grid, bns_tidal_params):
+        from ripplegw.waveforms.TaylorF2 import gen_TaylorF2_hphc
+        fs, f_ref = test_freq_grid, 20.0
+        hp, hc = jax.jit(lambda t: gen_TaylorF2_hphc(fs, t, f_ref))(bns_tidal_params)
+        assert_fd_valid(hp, hc, fs)
+
+    def test_gen_vmap(self, test_freq_grid, bns_tidal_params):
+        from ripplegw.waveforms.TaylorF2 import gen_TaylorF2_hphc
+        fs, f_ref, batch_size = test_freq_grid, 20.0, 5
+        batch = jnp.tile(bns_tidal_params, (batch_size, 1))
+        hp_b, hc_b = jax.vmap(lambda t: gen_TaylorF2_hphc(fs, t, f_ref))(batch)
+        assert hp_b.shape == (batch_size, len(fs))
+        assert jnp.all(jnp.isfinite(hp_b))
+
+    # --- top-level approximant class ---
+    def test_basic_lambda(self, test_freq_grid, bns_tidal_dict):
+        output = TaylorF2(f_ref=20.0, use_lambda_tildes=False)(test_freq_grid, bns_tidal_dict)
+        assert_approx_fd_valid(output, test_freq_grid)
+
+    def test_basic_lambda_tildes(self, test_freq_grid, bns_tidal_tilde_dict):
+        output = TaylorF2(f_ref=20.0, use_lambda_tildes=True)(test_freq_grid, bns_tidal_tilde_dict)
+        assert_approx_fd_valid(output, test_freq_grid)
+
+    def test_jit(self, test_freq_grid, bns_tidal_dict):
+        model = TaylorF2(f_ref=20.0, use_lambda_tildes=False)
+        output = jax.jit(model)(test_freq_grid, bns_tidal_dict)
+        assert_approx_fd_valid(output, test_freq_grid)
+
+    def test_vmap(self, test_freq_grid, bns_tidal_dict):
+        model = TaylorF2(f_ref=20.0, use_lambda_tildes=False)
+        fs, batch_size = test_freq_grid, 4
+        out = jax.vmap(lambda p: model(fs, p))(batch_dict(bns_tidal_dict, batch_size))
+        assert out["p"].shape == (batch_size, len(fs))
+        assert jnp.all(jnp.isfinite(out["p"]))
+
+    def test_repr(self):
+        assert repr(TaylorF2(f_ref=20.0)) == "TaylorF2(f_ref=20.0)"
+
+    def test_in_waveform_preset(self):
+        assert "TaylorF2" in waveform_preset
+        assert isinstance(waveform_preset["TaylorF2"](f_ref=20.0), TaylorF2)
+
+
+class TestIMRPhenomXPHM:
+    # --- low-level gen function ---
+    def test_gen_basic(self, test_freq_grid, bbh_xphm_params):
+        from ripplegw.waveforms.IMRPhenomXPHM import generate_xphm
+        fs, f_ref = test_freq_grid, 20.0
+        m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, d, iota, phi0 = bbh_xphm_params
+        hp, hc = generate_xphm(m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, d, iota, phi0, fs, f_ref)
+        assert_fd_valid(hp, hc, fs)
+
+    def test_gen_jit(self, test_freq_grid, bbh_xphm_params):
+        from ripplegw.waveforms.IMRPhenomXPHM import generate_xphm
+        fs, f_ref = test_freq_grid, 20.0
+        m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, d, iota, phi0 = bbh_xphm_params
+        fn = jax.jit(lambda *args: generate_xphm(*args, fs, f_ref))
+        hp, hc = fn(m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, d, iota, phi0)
+        assert_fd_valid(hp, hc, fs)
+
+    def test_gen_vmap(self, test_freq_grid, bbh_xphm_params):
+        from ripplegw.waveforms.IMRPhenomXPHM import generate_xphm
+        fs, f_ref, batch_size = test_freq_grid, 20.0, 3
+        m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, d, iota, phi0 = bbh_xphm_params
+        batched = jax.vmap(generate_xphm, in_axes=(0,)*11 + (None, None))
+        hp_b, hc_b = batched(
+            jnp.full(batch_size, m1), jnp.full(batch_size, m2),
+            jnp.full(batch_size, s1x), jnp.full(batch_size, s1y), jnp.full(batch_size, s1z),
+            jnp.full(batch_size, s2x), jnp.full(batch_size, s2y), jnp.full(batch_size, s2z),
+            jnp.full(batch_size, d), jnp.full(batch_size, iota), jnp.full(batch_size, phi0),
+            fs, f_ref,
+        )
+        assert hp_b.shape == (batch_size, len(fs))
+        assert jnp.all(jnp.isfinite(hp_b))
+
+
+class TestSineGaussian:
+    # --- low-level gen function ---
+    def test_gen_basic(self, test_time_grid, sinegaussian_params):
+        from ripplegw.waveforms.SineGaussian import gen_SineGaussian_hphc
+        hp, hc = gen_SineGaussian_hphc(test_time_grid, sinegaussian_params)
+        assert_td_valid(hp, hc, test_time_grid)
+
+    def test_gen_jit(self, test_time_grid, sinegaussian_params):
+        from ripplegw.waveforms.SineGaussian import gen_SineGaussian_hphc
+        t = test_time_grid
+        hp, hc = jax.jit(lambda theta: gen_SineGaussian_hphc(t, theta))(sinegaussian_params)
+        assert_td_valid(hp, hc, t)
+
+    def test_gen_vmap(self, test_time_grid, sinegaussian_params):
+        from ripplegw.waveforms.SineGaussian import gen_SineGaussian_hphc
+        t, batch_size = test_time_grid, 5
+        batch = jnp.tile(sinegaussian_params, (batch_size, 1))
+        hp_b, hc_b = jax.vmap(lambda theta: gen_SineGaussian_hphc(t, theta))(batch)
+        assert hp_b.shape == (batch_size, len(t))
+        assert jnp.all(jnp.isfinite(hp_b))
+        assert jnp.all(jnp.isreal(hp_b))
+
+    # --- top-level approximant class ---
+    def test_basic(self, test_time_grid, sinegaussian_dict):
+        output = SineGaussian()(test_time_grid, sinegaussian_dict)
+        assert_approx_td_valid(output, test_time_grid)
+
+    def test_jit(self, test_time_grid, sinegaussian_dict):
+        model = SineGaussian()
+        output = jax.jit(model)(test_time_grid, sinegaussian_dict)
+        assert_approx_td_valid(output, test_time_grid)
+
+    def test_vmap(self, test_time_grid, sinegaussian_dict):
+        model = SineGaussian()
+        t, batch_size = test_time_grid, 4
+        out = jax.vmap(lambda p: model(t, p))(batch_dict(sinegaussian_dict, batch_size))
+        assert out["p"].shape == (batch_size, len(t))
+        assert jnp.all(jnp.isfinite(out["p"]))
+
+    def test_repr(self):
+        assert repr(SineGaussian()) == "SineGaussian()"
+
+    def test_in_waveform_preset(self):
+        assert "SineGaussian" in waveform_preset
+        assert isinstance(waveform_preset["SineGaussian"](), SineGaussian)
+
+
+class TestWaveformPreset:
+    def test_all_keys_present(self):
+        expected = {
+            "IMRPhenomD", "IMRPhenomPv2", "TaylorF2",
+            "IMRPhenomD_NRTidalv2", "IMRPhenomXAS",
+            "IMRPhenomXAS_NRTidalv3", "SineGaussian",
+        }
+        assert expected == set(waveform_preset.keys())
+
+    def test_all_instantiable(self):
+        for name, cls in waveform_preset.items():
+            instance = cls() if name == "SineGaussian" else cls(f_ref=20.0)
+            assert callable(instance), f"{name} instance is not callable"

@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
 from ..constants import C, PI, MSUN, MTSUN, MRSUN, MPC
-from jaxtyping import Array
+from jaxtyping import Array, Float, Integer
 from .spherical_harmonics import (
     compute_sminus2_l2,
     compute_sminus2_l3,
@@ -312,25 +312,25 @@ class BetaPowers:
         sBetah8: sin^8(beta/2)
     """
 
-    cBetah: float
-    cBetah2: float
-    cBetah3: float
-    cBetah4: float
-    cBetah5: float
-    cBetah6: float
-    cBetah7: float
-    cBetah8: float
-    sBetah: float
-    sBetah2: float
-    sBetah3: float
-    sBetah4: float
-    sBetah5: float
-    sBetah6: float
-    sBetah7: float
-    sBetah8: float
+    cBetah: Float
+    cBetah2: Float
+    cBetah3: Float
+    cBetah4: Float
+    cBetah5: Float
+    cBetah6: Float
+    cBetah7: Float
+    cBetah8: Float
+    sBetah: Float
+    sBetah2: Float
+    sBetah3: Float
+    sBetah4: Float
+    sBetah5: Float
+    sBetah6: Float
+    sBetah7: Float
+    sBetah8: Float
 
     @classmethod
-    def from_half_angle_trig(cls, cBetah: float, sBetah: float):
+    def from_half_angle_trig(cls, cBetah: Float, sBetah: Float):
         """
         Constructs a BetaPowers instance from cos(beta/2) and sin(beta/2).
 
@@ -833,20 +833,20 @@ def IMRPhenomXWignerdCoefficients_cosbeta(cos_beta):
     return cos_beta_half, sin_beta_half
 
 
-def XLALSimIMRPhenomXUtilsHztoMf(fHz: float, Mtot_Msun: float) -> float:
+def XLALSimIMRPhenomXUtilsHztoMf(fHz: Float, Mtot_Msun: Float) -> Float:
     """
     Convert frequency from Hz to geometric units (Mf).
 
     Parameters
     ----------
-    fHz : float
+    fHz : Float
         Frequency in Hz
-    Mtot_Msun : float
+    Mtot_Msun : Float
         Total mass in solar masses
 
     Returns
     -------
-    float
+    Float
         Geometric frequency Mf
     """
     # Mtot in seconds = Mtot_Msun * MTSUN
@@ -943,7 +943,7 @@ def XLALSimIMRPhenomHMGethlmModes(
 
 
 def IMRPhenomHMEvaluateOnehlmMode(
-    freqs_geom: Array, pHM: dict, ell: int, mm: int, phi0: float
+    freqs_geom: Float, pHM: dict, ell: int, mm: int, phi0: Float
 ):
     """
     Implementation of IMRPhenomHMEvaluateOnehlmMode in LALSimIMRPhenomHM.c
@@ -993,8 +993,6 @@ def XLALSimPhenomUtilsPhenomPv2FinalSpin(
 
     q_factor = m1 / M
 
-    # # This is needed to stabilize JAX derivatives
-    # Seta = jnp.sqrt(jnp.where(eta<0.25, 1.0 - 4.0*eta, 0.))
     af_parallel = FinalSpin0815(eta, chi1_l, chi2_l)
 
     Sperp = chip * q_factor * q_factor
@@ -1096,7 +1094,7 @@ def init_PhenomHM_Storage(
 
 
 def IMRPhenomHMGetRingdownFrequency(
-    ell: int, mm: int, finalmass: float, finalspin: float
+    ell: Integer, mm: Integer, finalmass: Float, finalspin: Float
 ):
     """
     Implementation of IMRPhenomHMGetRingdownFrequency in LALSimIMRPhenomHM.c
@@ -1115,7 +1113,7 @@ def IMRPhenomHMGetRingdownFrequency(
     return fringdown, fdamp
 
 
-def SimRingdownCW_KAPPA(jf: float, ell: int, emm: int):
+def SimRingdownCW_KAPPA(jf: Float, ell: Integer, emm: Integer):
     """
     Domain mapping for dimnesionless BH spin
     """
@@ -1124,7 +1122,7 @@ def SimRingdownCW_KAPPA(jf: float, ell: int, emm: int):
     return alpha**beta
 
 
-def SimRingdownCW_CW07102016(kappa: float, ell: int, input_m: int, n: int):
+def SimRingdownCW_CW07102016(kappa: Float, ell: Integer, input_m: Integer, n: int):
     """
     Dimensionless QNM Frequencies: Note that name encodes date of writing
     """
@@ -1306,7 +1304,7 @@ def IMRPhenomHMAmplitude(freqs_geom: Array, pHM: dict, ell: int, mm: int):
         ),
     )
 
-    PhenomD_transition_freqs = jnp.array([f1, f2, f3, f4, f_RD, f_damp])
+    PhenomD_transition_freqs = (f1, f2, f3, f4, f_RD, f_damp)
     amps_normalized = IMRPhenDAmplitude_NoCut(
         freqs_amp / (pHM["Mtot"] * MTSUN),
         theta,
@@ -1487,7 +1485,7 @@ def IMRPhenomHMPhase(freqs_geom: Array, pHM: dict, ell: int, mm: int):
             f_RD + (f_damp * (-1 + jnp.sqrt(1 - gamma2**2)) * gamma3) / gamma2
         ),
     )
-    PhenomD_transition_freqs = jnp.array([f1, f2, f3, f4, f_RD, f_damp])
+    PhenomD_transition_freqs = (f1, f2, f3, f4, f_RD, f_damp)
 
     def PhenDPhaseA(freqs_geom):
         Mf = (q["ai"] * freqs_geom + q["bi"]) / M_s  # ripple PhenomD uses f[Hz] here
@@ -1712,15 +1710,15 @@ def IMRPhenomHMTrd(
 
 
 def IMRPhenomHMMapParams(
-    flm: float,
-    fi: float,
-    fr: float,
-    Ai: float,
-    Bi: float,
-    Am: float,
-    Bm: float,
-    Ar: float,
-    Br: float,
+    flm: Float,
+    fi: Float,
+    fr: Float,
+    Ai: Float,
+    Bi: Float,
+    Am: Float,
+    Bm: Float,
+    Ar: Float,
+    Br: Float,
 ):
     """
     Implementation of IMRPhenomHMMapParams in LALSimIMRPhenomHM.c, line 557
