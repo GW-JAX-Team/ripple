@@ -2,7 +2,7 @@
 
 import jax.numpy as jnp
 from ..constants import MTSUN, PI, TWO_PI
-from jaxtyping import Array
+from jaxtyping import Array, Float
 from .IMRPhenom_tidal_utils import get_kappa
 from .IMRPhenomD_NRTidalv2 import get_spin_phase_correction
 
@@ -103,7 +103,7 @@ def _get_merger_frequency(theta: Array):
 
 
 # Full tidal correction
-def fullTidalPhaseCorrection(Mf: Array, theta_intrinsic: Array, P_P: Array):
+def fullTidalPhaseCorrection(Mf: Array, theta_intrinsic: Array, P_P: Float):
     """
     Returns the NRTidalv3 phase corrections due to tidal and spin effects.
 

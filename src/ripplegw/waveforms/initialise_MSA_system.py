@@ -1,5 +1,6 @@
 import jax.numpy as jnp
 import jax
+from jaxtyping import Array, Float
 from ..constants import EULERGAMMA, MSUN, G, C
 from .elliptic_integrals import ellint_F
 from .elliptic_integrals import gsl_sf_elljac_e
@@ -315,7 +316,7 @@ def IMRPhenomX_Initialize_MSA_System(
 
     """
     else:
-        # Coefficients of \Delta as defined in Eq. C3 of Appendix C in PRD, 95, 104004, (2017), arXiv:1703.03967.
+        # Coefficients of \\Delta as defined in Eq. C3 of Appendix C in PRD, 95, 104004, (2017), arXiv:1703.03967.
         term1 = c1_2 * eta / (q * delta4)
         term2 = -2.0 * c_1 * eta3 * (1.0 + q) * Seff / (q * delta4)
         term3 = -eta2 * (delta2 * S1_norm_2 - eta2 * Seff_2) / delta4
@@ -347,7 +348,7 @@ def IMRPhenomX_Initialize_MSA_System(
     psi2 = u1 + u2 * (u3 + u4 + u5 - u6 + u7)
     """
     else:
-        # \psi_2 is defined in Eq. C2 of Appendix C in PRD, 95, 104004, (2017). Here we implement system of equations as in paper.pdf
+        # \\psi_2 is defined in Eq. C2 of Appendix C in PRD, 95, 104004, (2017). Here we implement system of equations as in paper.pdf
         term1 = 3.0 * g2 / g0
 
         # q^2 or no q^2 in term2? Consensus on retaining q^2 term: https://git.ligo.org/waveforms/reviews/phenompv3hm/issues/7
@@ -359,7 +360,7 @@ def IMRPhenomX_Initialize_MSA_System(
         term7 = -eta3 * (3.0 + 4.0 * q + 3.0 * q * q) * Seff_2 / (omqsq * delta2)
         term8 = eta * (q * (2.0 + q) * S1_norm_2 + (1.0 + 2.0 * q) * S2_norm_2) / omqsq
 
-        # \psi_2, C2 of Appendix C of PRD, 95, 104004, (2017)
+        # \\psi_2, C2 of Appendix C of PRD, 95, 104004, (2017)
         psi2 = term1 + term2 * (term3 + term4 + term5 + term6 + term7 + term8)
     """
     # Eq. D1 of PRD, 95, 104004, (2017), arXiv:1703.03967
@@ -587,49 +588,49 @@ def IMRPhenomX_Initialize_MSA_System(
 
 
 def IMRPhenomX_Return_Roots_MSA(
-    LNorm: float,
-    JNorm: float,
-    S1_norm_2: float,
-    S2_norm_2: float,
-    qq: float,
-    eta: float,
-    delta_qq: float,
-    Seff: float,
-    dotS1Ln: float,
-    dotS2Ln: float,
-    S_0_norm: float,
-) -> jnp.ndarray:
+    LNorm: Float,
+    JNorm: Float,
+    S1_norm_2: Float,
+    S2_norm_2: Float,
+    qq: Float,
+    eta: Float,
+    delta_qq: Float,
+    Seff: Float,
+    dotS1Ln: Float,
+    dotS2Ln: Float,
+    S_0_norm: Float,
+) -> Float[Array, "3"]:
     """
     Compute roots S32, Smi2, Spl2 for MSA approximation.
 
     Parameters
     ----------
-    LNorm : float
+    LNorm : Float
         Normalized orbital angular momentum.
-    JNorm : float
+    JNorm : Float
         Normalized total angular momentum.
-    S1_norm_2 : float
+    S1_norm_2 : Float
         Spin 1 magnitude squared.
-    S2_norm_2 : float
+    S2_norm_2 : Float
         Spin 2 magnitude squared.
-    qq : float
+    qq : Float
         Mass ratio q = m2/m1.
-    eta : float
+    eta : Float
         Symmetric mass ratio.
-    delta_qq : float
+    delta_qq : Float
         Mass difference parameter (m1-m2)/(m1+m2).
-    Seff : float
+    Seff : Float
         Effective spin parameter.
-    dotS1Ln : float
+    dotS1Ln : Float
         Dot product of S1 with L_hat.
-    dotS2Ln : float
+    dotS2Ln : Float
         Dot product of S2 with L_hat.
-    S_0_norm : float
+    S_0_norm : Float
         Initial total spin magnitude.
 
     Returns
     -------
-    jnp.ndarray
+    Float[Array, "3"]
         Array of [S32, Smi2, Spl2] roots.
     """
     vBCD = IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(
@@ -709,40 +710,40 @@ def IMRPhenomX_Return_Roots_MSA(
 
 
 def IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(
-    LNorm: float,
-    JNorm: float,
-    S1_norm_2: float,
-    S2_norm_2: float,
-    qq: float,
-    eta: float,
-    delta_qq: float,
-    Seff: float,
-) -> jnp.ndarray:
+    LNorm: Float,
+    JNorm: Float,
+    S1_norm_2: Float,
+    S2_norm_2: Float,
+    qq: Float,
+    eta: Float,
+    delta_qq: Float,
+    Seff: Float,
+) -> Float[Array, "3"]:
     """
     Compute spin evolution coefficients B, C, D for MSA approximation.
 
     Parameters
     ----------
-    LNorm : float
+    LNorm : Float
         Normalized orbital angular momentum.
-    JNorm : float
+    JNorm : Float
         Normalized total angular momentum.
-    S1_norm_2 : float
+    S1_norm_2 : Float
         Spin 1 magnitude squared.
-    S2_norm_2 : float
+    S2_norm_2 : Float
         Spin 2 magnitude squared.
-    qq : float
+    qq : Float
         Mass ratio q = m2/m1.
-    eta : float
+    eta : Float
         Symmetric mass ratio.
-    delta_qq : float
+    delta_qq : Float
         Mass difference parameter (m1-m2)/(m1+m2).
-    Seff : float
+    Seff : Float
         Effective spin parameter.
 
     Returns
     -------
-    jnp.ndarray
+    Float[Array, "3"]
         Array of [B_coeff, C_coeff, D_coeff].
     """
     JNorm2 = JNorm * JNorm
@@ -788,55 +789,53 @@ def IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(
 
 
 def IMRPhenomX_Get_PN_sigma(
-    a: float,
-    b: float,
-    inveta: float,
-    dotS1S2: float,
-    dotS1L: float,
-    dotS2L: float,
-) -> float:
+    a: Float,
+    b: Float,
+    inveta: Float,
+    dotS1S2: Float,
+    dotS1L: Float,
+    dotS2L: Float,
+) -> Float:
     """
     Calculate PN sigma coefficient
 
     Args:
-        a: First coefficient (float)
-        b: Second coefficient (float)
-        inveta: Inverse of symmetric mass ratio (float)
-        dotS1S2: Dot product of S1 and S2 (float)
-        dotS1L: Dot product of S1 and L (float)
-        dotS2L: Dot product of S2 and L (float)
+        a: First coefficient (Float)
+        b: Second coefficient (Float)
+        inveta: Inverse of symmetric mass ratio (Float)
+        dotS1S2: Dot product of S1 and S2 (Float)
+        dotS1L: Dot product of S1 and L (Float)
+        dotS2L: Dot product of S2 and L (Float)
 
-    Returns:
-        float: PN sigma value
+    Returns: Float: PN sigma value
     """
     return inveta * (a * dotS1S2 - b * dotS1L * dotS2L)
 
 
 def IMRPhenomX_Get_PN_tau(
-    a: float,
-    b: float,
-    qq: float,
-    S1_norm_2: float,
-    S2_norm_2: float,
-    dotS1L: float,
-    dotS2L: float,
-    eta: float,
-) -> float:
+    a: Float,
+    b: Float,
+    qq: Float,
+    S1_norm_2: Float,
+    S2_norm_2: Float,
+    dotS1L: Float,
+    dotS2L: Float,
+    eta: Float,
+) -> Float:
     """
     Internal function to computes PN spin-spin couplings. As in LALSimInspiralFDPrecAngles.c
 
     Args:
-        a: First coefficient (float)
-        b: Second coefficient (float)
-        qq: Mass ratio q = m1/m2 (float)
-        S1_norm_2: Squared norm of spin 1 (float)
-        S2_norm_2: Squared norm of spin 2 (float)
-        dotS1L: Dot product of S1 and L (float)
-        dotS2L: Dot product of S2 and L (float)
-        eta: Symmetric mass ratio (float)
+        a: First coefficient (Float)
+        b: Second coefficient (Float)
+        qq: Mass ratio q = m1/m2 (Float)
+        S1_norm_2: Squared norm of spin 1 (Float)
+        S2_norm_2: Squared norm of spin 2 (Float)
+        dotS1L: Dot product of S1 and L (Float)
+        dotS2L: Dot product of S2 and L (Float)
+        eta: Symmetric mass ratio (Float)
 
-    Returns:
-        float: PN tau value
+    Returns: Float: PN tau value
     """
     return (
         qq * ((S1_norm_2 * a) - b * dotS1L * dotS1L)
@@ -845,24 +844,23 @@ def IMRPhenomX_Get_PN_tau(
 
 
 def IMRPhenomX_Get_PN_beta(
-    a: float,
-    b: float,
-    dotS1L: float,
-    dotS2L: float,
-    qq: float,
-) -> float:
+    a: Float,
+    b: Float,
+    dotS1L: Float,
+    dotS2L: Float,
+    qq: Float,
+) -> Float:
     """
     Calculate PN beta coefficient
 
     Args:
-        a: First coefficient (float)
-        b: Second coefficient (float)
-        dotS1L: Dot product of S1 and L (float)
-        dotS2L: Dot product of S2 and L (float)
-        qq: Mass ratio q = m1/m2 (float)
+        a: First coefficient (Float)
+        b: Second coefficient (Float)
+        dotS1L: Dot product of S1 and L (Float)
+        dotS2L: Dot product of S2 and L (Float)
+        qq: Mass ratio q = m1/m2 (Float)
 
-    Returns:
-        float: PN beta value
+    Returns: Float: PN beta value
     """
     return dotS1L * (a + b * qq) + dotS2L * (a + b / qq)
 
@@ -880,7 +878,7 @@ def compute_constants_L(eta, dotS1L, dotS2L, q):
         q: Mass ratio m2/m1 (q < 1)
 
     Returns:
-        jnp.ndarray: Array of 5 constants [constants_L_0, ..., constants_L_4]
+        tuple[Float, Float, Float, Float, Float]: 5 constants [constants_L_0, ..., constants_L_4]
     """
     L_csts_nonspin = [
         3.0 / 2.0,
@@ -957,40 +955,39 @@ def compute_spin_norm_squared(chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, mass_1, 
 
 
 def compute_psi0(
-    Smi2: float,
-    Spl2: float,
-    S32: float,
-    S_0_norm: float,
-    v_0: float,
-    v_0_2: float,
-    psi1: float,
-    psi2: float,
-    g0: float,
-    delta_qq: float,
-    L_0: jnp.ndarray,
-    S1v: jnp.ndarray,
-    S2v: jnp.ndarray,
-) -> float:
+    Smi2: Float,
+    Spl2: Float,
+    S32: Float,
+    S_0_norm: Float,
+    v_0: Float,
+    v_0_2: Float,
+    psi1: Float,
+    psi2: Float,
+    g0: Float,
+    delta_qq: Float,
+    L_0: Float[Array, "3"],
+    S1v: Float[Array, "3"],
+    S2v: Float[Array, "3"],
+) -> Float:
     """
     Compute initial psi0 value for MSA approximation.
 
     Args:
-        Smi2: S_minus squared root (float)
-        Spl2: S_plus squared root (float)
-        S32: S_3 squared root (float)
-        S_0_norm: Initial total spin norm (float)
-        v_0: Initial velocity parameter (float)
-        v_0_2: v_0 squared (float)
-        psi1: Psi coefficient 1 (float)
-        psi2: Psi coefficient 2 (float)
-        g0: g0 coefficient (float)
-        delta_qq: Delta mass ratio term (float)
+        Smi2: S_minus squared root (Float)
+        Spl2: S_plus squared root (Float)
+        S32: S_3 squared root (Float)
+        S_0_norm: Initial total spin norm (Float)
+        v_0: Initial velocity parameter (Float)
+        v_0_2: v_0 squared (Float)
+        psi1: Psi coefficient 1 (Float)
+        psi2: Psi coefficient 2 (Float)
+        g0: g0 coefficient (Float)
+        delta_qq: Delta mass ratio term (Float)
         L_0: Initial orbital angular momentum vector (array)
         S1v: Spin 1 vector (array)
         S2v: Spin 2 vector (array)
 
-    Returns:
-        float: Initial psi0 value
+    Returns: Float: Initial psi0 value
     """
     condition = jnp.abs(Smi2 - Spl2) < 1.0e-5
 
@@ -1056,83 +1053,85 @@ def IMRPhenomX_psiofv(v, v2, psi0, psi1, psi2, g0, delta_qq):
 
     Parameters
     ----------
-    v : float
+    v : Float
         Orbital velocity parameter.
-    v2 : float
+    v2 : Float
         v squared.
-    psi0, psi1, psi2 : float
+    psi0, psi1, psi2 : Float
         Psi expansion coefficients.
-    g0 : float
+    g0 : Float
         Precession coefficient g0.
-    delta_qq : float
+    delta_qq : Float
         Mass difference parameter delta_qq.
 
     Returns
     -------
-    psi : float
+    psi : Float
         The psi angle at velocity v.
     """
     return psi0 - 0.75 * g0 * delta_qq * (1.0 + psi1 * v + psi2 * v2) / (v2 * v)
 
 
-def IMRPhenomX_vector_cross_product(v1: jnp.ndarray, v2: jnp.ndarray) -> jnp.ndarray:
+def IMRPhenomX_vector_cross_product(
+    v1: Float[Array, "3"], v2: Float[Array, "3"]
+) -> Float[Array, "3"]:
     """
     Calculate cross product of two 3D vectors
 
     Args:
-        v1: First 3D vector as JAX array [x, y, z] (jnp.ndarray)
-        v2: Second 3D vector as JAX array [x, y, z] (jnp.ndarray)
+        v1: First 3D vector as JAX array [x, y, z] (Float[Array, "3"])
+        v2: Second 3D vector as JAX array [x, y, z] (Float[Array, "3"])
 
     Returns:
-        jnp.ndarray: Cross product vector
+        Float[Array, "3"]: Cross product vector
     """
     return jnp.cross(v1, v2)
 
 
 def IMRPhenomX_Return_Constants_c_MSA(
-    v: float,
-    JNorm: float,
-    Seff: float,
-    eta: float,
-    eta3: float,
-    inveta: float,
-    Spl2: float,
-    Smi2: float,
-    S1_norm_2: float,
-    S2_norm_2: float,
-    delta_qq: float,
-) -> jnp.ndarray:
+    v: Float,
+    JNorm: Float,
+    Seff: Float,
+    eta: Float,
+    eta3: Float,
+    inveta: Float,
+    Spl2: Float,
+    Smi2: Float,
+    S1_norm_2: Float,
+    S2_norm_2: Float,
+    delta_qq: Float,
+) -> Float[Array, "3"]:
     """
     Compute c constants for MSA approximation.
 
     Parameters
     ----------
-    v : float
+    v : Float
         Orbital velocity parameter.
-    JNorm : float
+    JNorm : Float
         Normalized total angular momentum.
-    Seff : float
+    Seff : Float
         Effective spin parameter.
-    eta : float
+    eta : Float
         Symmetric mass ratio.
-    eta3 : float
+    eta3 : Float
         eta cubed.
-    inveta : float
+    inveta : Float
         Inverse of eta (1/eta).
-    Spl2 : float
+    Spl2 : Float
         S_plus squared.
-    Smi2 : float
+    Smi2 : Float
         S_minus squared.
-    S1_norm_2 : float
+    S1_norm_2 : Float
         Spin 1 magnitude squared.
-    S2_norm_2 : float
+    S2_norm_2 : Float
         Spin 2 magnitude squared.
-    delta_qq : float
+    delta_qq : Float
         MSA coefficient delta_qq.
 
     Returns
     -------
-    jnp.ndarray
+    Float[Array, "3"]
         Array of [c0, c2, c4] constants.
     """
     v2 = v * v
@@ -1172,31 +1171,31 @@ def IMRPhenomX_Return_Constants_c_MSA(
 
 
 def IMRPhenomX_Return_Constants_d_MSA(
-    LNorm: float,
-    JNorm: float,
-    Spl: float,
-    Spl2: float,
-    Smi2: float,
-) -> jnp.ndarray:
+    LNorm: Float,
+    JNorm: Float,
+    Spl: Float,
+    Spl2: Float,
+    Smi2: Float,
+) -> Float[Array, "3"]:
     """
     Compute d constants for MSA approximation.
 
     Parameters
     ----------
-    LNorm : float
+    LNorm : Float
         Normalized orbital angular momentum.
-    JNorm : float
+    JNorm : Float
         Normalized total angular momentum.
-    Spl : float
+    Spl : Float
         S_plus.
-    Spl2 : float
+    Spl2 : Float
         S_plus squared.
-    Smi2 : float
+    Smi2 : Float
         S_minus squared.
 
     Returns
     -------
-    jnp.ndarray
+    Float[Array, "3"]
         Array of [d0, d2, d4] constants.
     """
     LNorm2 = LNorm * LNorm
@@ -1214,65 +1213,65 @@ def IMRPhenomX_Return_Constants_d_MSA(
 
 
 def IMRPhenomX_Return_Psi_MSA(
-    v: float,
-    v2: float,
-    g0: float,
-    delta_qq: float,
-    psi1: float,
-    psi2: float,
-) -> float:
+    v: Float,
+    v2: Float,
+    g0: Float,
+    delta_qq: Float,
+    psi1: Float,
+    psi2: Float,
+) -> Float:
     """
     Compute psi for MSA approximation.
 
     Parameters
     ----------
-    v : float
+    v : Float
         Orbital velocity parameter.
-    v2 : float
+    v2 : Float
         v squared.
-    g0 : float
+    g0 : Float
         MSA coefficient g0.
-    delta_qq : float
+    delta_qq : Float
         MSA coefficient delta_qq.
-    psi1 : float
+    psi1 : Float
         MSA coefficient psi1.
-    psi2 : float
+    psi2 : Float
         MSA coefficient psi2.
 
     Returns
     -------
-    float
+    Float
         Psi value.
     """
     return -0.75 * g0 * delta_qq * (1.0 + psi1 * v + psi2 * v2) / (v2 * v)
 
 
 def IMRPhenomX_Return_Psi_dot_MSA(
-    v: float,
-    Seff: float,
-    inveta: float,
-    Spl2: float,
-    S32: float,
-) -> float:
+    v: Float,
+    Seff: Float,
+    inveta: Float,
+    Spl2: Float,
+    S32: Float,
+) -> Float:
     """
     Compute the time derivative of psi for MSA approximation.
 
     Parameters
     ----------
-    v : float
+    v : Float
         Orbital velocity parameter.
-    Seff : float
+    Seff : Float
         Effective spin parameter.
-    inveta : float
+    inveta : Float
         Inverse of symmetric mass ratio (1/eta).
-    Spl2 : float
+    Spl2 : Float
         S_plus squared.
-    S32 : float
+    S32 : Float
         S_3 squared.
 
     Returns
     -------
-    float
+    Float
         Time derivative of psi.
     """
     v2 = v * v
@@ -1284,73 +1283,73 @@ def IMRPhenomX_Return_Psi_dot_MSA(
 
 
 def IMRPhenomX_Return_MSA_Corrections_MSA(
-    v: float,
-    LNorm: float,
-    JNorm: float,
-    Seff: float,
-    eta: float,
-    eta3: float,
-    inveta: float,
-    Spl: float,
-    Spl2: float,
-    Smi2: float,
-    Spl2mSmi2: float,
-    S1_norm_2: float,
-    S2_norm_2: float,
-    S32: float,
-    delta_qq: float,
-    g0: float,
-    psi0: float,
-    psi1: float,
-    psi2: float,
-) -> jnp.ndarray:
+    v: Float,
+    LNorm: Float,
+    JNorm: Float,
+    Seff: Float,
+    eta: Float,
+    eta3: Float,
+    inveta: Float,
+    Spl: Float,
+    Spl2: Float,
+    Smi2: Float,
+    Spl2mSmi2: Float,
+    S1_norm_2: Float,
+    S2_norm_2: Float,
+    S32: Float,
+    delta_qq: Float,
+    g0: Float,
+    psi0: Float,
+    psi1: Float,
+    psi2: Float,
+) -> Float[Array, "3"]:
     """
     Compute MSA corrections for precession angles.
 
     Parameters
     ----------
-    v : float
+    v : Float
         Orbital velocity parameter.
-    LNorm : float
+    LNorm : Float
         Normalized orbital angular momentum.
-    JNorm : float
+    JNorm : Float
         Normalized total angular momentum.
-    Seff : float
+    Seff : Float
         Effective spin parameter.
-    eta : float
+    eta : Float
         Symmetric mass ratio.
-    eta3 : float
+    eta3 : Float
         eta cubed.
-    inveta : float
+    inveta : Float
         Inverse of eta (1/eta).
-    Spl : float
+    Spl : Float
         S_plus.
-    Spl2 : float
+    Spl2 : Float
         S_plus squared.
-    Smi2 : float
+    Smi2 : Float
         S_minus squared.
-    Spl2mSmi2 : float
+    Spl2mSmi2 : Float
         Spl2 - Smi2.
-    S1_norm_2 : float
+    S1_norm_2 : Float
         Spin 1 magnitude squared.
-    S2_norm_2 : float
+    S2_norm_2 : Float
         Spin 2 magnitude squared.
-    S32 : float
+    S32 : Float
         S_3 squared.
-    delta_qq : float
+    delta_qq : Float
         MSA coefficient delta_qq.
-    g0 : float
+    g0 : Float
         MSA coefficient g0.
-    psi0 : float
+    psi0 : Float
         Initial psi value.
-    psi1 : float
+    psi1 : Float
         MSA coefficient psi1.
-    psi2 : float
+    psi2 : Float
         MSA coefficient psi2.
 
     Returns
     -------
-    jnp.ndarray
+    Float[Array, "3"]
         Array of MSA corrections [vMSA_x, vMSA_y, 0].
     """
     v2 = v * v
@@ -1443,12 +1442,12 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
             / psi_dot
         )
 
-    phiz_0_MSA_Cphi_term = jnp.where(nc == 1.0, 0.0, compute_Cphi_term())
-    phiz_0_MSA_Dphi_term = jnp.where(nd == 1.0, 0.0, compute_Dphi_term())
+    phiz_0_MSA_Cphi_term: Float = jnp.where(nc == 1.0, 0.0, compute_Cphi_term())
+    phiz_0_MSA_Dphi_term: Float = jnp.where(nd == 1.0, 0.0, compute_Dphi_term())
 
-    vMSA_x = phiz_0_MSA_Cphi_term + phiz_0_MSA_Dphi_term
+    vMSA_x: Float = phiz_0_MSA_Cphi_term + phiz_0_MSA_Dphi_term
 
-    vMSA_y = A_theta_L * vMSA_x + 2.0 * B_theta_L * d0 * (
+    vMSA_y: Float = A_theta_L * vMSA_x + 2.0 * B_theta_L * d0 * (
         phiz_0_MSA_Cphi_term / (sd - d2) - phiz_0_MSA_Dphi_term / (sd + d2)
     )
 
@@ -1459,25 +1458,25 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
 
 
 def IMRPhenomX_Return_phiz_MSA(
-    v: float,
-    JNorm: float,
-    eta: float,
-    inveta: float,
-    eta2: float,
-    eta4: float,
-    c1: float,
-    SAv: float,
-    SAv2: float,
-    invSAv: float,
-    invSAv2: float,
-    Omegaz0_coeff: float,
-    Omegaz1_coeff: float,
-    Omegaz2_coeff: float,
-    Omegaz3_coeff: float,
-    Omegaz4_coeff: float,
-    Omegaz5_coeff: float,
-    phiz_0: float,
-) -> float:
+    v: Float,
+    JNorm: Float,
+    eta: Float,
+    inveta: Float,
+    eta2: Float,
+    eta4: Float,
+    c1: Float,
+    SAv: Float,
+    SAv2: Float,
+    invSAv: Float,
+    invSAv2: Float,
+    Omegaz0_coeff: Float,
+    Omegaz1_coeff: Float,
+    Omegaz2_coeff: Float,
+    Omegaz3_coeff: Float,
+    Omegaz4_coeff: Float,
+    Omegaz5_coeff: Float,
+    phiz_0: Float,
+) -> Float:
     """
     Compute the azimuthal precession angle phi_z using the MSA approximation.
 
@@ -1486,36 +1485,36 @@ def IMRPhenomX_Return_phiz_MSA(
 
     Parameters
     ----------
-    v : float
+    v : Float
         Orbital velocity parameter.
-    JNorm : float
+    JNorm : Float
         Magnitude of the total angular momentum.
-    eta : float
+    eta : Float
         Symmetric mass ratio.
-    inveta : float
+    inveta : Float
         Inverse of symmetric mass ratio (1/eta).
-    eta2 : float
+    eta2 : Float
         eta squared.
-    eta4 : float
+    eta4 : Float
         eta to the fourth power.
-    c1 : float
+    c1 : Float
         Precession constant c1.
-    SAv : float
+    SAv : Float
         Spin parameter SAv.
-    SAv2 : float
+    SAv2 : Float
         SAv squared.
-    invSAv : float
+    invSAv : Float
         Inverse of SAv (1/SAv).
-    invSAv2 : float
+    invSAv2 : Float
         Inverse of SAv squared (1/SAv^2).
-    Omegaz0_coeff, ..., Omegaz5_coeff : float
+    Omegaz0_coeff, ..., Omegaz5_coeff : Float
         Omega_z expansion coefficients from Eqs. D15-D20.
-    phiz_0 : float
+    phiz_0 : Float
         Initial phi_z value.
 
     Returns
     -------
-    phiz_out : float
+    phiz_out : Float
         The azimuthal precession angle phi_z.
     """
     invv = 1.0 / v
@@ -1590,43 +1589,43 @@ def IMRPhenomX_Return_phiz_MSA(
 
 
 def IMRPhenomX_Return_zeta_MSA(
-    v: float,
-    eta: float,
-    Omegazeta0_coeff: float,
-    Omegazeta1_coeff: float,
-    Omegazeta2_coeff: float,
-    Omegazeta3_coeff: float,
-    Omegazeta4_coeff: float,
-    Omegazeta5_coeff: float,
-    zeta_0: float,
-) -> float:
+    v: Float,
+    eta: Float,
+    Omegazeta0_coeff: Float,
+    Omegazeta1_coeff: Float,
+    Omegazeta2_coeff: Float,
+    Omegazeta3_coeff: Float,
+    Omegazeta4_coeff: Float,
+    Omegazeta5_coeff: Float,
+    zeta_0: Float,
+) -> Float:
     """
     Compute zeta angle for MSA approximation.
 
     Parameters
     ----------
-    v : float
+    v : Float
         Orbital velocity parameter.
-    eta : float
+    eta : Float
         Symmetric mass ratio.
-    Omegazeta0_coeff : float
+    Omegazeta0_coeff : Float
         Zeta precession coefficient (order 0).
-    Omegazeta1_coeff : float
+    Omegazeta1_coeff : Float
         Zeta precession coefficient (order 1).
-    Omegazeta2_coeff : float
+    Omegazeta2_coeff : Float
         Zeta precession coefficient (order 2).
-    Omegazeta3_coeff : float
+    Omegazeta3_coeff : Float
         Zeta precession coefficient (order 3).
-    Omegazeta4_coeff : float
+    Omegazeta4_coeff : Float
         Zeta precession coefficient (order 4).
-    Omegazeta5_coeff : float
+    Omegazeta5_coeff : Float
         Zeta precession coefficient (order 5).
-    zeta_0 : float
+    zeta_0 : Float
         Initial zeta value.
 
     Returns
     -------
-    float
+    Float
         Zeta angle.
     """
     invv = 1.0 / v
@@ -1655,62 +1654,63 @@ def IMRPhenomX_Return_zeta_MSA(
     return zeta_out
 
 
-def IMRPhenomX_vector_sum(v1: jnp.ndarray, v2: jnp.ndarray) -> jnp.ndarray:
+def IMRPhenomX_vector_sum(
+    v1: Float[Array, "3"], v2: Float[Array, "3"]
+) -> Float[Array, "3"]:
     """
     Calculate sum of two 3D vectors
 
     Args:
-        v1: First 3D vector as JAX array (jnp.ndarray)
-        v2: Second 3D vector as JAX array (jnp.ndarray)
+        v1: First 3D vector as JAX array (Float[Array, "3"])
+        v2: Second 3D vector as JAX array (Float[Array, "3"])
 
     Returns:
-        jnp.ndarray: Sum of the vectors
+        Float[Array, "3"]: Sum of the vectors
     """
     return v1 + v2
 
 
-def IMRPhenomX_vector_L2_norm(v1: jnp.ndarray) -> float:
+def IMRPhenomX_vector_L2_norm(v1: Float[Array, "3"]) -> Float:
     """
     Calculate L2 norm of a 3D vector
 
     Args:
-        v1: 3D vector as JAX array [x, y, z] (jnp.ndarray)
+        v1: 3D vector as JAX array [x, y, z] (Float[Array, "3"])
 
-    Returns:
-        float: L2 norm of the vector
+    Returns: Float: L2 norm of the vector
     """
     return jnp.linalg.norm(v1)
 
 
-def IMRPhenomX_vector_scalar(v1: jnp.ndarray, a: float) -> jnp.ndarray:
+def IMRPhenomX_vector_scalar(v1: Float[Array, "3"], a: Float) -> Float[Array, "3"]:
     """
     Multiply a vector by a scalar
 
     Args:
-        v1: 3D vector as JAX array [x, y, z] (jnp.ndarray)
-        a: Scalar multiplier (float)
+        v1: 3D vector as JAX array [x, y, z] (Float[Array, "3"])
+        a: Scalar multiplier (Float)
 
     Returns:
-        jnp.ndarray: Scaled vector
+        Float[Array, "3"]: Scaled vector
     """
     v2 = jnp.array([a * v1[0], a * v1[1], a * v1[2]])
     return v2
 
 
-def IMRPhenomX_JNorm_MSA(LNorm: float, c1_over_eta: float, SAv2: float) -> float:
+def IMRPhenomX_JNorm_MSA(LNorm: Float, c1_over_eta: Float, SAv2: Float) -> Float:
     JNorm2 = LNorm * LNorm + 2.0 * LNorm * c1_over_eta + SAv2
     return jnp.sqrt(JNorm2)
 
 
 def IMRPhenomX_L_norm_3PN_of_v(
     v: jax.Array,
-    L_norm: float,
-    constants_L_0: float,
-    constants_L_1: float,
-    constants_L_2: float,
-    constants_L_3: float,
-    constants_L_4: float,
-) -> float:
+    L_norm: Float,
+    constants_L_0: Float,
+    constants_L_1: Float,
+    constants_L_2: Float,
+    constants_L_3: Float,
+    constants_L_4: Float,
+) -> Float:
     """
     Compute L_norm at 3PN order.
 
@@ -1718,22 +1718,22 @@ def IMRPhenomX_L_norm_3PN_of_v(
     ----------
     v : jax.Array
         Orbital velocity parameter.
-    L_norm : float
+    L_norm : Float
         Normalized orbital angular momentum.
-    constants_L_0 : float
+    constants_L_0 : Float
         L polynomial coefficient (index 0).
-    constants_L_1 : float
+    constants_L_1 : Float
         L polynomial coefficient (index 1).
-    constants_L_2 : float
+    constants_L_2 : Float
         L polynomial coefficient (index 2).
-    constants_L_3 : float
+    constants_L_3 : Float
         L polynomial coefficient (index 3).
-    constants_L_4 : float
+    constants_L_4 : Float
         L polynomial coefficient (index 4).
 
     Returns
     -------
-    float
+    Float
         L_norm at 3PN order.
     """
     v2 = v * v
@@ -1750,86 +1750,86 @@ def IMRPhenomX_L_norm_3PN_of_v(
 
 
 def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
-    v: float,
-    eta: float,
-    eta2: float,
-    eta3: float,
-    eta4: float,
-    inveta: float,
-    c1: float,
-    c1_over_eta: float,
-    SAv: float,
-    SAv2: float,
-    invSAv: float,
-    invSAv2: float,
-    constants_L_0: float,
-    constants_L_1: float,
-    constants_L_2: float,
-    constants_L_3: float,
-    constants_L_4: float,
-    S1_norm_2: float,
-    S2_norm_2: float,
-    qq: float,
-    delta_qq: float,
-    Seff: float,
-    dotS1Ln: float,
-    dotS2Ln: float,
-    S_0_norm: float,
-    psi0: float,
-    psi1: float,
-    psi2: float,
-    g0: float,
-    Omegaz0_coeff: float,
-    Omegaz1_coeff: float,
-    Omegaz2_coeff: float,
-    Omegaz3_coeff: float,
-    Omegaz4_coeff: float,
-    Omegaz5_coeff: float,
-    phiz_0: float,
-    Omegazeta0_coeff: float,
-    Omegazeta1_coeff: float,
-    Omegazeta2_coeff: float,
-    Omegazeta3_coeff: float,
-    Omegazeta4_coeff: float,
-    Omegazeta5_coeff: float,
-    zeta_0: float,
-) -> jnp.ndarray:
+    v: Float,
+    eta: Float,
+    eta2: Float,
+    eta3: Float,
+    eta4: Float,
+    inveta: Float,
+    c1: Float,
+    c1_over_eta: Float,
+    SAv: Float,
+    SAv2: Float,
+    invSAv: Float,
+    invSAv2: Float,
+    constants_L_0: Float,
+    constants_L_1: Float,
+    constants_L_2: Float,
+    constants_L_3: Float,
+    constants_L_4: Float,
+    S1_norm_2: Float,
+    S2_norm_2: Float,
+    qq: Float,
+    delta_qq: Float,
+    Seff: Float,
+    dotS1Ln: Float,
+    dotS2Ln: Float,
+    S_0_norm: Float,
+    psi0: Float,
+    psi1: Float,
+    psi2: Float,
+    g0: Float,
+    Omegaz0_coeff: Float,
+    Omegaz1_coeff: Float,
+    Omegaz2_coeff: Float,
+    Omegaz3_coeff: Float,
+    Omegaz4_coeff: Float,
+    Omegaz5_coeff: Float,
+    phiz_0: Float,
+    Omegazeta0_coeff: Float,
+    Omegazeta1_coeff: Float,
+    Omegazeta2_coeff: Float,
+    Omegazeta3_coeff: Float,
+    Omegazeta4_coeff: Float,
+    Omegazeta5_coeff: Float,
+    zeta_0: Float,
+) -> Float[Array, "3"]:
     """
     Wrapper to generate phi_z, zeta and cos(theta_L) at a given frequency.
 
     Args:
-        v: Velocity parameter (float)
-        eta: Symmetric mass ratio (float)
-        eta2: eta squared (float)
-        eta3: eta cubed (float)
-        eta4: eta to the fourth (float)
-        inveta: Inverse of eta (float)
-        c1: c1 coefficient (float)
-        c1_over_eta: c1 divided by eta (float)
-        SAv: Spin average (float)
-        SAv2: Spin average squared (float)
-        invSAv: Inverse of SAv (float)
-        invSAv2: Inverse of SAv squared (float)
+        v: Velocity parameter (Float)
+        eta: Symmetric mass ratio (Float)
+        eta2: eta squared (Float)
+        eta3: eta cubed (Float)
+        eta4: eta to the fourth (Float)
+        inveta: Inverse of eta (Float)
+        c1: c1 coefficient (Float)
+        c1_over_eta: c1 divided by eta (Float)
+        SAv: Spin average (Float)
+        SAv2: Spin average squared (Float)
+        invSAv: Inverse of SAv (Float)
+        invSAv2: Inverse of SAv squared (Float)
         constants_L: Array of L constants [L0, L1, L2, L3, L4] (array)
-        S1_norm_2: Squared norm of spin 1 (float)
-        S2_norm_2: Squared norm of spin 2 (float)
-        qq: Mass ratio q = m1/m2 (float)
-        delta_qq: Delta mass ratio term (float)
-        Seff: Effective spin (float)
-        dotS1Ln: Dot product of S1 and Lhat (float)
-        dotS2Ln: Dot product of S2 and Lhat (float)
-        S_0_norm: Initial total spin norm (float)
-        psi0: Psi coefficient 0 (float)
-        psi1: Psi coefficient 1 (float)
-        psi2: Psi coefficient 2 (float)
-        g0: g0 coefficient (float)
+        S1_norm_2: Squared norm of spin 1 (Float)
+        S2_norm_2: Squared norm of spin 2 (Float)
+        qq: Mass ratio q = m1/m2 (Float)
+        delta_qq: Delta mass ratio term (Float)
+        Seff: Effective spin (Float)
+        dotS1Ln: Dot product of S1 and Lhat (Float)
+        dotS2Ln: Dot product of S2 and Lhat (Float)
+        S_0_norm: Initial total spin norm (Float)
+        psi0: Psi coefficient 0 (Float)
+        psi1: Psi coefficient 1 (Float)
+        psi2: Psi coefficient 2 (Float)
+        g0: g0 coefficient (Float)
         Omegaz0_coeff through Omegaz5_coeff: Omega_z coefficients (floats)
-        phiz_0: Initial phi_z value (float)
+        phiz_0: Initial phi_z value (Float)
         Omegazeta0_coeff through Omegazeta5_coeff: Omega_zeta coefficients (floats)
-        zeta_0: Initial zeta value (float)
+        zeta_0: Initial zeta value (Float)
 
     Returns:
-        jnp.ndarray: Array containing [phi_z + phi_z_MSA, zeta + zeta_MSA, cos(theta_L)]
+        Float[Array, "3"]: Array containing [phi_z + phi_z_MSA, zeta + zeta_MSA, cos(theta_L)]
     """
     L_norm = eta / v
 
@@ -1944,7 +1944,7 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
     return jnp.array([vout1, vout2, vout3])
 
 
-def IMRPhenomX_costhetaLJ(L_norm: float, J_norm: float, S_norm: float) -> float:
+def IMRPhenomX_costhetaLJ(L_norm: Float, J_norm: Float, S_norm: Float) -> Float:
     costhetaLJ = 0.5 * (J_norm**2 + L_norm**2 - S_norm**2) / (L_norm * J_norm)
 
     # Clamp the value to the interval [-1.0, 1.0]
@@ -1954,16 +1954,16 @@ def IMRPhenomX_costhetaLJ(L_norm: float, J_norm: float, S_norm: float) -> float:
 
 
 def IMRPhenomX_Return_SNorm_MSA(
-    v: float,
-    Smi2: float,
-    Spl2: float,
-    S32: float,
-    psi0: float,
-    psi1: float,
-    psi2: float,
-    g0: float,
-    delta_qq: float,
-) -> float:
+    v: Float,
+    Smi2: Float,
+    Spl2: Float,
+    S32: Float,
+    psi0: Float,
+    psi1: Float,
+    psi2: Float,
+    g0: Float,
+    delta_qq: Float,
+) -> Float:
     """
     Compute the spin magnitude SNorm using the MSA approximation.
 
@@ -1972,24 +1972,24 @@ def IMRPhenomX_Return_SNorm_MSA(
 
     Parameters
     ----------
-    v : float
+    v : Float
         Orbital velocity parameter.
-    Smi2 : float
+    Smi2 : Float
         S_minus squared.
-    Spl2 : float
+    Spl2 : Float
         S_plus squared.
-    S32 : float
+    S32 : Float
         S_3 squared.
-    psi0, psi1, psi2 : float
+    psi0, psi1, psi2 : Float
         Psi expansion coefficients.
-    g0 : float
+    g0 : Float
         Precession coefficient g0.
-    delta_qq : float
+    delta_qq : Float
         Mass difference parameter delta_qq.
 
     Returns
     -------
-    SNorm : float
+    SNorm : Float
         The spin magnitude.
     """
     v2 = v * v
@@ -2014,15 +2014,16 @@ def IMRPhenomX_Return_SNorm_MSA(
     return jnp.sqrt(SNorm2)
 
 
-def IMRPhenomX_vector_dot_product(v1: jnp.ndarray, v2: jnp.ndarray) -> float:
+def IMRPhenomX_vector_dot_product(
+    v1: Float[Array, "3"], v2: Float[Array, "3"]
+) -> Float:
     """
     Calculate dot product of two 3D vectors
 
     Args:
-        v1: First 3D vector as JAX array (jnp.ndarray)
-        v2: Second 3D vector as JAX array (jnp.ndarray)
+        v1: First 3D vector as JAX array (Float[Array, "3"])
+        v2: Second 3D vector as JAX array (Float[Array, "3"])
 
-    Returns:
-        float: Dot product
+    Returns: Float: Dot product
     """
     return jnp.dot(v1, v2)

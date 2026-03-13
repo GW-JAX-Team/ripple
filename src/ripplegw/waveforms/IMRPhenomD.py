@@ -12,11 +12,15 @@ from .IMRPhenomD_utils import (
 
 from .IMRPhenomD_QNMdata import fM_CUT
 from ..constants import EULERGAMMA, MTSUN, MPC, C, PI
-from jaxtyping import Array
+from jaxtyping import Array, Float
 from ..conversions import Mc_eta_to_ms
 
 
-def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
+def get_inspiral_phase(
+    fM_s: Float[Array, " n_freq"],
+    theta: Float[Array, "4"],
+    coeffs: Float[Array, "19"],
+) -> Float[Array, " n_freq"]:
     """
     Calculate the inspiral phase for the IMRPhenomD waveform.
     """
@@ -160,7 +164,11 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     return phi_Ins
 
 
-def get_IIa_raw_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
+def get_IIa_raw_phase(
+    fM_s: Float[Array, " n_freq"],
+    theta: Float[Array, "4"],
+    coeffs: Float[Array, "19"],
+) -> Float[Array, " n_freq"]:
     m1, m2, _, _ = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -175,14 +183,14 @@ def get_IIa_raw_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
 
 
 def get_IIb_raw_phase(
-    fM_s: Array,
-    theta: Array,
-    coeffs: Array,
-    f_RD: float,
-    f_damp: float,
+    fM_s: Float[Array, " n_freq"],
+    theta: Float[Array, "4"],
+    coeffs: Float[Array, "19"],
+    f_RD: Float,
+    f_damp: Float,
     Rholm: float = 1.0,
     Taulm: float = 1.0,
-) -> Array:
+) -> Float[Array, " n_freq"]:
     m1, m2, _, _ = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -204,14 +212,18 @@ def get_IIb_raw_phase(
     return phi_IIb_raw
 
 
-def get_Amp0(fM_s: Array, eta: float) -> Array:
+def get_Amp0(fM_s: Float[Array, " n_freq"], eta: Float) -> Float[Array, " n_freq"]:
     Amp0 = (
         (2.0 / 3.0 * eta) ** (1.0 / 2.0) * (fM_s) ** (-7.0 / 6.0) * PI ** (-1.0 / 6.0)
     )
     return Amp0
 
 
-def get_inspiral_Amp(fM_s: Array, theta: Array, coeffs: Array) -> Array:
+def get_inspiral_Amp(
+    fM_s: Float[Array, " n_freq"],
+    theta: Float[Array, "4"],
+    coeffs: Float[Array, "19"],
+) -> Float[Array, " n_freq"]:
     # Below is taken from https://git.ligo.org/lscsoft/lalsuite/-/blob/master/lalsimulation/lib/LALSimIMRPhenomD_internals.c
     # Lines 302 --> 351
     m1, m2, chi1, chi2 = theta
@@ -335,8 +347,14 @@ def get_inspiral_Amp(fM_s: Array, theta: Array, coeffs: Array) -> Array:
 
 
 def get_IIa_Amp(
-    fM_s: Array, theta: Array, coeffs: Array, f1, f3, f_RD, f_damp
-) -> Array:
+    fM_s: Float[Array, " n_freq"],
+    theta: Float[Array, "4"],
+    coeffs: Float[Array, "19"],
+    f1: Float,
+    f3: Float,
+    f_RD: Float,
+    f_damp: Float,
+) -> Float[Array, " n_freq"]:
     m1, m2, _, _ = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -368,7 +386,13 @@ def get_IIa_Amp(
     return Amp_IIa
 
 
-def get_IIb_Amp(fM_s: Array, theta: Array, coeffs: Array, f_RD, f_damp) -> Array:
+def get_IIb_Amp(
+    fM_s: Float[Array, " n_freq"],
+    theta: Float[Array, "4"],
+    coeffs: Float[Array, "19"],
+    f_RD: Float,
+    f_damp: Float,
+) -> Float[Array, " n_freq"]:
     m1, m2, _, _ = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -390,13 +414,13 @@ def get_IIb_Amp(fM_s: Array, theta: Array, coeffs: Array, f_RD, f_damp) -> Array
 
 
 def Phase(
-    f: Array,
-    theta: Array,
-    coeffs: Array,
-    transition_freqs: Array,
+    f: Float[Array, " n_freq"] | float,
+    theta: Float[Array, "4"],
+    coeffs: Float[Array, "19"],
+    transition_freqs: tuple[Float, Float, Float, Float, Float, Float],
     Rholm: float = 1.0,
     Taulm: float = 1.0,
-) -> Array:
+) -> Float[Array, " n_freq"]:
     """
     Computes the phase of the PhenomD waveform following 1508.07253.
     Sets time and phase of coealence to be zero.
@@ -474,8 +498,11 @@ def Phase(
 
 
 def IMRPhenDAmplitude(
-    f: Array, theta: Array, coeffs: Array, transition_frequencies: Array
-) -> Array:
+    f: Float[Array, " n_freq"],
+    theta: Float[Array, "4"],
+    coeffs: Float[Array, "19"],
+    transition_frequencies: tuple[Float, Float, Float, Float, Float, Float],
+) -> Float[Array, " n_freq"]:
     """
     Useful function for IMRPhenomHM. Computes the Amp variable of Amp() (defined below)
     """
@@ -514,8 +541,11 @@ def IMRPhenDAmplitude(
 
 
 def IMRPhenDAmplitude_NoCut(
-    f: Array, theta: Array, coeffs: Array, transition_frequencies: Array
-) -> Array:
+    f: Float[Array, " n_freq"],
+    theta: Float[Array, "4"],
+    coeffs: Float[Array, "19"],
+    transition_frequencies: tuple[Float, Float, Float, Float, Float, Float],
+) -> Float[Array, " n_freq"]:
     """
     Same as IMRPhenDAmplitude but without the fM_CUT cutoff.
     Used by IMRPhenomHM where mapped frequencies can exceed fM_CUT.
@@ -546,8 +576,12 @@ def IMRPhenDAmplitude_NoCut(
 
 
 def Amp(
-    f: Array, theta: Array, coeffs: Array, transition_frequencies: Array, D=1
-) -> Array:
+    f: Float[Array, " n_freq"],
+    theta: Float[Array, "4"],
+    coeffs: Float[Array, "19"],
+    transition_frequencies: tuple[Float, Float, Float, Float, Float, Float],
+    D: Float = 1,
+) -> Float[Array, " n_freq"]:
     """
     Computes the amplitude of the PhenomD frequency domain waveform following 1508.07253.
     Note that this waveform also assumes that object one is the more massive.
@@ -578,10 +612,10 @@ def Amp(
 
 
 def _gen_IMRPhenomD(
-    f: Array,
-    theta_intrinsic: Array,
-    theta_extrinsic: Array,
-    coeffs: Array,
+    f: Float[Array, " n_freq"],
+    theta_intrinsic: Float[Array, "4"],
+    theta_extrinsic: Float[Array, "3"],
+    coeffs: Float[Array, "19"],
     f_ref: float,
 ):
     M_s = (theta_intrinsic[0] + theta_intrinsic[1]) * MTSUN
@@ -612,7 +646,7 @@ def _gen_IMRPhenomD(
     return h0
 
 
-def gen_IMRPhenomD(f: Array, params: Array, f_ref: float):
+def gen_IMRPhenomD(f: Float[Array, " n_freq"], params: Float[Array, "7"], f_ref: float):
     """
     Generate PhenomD frequency domain waveform following 1508.07253.
     vars array contains both intrinsic and extrinsic variables
@@ -641,7 +675,9 @@ def gen_IMRPhenomD(f: Array, params: Array, f_ref: float):
     return h0
 
 
-def gen_IMRPhenomD_hphc(f: Array, params: Array, f_ref: float):
+def gen_IMRPhenomD_hphc(
+    f: Float[Array, " n_freq"], params: Float[Array, "8"], f_ref: float
+):
     """
     Generate PhenomD frequency domain waveform following 1508.07253.
     vars array contains both intrinsic and extrinsic variables
