@@ -79,7 +79,10 @@ def generate_xphm(
         chi2x,
         chi2y,
         chi2z,
-        phi0,
+        0.0,  # Convention 1: pWF->phi0 = 0 (LALSimIMRPhenomX_precession.c:837).
+        # phiRef enters exclusively through kappa->alpha0->alpha_offset and
+        # zeta_polarization in twistup; passing phi0 here would add a
+        # spurious mm*phiRef phase shift to every mode.
         frequency_array[1] - frequency_array[0],
         reference_frequency,
         extra_params,
