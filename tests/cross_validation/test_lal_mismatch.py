@@ -70,13 +70,13 @@ N_SAMPLES_FULL = 10
 # implementations; simpler/more-analytical waveforms achieve near-machine
 # precision while complex NR-calibrated ones accumulate more rounding error.
 MISMATCH_THRESHOLDS = {
-    "IMRPhenomD": 1e-5,         # observed max ~1e-7 over 10 samples
-    "IMRPhenomXAS": 1e-12,      # near machine precision (~3e-14)
-    "IMRPhenomD_NRTidalv2": 1e-9,   # observed max ~6e-11
-    "IMRPhenomXAS_NRTidalv3": 1e-7,  # observed max ~6e-9
-    "TaylorF2": 1e-14,          # at float64 machine epsilon (~3e-16)
-    "IMRPhenomPv2": 1e-4,       # observed max ~2e-6
-    "IMRPhenomXPHM": 1e-3,      # active development (PR #95); expected to exceed
+    "IMRPhenomD": 1e-6,
+    "IMRPhenomXAS": 1e-13,
+    "IMRPhenomD_NRTidalv2": 1e-9,
+    "IMRPhenomXAS_NRTidalv3": 1e-7,
+    "TaylorF2": 1e-14,
+    "IMRPhenomPv2": 1e-5,
+    "IMRPhenomXPHM": 1e-6
 }
 DEFAULT_MISMATCH_THRESHOLD = 1e-5  # fallback for unknown waveforms
 
@@ -245,12 +245,12 @@ def psd_data():
 @pytest.mark.parametrize(
     "waveform_name,bounds",
     [
-        # ("IMRPhenomD", BBH_BOUNDS),
-        # ("IMRPhenomXAS", BBH_BOUNDS),
-        # ("IMRPhenomD_NRTidalv2", DEFAULT_BOUNDS),
-        # ("IMRPhenomXAS_NRTidalv3", DEFAULT_BOUNDS),
-        # ("TaylorF2", DEFAULT_BOUNDS),
-        # ("IMRPhenomPv2", BBH_BOUNDS),
+        ("IMRPhenomD", BBH_BOUNDS),
+        ("IMRPhenomXAS", BBH_BOUNDS),
+        ("IMRPhenomD_NRTidalv2", DEFAULT_BOUNDS),
+        ("IMRPhenomXAS_NRTidalv3", DEFAULT_BOUNDS),
+        ("TaylorF2", DEFAULT_BOUNDS),
+        ("IMRPhenomPv2", BBH_BOUNDS),
         ("IMRPhenomXPHM", BBH_BOUNDS),
     ],
 )
