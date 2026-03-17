@@ -40,7 +40,7 @@ EOF
 # --- postprocess submit file ---
 cat > "${POSTPROCESS_SUB}" << EOF
 executable = ${UV}
-arguments  = run python src/ripplegw/benchmarks/timings/postprocess.py
+arguments  = run --group test python src/ripplegw/benchmarks/timings/postprocess.py
 initialdir = ${REPO_DIR}
 output     = ${OUTDIR}/postprocess-\$(ClusterId).\$(ProcId).out
 error      = ${OUTDIR}/postprocess-\$(ClusterId).\$(ProcId).err

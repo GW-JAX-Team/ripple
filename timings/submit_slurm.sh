@@ -45,6 +45,6 @@ sbatch \
     --dependency="${DEPENDENCY}" \
     --job-name="ripple-postprocess" \
     --output="${SCRIPT_DIR}/outdir/postprocess-%j.out" \
-    --wrap="cd '${REPO_DIR}' && uv run python src/ripplegw/benchmarks/timings/postprocess.py"
+    --wrap="cd '${REPO_DIR}' && uv run --group test python src/ripplegw/benchmarks/timings/postprocess.py"
 
 echo "Postprocessing job submitted with dependency on: ${JOB_IDS[*]}"

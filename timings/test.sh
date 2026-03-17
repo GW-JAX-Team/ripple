@@ -8,4 +8,4 @@ uv run ripple_time IMRPhenomXAS --device $DEVICE --n-waveforms $N_WAVEFORMS --pr
 uv run ripple_time IMRPhenomPv2 --device $DEVICE --n-waveforms $N_WAVEFORMS --precision $PRECISION
 
 echo "Running postprocessing..."
-uv run python src/ripplegw/benchmarks/timings/postprocess.py --device $DEVICE
+uv run --group test python src/ripplegw/benchmarks/timings/postprocess.py --device $DEVICE
