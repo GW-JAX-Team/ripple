@@ -274,10 +274,16 @@ def run_postprocess(
     print(f"  Waveforms analyzed: {', '.join(sorted(organized.keys()))}")
 
     create_time_per_waveform_plot(
-        organized, output_dir / f"time_per_waveform_{device_name}.png", device_name, n_waveforms
+        organized,
+        output_dir / f"time_per_waveform_{device_name}.png",
+        device_name,
+        n_waveforms,
     )
     create_throughput_plot(
-        organized, output_dir / f"throughput_{device_name}.png", device_name, n_waveforms
+        organized,
+        output_dir / f"throughput_{device_name}.png",
+        device_name,
+        n_waveforms,
     )
 
     print("\nPostprocessing complete!")
@@ -289,15 +295,21 @@ def main() -> None:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "--results-dir", type=Path, default=DEFAULT_RESULTS_DIR,
+        "--results-dir",
+        type=Path,
+        default=DEFAULT_RESULTS_DIR,
         help="Directory containing timing JSON files",
     )
     parser.add_argument(
-        "--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR,
+        "--output-dir",
+        type=Path,
+        default=DEFAULT_OUTPUT_DIR,
         help="Directory to save output plots",
     )
     parser.add_argument(
-        "--device", type=str, default=None,
+        "--device",
+        type=str,
+        default=None,
         help="Filter results by device name (e.g. H100, cpu)",
     )
     args = parser.parse_args()
@@ -306,6 +318,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-
-
