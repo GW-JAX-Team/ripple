@@ -1,7 +1,7 @@
 """
-Postprocessing script for visualizing waveform timing benchmarks.
+Postprocessing utilities for visualizing waveform timing benchmarks.
 
-This script reads timing JSON files and creates comparison bar charts
+Reads timing JSON files from timings/results and creates comparison bar charts
 for different waveform approximants, comparing float32 vs float64 performance.
 """
 
@@ -12,6 +12,10 @@ from typing import Dict, List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+_TIMINGS_DIR = Path(__file__).parent.parent.parent.parent.parent / "timings"
+DEFAULT_RESULTS_DIR = _TIMINGS_DIR / "outdir"
+DEFAULT_OUTPUT_DIR = _TIMINGS_DIR / "figures"
 
 
 def load_timing_results(
@@ -74,7 +78,6 @@ def create_time_per_waveform_plot(
     output_path: Path,
     gpu_name: str,
     n_waveforms: int,
-    batch_size: int,
 ):
     """Create bar chart comparing time per waveform for float32 vs float64."""
     waveforms = sorted(organized_results.keys())
@@ -103,7 +106,7 @@ def create_time_per_waveform_plot(
 
     ax.set_ylabel("Time per Waveform (ms)", fontsize=12, fontweight="bold")
     ax.set_title(
-        f"Waveform Evaluation Time\nN = {n_waveforms}, b = {batch_size}, GPU = {gpu_name}",
+        f"Waveform Evaluation Time\nN = {n_waveforms}, device = {gpu_name}",
         fontsize=14,
         fontweight="bold",
     )
@@ -150,7 +153,6 @@ def create_throughput_plot(
     output_path: Path,
     gpu_name: str,
     n_waveforms: int,
-    batch_size: int,
 ):
     """Create bar chart comparing throughput (waveforms/s) for float32 vs float64."""
     waveforms = sorted(organized_results.keys())
@@ -189,7 +191,7 @@ def create_throughput_plot(
 
     ax.set_ylabel("Waveforms per Second", fontsize=12, fontweight="bold")
     ax.set_title(
-        f"Waveform Throughput\nN = {n_waveforms}, b = {batch_size}, GPU = {gpu_name}",
+        f"Waveform Throughput\nN = {n_waveforms}, device = {gpu_name}",
         fontsize=14,
         fontweight="bold",
     )
@@ -231,38 +233,18 @@ def create_throughput_plot(
     plt.close()
 
 
-def main():
-    """Main postprocessing function."""
-    parser = argparse.ArgumentParser(
-        description="Postprocess waveform timing results and create comparison plots",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+def run_postprocess(
+    results_dir: Path = DEFAULT_RESULTS_DIR,
+    output_dir: Path = DEFAULT_OUTPUT_DIR,
+    gpu_filter: Optional[str] = None,
+) -> None:
+    """Load timing results and generate comparison plots.
 
-    parser.add_argument(
-        "--results-dir",
-        type=str,
-        default="outdir",
-        help="Directory containing timing JSON files",
-    )
-
-    parser.add_argument(
-        "--output-dir",
-        type=str,
-        default="figures",
-        help="Directory to save output plots",
-    )
-
-    parser.add_argument(
-        "--gpu",
-        type=str,
-        default=None,
-        help="Filter results by GPU name (e.g., H100, A100, cpu).",
-    )
-
-    args = parser.parse_args()
-
-    results_dir = Path(args.results_dir)
-    output_dir = Path(args.output_dir)
+    Args:
+        results_dir: Directory containing timing JSON files.
+        output_dir: Directory to save output plots.
+        gpu_filter: Optional device name to filter results (e.g., "H100", "cpu").
+    """
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if not results_dir.exists():
@@ -270,9 +252,9 @@ def main():
         return
 
     print(f"Loading results from: {results_dir}")
-    if args.gpu:
-        print(f"Filtering by GPU: {args.gpu}")
-    results = load_timing_results(results_dir, gpu_filter=args.gpu)
+    if gpu_filter:
+        print(f"Filtering by device: {gpu_filter}")
+    results = load_timing_results(results_dir, gpu_filter=gpu_filter)
 
     if not results:
         print("No timing results found!")
@@ -283,26 +265,47 @@ def main():
     organized = organize_results_by_waveform(results)
 
     first_result = results[0]
-    gpu_name = first_result.get("device_name", "Unknown")
+    device_name = first_result.get("device_name", "Unknown")
     n_waveforms = first_result.get("n_waveforms", 0)
-    batch_size = first_result.get("batch_size", 0)
 
     print("\nGenerating plots for:")
-    print(f"  GPU: {gpu_name}")
+    print(f"  Device: {device_name}")
     print(f"  N waveforms: {n_waveforms}")
-    print(f"  Batch size: {batch_size}")
     print(f"  Waveforms analyzed: {', '.join(sorted(organized.keys()))}")
 
     create_time_per_waveform_plot(
-        organized, output_dir / f"time_per_waveform_{gpu_name}.png", gpu_name, n_waveforms, batch_size
+        organized, output_dir / f"time_per_waveform_{device_name}.png", device_name, n_waveforms
     )
-
     create_throughput_plot(
-        organized, output_dir / f"throughput_{gpu_name}.png", gpu_name, n_waveforms, batch_size
+        organized, output_dir / f"throughput_{device_name}.png", device_name, n_waveforms
     )
 
     print("\nPostprocessing complete!")
 
 
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Postprocess waveform timing results and create comparison plots",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "--results-dir", type=Path, default=DEFAULT_RESULTS_DIR,
+        help="Directory containing timing JSON files",
+    )
+    parser.add_argument(
+        "--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR,
+        help="Directory to save output plots",
+    )
+    parser.add_argument(
+        "--device", type=str, default=None,
+        help="Filter results by device name (e.g. H100, cpu)",
+    )
+    args = parser.parse_args()
+    run_postprocess(args.results_dir, args.output_dir, args.device)
+
+
 if __name__ == "__main__":
     main()
+
+
+

@@ -2,7 +2,7 @@
 Command-line interface for timing gravitational waveform generation in ripple.
 
 This script provides a flexible CLI for benchmarking different waveform approximants
-with various configurations including hardware selection, precision, and batch size.
+with various configurations including hardware selection and precision.
 """
 
 import argparse
@@ -57,7 +57,7 @@ def time_imrphenomxphm(params, config):
         1.0 / config["duration"],
     )
 
-    # Stack parameters for lax.map
+    # Stack parameters into a single array for vmap
     params_stacked = jnp.stack(
         [
             params["mass_1"],
@@ -75,27 +75,26 @@ def time_imrphenomxphm(params, config):
         axis=1,
     )
 
-    # Create batched version using lax.map
-    def generate_single(p):
-        return IMRPhenomXPHM.generate_xphm(
-            p[0],
-            p[1],
-            p[2],
-            p[3],
-            p[4],
-            p[5],
-            p[6],
-            p[7],
-            p[8],
-            p[9],
-            p[10],
-            f,
-            config["reference_frequency"],
-        )
-
-    generate_xphm_batched = lambda xs: jax.lax.map(
-        generate_single, xs, batch_size=config["batch_size"]
-    )
+    # Create JIT-compiled vmapped version
+    @jax.jit
+    def generate_xphm_batched(xs):
+        return jax.vmap(
+            lambda p: IMRPhenomXPHM.generate_xphm(
+                p[0],
+                p[1],
+                p[2],
+                p[3],
+                p[4],
+                p[5],
+                p[6],
+                p[7],
+                p[8],
+                p[9],
+                p[10],
+                f,
+                config["reference_frequency"],
+            )
+        )(xs)
 
     # Warm-up run (JIT compilation)
     print(f"\n{'=' * 60}")
@@ -121,120 +120,84 @@ def time_imrphenomxphm(params, config):
     return warmup_time, exec_time
 
 
-def time_aligned_waveform(waveform_func, params, config):
-    """Time aligned-spin waveform generation (IMRPhenomXAS, IMRPhenomD)."""
+def _prepare_aligned_params(params):
+    """Build a batched param dict for aligned-spin BBH waveforms (IMRPhenomXAS, IMRPhenomD)."""
     from ripplegw.conversions import ms_to_Mc_eta
 
-    # Prepare frequency array
-    f = jnp.arange(
-        config["minimum_frequency"],
-        config["maximum_frequency"],
-        1.0 / config["duration"],
-    )
-
-    # Prepare parameter arrays [Mc, eta, chi1, chi2, D, tc, phic, inclination]
-    n_samples = len(params["mass_1"])
-    param_arrays = []
-    for i in range(n_samples):
-        Mc, eta = ms_to_Mc_eta(jnp.array([params["mass_1"][i], params["mass_2"][i]]))
-        param_array = jnp.array(
-            [
-                Mc,
-                eta,
-                params["a_1"][i],  # chi1
-                params["a_2"][i],  # chi2
-                params["luminosity_distance"][i],
-                params["geocent_time"][i],  # tc
-                params["phase"][i],  # phic
-                params["theta_jn"][i],  # inclination
-            ]
-        )
-        param_arrays.append(param_array)
-
-    param_arrays = jnp.stack(param_arrays)
-
-    # Create batched version using lax.map
-    waveform_batched = lambda xs: jax.lax.map(
-        lambda p: waveform_func(f, p, config["reference_frequency"]),
-        xs,
-        batch_size=config["batch_size"],
-    )
-
-    # Warm-up run
-    print(f"\n{'=' * 60}")
-    print("Warm-up run (JIT compilation)")
-    print(f"{'=' * 60}")
-    start = time.time()
-    hp, hc = waveform_batched(param_arrays)
-    hp.block_until_ready()
-    hc.block_until_ready()
-    warmup_time = time.time() - start
-    print(f"Warm-up time (includes JIT): {warmup_time:.3f} s")
-
-    # Timed run
-    print(f"\n{'=' * 60}")
-    print("Timed run")
-    print(f"{'=' * 60}")
-    start = time.time()
-    hp, hc = waveform_batched(param_arrays)
-    hp.block_until_ready()
-    hc.block_until_ready()
-    exec_time = time.time() - start
-
-    return warmup_time, exec_time
+    Mc, eta = ms_to_Mc_eta(jnp.array([params["mass_1"], params["mass_2"]]))
+    return {
+        "M_c": Mc,
+        "eta": eta,
+        "s1_z": params["a_1"],
+        "s2_z": params["a_2"],
+        "d_L": params["luminosity_distance"],
+        "phase_c": params["phase"],
+        "iota": params["theta_jn"],
+    }
 
 
-def time_precessing_waveform(waveform_func, params, config):
-    """Time precessing waveform generation (IMRPhenomPv2)."""
+def _prepare_precessing_params(params):
+    """Build a batched param dict for precessing BBH waveforms (IMRPhenomPv2)."""
     from ripplegw.conversions import ms_to_Mc_eta
 
-    # Prepare frequency array
+    Mc, eta = ms_to_Mc_eta(jnp.array([params["mass_1"], params["mass_2"]]))
+    return {
+        "M_c": Mc,
+        "eta": eta,
+        "s1_x": params["spin_1x"],
+        "s1_y": params["spin_1y"],
+        "s1_z": params["spin_1z"],
+        "s2_x": params["spin_2x"],
+        "s2_y": params["spin_2y"],
+        "s2_z": params["spin_2z"],
+        "d_L": params["luminosity_distance"],
+        "phase_c": params["phase"],
+        "iota": params["theta_jn"],
+    }
+
+
+def _prepare_bns_params(params):
+    """Build a batched param dict for BNS waveforms (TaylorF2_BNS, IMRPhenomD_NRTidalv2, IMRPhenomXAS_NRTidalv3)."""
+    from ripplegw.conversions import ms_to_Mc_eta
+
+    Mc, eta = ms_to_Mc_eta(jnp.array([params["mass_1"], params["mass_2"]]))
+    return {
+        "M_c": Mc,
+        "eta": eta,
+        "s1_z": params["a_1"],
+        "s2_z": params["a_2"],
+        "lambda_1": params["lambda_1"],
+        "lambda_2": params["lambda_2"],
+        "d_L": params["luminosity_distance"],
+        "phase_c": params["phase"],
+        "iota": params["theta_jn"],
+    }
+
+
+def time_waveform(waveform, batched_params, config):
+    """Time waveform generation using the class-based waveform interface.
+
+    Args:
+        waveform: An instantiated waveform object from ``ripplegw.waveform_preset``.
+        batched_params: Dict of JAX arrays, each of shape ``(n_waveforms,)``.
+        config: Benchmark configuration dictionary.
+    """
     f = jnp.arange(
         config["minimum_frequency"],
         config["maximum_frequency"],
         1.0 / config["duration"],
     )
 
-    # Prepare parameter arrays [Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, D, tc, phiRef, incl]
-    n_samples = len(params["mass_1"])
-    param_arrays = []
-    for i in range(n_samples):
-        Mc, eta = ms_to_Mc_eta(jnp.array([params["mass_1"][i], params["mass_2"][i]]))
-        param_array = jnp.array(
-            [
-                Mc,
-                eta,
-                params["spin_1x"][i],
-                params["spin_1y"][i],
-                params["spin_1z"][i],
-                params["spin_2x"][i],
-                params["spin_2y"][i],
-                params["spin_2z"][i],
-                params["luminosity_distance"][i],
-                params["geocent_time"][i],  # tc
-                params["phase"][i],  # phiRef
-                params["theta_jn"][i],  # inclination
-            ]
-        )
-        param_arrays.append(param_array)
+    waveform_batched = jax.jit(jax.vmap(lambda p: waveform(f, p)))
 
-    param_arrays = jnp.stack(param_arrays)
-
-    # Create batched version using lax.map
-    waveform_batched = lambda xs: jax.lax.map(
-        lambda p: waveform_func(f, p, config["reference_frequency"]),
-        xs,
-        batch_size=config["batch_size"],
-    )
-
-    # Warm-up run
+    # Warm-up run (JIT compilation)
     print(f"\n{'=' * 60}")
     print("Warm-up run (JIT compilation)")
     print(f"{'=' * 60}")
     start = time.time()
-    hp, hc = waveform_batched(param_arrays)
-    hp.block_until_ready()
-    hc.block_until_ready()
+    result = waveform_batched(batched_params)
+    result["p"].block_until_ready()
+    result["c"].block_until_ready()
     warmup_time = time.time() - start
     print(f"Warm-up time (includes JIT): {warmup_time:.3f} s")
 
@@ -243,84 +206,9 @@ def time_precessing_waveform(waveform_func, params, config):
     print("Timed run")
     print(f"{'=' * 60}")
     start = time.time()
-    hp, hc = waveform_batched(param_arrays)
-    hp.block_until_ready()
-    hc.block_until_ready()
-    exec_time = time.time() - start
-
-    return warmup_time, exec_time
-
-
-def time_bns_waveform(waveform_func, params, config):
-    """Time BNS waveform generation (TaylorF2, IMRPhenomD_NRTidalv2)."""
-    from ripplegw.conversions import ms_to_Mc_eta, lambdas_to_lambda_tildes
-
-    # Prepare frequency array
-    f = jnp.arange(
-        config["minimum_frequency"],
-        config["maximum_frequency"],
-        1.0 / config["duration"],
-    )
-
-    # Prepare parameter arrays [Mc, eta, chi1, chi2, lambda_tilde, delta_lambda_tilde, D, tc, phic, inclination]
-    n_samples = len(params["mass_1"])
-    param_arrays = []
-    for i in range(n_samples):
-        Mc, eta = ms_to_Mc_eta(jnp.array([params["mass_1"][i], params["mass_2"][i]]))
-        lambda_tilde, delta_lambda_tilde = lambdas_to_lambda_tildes(
-            jnp.array(
-                [
-                    params["lambda_1"][i],
-                    params["lambda_2"][i],
-                    params["mass_1"][i],
-                    params["mass_2"][i],
-                ]
-            )
-        )
-        param_array = jnp.array(
-            [
-                Mc,
-                eta,
-                params["a_1"][i],  # chi1
-                params["a_2"][i],  # chi2
-                lambda_tilde,
-                delta_lambda_tilde,
-                params["luminosity_distance"][i],
-                params["geocent_time"][i],  # tc
-                params["phase"][i],  # phic
-                params["theta_jn"][i],  # inclination
-            ]
-        )
-        param_arrays.append(param_array)
-
-    param_arrays = jnp.stack(param_arrays)
-
-    # Create batched version using lax.map
-    waveform_batched = lambda xs: jax.lax.map(
-        lambda p: waveform_func(f, p, config["reference_frequency"]),
-        xs,
-        batch_size=config["batch_size"],
-    )
-
-    # Warm-up run
-    print(f"\n{'=' * 60}")
-    print("Warm-up run (JIT compilation)")
-    print(f"{'=' * 60}")
-    start = time.time()
-    hp, hc = waveform_batched(param_arrays)
-    hp.block_until_ready()
-    hc.block_until_ready()
-    warmup_time = time.time() - start
-    print(f"Warm-up time (includes JIT): {warmup_time:.3f} s")
-
-    # Timed run
-    print(f"\n{'=' * 60}")
-    print("Timed run")
-    print(f"{'=' * 60}")
-    start = time.time()
-    hp, hc = waveform_batched(param_arrays)
-    hp.block_until_ready()
-    hc.block_until_ready()
+    result = waveform_batched(batched_params)
+    result["p"].block_until_ready()
+    result["c"].block_until_ready()
     exec_time = time.time() - start
 
     return warmup_time, exec_time
@@ -333,7 +221,6 @@ def run_timing(args):
         "waveform": args.waveform,
         "device": args.device,
         "n_waveforms": args.n_waveforms,
-        "batch_size": args.batch_size,
         "precision": args.precision,
         "duration": args.duration,
         "minimum_frequency": args.f_min,
@@ -376,36 +263,33 @@ def run_timing(args):
         print(" Running XPHM timing benchmark...")
         warmup_time, exec_time = time_imrphenomxphm(params, config)
 
-    elif args.waveform in ["IMRPhenomXAS", "IMRPhenomD"]:
-        print(" Running aligned spin waveform timing benchmark...")
-        from ripplegw.waveforms.IMRPhenomXAS import gen_IMRPhenomXAS_hphc
-        from ripplegw.waveforms.IMRPhenomD import gen_IMRPhenomD_hphc
-
-        waveform_func = {
-            "IMRPhenomXAS": gen_IMRPhenomXAS_hphc,
-            "IMRPhenomD": gen_IMRPhenomD_hphc,
-        }[args.waveform]
-
-        warmup_time, exec_time = time_aligned_waveform(waveform_func, params, config)
-
-    elif args.waveform == "IMRPhenomPv2":
-        print(
-            "Running precessing waveform timing benchmark (note: XPHM is separated)..."
-        )
-        from ripplegw.waveforms.IMRPhenomPv2 import gen_IMRPhenomPv2_hphc
-
-        warmup_time, exec_time = time_precessing_waveform(
-            gen_IMRPhenomPv2_hphc, params, config
-        )
-
-    elif args.waveform in ["TaylorF2", "IMRPhenomD_NRTidalv2"]:
-        from ripplegw.waveforms.TaylorF2 import gen_TaylorF2_hphc
-
-        # Note: IMRPhenomD_NRTidalv2 not yet implemented in this timing script
-        warmup_time, exec_time = time_bns_waveform(gen_TaylorF2_hphc, params, config)
-
     else:
-        raise ValueError(f"Unknown waveform: {args.waveform}")
+        import ripplegw
+
+        if args.waveform == "IMRPhenomPv2":
+            print(
+                "Running precessing waveform timing benchmark (note: XPHM is separated)..."
+            )
+            waveform = ripplegw.waveform_preset["IMRPhenomPv2"](
+                f_ref=config["reference_frequency"]
+            )
+            batched_params = _prepare_precessing_params(params)
+        elif waveform_type == "bns":
+            print(f"Running BNS waveform timing benchmark ({args.waveform})...")
+            waveform = ripplegw.waveform_preset[args.waveform](
+                f_ref=config["reference_frequency"]
+            )
+            batched_params = _prepare_bns_params(params)
+        else:
+            print(
+                f"Running aligned-spin waveform timing benchmark ({args.waveform})..."
+            )
+            waveform = ripplegw.waveform_preset[args.waveform](
+                f_ref=config["reference_frequency"]
+            )
+            batched_params = _prepare_aligned_params(params)
+
+        warmup_time, exec_time = time_waveform(waveform, batched_params, config)
 
     # Print results
     print(f"\n{'=' * 60}")
@@ -430,11 +314,10 @@ def run_timing(args):
     if args.output:
         output_path = Path(args.output)
     else:
-        # Create output directory if it doesn't exist
-        outdir = Path("./outdir")
+        outdir = (
+            Path(__file__).parent.parent.parent.parent.parent / "timings" / "outdir"
+        )
         outdir.mkdir(exist_ok=True)
-
-        # Construct filename: waveform_devicename_floatxx.json
         filename = f"{args.waveform}_{device_name}_{args.precision}.json"
         output_path = outdir / filename
 
@@ -446,7 +329,7 @@ def run_timing(args):
 
 def get_waveform_type(waveform):
     """Determine if waveform is BBH or BNS."""
-    bns_waveforms = ["TaylorF2", "IMRPhenomD_NRTidalv2"]
+    bns_waveforms = ["TaylorF2", "IMRPhenomD_NRTidalv2", "IMRPhenomXAS_NRTidalv3"]
     return "bns" if waveform in bns_waveforms else "bbh"
 
 
@@ -467,6 +350,7 @@ def main():
             "IMRPhenomPv2",
             "TaylorF2",
             "IMRPhenomD_NRTidalv2",
+            "IMRPhenomXAS_NRTidalv3",
         ],
         help="Waveform approximant to time",
     )
@@ -484,13 +368,6 @@ def main():
         type=int,
         default=int(2e4),
         help="Number of waveforms to generate",
-    )
-
-    parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=int(1000),
-        help="Batch size for jax.lax.map",
     )
 
     parser.add_argument(
