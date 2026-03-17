@@ -453,7 +453,7 @@ def compute_match(
     h2_sq = noise_weighted_inner_product(h2, h2, psd, frequencies)
     h1_h2 = _noise_weighted_inner_product_complex(h1, h2, psd, frequencies)
     match = jnp.abs(h1_h2) / jnp.sqrt(h1_sq * h2_sq)
-    return float(match.real)
+    return match.real
 
 
 def generate_random_params(

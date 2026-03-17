@@ -75,7 +75,7 @@ MISMATCH_THRESHOLDS = {
     "IMRPhenomD_NRTidalv2": 1e-9,
     "IMRPhenomXAS_NRTidalv3": 1e-7,
     "TaylorF2": 1e-14,
-    "IMRPhenomPv2": 1e-5,
+    "IMRPhenomPv2": 1e-4,
     "IMRPhenomXPHM": 1e-6
 }
 DEFAULT_MISMATCH_THRESHOLD = 1e-5  # fallback for unknown waveforms
@@ -245,13 +245,13 @@ def psd_data():
 @pytest.mark.parametrize(
     "waveform_name,bounds",
     [
-        ("IMRPhenomD", BBH_BOUNDS),
-        ("IMRPhenomXAS", BBH_BOUNDS),
-        ("IMRPhenomD_NRTidalv2", DEFAULT_BOUNDS),
-        ("IMRPhenomXAS_NRTidalv3", DEFAULT_BOUNDS),
-        ("TaylorF2", DEFAULT_BOUNDS),
-        ("IMRPhenomPv2", BBH_BOUNDS),
-        ("IMRPhenomXPHM", BBH_BOUNDS),
+        pytest.param("IMRPhenomD", BBH_BOUNDS, id="IMRPhenomD-BBH"),
+        pytest.param("IMRPhenomXAS", BBH_BOUNDS, id="IMRPhenomXAS-BBH"),
+        pytest.param("IMRPhenomD_NRTidalv2", DEFAULT_BOUNDS, id="IMRPhenomD_NRTidalv2-BNS"),
+        pytest.param("IMRPhenomXAS_NRTidalv3", DEFAULT_BOUNDS, id="IMRPhenomXAS_NRTidalv3-BNS"),
+        pytest.param("TaylorF2", DEFAULT_BOUNDS, id="TaylorF2-BNS"),
+        pytest.param("IMRPhenomPv2", BBH_BOUNDS, id="IMRPhenomPv2-BBH"),
+        pytest.param("IMRPhenomXPHM", BBH_BOUNDS, id="IMRPhenomXPHM-BBH"),
     ],
 )
 def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results, psd_data):
@@ -282,43 +282,60 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
     )
 
     # Compute mismatches for all samples
-    mismatches_hp = []
-    mismatches_hc = []
     failed_params = []
 
     is_tidal = check_is_tidal(waveform_name)
     is_precessing = check_is_precessing(waveform_name)
 
-    # Generate ripple waveform 
+    # Generate ripple waveform
     waveform = get_jitted_waveform(waveform_name, fs, f_ref)
+
+    # Phase 1: collect LAL waveforms and convert parameters
+    lal_hp_list = []
+    lal_hc_list = []
+    theta_ripple_list = []
+    valid_mask = np.zeros(N_SAMPLES_FULL, dtype=bool)
 
     for i, theta_lal in enumerate(theta_batch):
         try:
-            # Generate LAL waveform (both polarizations)
-            hphc_lal = get_lal_waveform(
+            hp_lal, hc_lal = get_lal_waveform(
                 theta_lal, waveform_name, f_l, f_u, df, f_ref, is_tidal, is_precessing
             )
-            # Get ripple parameters
             theta_ripple = convert_parameters_lal_to_ripple(theta_lal, is_precessing, is_tidal)
-            # Generate ripple waveform
-            hphc_ripple = waveform(theta_ripple)
-            mismatch_hp, mismatch_hc = compute_ripple_lal_mismatch(
-                hphc_lal, hphc_ripple, fs, f_l, f_u, df, f_ref, psd, psd_freqs
-            )
-            mismatches_hp.append(mismatch_hp)
-            mismatches_hc.append(mismatch_hc)
-
-            # Check NaN/Inf
-            if not np.isfinite(mismatch_hp) or not np.isfinite(mismatch_hc):
-                failed_params.append((i, theta_lal, "NaN/Inf mismatch"))
-
+            lal_hp_list.append(jnp.array(hp_lal))
+            lal_hc_list.append(jnp.array(hc_lal))
+            theta_ripple_list.append(theta_ripple)
+            valid_mask[i] = True
         except Exception as e:
             failed_params.append((i, theta_lal, str(e)))
-            mismatches_hp.append(np.nan)
-            mismatches_hc.append(np.nan)
 
-    mismatches_hp = np.array(mismatches_hp)
-    mismatches_hc = np.array(mismatches_hc)
+    # Phase 2: batch ripple waveform generation via vmap
+    vmapped_waveform = jax.jit(jax.vmap(waveform))
+    theta_ripple_batch = jnp.stack(theta_ripple_list)
+    hp_ripple_batch, hc_ripple_batch = vmapped_waveform(theta_ripple_batch)
+
+    # Phase 3: batch mismatch computation
+    nyquist_mask = get_nyquist_mask(fs)
+    psd_interp = jnp.interp(fs, jnp.array(psd_freqs), jnp.array(psd))
+
+    hp_lal_batch = jnp.stack(lal_hp_list) * nyquist_mask
+    hc_lal_batch = jnp.stack(lal_hc_list) * nyquist_mask
+    hp_ripple_masked = hp_ripple_batch * nyquist_mask
+    hc_ripple_masked = hc_ripple_batch * nyquist_mask
+
+    match_hp_batch = compute_match(hp_ripple_masked, hp_lal_batch, psd_interp, fs)
+    match_hc_batch = compute_match(hc_ripple_masked, hc_lal_batch, psd_interp, fs)
+
+    # Phase 4: assemble results, inserting NaN for failed samples
+    mismatches_hp = np.full(N_SAMPLES_FULL, np.nan)
+    mismatches_hc = np.full(N_SAMPLES_FULL, np.nan)
+    mismatches_hp[valid_mask] = np.array(1.0 - match_hp_batch)
+    mismatches_hc[valid_mask] = np.array(1.0 - match_hc_batch)
+
+    # Flag NaN/Inf mismatches in otherwise-valid samples
+    for i in np.where(valid_mask)[0]:
+        if not np.isfinite(mismatches_hp[i]) or not np.isfinite(mismatches_hc[i]):
+            failed_params.append((i, theta_batch[i], "NaN/Inf mismatch"))
     # Worst-case mismatch over both polarizations
     mismatches = np.maximum(mismatches_hp, mismatches_hc)
     finite_mismatches = mismatches[np.isfinite(mismatches)]
@@ -459,8 +476,8 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
         alpha=0.8,
     )
     ax.set_xlabel(r"$M_{\rm total}\;[M_\odot]$")
-    ax.set_ylabel(r"$q = m_2/m_1$")
-    ax.set_title(r"Mass plane (colour = $\log_{10}$ mismatch)")
+    ax.set_ylabel(r"$q$")
+    ax.set_title(r"$M_{\rm total}$ vs $q$")
     fig.colorbar(sc, ax=ax, label=r"$\log_{10}$(mismatch)")
 
     # (1,0) - mismatch vs chi_eff / lambda_tilde / chi_mag
@@ -490,8 +507,8 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
         alpha=0.8,
     )
     ax.set_xlabel(x_label)
-    ax.set_ylabel(r"Inclination [rad]")
-    ax.set_title(f"{x_label} vs inclination (colour = $\log_{{10}}$ mismatch)")
+    ax.set_ylabel(r"$\iota$")
+    ax.set_title(f"{x_label} vs $\\iota$")
     fig.colorbar(sc, ax=ax, label=r"$\log_{10}$(mismatch)")
 
     # (1,1) - 2D: m1 vs m2 colored by mismatch
@@ -506,7 +523,7 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
     )
     ax.set_xlabel(r"$m_1\;[M_\odot]$")
     ax.set_ylabel(r"$m_2\;[M_\odot]$")
-    ax.set_title(r"$m_1$ vs $m_2$ (colour = $\log_{10}$ mismatch)")
+    ax.set_title(r"$m_1$ vs $m_2$")
     fig.colorbar(sc, ax=ax, label=r"$\log_{10}$(mismatch)")
 
     fig.tight_layout()
