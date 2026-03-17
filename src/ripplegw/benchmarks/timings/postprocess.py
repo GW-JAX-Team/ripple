@@ -8,9 +8,15 @@ for different waveform approximants, comparing float32 vs float64 performance.
 import argparse
 import json
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
-import matplotlib.pyplot as plt
+try:
+    import matplotlib.pyplot as plt  # type: ignore[import]
+
+    HAS_MATPLOTLIB = True
+except ImportError:
+    plt: Any = None
+    HAS_MATPLOTLIB = False
 import numpy as np
 
 _TIMINGS_DIR = Path(__file__).parent.parent.parent.parent.parent / "timings"
@@ -80,6 +86,9 @@ def create_time_per_waveform_plot(
     n_waveforms: int,
 ):
     """Create bar chart comparing time per waveform for float32 vs float64."""
+    if not HAS_MATPLOTLIB:
+        print("matplotlib not available, skipping plot.")
+        return
     waveforms = sorted(organized_results.keys())
     float32_times = []
     float64_times = []
@@ -155,6 +164,9 @@ def create_throughput_plot(
     n_waveforms: int,
 ):
     """Create bar chart comparing throughput (waveforms/s) for float32 vs float64."""
+    if not HAS_MATPLOTLIB:
+        print("matplotlib not available, skipping plot.")
+        return
     waveforms = sorted(organized_results.keys())
     float32_throughput = []
     float64_throughput = []
@@ -272,6 +284,10 @@ def run_postprocess(
     print(f"  Device: {device_name}")
     print(f"  N waveforms: {n_waveforms}")
     print(f"  Waveforms analyzed: {', '.join(sorted(organized.keys()))}")
+
+    if not HAS_MATPLOTLIB:
+        print("matplotlib not available, skipping plots.")
+        return
 
     create_time_per_waveform_plot(
         organized,
