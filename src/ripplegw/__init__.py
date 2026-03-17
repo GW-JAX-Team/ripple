@@ -5,6 +5,7 @@ from .interfaces import (
     IMRPhenomD_NRTidalv2,
     IMRPhenomXAS,
     IMRPhenomXAS_NRTidalv3,
+    IMRPhenomXPHM,
     SineGaussian,
     waveform_preset,
 )
@@ -16,6 +17,7 @@ __all__ = [
     "IMRPhenomD_NRTidalv2",
     "IMRPhenomXAS",
     "IMRPhenomXAS_NRTidalv3",
+    "IMRPhenomXPHM",
     "SineGaussian",
     "waveform_preset",
 ]
