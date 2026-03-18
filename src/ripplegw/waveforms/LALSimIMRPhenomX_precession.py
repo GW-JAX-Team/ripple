@@ -248,26 +248,27 @@ def compute_evolved_spin_using_msa(
         jax.debug.print("ripple debug  Mf        = {}", Mf)
 
         def _save_vangles(Mf_, va0, va1, va2, a_off, e_off, a_out, e_out, emm_):
-            import numpy as np
+            import csv
 
             fname = f"ripple_debug_vangles_emm{int(emm_)}.dat"
-            data = np.column_stack(
-                [
+            a_off_f = float(a_off)
+            e_off_f = float(e_off)
+            with open(fname, "w", newline="") as f:
+                f.write(
+                    "# Mf  vangles0(phi_z)  vangles1(zeta)  vangles2(cosbeta)  alpha_offset  epsilon_offset  alpha_out  epsilon_out\n"
+                )
+                writer = csv.writer(f, delimiter=" ")
+                for row in zip(
                     Mf_,
                     va0,
                     va1,
                     va2,
-                    np.full_like(Mf_, float(a_off)),
-                    np.full_like(Mf_, float(e_off)),
+                    [a_off_f] * len(Mf_),
+                    [e_off_f] * len(Mf_),
                     a_out,
                     e_out,
-                ]
-            )
-            np.savetxt(
-                fname,
-                data,
-                header="Mf  vangles0(phi_z)  vangles1(zeta)  vangles2(cosbeta)  alpha_offset  epsilon_offset  alpha_out  epsilon_out",
-            )
+                ):
+                    writer.writerow(row)
 
         jax.debug.callback(
             _save_vangles,

@@ -7,8 +7,11 @@ for different waveform approximants, comparing float32 vs float64 performance.
 
 import argparse
 import json
+import math
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+import jax.numpy as jnp
 
 try:
     import matplotlib.pyplot as plt  # type: ignore[import]
@@ -17,7 +20,6 @@ try:
 except ImportError:
     plt: Any = None
     HAS_MATPLOTLIB = False
-import numpy as np
 
 _TIMINGS_DIR = Path(__file__).parent.parent.parent.parent.parent / "timings"
 DEFAULT_RESULTS_DIR = _TIMINGS_DIR / "outdir"
@@ -96,13 +98,13 @@ def create_time_per_waveform_plot(
     for waveform in waveforms:
         data = organized_results[waveform]
         float32_times.append(
-            data.get("float32", {}).get("time_per_waveform_ms", np.nan)
+            data.get("float32", {}).get("time_per_waveform_ms", float("nan"))
         )
         float64_times.append(
-            data.get("float64", {}).get("time_per_waveform_ms", np.nan)
+            data.get("float64", {}).get("time_per_waveform_ms", float("nan"))
         )
 
-    x = np.arange(len(waveforms))
+    x = jnp.arange(len(waveforms))
     width = 0.35
 
     _, ax = plt.subplots(figsize=(12, 6))
@@ -127,7 +129,7 @@ def create_time_per_waveform_plot(
     def autolabel(bars):
         for bar in bars:
             height = bar.get_height()
-            if not np.isnan(height):
+            if not math.isnan(height):
                 ax.text(
                     bar.get_x() + bar.get_width() / 2.0,
                     height,
@@ -174,13 +176,13 @@ def create_throughput_plot(
     for waveform in waveforms:
         data = organized_results[waveform]
         float32_throughput.append(
-            data.get("float32", {}).get("waveforms_per_second", np.nan)
+            data.get("float32", {}).get("waveforms_per_second", float("nan"))
         )
         float64_throughput.append(
-            data.get("float64", {}).get("waveforms_per_second", np.nan)
+            data.get("float64", {}).get("waveforms_per_second", float("nan"))
         )
 
-    x = np.arange(len(waveforms))
+    x = jnp.arange(len(waveforms))
     width = 0.35
 
     _, ax = plt.subplots(figsize=(12, 6))
@@ -215,7 +217,7 @@ def create_throughput_plot(
     def autolabel(bars):
         for bar in bars:
             height = bar.get_height()
-            if not np.isnan(height):
+            if not math.isnan(height):
                 ax.text(
                     bar.get_x() + bar.get_width() / 2.0,
                     height,

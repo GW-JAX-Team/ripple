@@ -2,7 +2,6 @@ import jax
 import jax.numpy as jnp
 
 from ..constants import MTSUN
-import numpy as np
 from .IMRPhenomD_utils import (
     EradRational0815,
     FinalSpin0815_s,
@@ -204,7 +203,7 @@ def SpinWeightedY(theta, phi, s, l, m):  # noqa: E741
                 )
             else:
                 raise ValueError(f"Invalid mode s={s}, l={l}, m={m} - require |m| <= l")
-    return fac * np.exp(1j * m * phi)
+    return fac * jnp.exp(1j * m * phi)
 
 
 def L2PNR(v: float, eta: float) -> float:
