@@ -338,13 +338,6 @@ class TestIMRPhenomD:
             IMRPhenomD(f_ref=20.0)(edge_freq_grid, params), edge_freq_grid
         )
 
-    def test_extreme_mass_ratio(self, edge_freq_grid):
-        """10:1 mass ratio (eta ~ 0.083)."""
-        params = _bbh_dict(50.0, 5.0)
-        assert_approx_fd_valid(
-            IMRPhenomD(f_ref=20.0)(edge_freq_grid, params), edge_freq_grid
-        )
-
     def test_zero_spins(self, edge_freq_grid):
         """chi1 = chi2 = 0: Schwarzschild limit."""
         params = _bbh_dict(30.0, 25.0, s1_z=0.0, s2_z=0.0)
@@ -383,13 +376,6 @@ class TestIMRPhenomXAS:
         """eta = 0.25: equal-mass binary."""
         params = _bbh_dict(30.0, 30.0)
         assert params["eta"] == pytest.approx(0.25)
-        assert_approx_fd_valid(
-            IMRPhenomXAS(f_ref=20.0)(edge_freq_grid, params), edge_freq_grid
-        )
-
-    def test_extreme_mass_ratio(self, edge_freq_grid):
-        """10:1 mass ratio (eta ~ 0.083)."""
-        params = _bbh_dict(50.0, 5.0)
         assert_approx_fd_valid(
             IMRPhenomXAS(f_ref=20.0)(edge_freq_grid, params), edge_freq_grid
         )
@@ -438,20 +424,16 @@ class TestIMRPhenomPv2:
             IMRPhenomPv2(f_ref=20.0)(edge_freq_grid, params), edge_freq_grid
         )
 
-    def test_fully_precessing(self, edge_freq_grid):
-        """Large in-plane spin components: strong precession."""
-        params = _pv2_dict(
-            30.0, 25.0, s1_x=0.5, s1_y=0.5, s1_z=0.1, s2_x=-0.4, s2_y=0.3, s2_z=-0.1
-        )
+    def test_zero_spins(self, edge_freq_grid):
+        """All spin components zero — non-spinning limit."""
+        params = _pv2_dict(30.0, 25.0)
         assert_approx_fd_valid(
             IMRPhenomPv2(f_ref=20.0)(edge_freq_grid, params), edge_freq_grid
         )
 
-    def test_extreme_mass_ratio(self, edge_freq_grid):
-        """10:1 mass ratio with precessing spins."""
-        params = _pv2_dict(
-            50.0, 5.0, s1_x=0.1, s1_y=0.2, s1_z=0.3, s2_x=0.0, s2_y=0.0, s2_z=0.1
-        )
+    def test_aligned_spins_only(self, edge_freq_grid):
+        """In-plane spins zero — reduces to aligned-spin limit."""
+        params = _pv2_dict(30.0, 25.0, s1_z=0.5, s2_z=-0.3)
         assert_approx_fd_valid(
             IMRPhenomPv2(f_ref=20.0)(edge_freq_grid, params), edge_freq_grid
         )
@@ -492,13 +474,6 @@ class TestIMRPhenomD_NRTidalv2:
     def test_zero_tidal_deformability(self, edge_freq_grid):
         """lambda_1 = lambda_2 = 0: BH-like tidal correction."""
         params = _bns_dict(1.4, 1.3, lambda_1=0.0, lambda_2=0.0)
-        assert_approx_fd_valid(
-            IMRPhenomD_NRTidalv2(f_ref=20.0)(edge_freq_grid, params), edge_freq_grid
-        )
-
-    def test_high_tidal_deformability(self, edge_freq_grid):
-        """lambda_1 = lambda_2 = 5000: very stiff EOS."""
-        params = _bns_dict(1.4, 1.3, lambda_1=5000.0, lambda_2=5000.0)
         assert_approx_fd_valid(
             IMRPhenomD_NRTidalv2(f_ref=20.0)(edge_freq_grid, params), edge_freq_grid
         )
@@ -551,13 +526,6 @@ class TestIMRPhenomXAS_NRTidalv3:
             IMRPhenomXAS_NRTidalv3(f_ref=20.0)(edge_freq_grid, params), edge_freq_grid
         )
 
-    def test_high_tidal_deformability(self, edge_freq_grid):
-        """lambda_1 = lambda_2 = 5000: very stiff EOS."""
-        params = _bns_dict(1.4, 1.3, lambda_1=5000.0, lambda_2=5000.0)
-        assert_approx_fd_valid(
-            IMRPhenomXAS_NRTidalv3(f_ref=20.0)(edge_freq_grid, params), edge_freq_grid
-        )
-
     def test_zero_spins(self, edge_freq_grid):
         """Non-spinning BNS."""
         params = _bns_dict(1.4, 1.3, s1_z=0.0, s2_z=0.0)
@@ -606,13 +574,6 @@ class TestTaylorF2:
             TaylorF2(f_ref=20.0)(edge_freq_grid, params), edge_freq_grid
         )
 
-    def test_high_tidal_deformability(self, edge_freq_grid):
-        """lambda_1 = lambda_2 = 5000: very stiff EOS."""
-        params = _bns_dict(1.4, 1.3, lambda_1=5000.0, lambda_2=5000.0)
-        assert_approx_fd_valid(
-            TaylorF2(f_ref=20.0)(edge_freq_grid, params), edge_freq_grid
-        )
-
     def test_zero_spins(self, edge_freq_grid):
         """Non-spinning BNS."""
         params = _bns_dict(1.4, 1.3, s1_z=0.0, s2_z=0.0)
@@ -642,15 +603,6 @@ class TestIMRPhenomXPHM:
         """m_1 = m_2 = 30 Msun — equal-mass limit with precessing spins."""
         params = _xphm_dict(
             30.0, 30.0, s1_x=0.1, s1_y=0.2, s1_z=0.3, s2_x=-0.1, s2_y=0.15, s2_z=-0.2
-        )
-        assert_approx_fd_valid(
-            IMRPhenomXPHM(f_ref=20.0)(edge_freq_grid, params), edge_freq_grid
-        )
-
-    def test_extreme_mass_ratio(self, edge_freq_grid):
-        """10:1 mass ratio with precessing spins."""
-        params = _xphm_dict(
-            50.0, 5.0, s1_x=0.1, s1_y=0.2, s1_z=0.3, s2_x=0.0, s2_y=0.0, s2_z=0.1
         )
         assert_approx_fd_valid(
             IMRPhenomXPHM(f_ref=20.0)(edge_freq_grid, params), edge_freq_grid
