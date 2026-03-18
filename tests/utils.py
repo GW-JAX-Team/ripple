@@ -233,10 +233,9 @@ def get_lal_waveform(
         is_precessing: Whether the waveform includes precession.
 
     Returns:
-        Tuple (hp, hc, msa_fallback) where hp, hc are LAL waveform strains
-        evaluated on the frequency grid. msa_fallback is True if the MSA system
-        failed to initialise for IMRPhenomXPHM and LAL fell back to NNLO angles
-        (False for all other waveforms).
+        Tuple (hp, hc) of LAL waveform strains evaluated on the frequency grid.
+        For IMRPhenomXPHM, uses PrecVersion=222 which raises on MSA init
+        failure (instead of 223 which silently falls back to NNLO).
 
     Raises:
         ImportError: If LALSuite is not available.
@@ -250,8 +249,6 @@ def get_lal_waveform(
     f_ref = float(f_ref)
 
     approximant = lalsim.SimInspiralGetApproximantFromString(waveform_name)
-
-    msa_fallback = False
 
     if waveform_name == "IMRPhenomXPHM":
         # XPHM requires SimIMRPhenomXPHM directly with MSA prescription params.
@@ -285,13 +282,22 @@ def get_lal_waveform(
                 f_l, f_u, df, f_ref, lalparams,
             )
 
-        # Try PrecVersion=221 (MSA strict, terminal error on MSA failure).
-        # If it succeeds, the MSA angles were used — matching ripple's implementation.
-        # If it throws, the MSA system failed to initialise and the default
-        # PrecVersion=223 would silently fall back to NNLO angles; flag this
-        # sample so the test can exclude it from the mismatch assertion.
+        # Detect MSA fallback using PrecVersion=222 vs 223.
+        #
+        # PrecVersion variants (all MSA-based, differ in expressions & error handling):
+        #   222: LALSimInspiralFDPrecAngles expressions, terminal error  ← ripple target
+        #   223: LALSimInspiralFDPrecAngles expressions, NNLO fallback
+        #
+        # 222 and 223 share the same orbital angular momentum PN coefficients
+        # (L3, L5 use non-conserved spin norms) and produce bitwise-identical
+        # waveforms when MSA succeeds.  The only difference: 222 raises on MSA
+        # init failure while 223 silently falls back to NNLO angles.
+        #
+        # Strategy: try 222 first.  If it succeeds we have the correct waveform.
+        # If it throws, the MSA system failed — flag it and generate with 223
+        # (NNLO fallback) so we still have comparison data.
         try:
-            hp, hc = _call_xphm(_make_xphm_params(221))
+            hp, hc = _call_xphm(_make_xphm_params(222))
         except Exception:
             msa_fallback = True
             hp, hc = _call_xphm(_make_xphm_params(223))
@@ -386,7 +392,7 @@ def get_lal_waveform(
     hp_lalsuite = hp.data.data[mask_lal]
     hc_lalsuite = hc.data.data[mask_lal]
 
-    return hp_lalsuite, hc_lalsuite, msa_fallback
+    return hp_lalsuite, hc_lalsuite
 
 
 def get_nyquist_mask(frequencies: jnp.ndarray, n_bins: int = 2) -> jnp.ndarray:

@@ -301,15 +301,22 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
     # Phase 1: collect LAL waveforms in parallel.
     # LAL's C extension releases the GIL, so ThreadPoolExecutor gives real
     # parallelism here — each call is independent (no shared state).
+    # String that appears in LAL exceptions when the MSA system fails to
+    # initialise.  These samples cannot be compared against ripple's MSA
+    # implementation and are tracked separately.
+    MSA_ERROR_MARKER = "IMRPhenomX_Initialize_MSA_System failed"
+
     def _compute_lal(i_theta):
         i, theta_lal = i_theta
         try:
-            hp, hc, msa_fallback = get_lal_waveform(
+            hp, hc = get_lal_waveform(
                 theta_lal, waveform_name, f_l, f_u, df, f_ref, is_tidal, is_precessing
             )
-            return i, hp, hc, msa_fallback, None
+            return i, hp, hc, False, None          # MSA ok
         except Exception as e:
-            return i, None, None, False, str(e)
+            msg = str(e)
+            is_msa = MSA_ERROR_MARKER in msg
+            return i, None, None, is_msa, msg       # MSA fallback or real error
 
     # Use sched_getaffinity when available (Linux): respects SLURM cgroup
     # allocations and container CPU limits (e.g. GitHub Actions).  Falls back
@@ -329,7 +336,7 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
     valid_mask = np.zeros(n_samples, dtype=bool)
     msa_fallback_mask = np.zeros(n_samples, dtype=bool)
 
-    for i, hp_lal, hc_lal, msa_fallback, err in lal_results:
+    for i, hp_lal, hc_lal, is_msa_fallback, err in lal_results:
         if err is None:
             theta_ripple = convert_parameters_lal_to_ripple(
                 theta_batch[i], is_precessing, is_tidal
@@ -338,7 +345,8 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
             lal_hc_list.append(jnp.array(hc_lal))
             theta_ripple_list.append(theta_ripple)
             valid_mask[i] = True
-            msa_fallback_mask[i] = msa_fallback
+        elif is_msa_fallback:
+            msa_fallback_mask[i] = True
         else:
             failed_params.append((i, theta_batch[i], err))
 
@@ -539,19 +547,13 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
     fallback_col = df["msa_fallback"].values.astype(bool)
     # Masks for the two groups
     normal_mask = finite_mask & ~fallback_col
-    fallback_finite_mask = finite_mask & fallback_col
 
     fig, axes = plt.subplots(2, 2, figsize=(12, 9))
     fig.suptitle(f"{waveform_name}: ripple vs LAL mismatch", fontsize=13)
 
-    # (0,0) - histogram
+    # (0,0) - histogram (MSA-fallback samples excluded: no waveform generated)
     ax = axes[0, 0]
-    ax.hist(log10_m[normal_mask], bins=30, edgecolor="black", alpha=0.8, label="MSA")
-    if fallback_finite_mask.any():
-        ax.hist(
-            log10_m[fallback_finite_mask], bins=30, edgecolor="black",
-            alpha=0.5, color="red", label="NNLO fallback",
-        )
+    ax.hist(log10_m[normal_mask], bins=30, edgecolor="black", alpha=0.8)
     ax.axvline(
         log10_thresh,
         color="red",
@@ -563,17 +565,17 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
     ax.set_title("Mismatch distribution")
     ax.legend()
 
-    # Helper: scatter normal points + overlay fallback points with red "x"
+    # Helper: scatter normal points + overlay MSA-fallback points with red "x"
     def _scatter_with_fallback(ax, x, y, c, cmap, s=20, alpha=0.8):
         sc = ax.scatter(
             x[normal_mask], y[normal_mask],
             c=c[normal_mask], cmap=cmap, s=s, alpha=alpha,
         )
-        if fallback_finite_mask.any():
+        if fallback_col.any():
             ax.scatter(
-                x[fallback_finite_mask], y[fallback_finite_mask],
+                x[fallback_col], y[fallback_col],
                 c="red", marker="x", s=s * 3, linewidths=1.5,
-                label="NNLO fallback", zorder=5,
+                label="MSA fallback", zorder=5,
             )
         return sc
 
@@ -586,7 +588,7 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
     ax.set_ylabel(r"$q$")
     ax.set_title(r"$M_{\rm total}$ vs $q$")
     fig.colorbar(sc, ax=ax, label=r"$\log_{10}\,\mathcal{M}$")
-    if fallback_finite_mask.any():
+    if fallback_col.any():
         ax.legend()
 
     # (1,0) - mismatch vs chi_eff / lambda_tilde / chi_mag
@@ -614,7 +616,7 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
     ax.set_ylabel(r"$\iota$")
     ax.set_title(f"{x_label} vs $\\iota$")
     fig.colorbar(sc, ax=ax, label=r"$\log_{10}\,\mathcal{M}$")
-    if fallback_finite_mask.any():
+    if fallback_col.any():
         ax.legend()
 
     # (1,1) - 2D: m1 vs m2 colored by mismatch
@@ -626,7 +628,7 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
     ax.set_ylabel(r"$m_2\;[M_\odot]$")
     ax.set_title(r"$m_1$ vs $m_2$")
     fig.colorbar(sc, ax=ax, label=r"$\log_{10}\,\mathcal{M}$")
-    if fallback_finite_mask.any():
+    if fallback_col.any():
         ax.legend()
 
     fig.tight_layout()
