@@ -76,7 +76,7 @@ MISMATCH_THRESHOLDS = {
     "IMRPhenomXAS_NRTidalv3": 1e-7,
     "TaylorF2": 1e-14,
     "IMRPhenomPv2": 1e-4,
-    "IMRPhenomXPHM": 1e-6
+    "IMRPhenomXPHM": 1e-6,
 }
 DEFAULT_MISMATCH_THRESHOLD = 1e-5  # fallback for unknown waveforms
 
@@ -90,7 +90,10 @@ def get_mismatch_threshold(waveform_name: str) -> float:
 # Helper functions
 # ============================================================================
 
-def convert_parameters_lal_to_ripple(theta_lal: np.ndarray, is_precessing: bool, is_tidal: bool):
+
+def convert_parameters_lal_to_ripple(
+    theta_lal: np.ndarray, is_precessing: bool, is_tidal: bool
+):
     # Convert parameters to ripple format
     if is_precessing:
         # Precessing: theta_lal = [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
@@ -188,7 +191,7 @@ def compute_ripple_lal_mismatch(
     """
     hp_lal, hc_lal = hphc_lal
     hp_ripple, hc_ripple = hphc_ripple
-    
+
     # Apply Nyquist mask to all waveforms
     nyquist_mask = get_nyquist_mask(fs)
     hp_lal_masked = jnp.array(hp_lal) * nyquist_mask
@@ -256,13 +259,17 @@ def psd_data():
         pytest.param("IMRPhenomD", BBH_BOUNDS, id="IMRPhenomD"),
         pytest.param("IMRPhenomXAS", BBH_BOUNDS, id="IMRPhenomXAS"),
         pytest.param("IMRPhenomD_NRTidalv2", DEFAULT_BOUNDS, id="IMRPhenomD_NRTidalv2"),
-        pytest.param("IMRPhenomXAS_NRTidalv3", DEFAULT_BOUNDS, id="IMRPhenomXAS_NRTidalv3"),
+        pytest.param(
+            "IMRPhenomXAS_NRTidalv3", DEFAULT_BOUNDS, id="IMRPhenomXAS_NRTidalv3"
+        ),
         pytest.param("TaylorF2", DEFAULT_BOUNDS, id="TaylorF2"),
         pytest.param("IMRPhenomPv2", BBH_BOUNDS, id="IMRPhenomPv2"),
         pytest.param("IMRPhenomXPHM", BBH_BOUNDS, id="IMRPhenomXPHM"),
     ],
 )
-def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results, psd_data, n_samples):
+def test_waveform_mismatch(
+    waveform_name, bounds, freq_params, cross_val_results, psd_data, n_samples
+):
     """Test that ripple waveforms match LALSuite to machine precision.
 
     This test generates random parameter sets, computes both LAL and ripple
@@ -312,11 +319,11 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
             hp, hc = get_lal_waveform(
                 theta_lal, waveform_name, f_l, f_u, df, f_ref, is_tidal, is_precessing
             )
-            return i, hp, hc, False, None          # MSA ok
+            return i, hp, hc, False, None  # MSA ok
         except Exception as e:
             msg = str(e)
             is_msa = MSA_ERROR_MARKER in msg
-            return i, None, None, is_msa, msg       # MSA fallback or real error
+            return i, None, None, is_msa, msg  # MSA fallback or real error
 
     # Use sched_getaffinity when available (Linux): respects SLURM cgroup
     # allocations and container CPU limits (e.g. GitHub Actions).  Falls back
@@ -385,7 +392,9 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
             # Full vmap — batch_size equals the whole dataset
             fn = jax.jit(jax.vmap(_waveform_and_match))
         else:
-            fn = jax.jit(lambda xs: jax.lax.map(_waveform_and_match, xs, batch_size=batch_size))
+            fn = jax.jit(
+                lambda xs: jax.lax.map(_waveform_and_match, xs, batch_size=batch_size)
+            )
         match_hp, match_hc = fn(xs)
         match_hp.block_until_ready()  # surface OOM before np.array()
         return np.array(match_hp), np.array(match_hc)
@@ -568,21 +577,34 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
     # Helper: scatter normal points + overlay MSA-fallback points with red "x"
     def _scatter_with_fallback(ax, x, y, c, cmap, s=20, alpha=0.8):
         sc = ax.scatter(
-            x[normal_mask], y[normal_mask],
-            c=c[normal_mask], cmap=cmap, s=s, alpha=alpha,
+            x[normal_mask],
+            y[normal_mask],
+            c=c[normal_mask],
+            cmap=cmap,
+            s=s,
+            alpha=alpha,
         )
         if fallback_col.any():
             ax.scatter(
-                x[fallback_col], y[fallback_col],
-                c="red", marker="x", s=s * 3, linewidths=1.5,
-                label="MSA fallback", zorder=5,
+                x[fallback_col],
+                y[fallback_col],
+                c="red",
+                marker="x",
+                s=s * 3,
+                linewidths=1.5,
+                label="MSA fallback",
+                zorder=5,
             )
         return sc
 
     # (0,1) - mass ratio vs total mass colored by mismatch
     ax = axes[0, 1]
     sc = _scatter_with_fallback(
-        ax, df["m_total"].values, df["mass_ratio"].values, log10_m, "viridis",
+        ax,
+        df["m_total"].values,
+        df["mass_ratio"].values,
+        log10_m,
+        "viridis",
     )
     ax.set_xlabel(r"$M_{\rm total}\;[M_\odot]$")
     ax.set_ylabel(r"$q$")
@@ -610,7 +632,11 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
         x_vals = df["chi_eff"]
         x_label = r"$\chi_{\rm eff}$"
     sc = _scatter_with_fallback(
-        ax, x_vals.values, df["inclination"].values, log10_m, "viridis",
+        ax,
+        x_vals.values,
+        df["inclination"].values,
+        log10_m,
+        "viridis",
     )
     ax.set_xlabel(x_label)
     ax.set_ylabel(r"$\iota$")
@@ -622,7 +648,13 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
     # (1,1) - 2D: m1 vs m2 colored by mismatch
     ax = axes[1, 1]
     sc = _scatter_with_fallback(
-        ax, df["m1"].values, df["m2"].values, log10_m, "plasma", s=30, alpha=0.9,
+        ax,
+        df["m1"].values,
+        df["m2"].values,
+        log10_m,
+        "plasma",
+        s=30,
+        alpha=0.9,
     )
     ax.set_xlabel(r"$m_1\;[M_\odot]$")
     ax.set_ylabel(r"$m_2\;[M_\odot]$")
@@ -641,7 +673,9 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
     # Assert that all mismatches are below threshold
     # MSA-fallback samples are excluded: LAL used NNLO angles (not MSA) so a
     # large mismatch against ripple's MSA implementation is expected.
-    max_testable_mismatch = np.max(testable_mismatches) if testable_mismatches.size > 0 else 0.0
+    max_testable_mismatch = (
+        np.max(testable_mismatches) if testable_mismatches.size > 0 else 0.0
+    )
     mismatch_threshold = get_mismatch_threshold(waveform_name)
 
     if failed_params:

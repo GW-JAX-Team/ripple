@@ -71,7 +71,13 @@ def check_is_tidal(waveform_name: str) -> bool:
         ValueError: If the waveform is not supported.
     """
     bns_waveforms = ["IMRPhenomD_NRTidalv2", "TaylorF2", "IMRPhenomXAS_NRTidalv3"]
-    bbh_waveforms = ["IMRPhenomD", "IMRPhenomXAS", "IMRPhenomPv2", "IMRPhenomXPHM", "SineGaussian"]
+    bbh_waveforms = [
+        "IMRPhenomD",
+        "IMRPhenomXAS",
+        "IMRPhenomPv2",
+        "IMRPhenomXPHM",
+        "SineGaussian",
+    ]
 
     all_waveforms = bns_waveforms + bbh_waveforms
     if waveform_name not in all_waveforms:
@@ -185,7 +191,7 @@ def get_jitted_waveform(waveform_name: str, fs: jnp.ndarray, f_ref: float):
                 theta[5],
                 theta[6],
                 theta[7],
-                theta[8],   # distance in Mpc
+                theta[8],  # distance in Mpc
                 theta[11],  # inclination
                 theta[10],  # phi0
                 fs,
@@ -277,9 +283,22 @@ def get_lal_waveform(
 
         def _call_xphm(lalparams):
             return lalsim.SimIMRPhenomXPHM(
-                m1_kg, m2_kg, s1x, s1y, s1z, s2x, s2y, s2z,
-                distance, inclination, phi_ref,
-                f_l, f_u, df, f_ref, lalparams,
+                m1_kg,
+                m2_kg,
+                s1x,
+                s1y,
+                s1z,
+                s2x,
+                s2y,
+                s2z,
+                distance,
+                inclination,
+                phi_ref,
+                f_l,
+                f_u,
+                df,
+                f_ref,
+                lalparams,
             )
 
         # Detect MSA fallback using PrecVersion=222 vs 223.
