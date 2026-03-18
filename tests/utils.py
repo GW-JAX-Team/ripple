@@ -233,7 +233,10 @@ def get_lal_waveform(
         is_precessing: Whether the waveform includes precession.
 
     Returns:
-        Tuple (hp, hc) of LAL waveform strains evaluated on the frequency grid.
+        Tuple (hp, hc, msa_fallback) where hp, hc are LAL waveform strains
+        evaluated on the frequency grid. msa_fallback is True if the MSA system
+        failed to initialise for IMRPhenomXPHM and LAL fell back to NNLO angles
+        (False for all other waveforms).
 
     Raises:
         ImportError: If LALSuite is not available.
@@ -248,6 +251,8 @@ def get_lal_waveform(
 
     approximant = lalsim.SimInspiralGetApproximantFromString(waveform_name)
 
+    msa_fallback = False
+
     if waveform_name == "IMRPhenomXPHM":
         # XPHM requires SimIMRPhenomXPHM directly with MSA prescription params.
         # SimInspiralChooseFDWaveform cannot set the PhenomXPrecVersion flag needed
@@ -261,34 +266,35 @@ def get_lal_waveform(
         phi_ref = theta[10]
         inclination = theta[11]
 
-        lalparams = lal.CreateDict()
-        ModeArray = lalsim.SimInspiralCreateModeArray()
-        for el, em in [(2, 1), (2, 2), (3, 2), (3, 3), (4, 4)]:
-            lalsim.SimInspiralModeArrayActivateMode(ModeArray, el, em)
-        lalsim.SimInspiralWaveformParamsInsertModeArray(lalparams, ModeArray)
-        lalsim.SimInspiralWaveformParamsInsertPhenomXPHMTwistPhenomHM(lalparams, 1)
-        lalsim.SimInspiralWaveformParamsInsertPhenomXPHMMBandVersion(lalparams, 0)
-        lalsim.SimInspiralWaveformParamsInsertPhenomXPHMThresholdMband(lalparams, 0.0)
-        lalsim.SimInspiralWaveformParamsInsertPhenomXPrecVersion(lalparams, 223)
+        def _make_xphm_params(prec_version):
+            p = lal.CreateDict()
+            ModeArray = lalsim.SimInspiralCreateModeArray()
+            for el, em in [(2, 1), (2, 2), (3, 2), (3, 3), (4, 4)]:
+                lalsim.SimInspiralModeArrayActivateMode(ModeArray, el, em)
+            lalsim.SimInspiralWaveformParamsInsertModeArray(p, ModeArray)
+            lalsim.SimInspiralWaveformParamsInsertPhenomXPHMTwistPhenomHM(p, 1)
+            lalsim.SimInspiralWaveformParamsInsertPhenomXPHMMBandVersion(p, 0)
+            lalsim.SimInspiralWaveformParamsInsertPhenomXPHMThresholdMband(p, 0.0)
+            lalsim.SimInspiralWaveformParamsInsertPhenomXPrecVersion(p, prec_version)
+            return p
 
-        hp, hc = lalsim.SimIMRPhenomXPHM(
-            m1_kg,
-            m2_kg,
-            s1x,
-            s1y,
-            s1z,
-            s2x,
-            s2y,
-            s2z,
-            distance,
-            inclination,
-            phi_ref,
-            f_l,
-            f_u,
-            df,
-            f_ref,
-            lalparams,
-        )
+        def _call_xphm(lalparams):
+            return lalsim.SimIMRPhenomXPHM(
+                m1_kg, m2_kg, s1x, s1y, s1z, s2x, s2y, s2z,
+                distance, inclination, phi_ref,
+                f_l, f_u, df, f_ref, lalparams,
+            )
+
+        # Try PrecVersion=221 (MSA strict, terminal error on MSA failure).
+        # If it succeeds, the MSA angles were used — matching ripple's implementation.
+        # If it throws, the MSA system failed to initialise and the default
+        # PrecVersion=223 would silently fall back to NNLO angles; flag this
+        # sample so the test can exclude it from the mismatch assertion.
+        try:
+            hp, hc = _call_xphm(_make_xphm_params(221))
+        except Exception:
+            msa_fallback = True
+            hp, hc = _call_xphm(_make_xphm_params(223))
     elif is_precessing:
         # Precessing waveform: theta = [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
         m1_kg = theta[0] * lal.MSUN_SI
@@ -380,7 +386,7 @@ def get_lal_waveform(
     hp_lalsuite = hp.data.data[mask_lal]
     hc_lalsuite = hc.data.data[mask_lal]
 
-    return hp_lalsuite, hc_lalsuite
+    return hp_lalsuite, hc_lalsuite, msa_fallback
 
 
 def get_nyquist_mask(frequencies: jnp.ndarray, n_bins: int = 2) -> jnp.ndarray:

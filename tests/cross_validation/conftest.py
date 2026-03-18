@@ -25,12 +25,18 @@ def pytest_configure(config):
 
 
 def pytest_addoption(parser):
-    """Register --n-samples CLI option."""
+    """Register CLI options for cross-validation tests."""
     parser.addoption(
         "--n-samples",
         type=int,
         default=10,
-        help="Number of random parameter sets per waveform (default: 10; use 200 for a full run)",
+        help="Number of random parameter sets per waveform (default: 10)",
+    )
+    parser.addoption(
+        "--T",
+        type=float,
+        default=32.0,
+        help="Segment duration in seconds, sets frequency resolution df=1/T (default: 32)",
     )
 
 
@@ -156,8 +162,13 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     terminalreporter.write_sep("=", "")
 
     # ---- persist metadata to disk ----------------------------------------
-    results_dir = Path(__file__).parent / "results"
-    results_dir.mkdir(exist_ok=True)
+    # Mirror the run-tag subdirectory scheme used by the test (n{N}_T{T}).
+    n_samples_opt = config.getoption("--n-samples", default=10)
+    T_opt = config.getoption("--T", default=32.0)
+    T_str = f"T{int(T_opt)}" if T_opt == int(T_opt) else f"T{T_opt}"
+    run_tag = f"n{n_samples_opt}_{T_str}"
+    results_dir = Path(__file__).parent / "results" / run_tag
+    results_dir.mkdir(parents=True, exist_ok=True)
     metadata = {
         "hardware": hw,
         "waveforms": results,

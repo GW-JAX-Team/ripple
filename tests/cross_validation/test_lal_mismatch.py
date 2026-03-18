@@ -12,6 +12,9 @@ Nyquist Boundary Handling:
     the match.
 """
 
+import os
+from concurrent.futures import ThreadPoolExecutor
+
 import jax
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
@@ -61,9 +64,6 @@ BBH_BOUNDS = {
     "lambda": [0.0, 0.0],  # No tidal
     "d_L": [100.0, 3000.0],  # Distance (Mpc)
 }
-
-# Maximum number of random samples when running the full suite
-N_SAMPLES_FULL = 10
 
 # Per-waveform mismatch thresholds.
 # These represent expected float64 agreement between the ripple and LAL
@@ -214,13 +214,21 @@ def compute_ripple_lal_mismatch(
 
 
 @pytest.fixture
-def freq_params():
-    """Default frequency parameters."""
+def freq_params(request):
+    """Default frequency parameters.
+
+    Segment duration T (and thus frequency resolution df=1/T) is configurable
+    via the ``--T`` CLI option.  The default T=32 s (df≈0.03 Hz, ~32K bins)
+    is fast enough for CI correctness checks.  Use ``--T 256`` for full
+    validation runs where dense frequency coverage is needed (df≈0.004 Hz,
+    ~257K bins — the standard GW analysis segment length for long BNS signals).
+    """
+    T = float(request.config.getoption("--T"))
     return {
         "f_l": 20.0,
         "f_u": 1024.0,
         "f_sampling": 2048.0,
-        "T": 256.0,
+        "T": T,
         "f_ref": 20.0,
     }
 
@@ -245,16 +253,16 @@ def psd_data():
 @pytest.mark.parametrize(
     "waveform_name,bounds",
     [
-        pytest.param("IMRPhenomD", BBH_BOUNDS, id="IMRPhenomD-BBH"),
-        pytest.param("IMRPhenomXAS", BBH_BOUNDS, id="IMRPhenomXAS-BBH"),
-        pytest.param("IMRPhenomD_NRTidalv2", DEFAULT_BOUNDS, id="IMRPhenomD_NRTidalv2-BNS"),
-        pytest.param("IMRPhenomXAS_NRTidalv3", DEFAULT_BOUNDS, id="IMRPhenomXAS_NRTidalv3-BNS"),
-        pytest.param("TaylorF2", DEFAULT_BOUNDS, id="TaylorF2-BNS"),
-        pytest.param("IMRPhenomPv2", BBH_BOUNDS, id="IMRPhenomPv2-BBH"),
-        pytest.param("IMRPhenomXPHM", BBH_BOUNDS, id="IMRPhenomXPHM-BBH"),
+        pytest.param("IMRPhenomD", BBH_BOUNDS, id="IMRPhenomD"),
+        pytest.param("IMRPhenomXAS", BBH_BOUNDS, id="IMRPhenomXAS"),
+        pytest.param("IMRPhenomD_NRTidalv2", DEFAULT_BOUNDS, id="IMRPhenomD_NRTidalv2"),
+        pytest.param("IMRPhenomXAS_NRTidalv3", DEFAULT_BOUNDS, id="IMRPhenomXAS_NRTidalv3"),
+        pytest.param("TaylorF2", DEFAULT_BOUNDS, id="TaylorF2"),
+        pytest.param("IMRPhenomPv2", BBH_BOUNDS, id="IMRPhenomPv2"),
+        pytest.param("IMRPhenomXPHM", BBH_BOUNDS, id="IMRPhenomXPHM"),
     ],
 )
-def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results, psd_data):
+def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results, psd_data, n_samples):
     """Test that ripple waveforms match LALSuite to machine precision.
 
     This test generates random parameter sets, computes both LAL and ripple
@@ -278,7 +286,7 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
     is_tidal = check_is_tidal(waveform_name)
     is_precessing = check_is_precessing(waveform_name)
     theta_batch = generate_random_params(
-        N_SAMPLES_FULL, bounds, is_tidal=is_tidal, is_precessing=is_precessing, seed=42
+        n_samples, bounds, is_tidal=is_tidal, is_precessing=is_precessing, seed=42
     )
 
     # Compute mismatches for all samples
@@ -290,47 +298,113 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
     # Generate ripple waveform
     waveform = get_jitted_waveform(waveform_name, fs, f_ref)
 
-    # Phase 1: collect LAL waveforms and convert parameters
+    # Phase 1: collect LAL waveforms in parallel.
+    # LAL's C extension releases the GIL, so ThreadPoolExecutor gives real
+    # parallelism here — each call is independent (no shared state).
+    def _compute_lal(i_theta):
+        i, theta_lal = i_theta
+        try:
+            hp, hc, msa_fallback = get_lal_waveform(
+                theta_lal, waveform_name, f_l, f_u, df, f_ref, is_tidal, is_precessing
+            )
+            return i, hp, hc, msa_fallback, None
+        except Exception as e:
+            return i, None, None, False, str(e)
+
+    # Use sched_getaffinity when available (Linux): respects SLURM cgroup
+    # allocations and container CPU limits (e.g. GitHub Actions).  Falls back
+    # to cpu_count on macOS/Windows where the syscall is absent.
+    try:
+        n_cpu = len(os.sched_getaffinity(0))
+    except AttributeError:
+        n_cpu = os.cpu_count() or 1
+    n_workers = min(n_samples, n_cpu)
+    with ThreadPoolExecutor(max_workers=n_workers) as pool:
+        # map() preserves input order, so result[i] matches theta_batch[i]
+        lal_results = list(pool.map(_compute_lal, enumerate(theta_batch)))
+
     lal_hp_list = []
     lal_hc_list = []
     theta_ripple_list = []
-    valid_mask = np.zeros(N_SAMPLES_FULL, dtype=bool)
+    valid_mask = np.zeros(n_samples, dtype=bool)
+    msa_fallback_mask = np.zeros(n_samples, dtype=bool)
 
-    for i, theta_lal in enumerate(theta_batch):
-        try:
-            hp_lal, hc_lal = get_lal_waveform(
-                theta_lal, waveform_name, f_l, f_u, df, f_ref, is_tidal, is_precessing
+    for i, hp_lal, hc_lal, msa_fallback, err in lal_results:
+        if err is None:
+            theta_ripple = convert_parameters_lal_to_ripple(
+                theta_batch[i], is_precessing, is_tidal
             )
-            theta_ripple = convert_parameters_lal_to_ripple(theta_lal, is_precessing, is_tidal)
             lal_hp_list.append(jnp.array(hp_lal))
             lal_hc_list.append(jnp.array(hc_lal))
             theta_ripple_list.append(theta_ripple)
             valid_mask[i] = True
-        except Exception as e:
-            failed_params.append((i, theta_lal, str(e)))
+            msa_fallback_mask[i] = msa_fallback
+        else:
+            failed_params.append((i, theta_batch[i], err))
 
-    # Phase 2: batch ripple waveform generation via vmap
-    vmapped_waveform = jax.jit(jax.vmap(waveform))
-    theta_ripple_batch = jnp.stack(theta_ripple_list)
-    hp_ripple_batch, hc_ripple_batch = vmapped_waveform(theta_ripple_batch)
-
-    # Phase 3: batch mismatch computation
+    # Shared inputs for Phases 2 & 3
     nyquist_mask = get_nyquist_mask(fs)
     psd_interp = jnp.interp(fs, jnp.array(psd_freqs), jnp.array(psd))
-
+    theta_ripple_batch = jnp.stack(theta_ripple_list)
     hp_lal_batch = jnp.stack(lal_hp_list) * nyquist_mask
     hc_lal_batch = jnp.stack(lal_hc_list) * nyquist_mask
-    hp_ripple_masked = hp_ripple_batch * nyquist_mask
-    hc_ripple_masked = hc_ripple_batch * nyquist_mask
 
-    match_hp_batch = compute_match(hp_ripple_masked, hp_lal_batch, psd_interp, fs)
-    match_hc_batch = compute_match(hc_ripple_masked, hc_lal_batch, psd_interp, fs)
+    # Per-sample function used by both the vmap and the lax.map fallback.
+    # Combines waveform generation + match so the lax.map path keeps peak
+    # memory at O(1 sample) instead of O(N samples).
+    def _waveform_and_match(inputs):
+        theta_rip, hp_lal_m, hc_lal_m = inputs
+        hp_rip, hc_rip = waveform(theta_rip)
+        match_hp = compute_match(hp_rip * nyquist_mask, hp_lal_m, psd_interp, fs)
+        match_hc = compute_match(hc_rip * nyquist_mask, hc_lal_m, psd_interp, fs)
+        return match_hp, match_hc
+
+    # Phase 2 + 3: try fast vmap path; on GPU OOM fall back to jax.lax.map
+    # with batch_size, which vmaps over chunks of `batch_size` samples
+    # sequentially — a middle ground between fully parallel (vmap) and fully
+    # sequential (batch_size=1).  We start with batch_size = n_valid // 10 and
+    # halve on each OOM until batch_size reaches 1 (purely sequential).
+    # See: https://docs.jax.dev/en/latest/_autosummary/jax.lax.map.html
+    n_valid = len(theta_ripple_list)
+    xs = (theta_ripple_batch, hp_lal_batch, hc_lal_batch)
+
+    def _is_oom(e: Exception) -> bool:
+        msg = str(e)
+        return "RESOURCE_EXHAUSTED" in msg or "Out of memory" in msg
+
+    def _run_with_batch_size(batch_size: int | None):
+        if batch_size is None:
+            # Full vmap — batch_size equals the whole dataset
+            fn = jax.jit(jax.vmap(_waveform_and_match))
+        else:
+            fn = jax.jit(lambda xs: jax.lax.map(_waveform_and_match, xs, batch_size=batch_size))
+        match_hp, match_hc = fn(xs)
+        match_hp.block_until_ready()  # surface OOM before np.array()
+        return np.array(match_hp), np.array(match_hc)
+
+    batch_size = None  # None → full vmap
+    while True:
+        try:
+            match_hp_np, match_hc_np = _run_with_batch_size(batch_size)
+            break
+        except Exception as e:
+            if not _is_oom(e):
+                raise
+            next_batch = max(1, (n_valid if batch_size is None else batch_size) // 2)
+            if batch_size is not None and next_batch == batch_size:
+                # Already at batch_size=1 and still OOM — re-raise
+                raise
+            print(
+                f"\n  [OOM] {waveform_name}: retrying with "
+                f"jax.lax.map(batch_size={next_batch})..."
+            )
+            batch_size = next_batch
 
     # Phase 4: assemble results, inserting NaN for failed samples
-    mismatches_hp = np.full(N_SAMPLES_FULL, np.nan)
-    mismatches_hc = np.full(N_SAMPLES_FULL, np.nan)
-    mismatches_hp[valid_mask] = np.array(1.0 - match_hp_batch)
-    mismatches_hc[valid_mask] = np.array(1.0 - match_hc_batch)
+    mismatches_hp = np.full(n_samples, np.nan)
+    mismatches_hc = np.full(n_samples, np.nan)
+    mismatches_hp[valid_mask] = 1.0 - match_hp_np
+    mismatches_hc[valid_mask] = 1.0 - match_hc_np
 
     # Flag NaN/Inf mismatches in otherwise-valid samples
     for i in np.where(valid_mask)[0]:
@@ -338,19 +412,29 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
             failed_params.append((i, theta_batch[i], "NaN/Inf mismatch"))
     # Worst-case mismatch over both polarizations
     mismatches = np.maximum(mismatches_hp, mismatches_hc)
+
+    # Separate MSA-fallback samples: they have valid mismatches but should not
+    # be included in the threshold assertion (LAL used NNLO angles, not MSA).
+    n_msa_fallback = int(msa_fallback_mask.sum())
+    testable_mask = np.isfinite(mismatches) & ~msa_fallback_mask
+    testable_mismatches = mismatches[testable_mask]
     finite_mismatches = mismatches[np.isfinite(mismatches)]
 
     n_nonfinite = mismatches.size - finite_mismatches.size
     assert finite_mismatches.size > 0, (
         f"All {mismatches.size} per-sample mismatches are non-finite for {waveform_name}. "
         f"Non-finite count: {n_nonfinite}. "
-        f"Sample mismatches (first 10): {mismatches[:10]}. "
+        f"Sample mismatches (first {min(10, mismatches.size)}): {mismatches[:10]}. "
         f"Failed samples: {len(failed_params)}."
     )
 
     # Save results to CSV
-    results_dir = Path(__file__).parent / "results"
-    results_dir.mkdir(exist_ok=True)
+    # Each (n_samples, T) combination gets its own subdirectory so results
+    # from different run configurations are kept separately.
+    T_str = f"T{int(T)}" if T == int(T) else f"T{T}"
+    run_tag = f"n{n_samples}_{T_str}"
+    results_dir = Path(__file__).parent / "results" / run_tag
+    results_dir.mkdir(parents=True, exist_ok=True)
     results_file = results_dir / f"mismatch_{waveform_name}.csv"
 
     # Build dataframe
@@ -372,6 +456,7 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
             "mismatch_hp": mismatches_hp,
             "mismatch_hc": mismatches_hc,
             "mismatch": mismatches,
+            "msa_fallback": msa_fallback_mask,
         }
     elif is_precessing:
         m1, m2 = theta_batch[:, 0], theta_batch[:, 1]
@@ -396,6 +481,7 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
             "mismatch_hp": mismatches_hp,
             "mismatch_hc": mismatches_hc,
             "mismatch": mismatches,
+            "msa_fallback": msa_fallback_mask,
         }
     else:
         m1, m2 = theta_batch[:, 0], theta_batch[:, 1]
@@ -412,6 +498,7 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
             "mismatch_hp": mismatches_hp,
             "mismatch_hc": mismatches_hc,
             "mismatch": mismatches,
+            "msa_fallback": msa_fallback_mask,
         }
 
     df = pd.DataFrame(df_data)
@@ -430,7 +517,10 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
 
     # Print statistics
     print(f"\n{waveform_name} Mismatch Statistics:")
-    print(f"  Samples: {N_SAMPLES_FULL}")
+    print(f"  Samples: {n_samples}")
+    if n_msa_fallback > 0:
+        print(f"  MSA fallback (NNLO): {n_msa_fallback} (excluded from assertion)")
+    print(f"  Testable samples: {len(testable_mismatches)}")
     print(f"  Mean mismatch: {np.mean(finite_mismatches):.2e}")
     print(f"  Median mismatch: {np.median(finite_mismatches):.2e}")
     print(f"  Min mismatch: {np.min(finite_mismatches):.2e}")
@@ -439,46 +529,65 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
     print(f"  Results saved to: {results_file}")
 
     # Plot mismatch distribution
-    figures_dir = Path(__file__).parent / "figures"
-    figures_dir.mkdir(exist_ok=True)
+    figures_dir = Path(__file__).parent / "figures" / run_tag
+    figures_dir.mkdir(parents=True, exist_ok=True)
 
     mismatch_threshold = get_mismatch_threshold(waveform_name)
     log10_thresh = np.log10(mismatch_threshold)
     log10_m = df["log10_mismatch"].values
     finite_mask = np.isfinite(log10_m)
-    log10_m_finite = log10_m[finite_mask]
+    fallback_col = df["msa_fallback"].values.astype(bool)
+    # Masks for the two groups
+    normal_mask = finite_mask & ~fallback_col
+    fallback_finite_mask = finite_mask & fallback_col
 
     fig, axes = plt.subplots(2, 2, figsize=(12, 9))
     fig.suptitle(f"{waveform_name}: ripple vs LAL mismatch", fontsize=13)
 
     # (0,0) - histogram
     ax = axes[0, 0]
-    ax.hist(log10_m_finite, bins=30, edgecolor="black", alpha=0.8)
+    ax.hist(log10_m[normal_mask], bins=30, edgecolor="black", alpha=0.8, label="MSA")
+    if fallback_finite_mask.any():
+        ax.hist(
+            log10_m[fallback_finite_mask], bins=30, edgecolor="black",
+            alpha=0.5, color="red", label="NNLO fallback",
+        )
     ax.axvline(
         log10_thresh,
         color="red",
         linestyle="--",
         label=f"threshold = {mismatch_threshold:.0e}",
     )
-    ax.set_xlabel(r"$\log_{10}$(mismatch)")
+    ax.set_xlabel(r"$\log_{10}\,\mathcal{M}$")
     ax.set_ylabel("Count")
     ax.set_title("Mismatch distribution")
     ax.legend()
 
+    # Helper: scatter normal points + overlay fallback points with red "x"
+    def _scatter_with_fallback(ax, x, y, c, cmap, s=20, alpha=0.8):
+        sc = ax.scatter(
+            x[normal_mask], y[normal_mask],
+            c=c[normal_mask], cmap=cmap, s=s, alpha=alpha,
+        )
+        if fallback_finite_mask.any():
+            ax.scatter(
+                x[fallback_finite_mask], y[fallback_finite_mask],
+                c="red", marker="x", s=s * 3, linewidths=1.5,
+                label="NNLO fallback", zorder=5,
+            )
+        return sc
+
     # (0,1) - mass ratio vs total mass colored by mismatch
     ax = axes[0, 1]
-    sc = ax.scatter(
-        df["m_total"][finite_mask],
-        df["mass_ratio"][finite_mask],
-        c=log10_m_finite,
-        cmap="viridis",
-        s=20,
-        alpha=0.8,
+    sc = _scatter_with_fallback(
+        ax, df["m_total"].values, df["mass_ratio"].values, log10_m, "viridis",
     )
     ax.set_xlabel(r"$M_{\rm total}\;[M_\odot]$")
     ax.set_ylabel(r"$q$")
     ax.set_title(r"$M_{\rm total}$ vs $q$")
-    fig.colorbar(sc, ax=ax, label=r"$\log_{10}$(mismatch)")
+    fig.colorbar(sc, ax=ax, label=r"$\log_{10}\,\mathcal{M}$")
+    if fallback_finite_mask.any():
+        ax.legend()
 
     # (1,0) - mismatch vs chi_eff / lambda_tilde / chi_mag
     ax = axes[1, 0]
@@ -498,42 +607,39 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
     else:
         x_vals = df["chi_eff"]
         x_label = r"$\chi_{\rm eff}$"
-    sc = ax.scatter(
-        x_vals[finite_mask],
-        df["inclination"][finite_mask],
-        c=log10_m_finite,
-        cmap="viridis",
-        s=20,
-        alpha=0.8,
+    sc = _scatter_with_fallback(
+        ax, x_vals.values, df["inclination"].values, log10_m, "viridis",
     )
     ax.set_xlabel(x_label)
     ax.set_ylabel(r"$\iota$")
     ax.set_title(f"{x_label} vs $\\iota$")
-    fig.colorbar(sc, ax=ax, label=r"$\log_{10}$(mismatch)")
+    fig.colorbar(sc, ax=ax, label=r"$\log_{10}\,\mathcal{M}$")
+    if fallback_finite_mask.any():
+        ax.legend()
 
     # (1,1) - 2D: m1 vs m2 colored by mismatch
     ax = axes[1, 1]
-    sc = ax.scatter(
-        df["m1"][finite_mask],
-        df["m2"][finite_mask],
-        c=log10_m_finite,
-        cmap="plasma",
-        s=30,
-        alpha=0.9,
+    sc = _scatter_with_fallback(
+        ax, df["m1"].values, df["m2"].values, log10_m, "plasma", s=30, alpha=0.9,
     )
     ax.set_xlabel(r"$m_1\;[M_\odot]$")
     ax.set_ylabel(r"$m_2\;[M_\odot]$")
     ax.set_title(r"$m_1$ vs $m_2$")
-    fig.colorbar(sc, ax=ax, label=r"$\log_{10}$(mismatch)")
+    fig.colorbar(sc, ax=ax, label=r"$\log_{10}\,\mathcal{M}$")
+    if fallback_finite_mask.any():
+        ax.legend()
 
     fig.tight_layout()
     fig_file = figures_dir / f"mismatch_{waveform_name}.png"
+
     fig.savefig(fig_file, dpi=150)
     plt.close(fig)
     print(f"  Figure saved to: {fig_file}")
 
     # Assert that all mismatches are below threshold
-    max_mismatch = np.max(finite_mismatches)
+    # MSA-fallback samples are excluded: LAL used NNLO angles (not MSA) so a
+    # large mismatch against ripple's MSA implementation is expected.
+    max_testable_mismatch = np.max(testable_mismatches) if testable_mismatches.size > 0 else 0.0
     mismatch_threshold = get_mismatch_threshold(waveform_name)
 
     if failed_params:
@@ -546,21 +652,27 @@ def test_waveform_mismatch(waveform_name, bounds, freq_params, cross_val_results
     cross_val_results.append(
         {
             "waveform": waveform_name,
-            "n_samples": N_SAMPLES_FULL,
+            "n_samples": n_samples,
             "n_finite": len(finite_mismatches),
             "n_failed": len(failed_params),
+            "n_msa_fallback": n_msa_fallback,
             "mean": float(np.mean(finite_mismatches)),
             "median": float(np.median(finite_mismatches)),
             "min": float(np.min(finite_mismatches)),
-            "max": float(max_mismatch),
+            "max": float(max_testable_mismatch),
             "threshold": mismatch_threshold,
             "passed": bool(
-                len(failed_params) == 0 and max_mismatch < mismatch_threshold
+                len(failed_params) == 0 and max_testable_mismatch < mismatch_threshold
             ),
         }
     )
 
-    assert len(failed_params) == 0, f"{len(failed_params)}/{N_SAMPLES_FULL} samples failed"
-    assert max_mismatch < mismatch_threshold, (
-        f"Max mismatch {max_mismatch:.2e} exceeds threshold {mismatch_threshold:.2e}"
+    assert len(failed_params) == 0, f"{len(failed_params)}/{n_samples} samples failed"
+    assert testable_mismatches.size > 0 or n_msa_fallback > 0, (
+        f"No testable samples for {waveform_name}"
     )
+    if testable_mismatches.size > 0:
+        assert max_testable_mismatch < mismatch_threshold, (
+            f"Max mismatch {max_testable_mismatch:.2e} exceeds threshold "
+            f"{mismatch_threshold:.2e} (excluding {n_msa_fallback} MSA-fallback samples)"
+        )
