@@ -299,7 +299,6 @@ def get_lal_waveform(
         try:
             hp, hc = _call_xphm(_make_xphm_params(222))
         except Exception:
-            msa_fallback = True
             hp, hc = _call_xphm(_make_xphm_params(223))
     elif is_precessing:
         # Precessing waveform: theta = [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
