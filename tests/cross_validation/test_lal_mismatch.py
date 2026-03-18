@@ -308,10 +308,12 @@ def test_waveform_mismatch(
     # Phase 1: collect LAL waveforms in parallel.
     # LAL's C extension releases the GIL, so ThreadPoolExecutor gives real
     # parallelism here — each call is independent (no shared state).
-    # String that appears in LAL exceptions when the MSA system fails to
-    # initialise.  These samples cannot be compared against ripple's MSA
-    # implementation and are tracked separately.
-    MSA_ERROR_MARKER = "IMRPhenomX_Initialize_MSA_System failed"
+    # For XPHM we use PrecVersion=222 which raises XLAL_EDOM (surfaces in
+    # Python as "Internal function call failed: Input domain error") whenever
+    # the MSA system fails to initialise.  Because 222 is only used for XPHM
+    # and only fails on MSA init, any exception from an XPHM call is an MSA
+    # failure.  These samples are tracked separately and excluded from the
+    # mismatch assertion and histogram.
 
     def _compute_lal(i_theta):
         i, theta_lal = i_theta
@@ -322,7 +324,7 @@ def test_waveform_mismatch(
             return i, hp, hc, False, None  # MSA ok
         except Exception as e:
             msg = str(e)
-            is_msa = MSA_ERROR_MARKER in msg
+            is_msa = waveform_name == "IMRPhenomXPHM"
             return i, None, None, is_msa, msg  # MSA fallback or real error
 
     # Use sched_getaffinity when available (Linux): respects SLURM cgroup
