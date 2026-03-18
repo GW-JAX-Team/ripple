@@ -312,8 +312,6 @@ def test_waveform_mismatch(
     # initialise.  These samples cannot be compared against ripple's MSA
     # implementation and are tracked separately.
     MSA_ERROR_MARKER = "IMRPhenomX_Initialize_MSA_System failed"
-    MSA_FALLBACK_MARKER = "IMRPhenomXSetPrecessionVariables failed"
-
 
     def _compute_lal(i_theta):
         i, theta_lal = i_theta
@@ -324,7 +322,7 @@ def test_waveform_mismatch(
             return i, hp, hc, False, None  # MSA ok
         except Exception as e:
             msg = str(e)
-            is_msa = MSA_ERROR_MARKER in msg or MSA_FALLBACK_MARKER in msg
+            is_msa = MSA_ERROR_MARKER in msg
             return i, None, None, is_msa, msg  # MSA fallback or real error
 
     # Use sched_getaffinity when available (Linux): respects SLURM cgroup

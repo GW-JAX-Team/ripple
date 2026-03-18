@@ -301,24 +301,12 @@ def get_lal_waveform(
                 lalparams,
             )
 
-        # Detect MSA fallback using PrecVersion=222 vs 223.
-        #
-        # PrecVersion variants (all MSA-based, differ in expressions & error handling):
-        #   222: LALSimInspiralFDPrecAngles expressions, terminal error  ← ripple target
-        #   223: LALSimInspiralFDPrecAngles expressions, NNLO fallback
-        #
-        # 222 and 223 share the same orbital angular momentum PN coefficients
-        # (L3, L5 use non-conserved spin norms) and produce bitwise-identical
-        # waveforms when MSA succeeds.  The only difference: 222 raises on MSA
-        # init failure while 223 silently falls back to NNLO angles.
-        #
-        # Strategy: try 222 first.  If it succeeds we have the correct waveform.
-        # If it throws, the MSA system failed — flag it and generate with 223
-        # (NNLO fallback) so we still have comparison data.
-        try:
-            hp, hc = _call_xphm(_make_xphm_params(222))
-        except Exception:
-            hp, hc = _call_xphm(_make_xphm_params(223))
+        # Use PrecVersion=222: identical to 223 (same MSA expressions from
+        # LALSimInspiralFDPrecAngles, same PN coefficients L3/L5) but raises a
+        # terminal error on MSA init failure instead of silently falling back to
+        # NNLO angles.  The caller detects the exception and excludes the sample
+        # from the mismatch assertion and histogram.
+        hp, hc = _call_xphm(_make_xphm_params(222))
     elif is_precessing:
         # Precessing waveform: theta = [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
         m1_kg = theta[0] * lal.MSUN_SI
