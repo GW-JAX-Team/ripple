@@ -69,13 +69,26 @@ BBH_BOUNDS = {
 # These represent expected float64 agreement between the ripple and LAL
 # implementations; simpler/more-analytical waveforms achieve near-machine
 # precision while complex NR-calibrated ones accumulate more rounding error.
+#
+# IMRPhenomPv2 NOTE: the 1e-4 threshold is intentionally loose and does NOT
+# reflect a deficiency in ripple's implementation. The mismatch is entirely a
+# pure time shift (amplitude agreement is perfect to <1e-9). The shift arises
+# because LAL computes the coalescence-time correction t0 via a 10-point
+# natural cubic spline over [0.8*f_RD, 1.2*f_RD] (GSL gsl_interp_cspline,
+# LALSimIMRPhenomP.c lines 1060–1151), whereas ripple uses exact JAX autodiff.
+# The coarse 10-point grid (~9–12 Hz spacing) underresolves the Lorentzian
+# arctan feature in the merger-ringdown phase (characteristic width ~f_damp
+# ≈ 22 Hz), introducing a derivative error of 5–12 μs depending on the
+# system. Ripple's exact derivative is the more accurate result. Worst-case
+# mismatch reaches ~1.3e-5 for high-mass-ratio, high-spin systems; the 1e-4
+# threshold gives comfortable headroom. See tests/Pv2_dev/ for full analysis.
 MISMATCH_THRESHOLDS = {
     "IMRPhenomD": 1e-6,
     "IMRPhenomXAS": 1e-13,
     "IMRPhenomD_NRTidalv2": 1e-9,
     "IMRPhenomXAS_NRTidalv3": 1e-6,
     "TaylorF2": 1e-14,
-    "IMRPhenomPv2": 1e-4,
+    "IMRPhenomPv2": 1e-4,  # see note above
     "IMRPhenomXPHM": 1e-6,
 }
 DEFAULT_MISMATCH_THRESHOLD = 1e-5  # fallback for unknown waveforms
