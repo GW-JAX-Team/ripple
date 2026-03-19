@@ -26,9 +26,12 @@ jobs:
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
       - name: Install dependencies
-        run: uv sync --python ${{ matrix.python-version }} --group test
+        run: uv sync --python ${{ matrix.python-version }} --group test ${{ matrix.python-version == '3.12' && '--group cross-validation' || '' }}
       - name: Run tests
         run: uv run pytest --cov=ripplegw --cov-report=term-missing tests/unit tests/integration tests/cross_validation/test_lal_constants.py --ignore=tests/benchmarks
+      - name: Run mismatch tests
+        if: matrix.python-version == '3.12' && (github.base_ref == 'main' || github.ref == 'refs/heads/main')
+        run: uv run pytest tests/cross_validation/test_lal_mismatch.py -v --n-samples 100 --T 32
       - name: Upload coverage to Coveralls
         if: matrix.python-version == '3.12'
         env:

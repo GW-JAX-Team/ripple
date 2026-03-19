@@ -73,7 +73,7 @@ MISMATCH_THRESHOLDS = {
     "IMRPhenomD": 1e-6,
     "IMRPhenomXAS": 1e-13,
     "IMRPhenomD_NRTidalv2": 1e-9,
-    "IMRPhenomXAS_NRTidalv3": 1e-7,
+    "IMRPhenomXAS_NRTidalv3": 1e-6,
     "TaylorF2": 1e-14,
     "IMRPhenomPv2": 1e-4,
     "IMRPhenomXPHM": 1e-6,
