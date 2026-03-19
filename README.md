@@ -49,6 +49,7 @@ All waveforms have been extensively tested and match `lalsuite` implementations 
 - **IMRPhenomXAS** (aligned spin)
 - **IMRPhenomD** (aligned spin)
 - **IMRPhenomPv2** (finalizing sampling validation)
+- **IMRPhenomXPHM** (precessing spin with higher-order modes)
 - **TaylorF2** with tidal effects
 - **IMRPhenomD_NRTidalv2** (verified for low spin: $\chi_1$ and $\chi_2$ < 0.05; higher spins require further testing)
 - **IMRPhenomXAS_NRTidalv3**
