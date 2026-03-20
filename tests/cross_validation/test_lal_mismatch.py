@@ -356,7 +356,13 @@ def psd_data():
     ],
 )
 def test_waveform_mismatch(
-    waveform_name, bounds, freq_params, cross_val_results, psd_data, n_samples
+    waveform_name,
+    bounds,
+    freq_params,
+    cross_val_results,
+    psd_data,
+    n_samples,
+    cache_lal,
 ):
     """Test that ripple waveforms match LALSuite to machine precision.
 
@@ -393,13 +399,15 @@ def test_waveform_mismatch(
     # Generate ripple waveform
     waveform = get_jitted_waveform(waveform_name, fs, f_ref)
 
-    # Phase 1: collect LAL waveforms in parallel (with on-disk caching).
-    # Cache is keyed by (waveform_name, T): same waveform + same segment
-    # duration always produces the same LAL data (seed=42 is fixed).
-    # If the cache has >= n_samples entries it is reused; requesting more
-    # samples than are cached triggers a full regeneration + overwrite.
+    # Phase 1: collect LAL waveforms in parallel.
+    # When --cache-lal is passed the results are written to disk and reused
+    # on subsequent runs.  Cache is keyed by (waveform_name, T): seed=42 is
+    # fixed so the same configuration always produces identical LAL data.
+    # Requesting more samples than are cached triggers a full regeneration.
     lal_cache_path = _lal_cache_path(waveform_name, T)
-    cached_lal = _load_lal_cache(lal_cache_path, n_samples, len(fs))
+    cached_lal = (
+        _load_lal_cache(lal_cache_path, n_samples, len(fs)) if cache_lal else None
+    )
 
     if cached_lal is not None:
         # Cache hit: restore data structures without calling LAL.
@@ -489,14 +497,15 @@ def test_waveform_mismatch(
             else:
                 failed_params.append((i, theta_batch[i], err))
 
-        _save_lal_cache(
-            lal_cache_path,
-            theta_batch,
-            lal_hp_store,
-            lal_hc_store,
-            valid_mask,
-            msa_fallback_mask,
-        )
+        if cache_lal:
+            _save_lal_cache(
+                lal_cache_path,
+                theta_batch,
+                lal_hp_store,
+                lal_hc_store,
+                valid_mask,
+                msa_fallback_mask,
+            )
 
     # Shared inputs for Phases 2 & 3
     nyquist_mask = get_nyquist_mask(fs)

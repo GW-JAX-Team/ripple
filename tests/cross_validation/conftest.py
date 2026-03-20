@@ -33,6 +33,12 @@ def pytest_addoption(parser):
         help="Number of random parameter sets per waveform (default: 10)",
     )
     parser.addoption(
+        "--cache-lal",
+        action="store_true",
+        default=False,
+        help="Cache LAL waveforms to disk and reuse on subsequent runs (default: off)",
+    )
+    parser.addoption(
         "--T",
         type=float,
         default=32.0,
@@ -44,6 +50,12 @@ def pytest_addoption(parser):
 def n_samples(request):
     """Number of random samples to test per waveform (set via --n-samples)."""
     return request.config.getoption("--n-samples")
+
+
+@pytest.fixture(scope="session")
+def cache_lal(request):
+    """Whether to cache/reuse LAL waveforms on disk (set via --cache-lal)."""
+    return request.config.getoption("--cache-lal")
 
 
 @pytest.fixture(scope="session")
