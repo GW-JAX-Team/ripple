@@ -100,6 +100,81 @@ def get_mismatch_threshold(waveform_name: str) -> float:
 
 
 # ============================================================================
+# LAL waveform cache
+# ============================================================================
+
+LAL_CACHE_DIR = Path(__file__).parent / "lal_cache"
+
+
+def _lal_cache_path(waveform_name: str, T: float) -> Path:
+    """Return the .npz cache path for LAL waveforms keyed by (waveform_name, T)."""
+    T_str = f"T{int(T)}" if T == int(T) else f"T{T}"
+    return LAL_CACHE_DIR / f"{waveform_name}_{T_str}.npz"
+
+
+def _load_lal_cache(cache_path: Path, n_samples: int, n_freqs: int) -> dict | None:
+    """Load cached LAL waveforms if the cache is present and sufficient.
+
+    Returns None when:
+    - the cache file does not exist,
+    - the cached sample count is less than n_samples, or
+    - the cached frequency-grid size does not match n_freqs (different T).
+
+    When a hit occurs the returned dict is sliced to exactly n_samples rows.
+    """
+    if not cache_path.exists():
+        return None
+    try:
+        data = np.load(str(cache_path), allow_pickle=False)
+    except Exception as exc:
+        print(f"\n  [Cache] Failed to read {cache_path.name}: {exc} — ignoring cache")
+        return None
+    n_cached = int(data["theta_batch"].shape[0])
+    cached_n_freqs = int(data["hp_lal"].shape[1])
+    if n_cached < n_samples:
+        print(
+            f"\n  [Cache] {cache_path.name}: "
+            f"only {n_cached} samples cached, {n_samples} requested — regenerating"
+        )
+        return None
+    if cached_n_freqs != n_freqs:
+        print(
+            f"\n  [Cache] {cache_path.name}: "
+            f"cached n_freqs={cached_n_freqs} != {n_freqs} — regenerating"
+        )
+        return None
+    print(f"\n  [Cache] {cache_path.name}: hit ({n_cached} samples cached)")
+    return {
+        "theta_batch": data["theta_batch"][:n_samples],
+        "hp_lal": data["hp_lal"][:n_samples],
+        "hc_lal": data["hc_lal"][:n_samples],
+        "valid_mask": data["valid_mask"][:n_samples],
+        "msa_fallback_mask": data["msa_fallback_mask"][:n_samples],
+    }
+
+
+def _save_lal_cache(
+    cache_path: Path,
+    theta_batch: np.ndarray,
+    hp_lal: np.ndarray,
+    hc_lal: np.ndarray,
+    valid_mask: np.ndarray,
+    msa_fallback_mask: np.ndarray,
+) -> None:
+    """Persist LAL waveforms to disk, overwriting any existing cache."""
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    np.savez(
+        str(cache_path),
+        theta_batch=theta_batch,
+        hp_lal=hp_lal,
+        hc_lal=hc_lal,
+        valid_mask=valid_mask,
+        msa_fallback_mask=msa_fallback_mask,
+    )
+    print(f"\n  [Cache] Saved LAL results to {cache_path}")
+
+
+# ============================================================================
 # Helper functions
 # ============================================================================
 
@@ -318,59 +393,110 @@ def test_waveform_mismatch(
     # Generate ripple waveform
     waveform = get_jitted_waveform(waveform_name, fs, f_ref)
 
-    # Phase 1: collect LAL waveforms in parallel.
-    # LAL's C extension releases the GIL, so ThreadPoolExecutor gives real
-    # parallelism here — each call is independent (no shared state).
-    # For XPHM we use PrecVersion=222 which raises XLAL_EDOM (surfaces in
-    # Python as "Internal function call failed: Input domain error") whenever
-    # the MSA system fails to initialise.  Because 222 is only used for XPHM
-    # and only fails on MSA init, any exception from an XPHM call is an MSA
-    # failure.  These samples are tracked separately and excluded from the
-    # mismatch assertion and histogram.
+    # Phase 1: collect LAL waveforms in parallel (with on-disk caching).
+    # Cache is keyed by (waveform_name, T): same waveform + same segment
+    # duration always produces the same LAL data (seed=42 is fixed).
+    # If the cache has >= n_samples entries it is reused; requesting more
+    # samples than are cached triggers a full regeneration + overwrite.
+    lal_cache_path = _lal_cache_path(waveform_name, T)
+    cached_lal = _load_lal_cache(lal_cache_path, n_samples, len(fs))
 
-    def _compute_lal(i_theta):
-        i, theta_lal = i_theta
+    if cached_lal is not None:
+        # Cache hit: restore data structures without calling LAL.
+        theta_batch = cached_lal["theta_batch"]
+        lal_hp_store = cached_lal["hp_lal"]
+        lal_hc_store = cached_lal["hc_lal"]
+        valid_mask = cached_lal["valid_mask"].astype(bool)
+        msa_fallback_mask = cached_lal["msa_fallback_mask"].astype(bool)
+
+        lal_hp_list = [
+            jnp.array(lal_hp_store[i]) for i in range(n_samples) if valid_mask[i]
+        ]
+        lal_hc_list = [
+            jnp.array(lal_hc_store[i]) for i in range(n_samples) if valid_mask[i]
+        ]
+        theta_ripple_list = [
+            convert_parameters_lal_to_ripple(theta_batch[i], is_precessing, is_tidal)
+            for i in range(n_samples)
+            if valid_mask[i]
+        ]
+        print(
+            f"\n  [Cache] Loaded {int(valid_mask.sum())} valid LAL waveforms from cache."
+        )
+    else:
+        # Cache miss: run LAL computations in parallel then persist.
+        # LAL's C extension releases the GIL, so ThreadPoolExecutor gives real
+        # parallelism here — each call is independent (no shared state).
+        # For XPHM we use PrecVersion=222 which raises XLAL_EDOM (surfaces in
+        # Python as "Internal function call failed: Input domain error") whenever
+        # the MSA system fails to initialise.  Because 222 is only used for XPHM
+        # and only fails on MSA init, any exception from an XPHM call is an MSA
+        # failure.  These samples are tracked separately and excluded from the
+        # mismatch assertion and histogram.
+
+        def _compute_lal(i_theta):
+            i, theta_lal = i_theta
+            try:
+                hp, hc = get_lal_waveform(
+                    theta_lal,
+                    waveform_name,
+                    f_l,
+                    f_u,
+                    df,
+                    f_ref,
+                    is_tidal,
+                    is_precessing,
+                )
+                return i, hp, hc, False, None  # MSA ok
+            except Exception as e:
+                msg = str(e)
+                is_msa = waveform_name == "IMRPhenomXPHM"
+                return i, None, None, is_msa, msg  # MSA fallback or real error
+
+        # Use sched_getaffinity when available (Linux): respects SLURM cgroup
+        # allocations and container CPU limits (e.g. GitHub Actions).  Falls back
+        # to cpu_count on macOS/Windows where the syscall is absent.
         try:
-            hp, hc = get_lal_waveform(
-                theta_lal, waveform_name, f_l, f_u, df, f_ref, is_tidal, is_precessing
-            )
-            return i, hp, hc, False, None  # MSA ok
-        except Exception as e:
-            msg = str(e)
-            is_msa = waveform_name == "IMRPhenomXPHM"
-            return i, None, None, is_msa, msg  # MSA fallback or real error
+            n_cpu = len(os.sched_getaffinity(0))
+        except AttributeError:
+            n_cpu = os.cpu_count() or 1
+        n_workers = min(n_samples, n_cpu)
+        with ThreadPoolExecutor(max_workers=n_workers) as pool:
+            # map() preserves input order, so result[i] matches theta_batch[i]
+            lal_results = list(pool.map(_compute_lal, enumerate(theta_batch)))
 
-    # Use sched_getaffinity when available (Linux): respects SLURM cgroup
-    # allocations and container CPU limits (e.g. GitHub Actions).  Falls back
-    # to cpu_count on macOS/Windows where the syscall is absent.
-    try:
-        n_cpu = len(os.sched_getaffinity(0))
-    except AttributeError:
-        n_cpu = os.cpu_count() or 1
-    n_workers = min(n_samples, n_cpu)
-    with ThreadPoolExecutor(max_workers=n_workers) as pool:
-        # map() preserves input order, so result[i] matches theta_batch[i]
-        lal_results = list(pool.map(_compute_lal, enumerate(theta_batch)))
+        lal_hp_list = []
+        lal_hc_list = []
+        theta_ripple_list = []
+        valid_mask = np.zeros(n_samples, dtype=bool)
+        msa_fallback_mask = np.zeros(n_samples, dtype=bool)
+        lal_hp_store = np.full((n_samples, len(fs)), np.nan, dtype=complex)
+        lal_hc_store = np.full((n_samples, len(fs)), np.nan, dtype=complex)
 
-    lal_hp_list = []
-    lal_hc_list = []
-    theta_ripple_list = []
-    valid_mask = np.zeros(n_samples, dtype=bool)
-    msa_fallback_mask = np.zeros(n_samples, dtype=bool)
+        for i, hp_lal, hc_lal, is_msa_fallback, err in lal_results:
+            if err is None:
+                theta_ripple = convert_parameters_lal_to_ripple(
+                    theta_batch[i], is_precessing, is_tidal
+                )
+                lal_hp_list.append(jnp.array(hp_lal))
+                lal_hc_list.append(jnp.array(hc_lal))
+                theta_ripple_list.append(theta_ripple)
+                valid_mask[i] = True
+                lal_hp_store[i] = hp_lal
+                lal_hc_store[i] = hc_lal
+            elif is_msa_fallback:
+                msa_fallback_mask[i] = True
+            else:
+                failed_params.append((i, theta_batch[i], err))
 
-    for i, hp_lal, hc_lal, is_msa_fallback, err in lal_results:
-        if err is None:
-            theta_ripple = convert_parameters_lal_to_ripple(
-                theta_batch[i], is_precessing, is_tidal
-            )
-            lal_hp_list.append(jnp.array(hp_lal))
-            lal_hc_list.append(jnp.array(hc_lal))
-            theta_ripple_list.append(theta_ripple)
-            valid_mask[i] = True
-        elif is_msa_fallback:
-            msa_fallback_mask[i] = True
-        else:
-            failed_params.append((i, theta_batch[i], err))
+        _save_lal_cache(
+            lal_cache_path,
+            theta_batch,
+            lal_hp_store,
+            lal_hc_store,
+            valid_mask,
+            msa_fallback_mask,
+        )
 
     # Shared inputs for Phases 2 & 3
     nyquist_mask = get_nyquist_mask(fs)
