@@ -94,6 +94,8 @@ def create_time_per_waveform_plot(
     waveforms = sorted(organized_results.keys())
     float32_times = []
     float64_times = []
+    float32_stds = []
+    float64_stds = []
 
     for waveform in waveforms:
         data = organized_results[waveform]
@@ -103,16 +105,38 @@ def create_time_per_waveform_plot(
         float64_times.append(
             data.get("float64", {}).get("time_per_waveform_ms", float("nan"))
         )
+        float32_stds.append(
+            data.get("float32", {}).get("time_per_waveform_std_ms", 0.0) or 0.0
+        )
+        float64_stds.append(
+            data.get("float64", {}).get("time_per_waveform_std_ms", 0.0) or 0.0
+        )
 
     x = jnp.arange(len(waveforms))
     width = 0.35
 
     _, ax = plt.subplots(figsize=(12, 6))
     bars1 = ax.bar(
-        x - width / 2, float32_times, width, label="float32", color="#3498db", alpha=0.8
+        x - width / 2,
+        float32_times,
+        width,
+        label="float32",
+        color="#3498db",
+        alpha=0.8,
+        yerr=float32_stds,
+        capsize=4,
+        error_kw=dict(ecolor="black", lw=1.5),
     )
     bars2 = ax.bar(
-        x + width / 2, float64_times, width, label="float64", color="#e74c3c", alpha=0.8
+        x + width / 2,
+        float64_times,
+        width,
+        label="float64",
+        color="#e74c3c",
+        alpha=0.8,
+        yerr=float64_stds,
+        capsize=4,
+        error_kw=dict(ecolor="black", lw=1.5),
     )
 
     ax.set_ylabel("Time per Waveform (ms)", fontsize=12, fontweight="bold")
@@ -126,21 +150,22 @@ def create_time_per_waveform_plot(
     ax.legend(fontsize=11)
     ax.grid(axis="y", alpha=0.3, linestyle="--")
 
-    def autolabel(bars):
-        for bar in bars:
+    def autolabel(bars, stds):
+        for bar, std in zip(bars, stds):
             height = bar.get_height()
             if not math.isnan(height):
+                y_pos = height + std
                 ax.text(
                     bar.get_x() + bar.get_width() / 2.0,
-                    height,
+                    y_pos,
                     f"{height:.3f}",
                     ha="center",
                     va="bottom",
                     fontsize=9,
                 )
 
-    autolabel(bars1)
-    autolabel(bars2)
+    autolabel(bars1, float32_stds)
+    autolabel(bars2, float64_stds)
 
     y_max = ax.get_ylim()[1]
     ax.annotate(
@@ -172,6 +197,8 @@ def create_throughput_plot(
     waveforms = sorted(organized_results.keys())
     float32_throughput = []
     float64_throughput = []
+    float32_throughput_stds = []
+    float64_throughput_stds = []
 
     for waveform in waveforms:
         data = organized_results[waveform]
@@ -180,6 +207,12 @@ def create_throughput_plot(
         )
         float64_throughput.append(
             data.get("float64", {}).get("waveforms_per_second", float("nan"))
+        )
+        float32_throughput_stds.append(
+            data.get("float32", {}).get("waveforms_per_second_std", 0.0) or 0.0
+        )
+        float64_throughput_stds.append(
+            data.get("float64", {}).get("waveforms_per_second_std", 0.0) or 0.0
         )
 
     x = jnp.arange(len(waveforms))
@@ -193,6 +226,9 @@ def create_throughput_plot(
         label="float32",
         color="#3498db",
         alpha=0.8,
+        yerr=float32_throughput_stds,
+        capsize=4,
+        error_kw=dict(ecolor="black", lw=1.5),
     )
     bars2 = ax.bar(
         x + width / 2,
@@ -201,6 +237,9 @@ def create_throughput_plot(
         label="float64",
         color="#e74c3c",
         alpha=0.8,
+        yerr=float64_throughput_stds,
+        capsize=4,
+        error_kw=dict(ecolor="black", lw=1.5),
     )
 
     ax.set_ylabel("Waveforms per Second", fontsize=12, fontweight="bold")
@@ -214,21 +253,22 @@ def create_throughput_plot(
     ax.legend(fontsize=11)
     ax.grid(axis="y", alpha=0.3, linestyle="--")
 
-    def autolabel(bars):
-        for bar in bars:
+    def autolabel(bars, stds):
+        for bar, std in zip(bars, stds):
             height = bar.get_height()
             if not math.isnan(height):
+                y_pos = height + std
                 ax.text(
                     bar.get_x() + bar.get_width() / 2.0,
-                    height,
+                    y_pos,
                     f"{height:.0f}",
                     ha="center",
                     va="bottom",
                     fontsize=9,
                 )
 
-    autolabel(bars1)
-    autolabel(bars2)
+    autolabel(bars1, float32_throughput_stds)
+    autolabel(bars2, float64_throughput_stds)
 
     y_max = ax.get_ylim()[1]
     ax.annotate(

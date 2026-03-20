@@ -96,28 +96,34 @@ def time_imrphenomxphm(params, config):
             )
         )(xs)
 
-    # Warm-up run (JIT compilation)
+    n_runs = config.get("n_runs", 5)
+
+    # First run (includes JIT compilation)
     print(f"\n{'=' * 60}")
-    print("Warm-up run (JIT compilation)")
+    print("First run (includes JIT compilation)")
     print(f"{'=' * 60}")
     start = time.time()
     hp, hc = generate_xphm_batched(params_stacked)
     hp.block_until_ready()
     hc.block_until_ready()
-    warmup_time = time.time() - start
-    print(f"Warm-up time (includes JIT): {warmup_time:.3f} s")
+    first_run_time = time.time() - start
+    print(f"First run time (includes JIT compilation): {first_run_time:.3f} s")
 
-    # Timed run
+    # Timed runs
     print(f"\n{'=' * 60}")
-    print("Timed run")
+    print(f"Timed runs ({n_runs} repetitions)")
     print(f"{'=' * 60}")
-    start = time.time()
-    hp, hc = generate_xphm_batched(params_stacked)
-    hp.block_until_ready()
-    hc.block_until_ready()
-    exec_time = time.time() - start
+    exec_times = []
+    for i in range(n_runs):
+        start = time.time()
+        hp, hc = generate_xphm_batched(params_stacked)
+        hp.block_until_ready()
+        hc.block_until_ready()
+        t = time.time() - start
+        exec_times.append(t)
+        print(f"  Run {i + 1}: {t:.6f} s")
 
-    return warmup_time, exec_time
+    return first_run_time, exec_times
 
 
 def _prepare_aligned_params(params):
@@ -189,29 +195,34 @@ def time_waveform(waveform, batched_params, config):
     )
 
     waveform_batched = jax.jit(jax.vmap(lambda p: waveform(f, p)))
+    n_runs = config.get("n_runs", 5)
 
-    # Warm-up run (JIT compilation)
+    # First run (includes JIT compilation)
     print(f"\n{'=' * 60}")
-    print("Warm-up run (JIT compilation)")
+    print("First run (includes JIT compilation)")
     print(f"{'=' * 60}")
     start = time.time()
     result = waveform_batched(batched_params)
     result["p"].block_until_ready()
     result["c"].block_until_ready()
-    warmup_time = time.time() - start
-    print(f"Warm-up time (includes JIT): {warmup_time:.3f} s")
+    first_run_time = time.time() - start
+    print(f"First run time (includes JIT compilation): {first_run_time:.3f} s")
 
-    # Timed run
+    # Timed runs
     print(f"\n{'=' * 60}")
-    print("Timed run")
+    print(f"Timed runs ({n_runs} repetitions)")
     print(f"{'=' * 60}")
-    start = time.time()
-    result = waveform_batched(batched_params)
-    result["p"].block_until_ready()
-    result["c"].block_until_ready()
-    exec_time = time.time() - start
+    exec_times = []
+    for i in range(n_runs):
+        start = time.time()
+        result = waveform_batched(batched_params)
+        result["p"].block_until_ready()
+        result["c"].block_until_ready()
+        t = time.time() - start
+        exec_times.append(t)
+        print(f"  Run {i + 1}: {t:.6f} s")
 
-    return warmup_time, exec_time
+    return first_run_time, exec_times
 
 
 def run_timing(args):
@@ -221,6 +232,7 @@ def run_timing(args):
         "waveform": args.waveform,
         "device": args.device,
         "n_waveforms": args.n_waveforms,
+        "n_runs": args.n_runs,
         "precision": args.precision,
         "duration": args.duration,
         "minimum_frequency": args.f_min,
@@ -261,7 +273,7 @@ def run_timing(args):
     # Run timing based on waveform
     if args.waveform == "IMRPhenomXPHM":
         print(" Running XPHM timing benchmark...")
-        warmup_time, exec_time = time_imrphenomxphm(params, config)
+        first_run_time, exec_times = time_imrphenomxphm(params, config)
 
     else:
         import ripplegw
@@ -289,25 +301,49 @@ def run_timing(args):
             )
             batched_params = _prepare_aligned_params(params)
 
-        warmup_time, exec_time = time_waveform(waveform, batched_params, config)
+        first_run_time, exec_times = time_waveform(waveform, batched_params, config)
+
+    # Compute statistics over timed runs
+    mean_exec = sum(exec_times) / len(exec_times)
+    std_exec = (
+        (sum((t - mean_exec) ** 2 for t in exec_times) / (len(exec_times) - 1)) ** 0.5
+        if len(exec_times) > 1
+        else 0.0
+    )
+    min_exec = min(exec_times)
+    max_exec = max(exec_times)
+    mean_tpw_ms = mean_exec / args.n_waveforms * 1000
+    std_tpw_ms = std_exec / args.n_waveforms * 1000
+    mean_wps = args.n_waveforms / mean_exec
+    std_wps = args.n_waveforms * std_exec / (mean_exec**2)
 
     # Print results
     print(f"\n{'=' * 60}")
     print("Timing Results")
     print(f"{'=' * 60}")
-    print(f"Warm-up time (includes JIT): {warmup_time:.6f} s")
-    print(f"Execution time for {args.n_waveforms} waveforms: {exec_time:.6f} s")
-    print(f"Time per waveform: {exec_time / args.n_waveforms * 1000:.3f} ms")
-    print(f"Waveforms per second: {args.n_waveforms / exec_time:.1f}")
+    print(f"First run time (includes JIT compilation): {first_run_time:.6f} s")
+    print(f"Timed runs ({args.n_runs} repetitions):")
+    print(f"  Mean execution time: {mean_exec:.6f} s")
+    print(f"  Std  execution time: {std_exec:.6f} s")
+    print(f"  Min  execution time: {min_exec:.6f} s")
+    print(f"  Max  execution time: {max_exec:.6f} s")
+    print(f"Mean time per waveform: {mean_tpw_ms:.3f} ms  (+/- {std_tpw_ms:.3f} ms)")
+    print(f"Mean waveforms per second: {mean_wps:.1f}  (+/- {std_wps:.1f})")
     print(f"{'=' * 60}\n")
 
     # Save results
     results = {
         **config,
-        "warmup_time_s": float(warmup_time),
-        "execution_time_s": float(exec_time),
-        "time_per_waveform_ms": float(exec_time / args.n_waveforms * 1000),
-        "waveforms_per_second": float(args.n_waveforms / exec_time),
+        "first_run_time_s": float(first_run_time),
+        "timed_run_times_s": [float(t) for t in exec_times],
+        "mean_execution_time_s": float(mean_exec),
+        "std_execution_time_s": float(std_exec),
+        "min_execution_time_s": float(min_exec),
+        "max_execution_time_s": float(max_exec),
+        "time_per_waveform_ms": float(mean_tpw_ms),
+        "time_per_waveform_std_ms": float(std_tpw_ms),
+        "waveforms_per_second": float(mean_wps),
+        "waveforms_per_second_std": float(std_wps),
     }
 
     # Save to JSON
@@ -368,6 +404,13 @@ def main():
         type=int,
         default=int(2e4),
         help="Number of waveforms to generate",
+    )
+
+    parser.add_argument(
+        "--n-runs",
+        type=int,
+        default=5,
+        help="Number of timed runs to perform after the first (JIT) run",
     )
 
     parser.add_argument(

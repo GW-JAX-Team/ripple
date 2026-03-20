@@ -8,7 +8,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(dirname "${SCRIPT_DIR}")"
 UV="$(which uv)"
 OUTDIR="${SCRIPT_DIR}/outdir"
-N_WAVEFORMS="5000"
+N_WAVEFORMS="10000"
+N_RUNS="50"
 
 mkdir -p "${OUTDIR}"
 
@@ -24,7 +25,7 @@ DAG_FILE="${OUTDIR}/ripple_timings.dag"
 # Adjust the requirements line to match your cluster's GPU ClassAd attribute.
 cat > "${TIMING_SUB}" << EOF
 executable = ${UV}
-arguments  = run --extra cuda ripple_time \$(MODEL) --device gpu --n-waveforms ${N_WAVEFORMS} --precision \$(PRECISION)
+arguments  = run --extra cuda ripple_time \$(MODEL) --device gpu --n-waveforms ${N_WAVEFORMS} --n-runs ${N_RUNS} --precision \$(PRECISION)
 initialdir = ${REPO_DIR}
 output     = ${OUTDIR}/\$(MODEL)_\$(PRECISION)-\$(ClusterId).\$(ProcId).out
 error      = ${OUTDIR}/\$(MODEL)_\$(PRECISION)-\$(ClusterId).\$(ProcId).err
