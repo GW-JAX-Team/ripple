@@ -1,4 +1,4 @@
-# Ripple :ocean:
+# Ripple 🌊
 
 **A lightweight JAX package for differentiable and fast gravitational wave data analysis**
 
