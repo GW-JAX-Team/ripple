@@ -19,15 +19,15 @@ def IMRPhenomX_Initialize_MSA_System(
     reference_frequency,
     pflag=223,
 ):
-    # Sanity check on the precession version
-
     """
     First initialize the system of variables needed for Chatziioannou et al, PRD, 88, 063011, (2013), arXiv:1307.4418:
+
       - Racine et al, PRD, 80, 044010, (2009), arXiv:0812.4413
       - Favata, PRD, 80, 024002, (2009), arXiv:0812.0069
       - Blanchet et al, PRD, 84, 064041, (2011), arXiv:1104.5659
       - Bohe et al, CQG, 30, 135009, (2013), arXiv:1303.7412
     """
+    # Sanity check on the precession version
 
     eta = mass_1 * mass_2 / jnp.power(mass_1 + mass_2, 2)
 
@@ -86,11 +86,9 @@ def IMRPhenomX_Initialize_MSA_System(
 
     domegadt_constants_SS = [-494.0 / 5.0, -1442.0 / 5.0, -233.0 / 5.0, -719.0 / 5.0]
 
-    """
-        Note that Chatziioannou et al use q = m2/m1, where m1 > m2 and therefore q < 1
-        IMRPhenomX assumes m1 > m2 and q > 1. For the internal MSA code, flip q and
-        dump this to pPrec->qq, where qq explicitly dentoes that this is 0 < q < 1.
-    """
+    # Note that Chatziioannou et al use q = m2/m1, where m1 > m2 and therefore q < 1.
+    # IMRPhenomX assumes m1 > m2 and q > 1. For the internal MSA code, flip q and
+    # dump this to pPrec->qq, where qq explicitly denotes that this is 0 < q < 1.
 
     q = mass_2 / mass_1  # m2 / m1, q < 1, m1 > m2
 
@@ -603,35 +601,21 @@ def IMRPhenomX_Return_Roots_MSA(
     """
     Compute roots S32, Smi2, Spl2 for MSA approximation.
 
-    Parameters
-    ----------
-    LNorm : Float
-        Normalized orbital angular momentum.
-    JNorm : Float
-        Normalized total angular momentum.
-    S1_norm_2 : Float
-        Spin 1 magnitude squared.
-    S2_norm_2 : Float
-        Spin 2 magnitude squared.
-    qq : Float
-        Mass ratio q = m2/m1.
-    eta : Float
-        Symmetric mass ratio.
-    delta_qq : Float
-        Mass difference parameter (m1-m2)/(m1+m2).
-    Seff : Float
-        Effective spin parameter.
-    dotS1Ln : Float
-        Dot product of S1 with L_hat.
-    dotS2Ln : Float
-        Dot product of S2 with L_hat.
-    S_0_norm : Float
-        Initial total spin magnitude.
+    Args:
+        LNorm (Float): Normalized orbital angular momentum.
+        JNorm (Float): Normalized total angular momentum.
+        S1_norm_2 (Float): Spin 1 magnitude squared.
+        S2_norm_2 (Float): Spin 2 magnitude squared.
+        qq (Float): Mass ratio q = m2/m1.
+        eta (Float): Symmetric mass ratio.
+        delta_qq (Float): Mass difference parameter (m1-m2)/(m1+m2).
+        Seff (Float): Effective spin parameter.
+        dotS1Ln (Float): Dot product of S1 with L_hat.
+        dotS2Ln (Float): Dot product of S2 with L_hat.
+        S_0_norm (Float): Initial total spin magnitude.
 
-    Returns
-    -------
-    Float[Array, "3"]
-        Array of [S32, Smi2, Spl2] roots.
+    Returns:
+        Float[Array, "3"]: Array of [S32, Smi2, Spl2] roots.
     """
     vBCD = IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(
         LNorm,
@@ -722,29 +706,18 @@ def IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(
     """
     Compute spin evolution coefficients B, C, D for MSA approximation.
 
-    Parameters
-    ----------
-    LNorm : Float
-        Normalized orbital angular momentum.
-    JNorm : Float
-        Normalized total angular momentum.
-    S1_norm_2 : Float
-        Spin 1 magnitude squared.
-    S2_norm_2 : Float
-        Spin 2 magnitude squared.
-    qq : Float
-        Mass ratio q = m2/m1.
-    eta : Float
-        Symmetric mass ratio.
-    delta_qq : Float
-        Mass difference parameter (m1-m2)/(m1+m2).
-    Seff : Float
-        Effective spin parameter.
+    Args:
+        LNorm (Float): Normalized orbital angular momentum.
+        JNorm (Float): Normalized total angular momentum.
+        S1_norm_2 (Float): Spin 1 magnitude squared.
+        S2_norm_2 (Float): Spin 2 magnitude squared.
+        qq (Float): Mass ratio q = m2/m1.
+        eta (Float): Symmetric mass ratio.
+        delta_qq (Float): Mass difference parameter (m1-m2)/(m1+m2).
+        Seff (Float): Effective spin parameter.
 
-    Returns
-    -------
-    Float[Array, "3"]
-        Array of [B_coeff, C_coeff, D_coeff].
+    Returns:
+        Float[Array, "3"]: Array of [B_coeff, C_coeff, D_coeff].
     """
     JNorm2 = JNorm * JNorm
     LNorm2 = LNorm * LNorm
@@ -1051,23 +1024,15 @@ def IMRPhenomX_psiofv(v, v2, psi0, psi1, psi2, g0, delta_qq):
 
     Based on Equation 51 in arXiv:1703.03967.
 
-    Parameters
-    ----------
-    v : Float
-        Orbital velocity parameter.
-    v2 : Float
-        v squared.
-    psi0, psi1, psi2 : Float
-        Psi expansion coefficients.
-    g0 : Float
-        Precession coefficient g0.
-    delta_qq : Float
-        Mass difference parameter delta_qq.
+    Args:
+        v (Float): Orbital velocity parameter.
+        v2 (Float): v squared.
+        psi0, psi1, psi2 (Float): Psi expansion coefficients.
+        g0 (Float): Precession coefficient g0.
+        delta_qq (Float): Mass difference parameter delta_qq.
 
-    Returns
-    -------
-    psi : Float
-        The psi angle at velocity v.
+    Returns:
+        psi (Float): The psi angle at velocity v.
     """
     return psi0 - 0.75 * g0 * delta_qq * (1.0 + psi1 * v + psi2 * v2) / (v2 * v)
 
@@ -1104,35 +1069,21 @@ def IMRPhenomX_Return_Constants_c_MSA(
     """
     Compute c constants for MSA approximation.
 
-    Parameters
-    ----------
-    v : Float
-        Orbital velocity parameter.
-    JNorm : Float
-        Normalized total angular momentum.
-    Seff : Float
-        Effective spin parameter.
-    eta : Float
-        Symmetric mass ratio.
-    eta3 : Float
-        eta cubed.
-    inveta : Float
-        Inverse of eta (1/eta).
-    Spl2 : Float
-        S_plus squared.
-    Smi2 : Float
-        S_minus squared.
-    S1_norm_2 : Float
-        Spin 1 magnitude squared.
-    S2_norm_2 : Float
-        Spin 2 magnitude squared.
-    delta_qq : Float
-        MSA coefficient delta_qq.
+    Args:
+        v (Float): Orbital velocity parameter.
+        JNorm (Float): Normalized total angular momentum.
+        Seff (Float): Effective spin parameter.
+        eta (Float): Symmetric mass ratio.
+        eta3 (Float): eta cubed.
+        inveta (Float): Inverse of eta (1/eta).
+        Spl2 (Float): S_plus squared.
+        Smi2 (Float): S_minus squared.
+        S1_norm_2 (Float): Spin 1 magnitude squared.
+        S2_norm_2 (Float): Spin 2 magnitude squared.
+        delta_qq (Float): MSA coefficient delta_qq.
 
-    Returns
-    -------
-    Float[Array, "3"]
-        Array of [c0, c2, c4] constants.
+    Returns:
+        Float[Array, "3"]: Array of [c0, c2, c4] constants.
     """
     v2 = v * v
     v3 = v * v2
@@ -1180,23 +1131,15 @@ def IMRPhenomX_Return_Constants_d_MSA(
     """
     Compute d constants for MSA approximation.
 
-    Parameters
-    ----------
-    LNorm : Float
-        Normalized orbital angular momentum.
-    JNorm : Float
-        Normalized total angular momentum.
-    Spl : Float
-        S_plus.
-    Spl2 : Float
-        S_plus squared.
-    Smi2 : Float
-        S_minus squared.
+    Args:
+        LNorm (Float): Normalized orbital angular momentum.
+        JNorm (Float): Normalized total angular momentum.
+        Spl (Float): S_plus.
+        Spl2 (Float): S_plus squared.
+        Smi2 (Float): S_minus squared.
 
-    Returns
-    -------
-    Float[Array, "3"]
-        Array of [d0, d2, d4] constants.
+    Returns:
+        Float[Array, "3"]: Array of [d0, d2, d4] constants.
     """
     LNorm2 = LNorm * LNorm
     JNorm2 = JNorm * JNorm
@@ -1223,25 +1166,16 @@ def IMRPhenomX_Return_Psi_MSA(
     """
     Compute psi for MSA approximation.
 
-    Parameters
-    ----------
-    v : Float
-        Orbital velocity parameter.
-    v2 : Float
-        v squared.
-    g0 : Float
-        MSA coefficient g0.
-    delta_qq : Float
-        MSA coefficient delta_qq.
-    psi1 : Float
-        MSA coefficient psi1.
-    psi2 : Float
-        MSA coefficient psi2.
+    Args:
+        v (Float): Orbital velocity parameter.
+        v2 (Float): v squared.
+        g0 (Float): MSA coefficient g0.
+        delta_qq (Float): MSA coefficient delta_qq.
+        psi1 (Float): MSA coefficient psi1.
+        psi2 (Float): MSA coefficient psi2.
 
-    Returns
-    -------
-    Float
-        Psi value.
+    Returns:
+        Float: Psi value.
     """
     return -0.75 * g0 * delta_qq * (1.0 + psi1 * v + psi2 * v2) / (v2 * v)
 
@@ -1256,23 +1190,15 @@ def IMRPhenomX_Return_Psi_dot_MSA(
     """
     Compute the time derivative of psi for MSA approximation.
 
-    Parameters
-    ----------
-    v : Float
-        Orbital velocity parameter.
-    Seff : Float
-        Effective spin parameter.
-    inveta : Float
-        Inverse of symmetric mass ratio (1/eta).
-    Spl2 : Float
-        S_plus squared.
-    S32 : Float
-        S_3 squared.
+    Args:
+        v (Float): Orbital velocity parameter.
+        Seff (Float): Effective spin parameter.
+        inveta (Float): Inverse of symmetric mass ratio (1/eta).
+        Spl2 (Float): S_plus squared.
+        S32 (Float): S_3 squared.
 
-    Returns
-    -------
-    Float
-        Time derivative of psi.
+    Returns:
+        Float: Time derivative of psi.
     """
     v2 = v * v
 
@@ -1306,51 +1232,29 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
     """
     Compute MSA corrections for precession angles.
 
-    Parameters
-    ----------
-    v : Float
-        Orbital velocity parameter.
-    LNorm : Float
-        Normalized orbital angular momentum.
-    JNorm : Float
-        Normalized total angular momentum.
-    Seff : Float
-        Effective spin parameter.
-    eta : Float
-        Symmetric mass ratio.
-    eta3 : Float
-        eta cubed.
-    inveta : Float
-        Inverse of eta (1/eta).
-    Spl : Float
-        S_plus.
-    Spl2 : Float
-        S_plus squared.
-    Smi2 : Float
-        S_minus squared.
-    Spl2mSmi2 : Float
-        Spl2 - Smi2.
-    S1_norm_2 : Float
-        Spin 1 magnitude squared.
-    S2_norm_2 : Float
-        Spin 2 magnitude squared.
-    S32 : Float
-        S_3 squared.
-    delta_qq : Float
-        MSA coefficient delta_qq.
-    g0 : Float
-        MSA coefficient g0.
-    psi0 : Float
-        Initial psi value.
-    psi1 : Float
-        MSA coefficient psi1.
-    psi2 : Float
-        MSA coefficient psi2.
+    Args:
+        v (Float): Orbital velocity parameter.
+        LNorm (Float): Normalized orbital angular momentum.
+        JNorm (Float): Normalized total angular momentum.
+        Seff (Float): Effective spin parameter.
+        eta (Float): Symmetric mass ratio.
+        eta3 (Float): eta cubed.
+        inveta (Float): Inverse of eta (1/eta).
+        Spl (Float): S_plus.
+        Spl2 (Float): S_plus squared.
+        Smi2 (Float): S_minus squared.
+        Spl2mSmi2 (Float): Spl2 - Smi2.
+        S1_norm_2 (Float): Spin 1 magnitude squared.
+        S2_norm_2 (Float): Spin 2 magnitude squared.
+        S32 (Float): S_3 squared.
+        delta_qq (Float): MSA coefficient delta_qq.
+        g0 (Float): MSA coefficient g0.
+        psi0 (Float): Initial psi value.
+        psi1 (Float): MSA coefficient psi1.
+        psi2 (Float): MSA coefficient psi2.
 
-    Returns
-    -------
-    Float[Array, "3"]
-        Array of MSA corrections [vMSA_x, vMSA_y, 0].
+    Returns:
+        Float[Array, "3"]: Array of MSA corrections [vMSA_x, vMSA_y, 0].
     """
     v2 = v * v
 
@@ -1483,39 +1387,23 @@ def IMRPhenomX_Return_phiz_MSA(
     Based on Eq. 66 and D22-D27 of Chatziioannou et al, PRD 95, 104004, (2017),
     arXiv:1703.03967.
 
-    Parameters
-    ----------
-    v : Float
-        Orbital velocity parameter.
-    JNorm : Float
-        Magnitude of the total angular momentum.
-    eta : Float
-        Symmetric mass ratio.
-    inveta : Float
-        Inverse of symmetric mass ratio (1/eta).
-    eta2 : Float
-        eta squared.
-    eta4 : Float
-        eta to the fourth power.
-    c1 : Float
-        Precession constant c1.
-    SAv : Float
-        Spin parameter SAv.
-    SAv2 : Float
-        SAv squared.
-    invSAv : Float
-        Inverse of SAv (1/SAv).
-    invSAv2 : Float
-        Inverse of SAv squared (1/SAv^2).
-    Omegaz0_coeff, ..., Omegaz5_coeff : Float
-        Omega_z expansion coefficients from Eqs. D15-D20.
-    phiz_0 : Float
-        Initial phi_z value.
+    Args:
+        v (Float): Orbital velocity parameter.
+        JNorm (Float): Magnitude of the total angular momentum.
+        eta (Float): Symmetric mass ratio.
+        inveta (Float): Inverse of symmetric mass ratio (1/eta).
+        eta2 (Float): eta squared.
+        eta4 (Float): eta to the fourth power.
+        c1 (Float): Precession constant c1.
+        SAv (Float): Spin parameter SAv.
+        SAv2 (Float): SAv squared.
+        invSAv (Float): Inverse of SAv (1/SAv).
+        invSAv2 (Float): Inverse of SAv squared (1/SAv^2).
+        Omegaz0_coeff, ..., Omegaz5_coeff (Float): Omega_z expansion coefficients from Eqs. D15-D20.
+        phiz_0 (Float): Initial phi_z value.
 
-    Returns
-    -------
-    phiz_out : Float
-        The azimuthal precession angle phi_z.
+    Returns:
+        phiz_out (Float): The azimuthal precession angle phi_z.
     """
     invv = 1.0 / v
     invv2 = invv * invv
@@ -1602,31 +1490,19 @@ def IMRPhenomX_Return_zeta_MSA(
     """
     Compute zeta angle for MSA approximation.
 
-    Parameters
-    ----------
-    v : Float
-        Orbital velocity parameter.
-    eta : Float
-        Symmetric mass ratio.
-    Omegazeta0_coeff : Float
-        Zeta precession coefficient (order 0).
-    Omegazeta1_coeff : Float
-        Zeta precession coefficient (order 1).
-    Omegazeta2_coeff : Float
-        Zeta precession coefficient (order 2).
-    Omegazeta3_coeff : Float
-        Zeta precession coefficient (order 3).
-    Omegazeta4_coeff : Float
-        Zeta precession coefficient (order 4).
-    Omegazeta5_coeff : Float
-        Zeta precession coefficient (order 5).
-    zeta_0 : Float
-        Initial zeta value.
+    Args:
+        v (Float): Orbital velocity parameter.
+        eta (Float): Symmetric mass ratio.
+        Omegazeta0_coeff (Float): Zeta precession coefficient (order 0).
+        Omegazeta1_coeff (Float): Zeta precession coefficient (order 1).
+        Omegazeta2_coeff (Float): Zeta precession coefficient (order 2).
+        Omegazeta3_coeff (Float): Zeta precession coefficient (order 3).
+        Omegazeta4_coeff (Float): Zeta precession coefficient (order 4).
+        Omegazeta5_coeff (Float): Zeta precession coefficient (order 5).
+        zeta_0 (Float): Initial zeta value.
 
-    Returns
-    -------
-    Float
-        Zeta angle.
+    Returns:
+        Float: Zeta angle.
     """
     invv = 1.0 / v
     invv2 = invv * invv
@@ -1714,27 +1590,17 @@ def IMRPhenomX_L_norm_3PN_of_v(
     """
     Compute L_norm at 3PN order.
 
-    Parameters
-    ----------
-    v : jax.Array
-        Orbital velocity parameter.
-    L_norm : Float
-        Normalized orbital angular momentum.
-    constants_L_0 : Float
-        L polynomial coefficient (index 0).
-    constants_L_1 : Float
-        L polynomial coefficient (index 1).
-    constants_L_2 : Float
-        L polynomial coefficient (index 2).
-    constants_L_3 : Float
-        L polynomial coefficient (index 3).
-    constants_L_4 : Float
-        L polynomial coefficient (index 4).
+    Args:
+        v (jax.Array): Orbital velocity parameter.
+        L_norm (Float): Normalized orbital angular momentum.
+        constants_L_0 (Float): L polynomial coefficient (index 0).
+        constants_L_1 (Float): L polynomial coefficient (index 1).
+        constants_L_2 (Float): L polynomial coefficient (index 2).
+        constants_L_3 (Float): L polynomial coefficient (index 3).
+        constants_L_4 (Float): L polynomial coefficient (index 4).
 
-    Returns
-    -------
-    Float
-        L_norm at 3PN order.
+    Returns:
+        Float: L_norm at 3PN order.
     """
     v2 = v * v
     L_norm3PN = L_norm * (
@@ -1970,27 +1836,17 @@ def IMRPhenomX_Return_SNorm_MSA(
     Based on Equations 23 and 25 of Chatziioannou et al, PRD 95, 104004, (2017),
     arXiv:1703.03967.
 
-    Parameters
-    ----------
-    v : Float
-        Orbital velocity parameter.
-    Smi2 : Float
-        S_minus squared.
-    Spl2 : Float
-        S_plus squared.
-    S32 : Float
-        S_3 squared.
-    psi0, psi1, psi2 : Float
-        Psi expansion coefficients.
-    g0 : Float
-        Precession coefficient g0.
-    delta_qq : Float
-        Mass difference parameter delta_qq.
+    Args:
+        v (Float): Orbital velocity parameter.
+        Smi2 (Float): S_minus squared.
+        Spl2 (Float): S_plus squared.
+        S32 (Float): S_3 squared.
+        psi0, psi1, psi2 (Float): Psi expansion coefficients.
+        g0 (Float): Precession coefficient g0.
+        delta_qq (Float): Mass difference parameter delta_qq.
 
-    Returns
-    -------
-    SNorm : Float
-        The spin magnitude.
+    Returns:
+        SNorm (Float): The spin magnitude.
     """
     v2 = v * v
 

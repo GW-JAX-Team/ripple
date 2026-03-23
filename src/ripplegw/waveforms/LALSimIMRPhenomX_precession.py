@@ -44,15 +44,20 @@ def compute_evolved_spin_using_msa(
     phiJ_Sf,
 ):
     """
-    Mf:
-    mass_1: Heavier black hole mass in solar mass units
-    mass_2: lighter black hole mass in solar mass units
-    chi1x, chi1y, chi1z: dimensionless spins of first black hole
-    chi2x, chi2y, chi2z: dimensionless spins of second black hole
-    emm: the index m of the mode (l, m)
-    reference_frequency:
-    kappa:
-    phiJ_Sf:
+    Args:
+        Mf: Dimensionless frequency Mf.
+        mass_1: Heavier black hole mass in solar mass units.
+        mass_2: Lighter black hole mass in solar mass units.
+        chi1x: x-component of the dimensionless spin of the first black hole.
+        chi1y: y-component of the dimensionless spin of the first black hole.
+        chi1z: z-component of the dimensionless spin of the first black hole.
+        chi2x: x-component of the dimensionless spin of the second black hole.
+        chi2y: y-component of the dimensionless spin of the second black hole.
+        chi2z: z-component of the dimensionless spin of the second black hole.
+        emm: The index m of the mode (l, m).
+        reference_frequency: Reference frequency for the waveform.
+        kappa: Precession angle kappa.
+        phiJ_Sf: Azimuthal angle between total angular momentum and source frame.
     """
     inspiral_mask = Mf < 0.3
     # Mf = jnp.clip(Mf, a_max=0.3)
@@ -1218,17 +1223,12 @@ def XLALSimIMRPhenomXUtilsHztoMf(fHz: Float, Mtot_Msun: Float) -> Float:
     """
     Convert frequency from Hz to geometric units (Mf).
 
-    Parameters
-    ----------
-    fHz : Float
-        Frequency in Hz
-    Mtot_Msun : Float
-        Total mass in solar masses
+    Args:
+        fHz (Float): Frequency in Hz
+        Mtot_Msun (Float): Total mass in solar masses
 
-    Returns
-    -------
-    Float
-        Geometric frequency Mf
+    Returns:
+        Float: Geometric frequency Mf
     """
     return fHz * Mtot_Msun * MTSUN
 
@@ -1237,17 +1237,12 @@ def XLALSimIMRPhenomXUtilsMftoHz(Mf: Float, Mtot_Msun: Float) -> Float:
     """
     Convert frequency from geometric units (Mf) to Hz.
 
-    Parameters
-    ----------
-    Mf : Float
-        Geometric frequency
-    Mtot_Msun : Float
-        Total mass in solar masses
+    Args:
+        Mf (Float): Geometric frequency
+        Mtot_Msun (Float): Total mass in solar masses
 
-    Returns
-    -------
-    Float
-        Frequency in Hz
+    Returns:
+        Float: Frequency in Hz
     """
     return Mf / (Mtot_Msun * MTSUN)
 
