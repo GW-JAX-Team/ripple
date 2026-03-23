@@ -41,8 +41,11 @@ def pytest_addoption(parser):
     parser.addoption(
         "--T",
         type=float,
-        default=32.0,
-        help="Segment duration in seconds, sets frequency resolution df=1/T (default: 32)",
+        default=None,
+        help=(
+            "Segment duration in seconds. Overrides the per-family defaults "
+            "(BBH: 32 s, BNS: 128 s) when provided."
+        ),
     )
 
 
