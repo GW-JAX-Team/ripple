@@ -61,14 +61,17 @@ plugins:
 
 nav:
     - Home: index.md
-    - Getting Started: quickstart.md
+    - Installation: installation.md
+    - Quick Start: quickstart.md
     - Tutorials:
+        - Overview: tutorials/index.md
         - Generating Waveforms: tutorials/Generating_waveforms.ipynb
         - Validating IMRPhenomD: tutorials/check_IMRPhenomD.ipynb
         - Validating TaylorF2: tutorials/check_TaylorF2.ipynb
         - Validating IMRPhenomD_NRTv2: tutorials/check_IMRD_NRTv2.ipynb
         - Validating SineGaussian: tutorials/check_SineGaussian.ipynb
         - Working with Data: tutorials/data_example.ipynb
+    - FAQ: FAQ.md
     - Contributing: contributing.md
     - Changelog: changelog.md
-    - API: api/
+    - API: api/ripplegw/*

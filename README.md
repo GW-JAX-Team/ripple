@@ -30,9 +30,9 @@ pip install rippleGW
 ```
 
 This will install the latest stable release and its dependencies.
-ripple is built on [JAX](https://github.com/google/jax).
-By default, this installs the CPU version of JAX from [PyPI](https://pypi.org).
-If you have a GPU and want to leverage hardware acceleration, install the CUDA-enabled version:
+ripple is built on [JAX](https://github.com/jax-ml/jax).
+By default, this installs the CPU version of JAX.
+If you have an NVIDIA GPU, install the CUDA-enabled version:
 
 ```bash
 pip install rippleGW[cuda]
