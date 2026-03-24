@@ -73,5 +73,4 @@ nav:
         - Working with Data: tutorials/data_example.ipynb
     - FAQ: FAQ.md
     - Contributing: contributing.md
-    - Changelog: changelog.md
     - API: api/ripplegw/*
