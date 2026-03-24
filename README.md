@@ -1,6 +1,6 @@
 # ripple 🌊
 
-**A JAX-based package for differentiable gravitational-wave waveform generation**
+## A JAX-based package for differentiable gravitational-wave waveform generation
 
 [![doc](https://badgen.net/badge/Read/the%20doc/blue)](https://ripplegw.readthedocs.io/) [![license](https://badgen.net/badge/License/MIT/blue)](https://github.com/GW-JAX-Team/ripple/blob/main/LICENSE) [![coverage](https://badgen.net/coveralls/c/github/GW-JAX-Team/ripple/main)](https://coveralls.io/github/GW-JAX-Team/ripple?branch=main) [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/GW-JAX-Team/ripple/main.svg)](https://results.pre-commit.ci/latest/github/GW-JAX-Team/ripple/main)
 
