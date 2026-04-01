@@ -23,7 +23,7 @@ try:
 
     LAL_AVAILABLE = True
 except ImportError:
-    import traceback, sys; sys.stdout.write("IMPORT ERROR:\n"); traceback.print_exc(file=sys.stdout); LAL_AVAILABLE = False
+    LAL_AVAILABLE = False
 
 
 def check_lal_available():
@@ -678,4 +678,3 @@ def generate_random_params(
         )
 
     return theta
-print('LAL_AVAILABLE is', LAL_AVAILABLE)
