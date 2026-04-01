@@ -6,6 +6,7 @@ from .interfaces import (
     IMRPhenomXAS,
     IMRPhenomXAS_NRTidalv3,
     IMRPhenomXPHM,
+    IMRPhenomHM,
     SineGaussian,
     waveform_preset,
 )
