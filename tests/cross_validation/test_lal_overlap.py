@@ -95,6 +95,7 @@ OVERLAP_LOSS_THRESHOLDS = {
     "IMRPhenomXHM": 1e-6,
     "IMRPhenomXP": 1e-6,
     "IMRPhenomXPHM": 1e-6,
+    "IMRPhenomHM": 1e-6,
 }
 DEFAULT_OVERLAP_LOSS_THRESHOLD = 1e-6  # fallback for unknown waveforms
 
@@ -373,6 +374,7 @@ def psd_data():
         pytest.param("IMRPhenomXHM", BBH_BOUNDS, id="IMRPhenomXHM"),
         pytest.param("IMRPhenomXP", BBH_BOUNDS, id="IMRPhenomXP"),
         pytest.param("IMRPhenomXPHM", BBH_BOUNDS, id="IMRPhenomXPHM"),
+        pytest.param("IMRPhenomHM", BBH_BOUNDS, id="IMRPhenomHM"),
     ],
 )
 def test_waveform_overlap(
@@ -492,7 +494,6 @@ def test_waveform_overlap(
         with ThreadPoolExecutor(max_workers=n_workers) as pool:
             # map() preserves input order, so result[i] matches theta_batch[i]
             lal_results = list(pool.map(_compute_lal, enumerate(theta_batch)))
-
         lal_hp_list = []
         lal_hc_list = []
         theta_ripple_list = []

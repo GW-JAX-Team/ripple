@@ -30,6 +30,7 @@ __all__ = [
     "IMRPhenomXHM",
     "IMRPhenomXP",
     "IMRPhenomXPHM",
+    "IMRPhenomHM",
     "SineGaussian",
     "waveform_preset",
 ]
