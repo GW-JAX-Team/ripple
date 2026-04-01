@@ -15,6 +15,7 @@ from .interfaces import (
     IMRPhenomXHM,
     IMRPhenomXP,
     IMRPhenomXPHM,
+    IMRPhenomHM,
     SineGaussian,
     waveform_preset,
 )

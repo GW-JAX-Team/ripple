@@ -12,6 +12,7 @@ from .waveforms.IMRPhenomXAS_NRTidalv3 import gen_IMRPhenomXAS_NRTidalv3_hphc
 from .waveforms.IMRPhenomXHM import gen_IMRPhenomXHM_hphc
 from .waveforms.IMRPhenomXP import gen_IMRPhenomXP_hphc
 from .waveforms.IMRPhenomXPHM import generate_xphm
+from .waveforms.IMRPhenomHM import gen_IMRPhenomHM
 from .waveforms.SineGaussian import gen_SineGaussian_hphc
 from .conversions import Mc_eta_to_ms
 
@@ -736,7 +737,37 @@ class IMRPhenomXPHM(Waveform):
         return {"p": hp, "c": hc}
 
     def __repr__(self):
-        return f"IMRPhenomXPHM(f_ref={self.f_ref})"
+        return f"IMRPhenomHM(f_ref={self.f_ref})"
+
+
+class IMRPhenomHM(Waveform):
+    f_ref: float
+
+    def __init__(self, f_ref: float = 20.0):
+        self.f_ref = f_ref
+
+    def __call__(
+        self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
+    ) -> dict[str, Float[Array, " n_freq"]]:
+        output = {}
+        m1, m2 = Mc_eta_to_ms(jnp.array([params["M_c"], params["eta"]]))
+        hp, hc = gen_IMRPhenomHM(
+            frequency,
+            m1,
+            m2,
+            params["s1_z"],
+            params["s2_z"],
+            params["d_L"],
+            params["iota"],
+            params["phase_c"],
+            self.f_ref,
+        )
+        output["p"] = hp
+        output["c"] = hc
+        return output
+
+    def __repr__(self):
+        return f"IMRPhenomHM(f_ref={self.f_ref})"
 
 
 class SineGaussian(Waveform):
@@ -794,5 +825,6 @@ waveform_preset: dict[str, type[Waveform]] = {
     "IMRPhenomXHM": IMRPhenomXHM,
     "IMRPhenomXP": IMRPhenomXP,
     "IMRPhenomXPHM": IMRPhenomXPHM,
+    "IMRPhenomHM": IMRPhenomHM,
     "SineGaussian": SineGaussian,
 }
