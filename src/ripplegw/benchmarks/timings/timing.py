@@ -387,6 +387,7 @@ def main():
             "TaylorF2",
             "IMRPhenomD_NRTidalv2",
             "IMRPhenomXAS_NRTidalv3",
+            "IMRPhenomHM",
         ],
         help="Waveform approximant to time",
     )
