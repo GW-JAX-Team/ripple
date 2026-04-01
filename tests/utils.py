@@ -199,7 +199,7 @@ def get_jitted_waveform(waveform_name: str, fs: jnp.ndarray, f_ref: float):
                 f_ref,
             )
             return hp, hc
-        
+
     elif waveform_name == "IMRPhenomHM":
         from ripplegw.waveforms.IMRPhenomHM import gen_IMRPhenomHM
         from ripplegw.conversions import Mc_eta_to_ms
@@ -347,27 +347,28 @@ def get_lal_waveform(
                 lalsim.SimInspiralModeArrayActivateMode(ModeArray, el, em)
             lalsim.SimInspiralWaveformParamsInsertModeArray(lalparams, ModeArray)
             return lalsim.SimInspiralChooseFDWaveform(
-                    m1_kg,
-                    m2_kg,
-                    0.0,
-                    0.0,
-                    s1z,
-                    0.0,
-                    0.0,
-                    s2z,
-                    distance,
-                    inclination,
-                    phi_ref,
-                    0,
-                    0,
-                    0,
-                    df,
-                    f_l,
-                    f_u,
-                    f_ref,
-                    lalparams,
-                    approximant,
-                )
+                m1_kg,
+                m2_kg,
+                0.0,
+                0.0,
+                s1z,
+                0.0,
+                0.0,
+                s2z,
+                distance,
+                inclination,
+                phi_ref,
+                0,
+                0,
+                0,
+                df,
+                f_l,
+                f_u,
+                f_ref,
+                lalparams,
+                approximant,
+            )
+
         hp, hc = _call_hm()
 
     elif is_precessing:
@@ -402,7 +403,7 @@ def get_lal_waveform(
             None,
             approximant,
         )
-        
+
     else:
         # Non-precessing waveform: theta = [m1, m2, s1z, s2z, (l1, l2), dist, tc, phic, inc]
         if is_tidal:
