@@ -207,7 +207,6 @@ def get_jitted_waveform(waveform_name: str, fs: jnp.ndarray, f_ref: float):
         @jax.jit
         def waveform(theta):
             # theta = [Mc, eta, s1z, s2z, dist_mpc, tc, phic, inclination]
-            # consistent with the precessing-waveform convention used by this test suite
             m1, m2 = Mc_eta_to_ms(jnp.array([theta[0], theta[1]]))
             hp, hc = gen_IMRPhenomHM(
                 fs,
