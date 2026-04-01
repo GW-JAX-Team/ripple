@@ -784,21 +784,13 @@ def twist_44(cexp_i_alpha, theta_JN, beta_powers):
 def apply_polarization_rotation(zeta_polarization, _hp, _hc):
     """Apply polarization rotation to waveform components.
 
-    Parameters
-    ----------
-    zeta_polarization : float
-        Polarization angle.
-    _hp : array_like
-        Plus polarization component (unrotated).
-    _hc : array_like
-        Cross polarization component (unrotated).
+    Args:
+        zeta_polarization (float): Polarization angle.
+        _hp (array_like): Plus polarization component (unrotated).
+        _hc (array_like): Cross polarization component (unrotated).
 
-    Returns
-    -------
-    hp : array_like
-        Rotated plus polarization.
-    hc : array_like
-        Rotated cross polarization.
+    Returns:
+        tuple[array_like, array_like]: Rotated plus (hp) and cross (hc) polarizations.
     """
     cosPolFac = jnp.cos(2.0 * zeta_polarization)
     sinPolFac = jnp.sin(2.0 * zeta_polarization)
@@ -817,17 +809,11 @@ def IMRPhenomXWignerdCoefficients_cosbeta(cos_beta):
     - cos(beta/2) = sqrt((1 + cos(beta)) / 2)
     - sin(beta/2) = sqrt((1 - cos(beta)) / 2)
 
-    Parameters
-    ----------
-    cos_beta : float or array
-        cos(beta)
+    Args:
+        cos_beta (float or array): cos(beta).
 
-    Returns
-    -------
-    cos_beta_half : float or array
-        cos(beta/2), always non-negative
-    sin_beta_half : float or array
-        sin(beta/2), always non-negative
+    Returns:
+        tuple[float or array, float or array]: (cos(beta/2), sin(beta/2)), both always non-negative.
     """
     # Note that the results here are indeed always non-negative
     cos_beta_half = jnp.sqrt(jnp.abs(1.0 + cos_beta) / 2.0)  # cos(beta/2)
@@ -840,17 +826,12 @@ def XLALSimIMRPhenomXUtilsHztoMf(fHz: Float, Mtot_Msun: Float) -> Float:
     """
     Convert frequency from Hz to geometric units (Mf).
 
-    Parameters
-    ----------
-    fHz : Float
-        Frequency in Hz
-    Mtot_Msun : Float
-        Total mass in solar masses
+    Args:
+        fHz (Float): Frequency in Hz.
+        Mtot_Msun (Float): Total mass in solar masses.
 
-    Returns
-    -------
-    Float
-        Geometric frequency Mf
+    Returns:
+        Float: Geometric frequency Mf.
     """
     # Mtot in seconds = Mtot_Msun * MTSUN
     return fHz * Mtot_Msun * MTSUN
@@ -1738,25 +1719,16 @@ def XLALSimPhenomUtilsChiP(m1, m2, s1x, s1y, s2x, s2y):
 
     This is a JAX translation of LALSimIMRPhenomUtils.c XLALSimPhenomUtilsChiP.
 
-    Parameters
-    ----------
-    m1 : float or array
-        Mass of companion 1 (solar masses)
-    m2 : float or array
-        Mass of companion 2 (solar masses)
-    s1x : float or array
-        x-component of the dimensionless spin of object 1 w.r.t. Lhat = (0,0,1)
-    s1y : float or array
-        y-component of the dimensionless spin of object 1 w.r.t. Lhat = (0,0,1)
-    s2x : float or array
-        x-component of the dimensionless spin of object 2 w.r.t. Lhat = (0,0,1)
-    s2y : float or array
-        y-component of the dimensionless spin of object 2 w.r.t. Lhat = (0,0,1)
+    Args:
+        m1 (float or array): Mass of companion 1 (solar masses).
+        m2 (float or array): Mass of companion 2 (solar masses).
+        s1x (float or array): x-component of the dimensionless spin of object 1 w.r.t. Lhat = (0,0,1).
+        s1y (float or array): y-component of the dimensionless spin of object 1 w.r.t. Lhat = (0,0,1).
+        s2x (float or array): x-component of the dimensionless spin of object 2 w.r.t. Lhat = (0,0,1).
+        s2y (float or array): y-component of the dimensionless spin of object 2 w.r.t. Lhat = (0,0,1).
 
-    Returns
-    -------
-    chip : float or array
-        Effective precession parameter
+    Returns:
+        float or array: Effective precession parameter chip.
     """
     m1_2 = m1 * m1
     m2_2 = m2 * m2

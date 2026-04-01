@@ -40,6 +40,7 @@ plugins:
     - search
     - autorefs
     - mkdocs-jupyter:
+        include: ["*.ipynb"]
     - gen-files:
         scripts:
         - docs/gen_ref_pages.py
@@ -50,6 +51,7 @@ plugins:
             python:
                 options:
                     docstring_style: google
+                    filters: ["!^logger$"]
                     inherited_members: true
                     show_root_heading: true
                     show_root_full_path: true
@@ -57,18 +59,15 @@ plugins:
                     show_signature_annotations: true
                     show_source: false
                     members_order: source
-                    heading_level: 4
+                    heading_level: 3
 
 nav:
     - Home: index.md
-    - Getting Started: quickstart.md
+    - Installation: installation.md
+    - Quick Start: quickstart.md
     - Tutorials:
-        - Generating Waveforms: tutorials/Generating_waveforms.ipynb
-        - Validating IMRPhenomD: tutorials/check_IMRPhenomD.ipynb
-        - Validating TaylorF2: tutorials/check_TaylorF2.ipynb
-        - Validating IMRPhenomD_NRTv2: tutorials/check_IMRD_NRTv2.ipynb
-        - Validating SineGaussian: tutorials/check_SineGaussian.ipynb
-        - Working with Data: tutorials/data_example.ipynb
+        - Overview: tutorials/index.md
+        - Generating Waveforms: tutorials/generating_waveforms.ipynb
+    - FAQ: FAQ.md
     - Contributing: contributing.md
-    - Changelog: changelog.md
-    - API: api/
+    - API: api/ripplegw/*

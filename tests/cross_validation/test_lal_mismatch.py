@@ -307,22 +307,33 @@ def compute_ripple_lal_mismatch(
 
 @pytest.fixture
 def freq_params(request):
-    """Default frequency parameters.
+    """Frequency parameter factory.
 
-    Segment duration T (and thus frequency resolution df=1/T) is configurable
-    via the ``--T`` CLI option.  The default T=32 s (df≈0.03 Hz, ~32K bins)
-    is fast enough for CI correctness checks.  Use ``--T 256`` for full
-    validation runs where dense frequency coverage is needed (df≈0.004 Hz,
-    ~257K bins — the standard GW analysis segment length for long BNS signals).
+    Returns a callable ``get(is_tidal)`` that selects the appropriate segment
+    duration T and returns the full frequency-parameter dict.
+
+    Default durations (overridden by ``--T`` when provided):
+      - BBH waveforms: 32 s
+      - BNS waveforms: 128 s
     """
-    T = float(request.config.getoption("--T"))
-    return {
-        "f_l": 20.0,
-        "f_u": 2048.0,
-        "f_sampling": 4096.0,
-        "T": T,
-        "f_ref": 20.0,
-    }
+    T_override = request.config.getoption("--T")
+
+    def get(is_tidal: bool) -> dict:
+        if T_override is not None:
+            T = float(T_override)
+        else:
+            T = 128.0 if is_tidal else 32.0
+        f_u = 4096.0 if is_tidal else 2048.0
+        f_sampling = 2 * f_u
+        return {
+            "f_l": 20.0,
+            "f_u": f_u,
+            "f_sampling": f_sampling,
+            "T": T,
+            "f_ref": 20.0,
+        }
+
+    return get
 
 
 @pytest.fixture
@@ -373,12 +384,17 @@ def test_waveform_mismatch(
     """
     check_lal_available()
 
-    # Unpack parameters
-    f_l = freq_params["f_l"]
-    f_u = freq_params["f_u"]
-    f_sampling = freq_params["f_sampling"]
-    T = freq_params["T"]
-    f_ref = freq_params["f_ref"]
+    is_tidal = check_is_tidal(waveform_name)
+    is_precessing = check_is_precessing(waveform_name)
+
+    # Resolve frequency parameters using the waveform type so that BBH and BNS
+    # waveforms use appropriately sized segments by default.
+    params = freq_params(is_tidal)
+    f_l = params["f_l"]
+    f_u = params["f_u"]
+    f_sampling = params["f_sampling"]
+    T = params["T"]
+    f_ref = params["f_ref"]
     psd_freqs, psd = psd_data
 
     # Construct frequency grid
@@ -386,17 +402,12 @@ def test_waveform_mismatch(
     df = fs[1] - fs[0]
 
     # Generate random parameters
-    is_tidal = check_is_tidal(waveform_name)
-    is_precessing = check_is_precessing(waveform_name)
     theta_batch = generate_random_params(
         n_samples, bounds, is_tidal=is_tidal, is_precessing=is_precessing, seed=42
     )
 
     # Compute mismatches for all samples
     failed_params = []
-
-    is_tidal = check_is_tidal(waveform_name)
-    is_precessing = check_is_precessing(waveform_name)
 
     # Generate ripple waveform
     waveform = get_jitted_waveform(waveform_name, fs, f_ref)

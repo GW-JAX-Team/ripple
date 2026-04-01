@@ -41,8 +41,11 @@ def pytest_addoption(parser):
     parser.addoption(
         "--T",
         type=float,
-        default=32.0,
-        help="Segment duration in seconds, sets frequency resolution df=1/T (default: 32)",
+        default=None,
+        help=(
+            "Segment duration in seconds. Overrides the per-family defaults "
+            "(BBH: 32 s, BNS: 128 s) when provided."
+        ),
     )
 
 
@@ -176,8 +179,11 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     # ---- persist metadata to disk ----------------------------------------
     # Mirror the run-tag subdirectory scheme used by the test (n{N}_T{T}).
     n_samples_opt = config.getoption("--n-samples", default=10)
-    T_opt = config.getoption("--T", default=32.0)
-    T_str = f"T{int(T_opt)}" if T_opt == int(T_opt) else f"T{T_opt}"
+    T_opt = config.getoption("--T", default=None)
+    if T_opt is None:
+        T_str = "Tdefault"
+    else:
+        T_str = f"T{int(T_opt)}" if T_opt == int(T_opt) else f"T{T_opt}"
     run_tag = f"n{n_samples_opt}_{T_str}"
     results_dir = Path(__file__).parent / "results" / run_tag
     results_dir.mkdir(parents=True, exist_ok=True)
