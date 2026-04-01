@@ -227,7 +227,7 @@ def get_jitted_waveform(waveform_name: str, fs: jnp.ndarray, f_ref: float):
             return hp, hc
         
     elif waveform_name == "IMRPhenomHM":
-        from ripplegw.waveforms.IMRPhenomHM import gen_IMRPhenomHM as waveform_generator
+        from ripplegw.waveforms.IMRPhenomHM import gen_IMRPhenomHM
         from ripplegw.conversions import Mc_eta_to_ms
 
         @jax.jit
@@ -235,7 +235,7 @@ def get_jitted_waveform(waveform_name: str, fs: jnp.ndarray, f_ref: float):
             # theta = [Mc, eta, s1z, s2z, dist_mpc, tc, phic, inclination]
             # consistent with the precessing-waveform convention used by this test suite
             m1, m2 = Mc_eta_to_ms(jnp.array([theta[0], theta[1]]))
-            hp, hc = waveform_generator(
+            hp, hc = gen_IMRPhenomHM(
                 fs,
                 m1,
                 m2,
@@ -357,11 +357,8 @@ def get_lal_waveform(
             )
 
         hp, hc = _call_xphm(_make_xphm_params(222))
+
     elif waveform_name == "IMRPhenomHM":
-        # XPHM requires SimIMRPhenomXPHM directly with MSA prescription params.
-        # SimInspiralChooseFDWaveform cannot set the PhenomXPrecVersion flag needed
-        # to guarantee the MSA prescription that the ripple implementation uses.
-        # theta = [m1, m2, s1z, s2z, dist_mpc, tc, phic, inclination]
         m1_kg = theta[0] * lal.MSUN_SI
         m2_kg = theta[1] * lal.MSUN_SI
         s1z = theta[2]
@@ -399,6 +396,7 @@ def get_lal_waveform(
                     approximant,
                 )
         hp, hc = _call_hm()
+
     elif is_precessing:
         # Precessing waveform: theta = [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
         m1_kg = theta[0] * lal.MSUN_SI
@@ -431,6 +429,7 @@ def get_lal_waveform(
             None,
             approximant,
         )
+        
     else:
         # Non-precessing waveform: theta = [m1, m2, s1z, s2z, (l1, l2), dist, tc, phic, inc]
         if is_tidal:
