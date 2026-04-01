@@ -18,6 +18,7 @@ __all__ = [
     "IMRPhenomXAS",
     "IMRPhenomXAS_NRTidalv3",
     "IMRPhenomXPHM",
+    "IMRPhenomHM",
     "SineGaussian",
     "waveform_preset",
 ]

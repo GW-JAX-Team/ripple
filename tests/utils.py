@@ -23,7 +23,7 @@ try:
 
     LAL_AVAILABLE = True
 except ImportError:
-    LAL_AVAILABLE = False
+    import traceback, sys; sys.stdout.write("IMPORT ERROR:\n"); traceback.print_exc(file=sys.stdout); LAL_AVAILABLE = False
 
 
 def check_lal_available():
@@ -76,6 +76,7 @@ def check_is_tidal(waveform_name: str) -> bool:
         "IMRPhenomXAS",
         "IMRPhenomPv2",
         "IMRPhenomXPHM",
+        "IMRPhenomHM",
         "SineGaussian",
     ]
 
@@ -198,6 +199,28 @@ def get_jitted_waveform(waveform_name: str, fs: jnp.ndarray, f_ref: float):
                 f_ref,
             )
             return hp, hc
+        
+    elif waveform_name == "IMRPhenomHM":
+        from ripplegw.waveforms.IMRPhenomHM import gen_IMRPhenomHM as waveform_generator
+        from ripplegw.conversions import Mc_eta_to_ms
+
+        @jax.jit
+        def waveform(theta):
+            # theta = [Mc, eta, s1z, s2z, dist_mpc, tc, phic, inclination]
+            # consistent with the precessing-waveform convention used by this test suite
+            m1, m2 = Mc_eta_to_ms(jnp.array([theta[0], theta[1]]))
+            hp, hc = waveform_generator(
+                fs,
+                m1,
+                m2,
+                theta[2],
+                theta[3],
+                theta[4],  # distance in Mpc
+                theta[7],  # inclination
+                theta[6],  # phi0
+                f_ref,
+            )
+            return hp, hc
 
     elif waveform_name == "SineGaussian":
         from ripplegw.waveforms.SineGaussian import gen_SineGaussian_hphc
@@ -307,6 +330,48 @@ def get_lal_waveform(
         # NNLO angles.  The caller detects the exception and excludes the sample
         # from the mismatch assertion and histogram.
         hp, hc = _call_xphm(_make_xphm_params(222))
+    elif waveform_name == "IMRPhenomHM":
+        # XPHM requires SimIMRPhenomXPHM directly with MSA prescription params.
+        # SimInspiralChooseFDWaveform cannot set the PhenomXPrecVersion flag needed
+        # to guarantee the MSA prescription that the ripple implementation uses.
+        # theta = [m1, m2, s1z, s2z, dist_mpc, tc, phic, inclination]
+        m1_kg = theta[0] * lal.MSUN_SI
+        m2_kg = theta[1] * lal.MSUN_SI
+        s1z = theta[2]
+        s2z = theta[3]
+        distance = theta[4] * 1e6 * lal.PC_SI
+        phi_ref = theta[6]
+        inclination = theta[7]
+
+        def _call_hm():
+            lalparams = lal.CreateDict()
+            ModeArray = lalsim.SimInspiralCreateModeArray()
+            for el, em in [(2, 1), (2, 2), (3, 2), (3, 3), (4, 4)]:
+                lalsim.SimInspiralModeArrayActivateMode(ModeArray, el, em)
+            lalsim.SimInspiralWaveformParamsInsertModeArray(lalparams, ModeArray)
+            return lalsim.SimInspiralChooseFDWaveform(
+                    m1_kg,
+                    m2_kg,
+                    0.0,
+                    0.0,
+                    s1z,
+                    0.0,
+                    0.0,
+                    s2z,
+                    distance,
+                    inclination,
+                    phi_ref,
+                    0,
+                    0,
+                    0,
+                    df,
+                    f_l,
+                    f_u,
+                    f_ref,
+                    lalparams,
+                    approximant,
+                )
+        hp, hc = _call_hm()
     elif is_precessing:
         # Precessing waveform: theta = [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
         m1_kg = theta[0] * lal.MSUN_SI
@@ -567,3 +632,4 @@ def generate_random_params(
         )
 
     return theta
+print('LAL_AVAILABLE is', LAL_AVAILABLE)

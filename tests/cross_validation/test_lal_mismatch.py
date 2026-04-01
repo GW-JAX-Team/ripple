@@ -90,6 +90,7 @@ MISMATCH_THRESHOLDS = {
     "TaylorF2": 1e-14,
     "IMRPhenomPv2": 1e-4,  # see note above
     "IMRPhenomXPHM": 1e-6,
+    "IMRPhenomHM": 1e-6,
 }
 DEFAULT_MISMATCH_THRESHOLD = 1e-5  # fallback for unknown waveforms
 
@@ -317,8 +318,8 @@ def freq_params(request):
     T = float(request.config.getoption("--T"))
     return {
         "f_l": 20.0,
-        "f_u": 1024.0,
-        "f_sampling": 2048.0,
+        "f_u": 2048.0,
+        "f_sampling": 4096.0,
         "T": T,
         "f_ref": 20.0,
     }
@@ -353,6 +354,7 @@ def psd_data():
         pytest.param("TaylorF2", DEFAULT_BOUNDS, id="TaylorF2"),
         pytest.param("IMRPhenomPv2", BBH_BOUNDS, id="IMRPhenomPv2"),
         pytest.param("IMRPhenomXPHM", BBH_BOUNDS, id="IMRPhenomXPHM"),
+        pytest.param("IMRPhenomHM", BBH_BOUNDS, id="IMRPhenomHM"),
     ],
 )
 def test_waveform_mismatch(
@@ -472,7 +474,6 @@ def test_waveform_mismatch(
         with ThreadPoolExecutor(max_workers=n_workers) as pool:
             # map() preserves input order, so result[i] matches theta_batch[i]
             lal_results = list(pool.map(_compute_lal, enumerate(theta_batch)))
-
         lal_hp_list = []
         lal_hc_list = []
         theta_ripple_list = []
