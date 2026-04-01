@@ -677,6 +677,7 @@ class TestWaveformPreset:
             "IMRPhenomXAS",
             "IMRPhenomXAS_NRTidalv3",
             "IMRPhenomXPHM",
+            "IMRPhenomHM",
             "SineGaussian",
         }
         assert expected == set(waveform_preset.keys())
