@@ -448,7 +448,7 @@ def test_waveform_mismatch(
         # parallelism here — each call is independent (no shared state).
         # For XPHM we use PrecVersion=222 which raises XLAL_EDOM (surfaces in
         # Python as "Internal function call failed: Input domain error") whenever
-        # the MSA system fails to initialise.  Because 222 is only used for XPHM
+        # the MSA system fails to initialize.  Because 222 is only used for XPHM
         # and only fails on MSA init, any exception from an XPHM call is an MSA
         # failure.  These samples are tracked separately and excluded from the
         # mismatch assertion and histogram.

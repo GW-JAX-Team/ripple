@@ -281,7 +281,7 @@ def twistup(
     # LALSim zeros the contribution for Mf >= 0.3 (f_max_prime). Setting
     # cos_beta=0 in compute_evolved_spin_using_msa does NOT produce a null
     # rotation (beta=pi/2 gives cBetah=sBetah=1/sqrt(2)), so we must
-    # explicitly zero _hp/_hc here to match LALSim's behaviour.
+    # explicitly zero _hp/_hc here to match LALSim's behavior.
     inspiral_mask = Mf < 0.299999
     _hp = jnp.where(inspiral_mask, _hp, 0.0)
     _hc = jnp.where(inspiral_mask, _hc, 0.0)
