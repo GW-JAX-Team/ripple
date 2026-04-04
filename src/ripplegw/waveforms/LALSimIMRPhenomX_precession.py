@@ -4,7 +4,7 @@ from jaxtyping import Float
 from ..constants import MTSUN
 import jax
 
-from .initialise_MSA_system import (
+from .initialize_MSA_system import (
     IMRPhenomX_Initialize_MSA_System,
     IMRPhenomX_Return_phi_zeta_costhetaL_MSA,
 )

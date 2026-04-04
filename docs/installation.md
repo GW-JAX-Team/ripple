@@ -12,7 +12,7 @@ By default, this installs the CPU version of JAX.
 If you have an NVIDIA GPU, install the CUDA-enabled version:
 
 ```bash
-pip install rippleGW[cuda]
+pip install "rippleGW[cuda]"
 ```
 
 If you want to install the latest version of ripple, you can clone this repo and install it locally:
