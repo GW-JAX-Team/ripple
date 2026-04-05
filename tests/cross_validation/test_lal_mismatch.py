@@ -813,7 +813,7 @@ def test_waveform_mismatch(
         df["m1"].values,
         df["m2"].values,
         log10_m,
-        "plasma",
+        "viridis",
         s=30,
         alpha=0.9,
     )
