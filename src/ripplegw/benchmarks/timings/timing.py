@@ -304,14 +304,11 @@ def run_timing(args):
         first_run_time, exec_times = time_waveform(waveform, batched_params, config)
 
     # Compute statistics over timed runs
-    mean_exec = sum(exec_times) / len(exec_times)
-    std_exec = (
-        (sum((t - mean_exec) ** 2 for t in exec_times) / (len(exec_times) - 1)) ** 0.5
-        if len(exec_times) > 1
-        else 0.0
-    )
-    min_exec = min(exec_times)
-    max_exec = max(exec_times)
+    exec_times_arr = jnp.array(exec_times)
+    mean_exec = float(jnp.mean(exec_times_arr))
+    std_exec = float(jnp.std(exec_times_arr, ddof=1)) if len(exec_times) > 1 else 0.0
+    min_exec = float(jnp.min(exec_times_arr))
+    max_exec = float(jnp.max(exec_times_arr))
     mean_tpw_ms = mean_exec / args.n_waveforms * 1000
     std_tpw_ms = std_exec / args.n_waveforms * 1000
     mean_wps = args.n_waveforms / mean_exec
