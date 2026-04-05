@@ -25,7 +25,7 @@ describes the problem and solution. Include the relevant issue number if applica
 
 Open a new GitHub pull request with the feature or change. Please follow these principles:
 
-1. New feature should be able to take advantage of `jax.jit` wherever possible.
+1. New features should be able to take advantage of `jax.jit` wherever possible.
 2. Modular implementation is preferred.
 3. If a waveform is ported from an existing implementation, it should match the original to machine precision. If that is not achievable, a clear explanation of the discrepancy must be provided. New waveforms implemented directly in ripple are not subject to this requirement.
 
