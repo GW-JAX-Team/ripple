@@ -718,7 +718,8 @@ def IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(
         Seff (Float): Effective spin parameter.
 
     Returns:
-        Float[Array, "3"]: Array of [B_coeff, C_coeff, D_coeff].
+        Tuple[float, float, float]: A tuple of (B_coeff, C_coeff, D_coeff) spin
+            evolution coefficients for the MSA approximation.
     """
     JNorm2 = JNorm * JNorm
     LNorm2 = LNorm * LNorm
@@ -1084,7 +1085,7 @@ def IMRPhenomX_Return_Constants_c_MSA(
         delta_qq (Float): MSA coefficient delta_qq.
 
     Returns:
-        Float[Array, "3"]: Array of [c0, c2, c4] constants.
+        Tuple[float, float, float]: A tuple of (c0, c2, c4) MSA constants.
     """
     v2 = v * v
     v3 = v * v2
@@ -1140,7 +1141,7 @@ def IMRPhenomX_Return_Constants_d_MSA(
         Smi2 (Float): S_minus squared.
 
     Returns:
-        Float[Array, "3"]: Array of [d0, d2, d4] constants.
+        Tuple[float, float, float]: A tuple of (d0, d2, d4) MSA constants.
     """
     LNorm2 = LNorm * LNorm
     JNorm2 = JNorm * JNorm
@@ -1255,7 +1256,7 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
         psi2 (Float): MSA coefficient psi2.
 
     Returns:
-        Float[Array, "3"]: Array of MSA corrections [vMSA_x, vMSA_y, 0].
+        Tuple[float, float]: A tuple of (vMSA_x, vMSA_y) MSA corrections.
     """
     v2 = v * v
 
@@ -1696,7 +1697,7 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
         zeta_0: Initial zeta value (Float)
 
     Returns:
-        Float[Array, "3"]: Array containing [phi_z + phi_z_MSA, zeta + zeta_MSA, cos(theta_L)]
+        Tuple[float, float, float]: A tuple of (phi_z + phi_z_MSA, zeta + zeta_MSA, cos(theta_L))
     """
     L_norm = eta / v
 
