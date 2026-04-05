@@ -1330,7 +1330,7 @@ def IMRPhenomHMOnePointFiveSpinPN(fM, ell, m, M1, M2, X1z, X2z):
     M2 = M2 / (M_INPUT)
     M = M1 + M2
     eta = M1 * M2 / (M * M)
-    delta = jnp.sqrt(1.0 - 4 * eta)
+    delta = jnp.sqrt(jnp.maximum(1.0 - 4 * eta, 0.0))
     Xs = 0.5 * (X1z + X2z)
     Xa = 0.5 * (X1z - X2z)
 

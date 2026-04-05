@@ -91,7 +91,7 @@ def get_amp0_lal(M: Float, distance: Float):
 
     Args:
         M (Float): Total mass in solar masses
-        distance (Float): Distance to the source in Mpc.
+        distance (Float): Distance to the source in meters.
 
     Returns:
         Float: amp0 from LAL.
