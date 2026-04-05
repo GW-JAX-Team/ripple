@@ -73,8 +73,10 @@ def _gen_IMRPhenomXAS_NRTidalv3(
 
     if no_taper:
         P_P = jnp.ones_like(f)
-        P_P_fref = 1.0
-        dphiT = jax.grad(fullTidalPhaseCorrection)(f_final * M_s, theta_intrinsic, 1.0)
+        P_P_fref = jnp.asarray(1.0)
+        dphiT = jax.grad(fullTidalPhaseCorrection)(
+            f_final * M_s, theta_intrinsic, jnp.asarray(1.0)
+        )
         A_P = jnp.ones_like(f)
     else:
         P_P = general_planck_taper(f, 1.15 * f_merger, 1.35 * f_merger)

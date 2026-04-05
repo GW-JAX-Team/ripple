@@ -103,7 +103,9 @@ def _get_merger_frequency(theta: Array):
 
 
 # Full tidal correction
-def fullTidalPhaseCorrection(Mf: Array, theta_intrinsic: Array, P_P: Float):
+def fullTidalPhaseCorrection(
+    Mf: Array, theta_intrinsic: Array, P_P: Float[Array, " n_freq"]
+):
     """
     Returns the NRTidalv3 phase corrections due to tidal and spin effects.
 
