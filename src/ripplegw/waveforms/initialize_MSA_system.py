@@ -1853,7 +1853,7 @@ def IMRPhenomX_Return_SNorm_MSA(
         psi = IMRPhenomX_psiofv(v, v2, psi0, psi1, psi2, g0, delta_qq)
 
         # Jacobi elliptic functions
-        sn, cn, dn = gsl_sf_elljac_e(
+        sn, _cn, _dn = gsl_sf_elljac_e(
             psi, m, max_iter=6
         )  # 6 Landen iterations suffice for float64
         return sn
