@@ -199,7 +199,7 @@ def gsl_sf_elljac_e(u: Float, m: Float, max_iter: int = 16):
             return (a_next, c_next), (a_next, c_next)
 
         k = jnp.sqrt(m)
-        (a_final, c_final), (a_arr, c_arr) = jax.lax.scan(
+        (a_final, _c_final), (a_arr, c_arr) = jax.lax.scan(
             landen_forward, (jnp.ones_like(k), k), jnp.arange(max_iter)
         )
 
