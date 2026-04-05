@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 
 import jax.numpy as jnp
 from jaxtyping import Array, Float
@@ -16,12 +16,12 @@ from .conversions import Mc_eta_to_ms
 
 class Waveform(ABC):
     def __init__(self):
-        return NotImplemented
+        pass
 
+    @abstractmethod
     def __call__(
         self, axis: Float[Array, " n_freq"], params: dict[str, Float]
-    ) -> dict[str, Float[Array, " n_freq"]]:
-        return NotImplemented
+    ) -> dict[str, Float[Array, " n_freq"]]: ...
 
 
 class IMRPhenomD(Waveform):
@@ -329,9 +329,6 @@ class IMRPhenomXPHM(Waveform):
 
 
 class SineGaussian(Waveform):
-    def __init__(self):
-        pass
-
     def __call__(
         self, t: Float[Array, " n_time"], params: dict[str, Float]
     ) -> dict[str, Float[Array, " n_time"]]:
