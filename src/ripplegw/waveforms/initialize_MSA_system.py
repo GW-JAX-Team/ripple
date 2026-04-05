@@ -503,7 +503,7 @@ def IMRPhenomX_Initialize_MSA_System(
         )
 
     def no_msa_corrections():
-        return jnp.array([0.0, 0.0, 0.0])
+        return 0.0, 0.0
 
     vMSA = jax.lax.cond(condition, compute_msa_corrections, no_msa_corrections)
 
@@ -544,8 +544,9 @@ def IMRPhenomX_Initialize_MSA_System(
         zeta_0_init,
     )
 
-    phiz_0 = -phiz_0 - vMSA[0]
-    zeta_0 = -zeta_0 - vMSA[1]
+    vMSA_phiz, vMSA_zeta = vMSA
+    phiz_0 = -phiz_0 - vMSA_phiz
+    zeta_0 = -zeta_0 - vMSA_zeta
 
     return jnp.array(
         [
@@ -627,7 +628,7 @@ def IMRPhenomX_Return_Roots_MSA(
         delta_qq,
         Seff,
     )
-    B, C, D = vBCD[0], vBCD[1], vBCD[2]
+    B, C, D = vBCD
 
     B2 = B * B
     B3 = B2 * B
@@ -702,7 +703,7 @@ def IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(
     eta: Float,
     delta_qq: Float,
     Seff: Float,
-) -> Float[Array, "3"]:
+):
     """
     Compute spin evolution coefficients B, C, D for MSA approximation.
 
@@ -758,7 +759,7 @@ def IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(
         + 2.0 * delta * LNorm * Seff * (S1Norm2 - S2Norm2) * J2mL2
     )
 
-    return jnp.array([B_coeff, C_coeff, D_coeff])
+    return B_coeff, C_coeff, D_coeff
 
 
 def IMRPhenomX_Get_PN_sigma(
@@ -1065,7 +1066,7 @@ def IMRPhenomX_Return_Constants_c_MSA(
     S1_norm_2: Float,
     S2_norm_2: Float,
     delta_qq: Float,
-) -> Float[Array, "3"]:
+):
     """
     Compute c constants for MSA approximation.
 
@@ -1118,7 +1119,7 @@ def IMRPhenomX_Return_Constants_c_MSA(
 
     z = JNorm * (0.75 * inveta * (Spl2 - Smi2) ** 2 * (1.0 - Seff * v) * v6)
 
-    return jnp.array([x, y, z])
+    return x, y, z
 
 
 def IMRPhenomX_Return_Constants_d_MSA(
@@ -1127,7 +1128,7 @@ def IMRPhenomX_Return_Constants_d_MSA(
     Spl: Float,
     Spl2: Float,
     Smi2: Float,
-) -> Float[Array, "3"]:
+):
     """
     Compute d constants for MSA approximation.
 
@@ -1152,7 +1153,7 @@ def IMRPhenomX_Return_Constants_d_MSA(
 
     z = -((Spl2 - Smi2) ** 2)
 
-    return jnp.array([x, y, z])
+    return x, y, z
 
 
 def IMRPhenomX_Return_Psi_MSA(
@@ -1228,7 +1229,7 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
     psi0: Float,
     psi1: Float,
     psi2: Float,
-) -> Float[Array, "3"]:
+):
     """
     Compute MSA corrections for precession angles.
 
@@ -1358,7 +1359,7 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
     vMSA_x = jnp.where(jnp.isnan(vMSA_x), 0.0, vMSA_x)
     vMSA_y = jnp.where(jnp.isnan(vMSA_y), 0.0, vMSA_y)
 
-    return jnp.stack([vMSA_x, vMSA_y, jnp.zeros_like(vMSA_x)], axis=0)
+    return vMSA_x, vMSA_y
 
 
 def IMRPhenomX_Return_phiz_MSA(
@@ -1659,7 +1660,7 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
     Omegazeta4_coeff: Float,
     Omegazeta5_coeff: Float,
     zeta_0: Float,
-) -> Float[Array, "3"]:
+):
     """
     Wrapper to generate phi_z, zeta and cos(theta_L) at a given frequency.
 
@@ -1762,12 +1763,9 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
     )
     cond = jnp.abs(Smi2 - Spl2) > 1.0e-5
 
-    # Create vMSA with zeros matching the shape of vMSA_correction
-    vMSA_zeros = jnp.zeros_like(vMSA_correction)
-    vMSA = jnp.where(cond, vMSA_correction, vMSA_zeros)
-
-    phiz_MSA = vMSA[0]
-    zeta_MSA = vMSA[1]
+    phiz_MSA_corr, zeta_MSA_corr = vMSA_correction
+    phiz_MSA = jnp.where(cond, phiz_MSA_corr, 0.0)
+    zeta_MSA = jnp.where(cond, zeta_MSA_corr, 0.0)
 
     phiz = IMRPhenomX_Return_phiz_MSA(
         v,
@@ -1803,11 +1801,7 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
     )
     cos_theta_L = IMRPhenomX_costhetaLJ(L_norm3PN, J_norm3PN, SNorm)
 
-    vout1 = phiz + phiz_MSA
-    vout2 = zeta + zeta_MSA
-    vout3 = cos_theta_L
-
-    return jnp.array([vout1, vout2, vout3])
+    return phiz + phiz_MSA, zeta + zeta_MSA, cos_theta_L
 
 
 def IMRPhenomX_costhetaLJ(L_norm: Float, J_norm: Float, S_norm: Float) -> Float:
@@ -1859,7 +1853,9 @@ def IMRPhenomX_Return_SNorm_MSA(
         psi = IMRPhenomX_psiofv(v, v2, psi0, psi1, psi2, g0, delta_qq)
 
         # Jacobi elliptic functions
-        sn, cn, dn = gsl_sf_elljac_e(psi, m)  # FIXME
+        sn, cn, dn = gsl_sf_elljac_e(
+            psi, m, max_iter=6
+        )  # 6 Landen iterations suffice for float64
         return sn
 
     sn = jnp.where(cancel_condition, 0.0, sn_jacobi(None))
