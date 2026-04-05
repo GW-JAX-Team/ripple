@@ -1,6 +1,6 @@
 #!/bin/bash -l
 # Submit one GPU job per (model, precision) combination, then chain postprocessing.
-# Usage: bash timings/time_all.sh  (from anywhere — uses this script's directory)
+# Usage: bash timings/submit_slurm.sh  (from anywhere — uses this script's directory)
 
 set -e
 
