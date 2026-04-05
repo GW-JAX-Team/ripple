@@ -5,10 +5,14 @@ This module provides JAX-compatible implementations of elliptic integrals,
 specifically the incomplete elliptic integral of the first kind (F).
 """
 
+import logging
+
 import jax
 import jax.numpy as jnp
 from jax.scipy.integrate import trapezoid
 from jaxtyping import Float
+
+logger = logging.getLogger(__name__)
 
 
 def ellint_F(phi: Float, k: Float, n_points: int = 1000) -> Float:
@@ -119,6 +123,10 @@ def ellint_F_carlson(phi: Float, k: Float) -> Float:
         symmetric elliptic integrals, which are numerically more stable.
     """
     # For now, fall back to the trapezoidal integration method
+    logger.warning(
+        "ellint_F_carlson is a placeholder and delegates to ellint_F; "
+        "implement Carlson's R_F for the intended behaviour."
+    )
     return ellint_F(phi, k)
 
 
