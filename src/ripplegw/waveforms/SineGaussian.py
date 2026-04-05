@@ -31,30 +31,21 @@ def gen_SineGaussian_hphc(
     for details on parameter definitions.
 
     Args:
-    --------
-        t:
-            Time grid (centered at t=0) on which to evaluate the waveform.
-            Create it using `jax.numpy.arange(-duration/2, duration/2, 1/fs)`
-            where `duration` is the duration of the waveform (in seconds) and `fs`
+        t (Array): Time grid (centered at t=0) on which to evaluate the waveform.
+            Create it using ``jax.numpy.arange(-duration/2, duration/2, 1/fs)``
+            where ``duration`` is the duration of the waveform (in seconds) and ``fs``
             is the sample rate at which the waveform is evaluated.
-        theta:
-            Array of waveform parameters [quality, frequency, hrss, phase, eccentricity]
-            quality:
-                Quality factor of the sine-Gaussian waveform
-            frequency:
-                Central frequency of the sine-Gaussian waveform
-            hrss:
-                Hrss of the sine-Gaussian waveform
-            phase:
-                Phase of the sine-Gaussian waveform
-            eccentricity:
-                Eccentricity of the sine-Gaussian waveform.
-                Controls the relative amplitudes of the
-                hplus and hcross polarizations.
+        theta (Array): Array of waveform parameters [quality, frequency, hrss, phase, eccentricity]:
+
+            - quality: Quality factor of the sine-Gaussian waveform.
+            - frequency: Central frequency of the sine-Gaussian waveform.
+            - hrss: Hrss of the sine-Gaussian waveform.
+            - phase: Phase of the sine-Gaussian waveform.
+            - eccentricity: Eccentricity of the sine-Gaussian waveform.
+              Controls the relative amplitudes of the hplus and hcross polarizations.
 
     Returns:
-    --------
-        Jax Arrays of plus and cross polarizations (in that order)
+        tuple[Array, Array]: JAX Arrays of plus and cross polarizations (in that order).
     """
 
     quality, frequency, hrss, phase, eccentricity = theta

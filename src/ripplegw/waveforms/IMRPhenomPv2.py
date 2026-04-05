@@ -1,6 +1,6 @@
 import jax
 import jax.numpy as jnp
-from ripplegw.conversions import Mc_eta_to_ms
+from ..conversions import Mc_eta_to_ms
 
 from ..constants import MTSUN
 from .IMRPhenomD import Phase as PhDPhase
@@ -37,7 +37,7 @@ def PhenomPCoreTwistUp(
 
     # here it is used to be LAL_MTSUN_SI
     f = fHz * MTSUN * M  # Frequency in geometric units
-    q = (1.0 + jnp.sqrt(1.0 - 4.0 * eta) - 2.0 * eta) / (2.0 * eta)
+    q = (1.0 + jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0)) - 2.0 * eta) / (2.0 * eta)
     m1 = 1.0 / (1.0 + q)  # Mass of the smaller BH for unit total mass M=1.
     m2 = q / (1.0 + q)  # Mass of the larger BH for unit total mass M=1.
     Sperp = chip * (

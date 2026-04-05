@@ -1,126 +1,58 @@
-# Ripple :ocean:
+# ripple 🌊
 
-**A small `jax` package for differentiable and fast gravitational wave data analysis**
+### A JAX-based package for differentiable gravitational-wave waveform generation
 
-<a href="https://ripplegw.readthedocs.io/">
-<img src="https://badgen.net/badge/Read/the doc/blue" alt="doc"/>
-</a>
-<a href="https://github.com/GW-JAX-Team/ripple/blob/main/LICENSE">
-<img src="https://badgen.net/badge/License/MIT/blue" alt="license"/>
-</a>
-<a href='https://coveralls.io/github/GW-JAX-Team/ripple?branch=main'>
-<img src='https://badgen.net/coveralls/c/github/GW-JAX-Team/ripple/main' alt='coverage' />
-</a> 
+[![doc](https://badgen.net/badge/Read/the%20doc/blue)](https://ripplegw.readthedocs.io/) [![license](https://badgen.net/badge/License/MIT/blue)](https://github.com/GW-JAX-Team/ripple/blob/main/LICENSE) [![coverage](https://badgen.net/coveralls/c/github/GW-JAX-Team/ripple/main)](https://coveralls.io/github/GW-JAX-Team/ripple?branch=main) [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/GW-JAX-Team/ripple/main.svg)](https://results.pre-commit.ci/latest/github/GW-JAX-Team/ripple/main)
 
-Ripple is a JAX-based package for differentiable and hardware-accelerated gravitational wave data analysis. It is maintained by the GW-JAX-Team organization and was originally developed by Thomas Edwards and Adam Coogan, with significant contributions from Kaze Wong and the community.
+ripple is a JAX-based package for differentiable gravitational-wave waveform generation. By implementing waveform models as differentiable JAX functions, ripple enables gradient-based inference and runs natively on GPU, making it well-suited for use within modern probabilistic inference pipelines such as [Jim](https://github.com/GW-JAX-Team/jim).
 
-See the accompanying paper, [Edwards et al. (2024)](https://journals.aps.org/prd/abstract/10.1103/PhysRevD.110.064028), for more details. For questions or comments, please open an issue on the [GitHub repository](https://github.com/GW-JAX-Team/ripple).
+**Supported waveforms:**
 
-# Installation
+- TaylorF2
+- IMRPhenomD
+- IMRPhenomD_NRTidalv2
+- IMRPhenomXAS
+- IMRPhenomXAS_NRTidalv3
+- IMRPhenomPv2
+- IMRPhenomXPHM (MSA)
 
-The simplest way to install Ripple is through pip:
+For a quick introduction, see the [Quick Start guide](https://ripplegw.readthedocs.io/en/stable/quickstart/).
 
-```
-pip install ripplegw
+> [!WARNING]
+> ripple has not yet reached v1.0.0 and the API may change. Use at your own risk. Consider pinning to a specific version if you need API stability.
+
+## Installation
+
+The simplest way to install ripple is through pip:
+
+```bash
+pip install rippleGW
 ```
 
 This will install the latest stable release and its dependencies.
-Ripple is built on [JAX](https://github.com/google/jax).
-By default, this installs the CPU version of JAX from [PyPI](https://pypi.org).
-If you have a GPU and want to leverage hardware acceleration, install the CUDA-enabled version:
+ripple is built on [JAX](https://github.com/jax-ml/jax).
+By default, this installs the CPU version of JAX.
+If you have an NVIDIA GPU, install the CUDA-enabled version:
 
-```
-pip install ripplegw[cuda]
+```bash
+pip install rippleGW[cuda]
 ```
 
-If you want to install the latest version of Ripple, you can clone this repo and install it locally:
+If you want to install the latest version of ripple, you can clone this repo and install it locally:
 
-```
+```bash
 git clone https://github.com/GW-JAX-Team/ripple.git
 cd ripple
 pip install -e .
 ```
 
-**Note:** By default, Ripple uses float32 precision for improved performance. If you require float64 precision, add the following at the start of your script:
+We recommend using [uv](https://docs.astral.sh/uv/) to manage your Python environment. After cloning the repository, run `uv sync` to create a virtual environment with all dependencies installed.
 
-```python
-from jax import config
-config.update("jax_enable_x64", True)
-```
+## Attribution
 
-See https://jax.readthedocs.io/en/latest/notebooks/Common_Gotchas_in_JAX.html for other common `jax` gotchas.
+If you use ripple in your research, please cite the accompanying paper:
 
-# Supported Waveforms
-
-All waveforms have been extensively tested and match `lalsuite` implementations to machine precision across the full parameter space.
-
-- **IMRPhenomXAS** (aligned spin)
-- **IMRPhenomD** (aligned spin)
-- **IMRPhenomPv2** (finalizing sampling validation)
-- **TaylorF2** with tidal effects
-- **IMRPhenomD_NRTidalv2** (verified for low spin: $\chi_1$ and $\chi_2$ < 0.05; higher spins require further testing)
-- **IMRPhenomXAS_NRTidalv3**
-
-# Usage
-
-## Generating a Waveform
-
-Generating waveforms with Ripple is straightforward. Below is an example using the IMRPhenomXAS model to compute the $h_+$ and $h_\times$ polarizations.
-
-Start with the basic imports:
-
-```python
-import jax.numpy as jnp
-
-from ripple.waveforms import IMRPhenomXAS
-from ripple import ms_to_Mc_eta
-```
-
-And now we can just set the parameters and call the waveform!
-
-```python
-# Define source parameters
-m1_msun = 20.0           # Primary mass (solar masses)
-m2_msun = 19.0           # Secondary mass (solar masses)
-chi1 = 0.5               # Primary dimensionless spin
-chi2 = -0.5              # Secondary dimensionless spin
-tc = 0.0                 # Time of coalescence (seconds)
-phic = 0.0               # Phase at coalescence (radians)
-dist_mpc = 440           # Luminosity distance (Mpc)
-inclination = 0.0        # Inclination angle (radians)
-
-# Convert to chirp mass and symmetric mass ratio
-Mc, eta = ms_to_Mc_eta(jnp.array([m1_msun, m2_msun]))
-
-# Construct parameter array
-# Note: JAX does not raise index errors, so ensure the array is correctly ordered
-theta_ripple = jnp.array([Mc, eta, chi1, chi2, dist_mpc, tc, phic, inclination])
-
-# Generate frequency grid
-f_l = 24                 # Lower frequency bound (Hz)
-f_u = 512                # Upper frequency bound (Hz)
-del_f = 0.01             # Frequency resolution (Hz)
-fs = jnp.arange(f_l, f_u, del_f)
-f_ref = f_l              # Reference frequency
-
-# Generate the waveform
-hp_ripple, hc_ripple = IMRPhenomXAS.gen_IMRPhenomXAS_hphc(fs, theta_ripple, f_ref)
-
-# For better performance, we recommend JIT-compiling the waveform function.
-# This avoids recompilation overhead when the frequency array length changes:
-
-import jax
-
-@jax.jit
-def waveform(theta):
-    return IMRPhenomXAS.gen_IMRPhenomXAS_hphc(fs, theta)
-```
-
-# Attribution
-
-If you use Ripple in your research, please cite the accompanying paper:
-
-```
+```bibtex
 @article{Edwards:2023sak,
     author = "Edwards, Thomas D. P. and Wong, Kaze W. K. and Lam, Kelvin K. H. and Coogan, Adam and Foreman-Mackey, Daniel and Isi, Maximiliano and Zimmerman, Aaron",
     title = "{Differentiable and hardware-accelerated waveforms for gravitational wave data analysis}",

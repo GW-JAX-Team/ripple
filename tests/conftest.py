@@ -38,4 +38,3 @@ def freq_grid(default_freq_params):
         default_freq_params["f_sampling"],
         default_freq_params["T"],
     )
-

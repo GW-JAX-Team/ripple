@@ -4,7 +4,7 @@ import jax
 import jax.numpy as jnp
 from ..constants import MTSUN, PI
 from jaxtyping import Array
-from ripplegw.conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
+from ..conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from .IMRPhenom_tidal_utils import get_kappa
 from .IMRPhenomD_NRTidalv2 import (
     get_spin_phase_correction,
@@ -21,7 +21,7 @@ from .NRTidalv3_utils import (
     fullTidalPhaseCorrection,
     changePhase_if_min,
 )
-from ripplegw.waveforms import IMRPhenomX_utils
+from . import IMRPhenomX_utils
 from .IMRPhenomXAS import Amp, Phase
 
 
@@ -40,27 +40,17 @@ def _gen_IMRPhenomXAS_NRTidalv3(
     The function takes a BBH strain, computed from an underlying BBH approximant,
     e.g. IMRPhenomD, and applies the tidal corrections to it afterwards.
 
-    Parameters
-    ----------
-    f : Array
-        Frequencies in Hz.
-    f_ref : float
-        Reference frequency for the waveform.
-    theta_intrinsic : Array
-        Intrinsic parameters of the system: [m1, m2, chi1, chi2, lambda1, lambda2].
-    theta_extrinsic : Array
-        Extrinsic parameters of the system: [d_L, tc, phi_c].
-    bbh_amp : Array
-        The BBH amplitude of the underlying model (before applying tidal corrections).
-    bbh_psi : Array
-        The BBH phase of the underlying model (before applying tidal corrections).
-    no_taper : bool, optional
-        Whether to disable tapering. Default is False.
+    Args:
+        f (Array): Frequencies in Hz.
+        f_ref (float): Reference frequency for the waveform.
+        theta_intrinsic (Array): Intrinsic parameters of the system: [m1, m2, chi1, chi2, lambda1, lambda2].
+        theta_extrinsic (Array): Extrinsic parameters of the system: [d_L, tc, phi_c].
+        bbh_amp (Array): The BBH amplitude of the underlying model (before applying tidal corrections).
+        bbh_psi (Array): The BBH phase of the underlying model (before applying tidal corrections).
+        no_taper (bool, optional): Whether to disable tapering. Default is False.
 
-    Returns
-    -------
-    h0 : Array
-        Final complex-valued strain of GW.
+    Returns:
+        Array: Final complex-valued strain of GW.
     """
 
     m1, m2, _, _, lambda1, lambda2 = theta_intrinsic
@@ -83,8 +73,10 @@ def _gen_IMRPhenomXAS_NRTidalv3(
 
     if no_taper:
         P_P = jnp.ones_like(f)
-        P_P_fref = 1.0
-        dphiT = jax.grad(fullTidalPhaseCorrection)(f_final * M_s, theta_intrinsic, 1.0)
+        P_P_fref = jnp.asarray(1.0)
+        dphiT = jax.grad(fullTidalPhaseCorrection)(
+            f_final * M_s, theta_intrinsic, jnp.asarray(1.0)
+        )
         A_P = jnp.ones_like(f)
     else:
         P_P = general_planck_taper(f, 1.15 * f_merger, 1.35 * f_merger)
@@ -166,35 +158,27 @@ def gen_IMRPhenomXAS_NRTidalv3(
     """
     Generate NRTidalv3 frequency domain waveform following 2311.07456.
 
-    Parameters
-    ----------
-    f : Array
-        Frequencies in Hz.
-    params : Array
-        Array containing both intrinsic and extrinsic variables
-        theta = [Mchirp, eta, chi1, chi2, lambda1, lambda2, D, tc, phic]:
+    Args:
+        f (Array): Frequencies in Hz.
+        params (Array): Array containing both intrinsic and extrinsic variables:
+            theta = [Mchirp, eta, chi1, chi2, lambda1, lambda2, D, tc, phic]:
 
-        - Mchirp: Chirp mass of the system [solar masses]
-        - eta: Symmetric mass ratio [between 0.0 and 0.25]
-        - chi1: Dimensionless aligned spin of the primary object [between -1 and 1]
-        - chi2: Dimensionless aligned spin of the secondary object [between -1 and 1]
-        - lambda1: Dimensionless tidal deformability of primary object
-        - lambda2: Dimensionless tidal deformability of secondary object
-        - D: Luminosity distance to source [Mpc]
-        - tc: Time of coalescence. This only appears as an overall linear in f
-          contribution to the phase
-        - phic: Phase of coalescence
-    f_ref : float
-        Reference frequency for the waveform.
-    use_lambda_tildes : bool, optional
-        Use lambda tilde and delta lambda instead of lambda1 and lambda2. Default is True.
-    no_taper : bool, optional
-        Whether to disable tapering. Default is False.
+            - Mchirp: Chirp mass of the system [solar masses]
+            - eta: Symmetric mass ratio [between 0.0 and 0.25]
+            - chi1: Dimensionless aligned spin of the primary object [between -1 and 1]
+            - chi2: Dimensionless aligned spin of the secondary object [between -1 and 1]
+            - lambda1: Dimensionless tidal deformability of primary object
+            - lambda2: Dimensionless tidal deformability of secondary object
+            - D: Luminosity distance to source [Mpc]
+            - tc: Time of coalescence. This only appears as an overall linear in f
+            contribution to the phase
+            - phic: Phase of coalescence
+        f_ref (float): Reference frequency for the waveform.
+        use_lambda_tildes (bool, optional): Use lambda tilde and delta lambda instead of lambda1 and lambda2. Default is True.
+        no_taper (bool, optional): Whether to disable tapering. Default is False.
 
-    Returns
-    -------
-    h0 : Array
-        Strain.
+    Returns:
+        h0 (Array): Strain.
     """
 
     # Get component masses
@@ -239,38 +223,29 @@ def gen_IMRPhenomXAS_NRTidalv3_hphc(
     IMRPhenom denotes the name of the underlying BBH approximant used, before
     applying tidal corrections.
 
-    Parameters
-    ----------
-    f : Array
-        Frequencies in Hz.
-    params : Array
-        Array containing both intrinsic and extrinsic variables
-        theta = [Mchirp, eta, chi1, chi2, lambda1, lambda2, D, tc, phic, inclination]:
+    Args:
+        f (Array): Frequencies in Hz.
+        params (Array): Array containing both intrinsic and extrinsic variables:
+            theta = [Mchirp, eta, chi1, chi2, lambda1, lambda2, D, tc, phic, inclination]:
 
-        - Mchirp: Chirp mass of the system [solar masses]
-        - eta: Symmetric mass ratio [between 0.0 and 0.25]
-        - chi1: Dimensionless aligned spin of the primary object [between -1 and 1]
-        - chi2: Dimensionless aligned spin of the secondary object [between -1 and 1]
-        - lambda1: Dimensionless tidal deformability of primary object
-        - lambda2: Dimensionless tidal deformability of secondary object
-        - D: Luminosity distance to source [Mpc]
-        - tc: Time of coalescence. This only appears as an overall linear in f
-          contribution to the phase
-        - phic: Phase of coalescence
-        - inclination: Inclination angle of the binary [between 0 and PI]
-    f_ref : float
-        Reference frequency for the waveform.
-    use_lambda_tildes : bool, optional
-        Use lambda tilde and delta lambda instead of lambda1 and lambda2. Default is True.
-    no_taper : bool, optional
-        Whether to disable tapering. Default is False.
+            - Mchirp: Chirp mass of the system [solar masses]
+            - eta: Symmetric mass ratio [between 0.0 and 0.25]
+            - chi1: Dimensionless aligned spin of the primary object [between -1 and 1]
+            - chi2: Dimensionless aligned spin of the secondary object [between -1 and 1]
+            - lambda1: Dimensionless tidal deformability of primary object
+            - lambda2: Dimensionless tidal deformability of secondary object
+            - D: Luminosity distance to source [Mpc]
+            - tc: Time of coalescence. This only appears as an overall linear in f
+            contribution to the phase
+            - phic: Phase of coalescence
+            - inclination: Inclination angle of the binary [between 0 and PI]
+        f_ref (float): Reference frequency for the waveform.
+        use_lambda_tildes (bool, optional): Use lambda tilde and delta lambda instead of lambda1 and lambda2. Default is True.
+        no_taper (bool, optional): Whether to disable tapering. Default is False.
 
-    Returns
-    -------
-    hp : Array
-        Strain of the plus polarization.
-    hc : Array
-        Strain of the cross polarization.
+    Returns:
+        hp (Array): Strain of the plus polarization.
+        hc (Array): Strain of the cross polarization.
     """
     iota = params[-1]
     h0 = gen_IMRPhenomXAS_NRTidalv3(

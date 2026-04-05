@@ -71,11 +71,19 @@ def check_is_tidal(waveform_name: str) -> bool:
         ValueError: If the waveform is not supported.
     """
     bns_waveforms = ["IMRPhenomD_NRTidalv2", "TaylorF2", "IMRPhenomXAS_NRTidalv3"]
-    bbh_waveforms = ["IMRPhenomD", "IMRPhenomXAS", "IMRPhenomPv2", "SineGaussian"]
+    bbh_waveforms = [
+        "IMRPhenomD",
+        "IMRPhenomXAS",
+        "IMRPhenomPv2",
+        "IMRPhenomXPHM",
+        "SineGaussian",
+    ]
 
     all_waveforms = bns_waveforms + bbh_waveforms
     if waveform_name not in all_waveforms:
-        raise ValueError(f"Waveform approximant {waveform_name} not supported by ripple")
+        raise ValueError(
+            f"Waveform approximant {waveform_name} not supported by ripple"
+        )
 
     return waveform_name in bns_waveforms
 
@@ -89,7 +97,7 @@ def check_is_precessing(waveform_name: str) -> bool:
     Returns:
         True if the waveform includes precession, False otherwise.
     """
-    precessing_waveforms = ["IMRPhenomPv2"]
+    precessing_waveforms = ["IMRPhenomPv2", "IMRPhenomXPHM"]
     return waveform_name in precessing_waveforms
 
 
@@ -108,7 +116,9 @@ def get_jitted_waveform(waveform_name: str, fs: jnp.ndarray, f_ref: float):
         ValueError: If the waveform is not supported.
     """
     if waveform_name == "IMRPhenomD":
-        from ripplegw.waveforms.IMRPhenomD import gen_IMRPhenomD_hphc as waveform_generator
+        from ripplegw.waveforms.IMRPhenomD import (
+            gen_IMRPhenomD_hphc as waveform_generator,
+        )
 
         @jax.jit
         def waveform(theta):
@@ -154,11 +164,39 @@ def get_jitted_waveform(waveform_name: str, fs: jnp.ndarray, f_ref: float):
             return hp, hc
 
     elif waveform_name == "IMRPhenomPv2":
-        from ripplegw.waveforms.IMRPhenomPv2 import gen_IMRPhenomPv2_hphc as waveform_generator
+        from ripplegw.waveforms.IMRPhenomPv2 import (
+            gen_IMRPhenomPv2_hphc as waveform_generator,
+        )
 
         @jax.jit
         def waveform(theta):
             hp, hc = waveform_generator(fs, theta, f_ref)
+            return hp, hc
+
+    elif waveform_name == "IMRPhenomXPHM":
+        from ripplegw.waveforms.IMRPhenomXPHM import generate_xphm
+        from ripplegw.conversions import Mc_eta_to_ms
+
+        @jax.jit
+        def waveform(theta):
+            # theta = [Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, tc, phic, inclination]
+            # consistent with the precessing-waveform convention used by this test suite
+            m1, m2 = Mc_eta_to_ms(jnp.array([theta[0], theta[1]]))
+            hp, hc = generate_xphm(
+                m1,
+                m2,
+                theta[2],
+                theta[3],
+                theta[4],
+                theta[5],
+                theta[6],
+                theta[7],
+                theta[8],  # distance in Mpc
+                theta[11],  # inclination
+                theta[10],  # phi0
+                fs,
+                f_ref,
+            )
             return hp, hc
 
     elif waveform_name == "SineGaussian":
@@ -170,7 +208,9 @@ def get_jitted_waveform(waveform_name: str, fs: jnp.ndarray, f_ref: float):
             return hp, hc
 
     else:
-        raise ValueError(f"Waveform approximant {waveform_name} not supported by ripple")
+        raise ValueError(
+            f"Waveform approximant {waveform_name} not supported by ripple"
+        )
 
     return waveform
 
@@ -200,12 +240,14 @@ def get_lal_waveform(
 
     Returns:
         Tuple (hp, hc) of LAL waveform strains evaluated on the frequency grid.
+        For IMRPhenomXPHM, uses PrecVersion=222 which raises on MSA init
+        failure (instead of 223 which silently falls back to NNLO).
 
     Raises:
         ImportError: If LALSuite is not available.
     """
     check_lal_available()
-    
+
     # Convert JAX arrays to Python floats if necessary
     f_l = float(f_l)
     f_u = float(f_u)
@@ -214,7 +256,58 @@ def get_lal_waveform(
 
     approximant = lalsim.SimInspiralGetApproximantFromString(waveform_name)
 
-    if is_precessing:
+    if waveform_name == "IMRPhenomXPHM":
+        # XPHM requires SimIMRPhenomXPHM directly with MSA prescription params.
+        # SimInspiralChooseFDWaveform cannot set the PhenomXPrecVersion flag needed
+        # to guarantee the MSA prescription that the ripple implementation uses.
+        # theta = [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, tc, phic, inclination]
+        m1_kg = theta[0] * lal.MSUN_SI
+        m2_kg = theta[1] * lal.MSUN_SI
+        s1x, s1y, s1z = theta[2], theta[3], theta[4]
+        s2x, s2y, s2z = theta[5], theta[6], theta[7]
+        distance = theta[8] * 1e6 * lal.PC_SI
+        phi_ref = theta[10]
+        inclination = theta[11]
+
+        def _make_xphm_params(prec_version):
+            p = lal.CreateDict()
+            ModeArray = lalsim.SimInspiralCreateModeArray()
+            for el, em in [(2, 1), (2, 2), (3, 2), (3, 3), (4, 4)]:
+                lalsim.SimInspiralModeArrayActivateMode(ModeArray, el, em)
+            lalsim.SimInspiralWaveformParamsInsertModeArray(p, ModeArray)
+            lalsim.SimInspiralWaveformParamsInsertPhenomXPHMTwistPhenomHM(p, 1)
+            lalsim.SimInspiralWaveformParamsInsertPhenomXPHMMBandVersion(p, 0)
+            lalsim.SimInspiralWaveformParamsInsertPhenomXPHMThresholdMband(p, 0.0)
+            lalsim.SimInspiralWaveformParamsInsertPhenomXPrecVersion(p, prec_version)
+            return p
+
+        def _call_xphm(lalparams):
+            return lalsim.SimIMRPhenomXPHM(
+                m1_kg,
+                m2_kg,
+                s1x,
+                s1y,
+                s1z,
+                s2x,
+                s2y,
+                s2z,
+                distance,
+                inclination,
+                phi_ref,
+                f_l,
+                f_u,
+                df,
+                f_ref,
+                lalparams,
+            )
+
+        # Use PrecVersion=222: identical to 223 (same MSA expressions from
+        # LALSimInspiralFDPrecAngles, same PN coefficients L3/L5) but raises a
+        # terminal error on MSA init failure instead of silently falling back to
+        # NNLO angles.  The caller detects the exception and excludes the sample
+        # from the mismatch assertion and histogram.
+        hp, hc = _call_xphm(_make_xphm_params(222))
+    elif is_precessing:
         # Precessing waveform: theta = [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
         m1_kg = theta[0] * lal.MSUN_SI
         m2_kg = theta[1] * lal.MSUN_SI
@@ -378,7 +471,7 @@ def compute_match(
     h2_sq = noise_weighted_inner_product(h2, h2, psd, frequencies)
     h1_h2 = _noise_weighted_inner_product_complex(h1, h2, psd, frequencies)
     match = jnp.abs(h1_h2) / jnp.sqrt(h1_sq * h2_sq)
-    return float(match.real)
+    return match.real
 
 
 def generate_random_params(
@@ -462,9 +555,7 @@ def generate_random_params(
         booleans = theta[:, 0] < theta[:, 1]
         booleans = np.repeat(booleans[:, np.newaxis], theta.shape[1], axis=1)
         if is_tidal:
-            theta = np.where(
-                booleans, theta[:, [1, 0, 3, 2, 5, 4, 6, 7, 8, 9]], theta
-            )
+            theta = np.where(booleans, theta[:, [1, 0, 3, 2, 5, 4, 6, 7, 8, 9]], theta)
         else:
             theta = np.where(booleans, theta[:, [1, 0, 3, 2, 4, 5, 6, 7]], theta)
     else:

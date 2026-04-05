@@ -1,11 +1,11 @@
 # from math import PI
 import jax
 import jax.numpy as jnp
-from ..constants import EulerGamma, MTSUN, MPC, C, PI
-from ripplegw.waveforms import IMRPhenomX_utils
-from jaxtyping import Array
+from ..constants import EULERGAMMA, MTSUN, MPC, C, PI
+from . import IMRPhenomX_utils
+from jaxtyping import Array, Float
 
-from ripplegw.conversions import Mc_eta_to_ms
+from ..conversions import Mc_eta_to_ms
 
 eqspin_indx = 10
 uneqspin_indx = 39
@@ -84,7 +84,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, phase_coeffs: Array) -> Array:
             11583231236531.0 / 4.69421568e9
             - (5.0 * eta * (3147553127.0 + 588.0 * eta * (-45633.0 + 102260.0 * eta)))
             / 3.048192e6
-            - (6848.0 * EulerGamma) / 21.0
+            - (6848.0 * EULERGAMMA) / 21.0
             - (640.0 * PI**2.0) / 3.0
             + (2255.0 * eta * PI**2.0) / 12.0
             - (13696.0 * jnp.log(2.0)) / 21.0
@@ -546,7 +546,7 @@ def get_intermediate_raw_phase(
 
 def get_mergerringdown_raw_phase(
     fM_s: Array, theta: Array, phase_coeffs: Array
-) -> Array:
+) -> tuple[Array, tuple[Array, Array]]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -717,7 +717,9 @@ def get_mergerringdown_raw_phase(
     return phiRD, (cL, CV_phase_RD0)
 
 
-def Phase(f: Array, theta: Array, phase_coeffs: Array) -> Array:
+def Phase(
+    f: Float[Array, " n_freq"] | float, theta: Array, phase_coeffs: Array
+) -> Array:
     """
     Computes the phase of the PhenomD waveform following 1508.07253.
     Sets time and phase of coealence to be zero.
@@ -794,7 +796,7 @@ def Phase(f: Array, theta: Array, phase_coeffs: Array) -> Array:
     return phase
 
 
-def get_Amp0(fM_s: Array, eta: float) -> Array:
+def get_Amp0(fM_s: Array, eta: Float) -> Array:
     Amp0 = (
         (2.0 / 3.0 * eta) ** (1.0 / 2.0) * (fM_s) ** (-7.0 / 6.0) * PI ** (-1.0 / 6.0)
     )
@@ -1203,7 +1205,7 @@ def get_mergerringdown_Amp(
     fM_s: Array,
     theta: Array,
     amp_coeffs: Array,
-) -> Array:
+) -> tuple[Array, Array]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -1278,7 +1280,7 @@ def get_mergerringdown_Amp(
     return Amp_RD, fMs_AmpRDMin
 
 
-def Amp(f: Array, theta: Array, amp_coeffs: Array, D=1.0) -> Array:
+def Amp(f: Array, theta: Array, amp_coeffs: Array, D: Float = 1.0) -> Array:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN

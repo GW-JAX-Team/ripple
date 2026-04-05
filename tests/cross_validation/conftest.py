@@ -11,7 +11,6 @@ from datetime import datetime
 from pathlib import Path
 
 import jax
-import numpy as np
 import pytest
 
 
@@ -19,18 +18,34 @@ import pytest
 # Session-level results store
 # ---------------------------------------------------------------------------
 
+
 def pytest_configure(config):
     """Attach a shared results store to the pytest config object."""
     config._cross_val_results = []
 
 
 def pytest_addoption(parser):
-    """Register --n-samples CLI option."""
+    """Register CLI options for cross-validation tests."""
     parser.addoption(
         "--n-samples",
         type=int,
         default=10,
-        help="Number of random parameter sets per waveform (default: 10; use 200 for a full run)",
+        help="Number of random parameter sets per waveform (default: 10)",
+    )
+    parser.addoption(
+        "--cache-lal",
+        action="store_true",
+        default=False,
+        help="Cache LAL waveforms to disk and reuse on subsequent runs (default: off)",
+    )
+    parser.addoption(
+        "--T",
+        type=float,
+        default=None,
+        help=(
+            "Segment duration in seconds. Overrides the per-family defaults "
+            "(BBH: 32 s, BNS: 128 s) when provided."
+        ),
     )
 
 
@@ -38,6 +53,13 @@ def pytest_addoption(parser):
 def n_samples(request):
     """Number of random samples to test per waveform (set via --n-samples)."""
     return request.config.getoption("--n-samples")
+
+
+@pytest.fixture(scope="session")
+def cache_lal(request):
+    """Whether to cache/reuse LAL waveforms on disk (set via --cache-lal)."""
+    return request.config.getoption("--cache-lal")
+
 
 @pytest.fixture(scope="session")
 def cross_val_results(request):
@@ -64,6 +86,7 @@ def cross_val_results(request):
 # ---------------------------------------------------------------------------
 # Terminal summary hook
 # ---------------------------------------------------------------------------
+
 
 def _hardware_info() -> dict:
     """Collect hardware / runtime information."""
@@ -108,7 +131,9 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     terminalreporter.write_line(f"  Python     : {hw['python']}")
     terminalreporter.write_line(f"  JAX        : {hw['jax_version']}")
     terminalreporter.write_line(f"  Devices    : {', '.join(hw['jax_devices'])}")
-    terminalreporter.write_line(f"  Precision  : {hw['float_dtype']} (x64_enabled={hw['x64_enabled']})")
+    terminalreporter.write_line(
+        f"  Precision  : {hw['float_dtype']} (x64_enabled={hw['x64_enabled']})"
+    )
     terminalreporter.write_line(f"  Timestamp  : {hw['timestamp']}")
     terminalreporter.write_line("")
 
@@ -152,8 +177,16 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     terminalreporter.write_sep("=", "")
 
     # ---- persist metadata to disk ----------------------------------------
-    results_dir = Path(__file__).parent / "results"
-    results_dir.mkdir(exist_ok=True)
+    # Mirror the run-tag subdirectory scheme used by the test (n{N}_T{T}).
+    n_samples_opt = config.getoption("--n-samples", default=10)
+    T_opt = config.getoption("--T", default=None)
+    if T_opt is None:
+        T_str = "Tdefault"
+    else:
+        T_str = f"T{int(T_opt)}" if T_opt == int(T_opt) else f"T{T_opt}"
+    run_tag = f"n{n_samples_opt}_{T_str}"
+    results_dir = Path(__file__).parent / "results" / run_tag
+    results_dir.mkdir(parents=True, exist_ok=True)
     metadata = {
         "hardware": hw,
         "waveforms": results,
