@@ -151,7 +151,7 @@ def create_time_per_waveform_plot(
     ax.grid(axis="y", alpha=0.3, linestyle="--")
 
     def autolabel(bars, stds):
-        for bar, std in zip(bars, stds):
+        for bar, std in zip(bars, stds, strict=True):
             height = bar.get_height()
             if not math.isnan(height):
                 y_pos = height + std
@@ -254,7 +254,7 @@ def create_throughput_plot(
     ax.grid(axis="y", alpha=0.3, linestyle="--")
 
     def autolabel(bars, stds):
-        for bar, std in zip(bars, stds):
+        for bar, std in zip(bars, stds, strict=True):
             height = bar.get_height()
             if not math.isnan(height):
                 y_pos = height + std
