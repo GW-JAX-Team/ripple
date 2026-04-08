@@ -169,7 +169,7 @@ class TaylorF2(Waveform):
         Args:
             f_ref (float): Reference frequency in Hz. Defaults to 20.0.
             use_lambda_tildes (bool): Whether to parameterise tidal deformability
-                via ``lambda_tilde`` / ``delta_lambda_tilde`` (as in Eq. 5–6 of
+                via ``lambda_tilde`` / ``delta_lambda_tilde`` (as in Eq. 5-6 of
                 arXiv:1402.5156) instead of ``lambda_1`` / ``lambda_2``.
                 Defaults to False.
         """
