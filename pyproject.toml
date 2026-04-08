@@ -1,7 +1,7 @@
 [project]
 name = "ripplegw"
 dynamic = ["version"]
-description = "A small jax package for differentiable and fast gravitational wave data analysis."
+description = "A JAX-based package for differentiable gravitational-wave waveform generation"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
