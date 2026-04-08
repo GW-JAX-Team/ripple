@@ -283,7 +283,6 @@ def gen_TaylorF2(f: Array, params: Array, f_ref: float, use_lambda_tildes: bool 
     f_ref: Reference frequency for the waveform
 
     Returns:
-    --------
         h0 (array): Strain
     """
     # Lets make this easier by starting in Mchirp and eta space
@@ -324,7 +323,6 @@ def gen_TaylorF2_hphc(
     f_ref: Reference frequency for the waveform
 
     Returns:
-    --------
         hp (array): Strain of the plus polarization
         hc (array): Strain of the cross polarization
     """

@@ -66,6 +66,8 @@ jobs:
       url: https://pypi.org/project/ripplegw/
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v7
       - name: Build package
         run: uv build

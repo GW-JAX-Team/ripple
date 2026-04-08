@@ -1,6 +1,6 @@
 [project]
 name = "ripplegw"
-version = "0.0.9"
+dynamic = ["version"]
 description = "A small jax package for differentiable and fast gravitational wave data analysis."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -71,8 +71,12 @@ Changelog = "https://github.com/GW-JAX-Team/ripple/releases"
 ripplegw = { workspace = true }
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+fallback-version = "0.1.0"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

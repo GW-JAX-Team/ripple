@@ -725,7 +725,6 @@ def Phase(
     Sets time and phase of coealence to be zero.
 
     Returns:
-    --------
         phase (array): Phase of the GW as a function of frequency
     """
     m1, m2, chi1, chi2 = theta
@@ -1378,7 +1377,6 @@ def gen_IMRPhenomXAS(f: Array, params: Array, f_ref: float):
     phic: Phase of coalesence
 
     Returns:
-    --------
       h0 (array): Complex gravitational wave strain
     """
     # Lets make this easier by starting in Mchirp and eta space
@@ -1411,7 +1409,6 @@ def gen_IMRPhenomXAS_hphc(f: Array, params: Array, f_ref: float):
     f_ref: Reference frequency for the waveform
 
     Returns:
-    --------
       hp (array): Strain of the plus polarization
       hc (array): Strain of the cross polarization
     """

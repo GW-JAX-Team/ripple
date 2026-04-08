@@ -407,7 +407,6 @@ def gen_IMRPhenomD_NRTidalv2(
     f_ref: Reference frequency for the waveform
 
     Returns:
-    --------
         h0 (array): Strain
     """
 
@@ -488,7 +487,6 @@ def gen_IMRPhenomD_NRTidalv2_hphc(
     f_ref: Reference frequency for the waveform
 
     Returns:
-    --------
         hp (array): Strain of the plus polarization
         hc (array): Strain of the cross polarization
     """
