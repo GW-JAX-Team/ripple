@@ -15,24 +15,63 @@ from .conversions import Mc_eta_to_ms
 
 
 class Waveform(ABC):
+    """Abstract base class for gravitational waveform models.
+
+    Subclasses implement the frequency- (or time-) domain waveform and expose it
+    via ``__call__``, returning a dictionary with polarization keys ``"p"`` (plus)
+    and ``"c"`` (cross).
+    """
+
     def __init__(self):
         return NotImplemented
 
     def __call__(
         self, axis: Float[Array, " n_freq"], params: dict[str, Float]
     ) -> dict[str, Float[Array, " n_freq"]]:
+        """Evaluate the waveform.
+
+        Args:
+            axis (Float[Array, " n_freq"]): Frequency (or time) grid.
+            params (dict[str, Float]): Source parameter dictionary.
+
+        Returns:
+            dict[str, Float[Array, " n_freq"]]: Dictionary with keys ``"p"``
+                (plus polarization) and ``"c"`` (cross polarization).
+        """
         return NotImplemented
 
 
 class IMRPhenomD(Waveform):
+    """IMRPhenomD frequency-domain waveform (non-precessing, aligned spins).
+
+    Attributes:
+        f_ref (float): Reference frequency in Hz.
+    """
+
     f_ref: float
 
-    def __init__(self, f_ref: float = 20.0):
+    def __init__(self, f_ref: float = 20.0) -> None:
+        """
+        Args:
+            f_ref (float): Reference frequency in Hz. Defaults to 20.0.
+        """
         self.f_ref = f_ref
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
     ) -> dict[str, Float[Array, " n_freq"]]:
+        """Evaluate the IMRPhenomD waveform.
+
+        Args:
+            frequency (Float[Array, " n_freq"]): Frequency array in Hz.
+            params (dict[str, Float]): Source parameters with keys
+                ``M_c``, ``eta``, ``s1_z``, ``s2_z``, ``d_L``,
+                ``phase_c``, ``iota``.
+
+        Returns:
+            dict[str, Float[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
+                polarizations.
+        """
         output = {}
         theta = jnp.array(
             [
@@ -56,14 +95,36 @@ class IMRPhenomD(Waveform):
 
 
 class IMRPhenomPv2(Waveform):
+    """IMRPhenomPv2 frequency-domain waveform (precessing spins).
+
+    Attributes:
+        f_ref (float): Reference frequency in Hz.
+    """
+
     f_ref: float
 
-    def __init__(self, f_ref: float = 20.0):
+    def __init__(self, f_ref: float = 20.0) -> None:
+        """
+        Args:
+            f_ref (float): Reference frequency in Hz. Defaults to 20.0.
+        """
         self.f_ref = f_ref
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
     ) -> dict[str, Float[Array, " n_freq"]]:
+        """Evaluate the IMRPhenomPv2 waveform.
+
+        Args:
+            frequency (Float[Array, " n_freq"]): Frequency array in Hz.
+            params (dict[str, Float]): Source parameters with keys
+                ``M_c``, ``eta``, ``s1_x``, ``s1_y``, ``s1_z``,
+                ``s2_x``, ``s2_y``, ``s2_z``, ``d_L``, ``phase_c``, ``iota``.
+
+        Returns:
+            dict[str, Float[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
+                polarizations.
+        """
         output = {}
         theta = jnp.array(
             [
@@ -91,16 +152,44 @@ class IMRPhenomPv2(Waveform):
 
 
 class TaylorF2(Waveform):
+    """TaylorF2 post-Newtonian frequency-domain waveform including tidal effects.
+
+    Attributes:
+        f_ref (float): Reference frequency in Hz.
+        use_lambda_tildes (bool): If True, expects ``lambda_tilde`` and
+            ``delta_lambda_tilde``; otherwise expects ``lambda_1`` and ``lambda_2``.
+    """
+
     f_ref: float
     use_lambda_tildes: bool
 
-    def __init__(self, f_ref: float = 20.0, use_lambda_tildes: bool = False):
+    def __init__(self, f_ref: float = 20.0, use_lambda_tildes: bool = False) -> None:
+        """
+        Args:
+            f_ref (float): Reference frequency in Hz. Defaults to 20.0.
+            use_lambda_tildes (bool): Whether to parameterise tidal deformability
+                via ``lambda_tilde`` / ``delta_lambda_tilde`` (as in Eq. 5–6 of
+                arXiv:1402.5156) instead of ``lambda_1`` / ``lambda_2``.
+                Defaults to False.
+        """
         self.f_ref = f_ref
         self.use_lambda_tildes = use_lambda_tildes
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
     ) -> dict[str, Float[Array, " n_freq"]]:
+        """Evaluate the TaylorF2 waveform.
+
+        Args:
+            frequency (Float[Array, " n_freq"]): Frequency array in Hz.
+            params (dict[str, Float]): Source parameters with keys ``M_c``,
+                ``eta``, ``s1_z``, ``s2_z``, ``d_L``, ``phase_c``, ``iota``,
+                plus tidal keys depending on ``use_lambda_tildes``.
+
+        Returns:
+            dict[str, Float[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
+                polarizations.
+        """
         output = {}
 
         if self.use_lambda_tildes:
@@ -136,6 +225,15 @@ class TaylorF2(Waveform):
 
 
 class IMRPhenomD_NRTidalv2(Waveform):
+    """IMRPhenomD_NRTidalv2 frequency-domain waveform (non-precessing, NRTidalv2 tides).
+
+    Attributes:
+        f_ref (float): Reference frequency in Hz.
+        use_lambda_tildes (bool): If True, expects ``lambda_tilde`` /
+            ``delta_lambda_tilde``; otherwise ``lambda_1`` / ``lambda_2``.
+        no_taper (bool): If True, the Planck taper in the amplitude is disabled.
+    """
+
     f_ref: float
     use_lambda_tildes: bool
 
@@ -144,14 +242,16 @@ class IMRPhenomD_NRTidalv2(Waveform):
         f_ref: float = 20.0,
         use_lambda_tildes: bool = False,
         no_taper: bool = False,
-    ):
+    ) -> None:
         """
-        Initialize the waveform.
-
         Args:
-            f_ref (float, optional): Reference frequency in Hz. Defaults to 20.0.
-            use_lambda_tildes (bool, optional): Whether we sample over lambda_tilde and delta_lambda_tilde, as defined for instance in Equation (5) and Equation (6) of arXiv:1402.5156, rather than lambda_1 and lambda_2. Defaults to False.
-            no_taper (bool, optional): Whether to remove the Planck taper in the amplitude of the waveform, which we use for relative binning runs. Defaults to False.
+            f_ref (float): Reference frequency in Hz. Defaults to 20.0.
+            use_lambda_tildes (bool): Whether to parameterise tidal deformability
+                via ``lambda_tilde`` / ``delta_lambda_tilde`` (Eq. 5-6 of
+                arXiv:1402.5156) instead of ``lambda_1`` / ``lambda_2``.
+                Defaults to False.
+            no_taper (bool): Whether to remove the Planck taper in the amplitude
+                (useful for relative binning runs). Defaults to False.
         """
         self.f_ref = f_ref
         self.use_lambda_tildes = use_lambda_tildes
@@ -160,6 +260,18 @@ class IMRPhenomD_NRTidalv2(Waveform):
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
     ) -> dict[str, Float[Array, " n_freq"]]:
+        """Evaluate the IMRPhenomD_NRTidalv2 waveform.
+
+        Args:
+            frequency (Float[Array, " n_freq"]): Frequency array in Hz.
+            params (dict[str, Float]): Source parameters with keys ``M_c``,
+                ``eta``, ``s1_z``, ``s2_z``, ``d_L``, ``phase_c``, ``iota``,
+                plus tidal keys depending on ``use_lambda_tildes``.
+
+        Returns:
+            dict[str, Float[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
+                polarizations.
+        """
         output = {}
 
         if self.use_lambda_tildes:
@@ -200,14 +312,36 @@ class IMRPhenomD_NRTidalv2(Waveform):
 
 
 class IMRPhenomXAS(Waveform):
+    """IMRPhenomXAS frequency-domain waveform (non-precessing, aligned spins, X family).
+
+    Attributes:
+        f_ref (float): Reference frequency in Hz.
+    """
+
     f_ref: float
 
-    def __init__(self, f_ref: float = 20.0):
+    def __init__(self, f_ref: float = 20.0) -> None:
+        """
+        Args:
+            f_ref (float): Reference frequency in Hz. Defaults to 20.0.
+        """
         self.f_ref = f_ref
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
     ) -> dict[str, Float[Array, " n_freq"]]:
+        """Evaluate the IMRPhenomXAS waveform.
+
+        Args:
+            frequency (Float[Array, " n_freq"]): Frequency array in Hz.
+            params (dict[str, Float]): Source parameters with keys
+                ``M_c``, ``eta``, ``s1_z``, ``s2_z``, ``d_L``,
+                ``phase_c``, ``iota``.
+
+        Returns:
+            dict[str, Float[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
+                polarizations.
+        """
         output = {}
         theta = jnp.array(
             [
@@ -231,6 +365,15 @@ class IMRPhenomXAS(Waveform):
 
 
 class IMRPhenomXAS_NRTidalv3(Waveform):
+    """IMRPhenomXAS_NRTidalv3 frequency-domain waveform (non-precessing, NRTidalv3 tides).
+
+    Attributes:
+        f_ref (float): Reference frequency in Hz.
+        use_lambda_tildes (bool): If True, expects ``lambda_tilde`` /
+            ``delta_lambda_tilde``; otherwise ``lambda_1`` / ``lambda_2``.
+        no_taper (bool): If True, the Planck taper in the amplitude is disabled.
+    """
+
     f_ref: float
     use_lambda_tildes: bool
     no_taper: bool
@@ -240,14 +383,15 @@ class IMRPhenomXAS_NRTidalv3(Waveform):
         f_ref: float = 20.0,
         use_lambda_tildes: bool = False,
         no_taper: bool = False,
-    ):
+    ) -> None:
         """
-        Initialize the waveform.
-
         Args:
-            f_ref (float, optional): Reference frequency in Hz. Defaults to 20.0.
-            use_lambda_tildes (bool, optional): Whether we sample over lambda_tilde and delta_lambda_tilde rather than lambda_1 and lambda_2. Defaults to False.
-            no_taper (bool, optional): Whether to disable tapering. Defaults to False.
+            f_ref (float): Reference frequency in Hz. Defaults to 20.0.
+            use_lambda_tildes (bool): Whether to parameterise tidal deformability
+                via ``lambda_tilde`` / ``delta_lambda_tilde`` rather than
+                ``lambda_1`` / ``lambda_2``. Defaults to False.
+            no_taper (bool): Whether to disable tapering (useful for relative
+                binning runs). Defaults to False.
         """
         self.f_ref = f_ref
         self.use_lambda_tildes = use_lambda_tildes
@@ -256,6 +400,18 @@ class IMRPhenomXAS_NRTidalv3(Waveform):
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
     ) -> dict[str, Float[Array, " n_freq"]]:
+        """Evaluate the IMRPhenomXAS_NRTidalv3 waveform.
+
+        Args:
+            frequency (Float[Array, " n_freq"]): Frequency array in Hz.
+            params (dict[str, Float]): Source parameters with keys ``M_c``,
+                ``eta``, ``s1_z``, ``s2_z``, ``d_L``, ``phase_c``, ``iota``,
+                plus tidal keys depending on ``use_lambda_tildes``.
+
+        Returns:
+            dict[str, Float[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
+                polarizations.
+        """
         output = {}
 
         if self.use_lambda_tildes:
@@ -295,14 +451,36 @@ class IMRPhenomXAS_NRTidalv3(Waveform):
 
 
 class IMRPhenomXPHM(Waveform):
+    """IMRPhenomXPHM frequency-domain waveform (precessing spins, higher-order modes).
+
+    Attributes:
+        f_ref (float): Reference frequency in Hz.
+    """
+
     f_ref: float
 
-    def __init__(self, f_ref: float = 20.0):
+    def __init__(self, f_ref: float = 20.0) -> None:
+        """
+        Args:
+            f_ref (float): Reference frequency in Hz. Defaults to 20.0.
+        """
         self.f_ref = f_ref
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
     ) -> dict[str, Float[Array, " n_freq"]]:
+        """Evaluate the IMRPhenomXPHM waveform.
+
+        Args:
+            frequency (Float[Array, " n_freq"]): Frequency array in Hz.
+            params (dict[str, Float]): Source parameters with keys
+                ``M_c``, ``eta``, ``s1_x``, ``s1_y``, ``s1_z``,
+                ``s2_x``, ``s2_y``, ``s2_z``, ``d_L``, ``iota``, ``phase_c``.
+
+        Returns:
+            dict[str, Float[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
+                polarizations.
+        """
         output = {}
         m1, m2 = Mc_eta_to_ms(jnp.array([params["M_c"], params["eta"]]))
         hp, hc = generate_xphm(
@@ -329,7 +507,9 @@ class IMRPhenomXPHM(Waveform):
 
 
 class SineGaussian(Waveform):
-    def __init__(self):
+    """Sine-Gaussian time-domain burst waveform."""
+
+    def __init__(self) -> None:
         pass
 
     def __call__(
@@ -362,7 +542,10 @@ class SineGaussian(Waveform):
         return "SineGaussian()"
 
 
-waveform_preset = {
+#: Mapping from model name strings to :class:`Waveform` subclasses.
+#: Useful for selecting waveform models by name at runtime, e.g. from a
+#: configuration file.
+waveform_preset: dict[str, type[Waveform]] = {
     "IMRPhenomD": IMRPhenomD,
     "IMRPhenomPv2": IMRPhenomPv2,
     "TaylorF2": TaylorF2,

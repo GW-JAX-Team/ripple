@@ -283,13 +283,13 @@ def run_timing(args):
                 "Running precessing waveform timing benchmark (note: XPHM is separated)..."
             )
             waveform = ripplegw.waveform_preset["IMRPhenomPv2"](
-                f_ref=config["reference_frequency"]
+                f_ref=config["reference_frequency"]  # type: ignore
             )
             batched_params = _prepare_precessing_params(params)
         elif waveform_type == "bns":
             print(f"Running BNS waveform timing benchmark ({args.waveform})...")
             waveform = ripplegw.waveform_preset[args.waveform](
-                f_ref=config["reference_frequency"]
+                f_ref=config["reference_frequency"]  # type: ignore
             )
             batched_params = _prepare_bns_params(params)
         else:
@@ -297,7 +297,7 @@ def run_timing(args):
                 f"Running aligned-spin waveform timing benchmark ({args.waveform})..."
             )
             waveform = ripplegw.waveform_preset[args.waveform](
-                f_ref=config["reference_frequency"]
+                f_ref=config["reference_frequency"]  # type: ignore
             )
             batched_params = _prepare_aligned_params(params)
 

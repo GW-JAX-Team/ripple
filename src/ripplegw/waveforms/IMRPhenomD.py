@@ -426,7 +426,6 @@ def Phase(
     Sets time and phase of coealence to be zero.
 
     Returns:
-    --------
         phase (array): Phase of the GW as a function of frequency
     """
     # First lets calculate some of the vairables that will be used below
@@ -587,7 +586,6 @@ def Amp(
     Note that this waveform also assumes that object one is the more massive.
 
     Returns:
-    --------
       Amplitude (array):
     """
 
@@ -662,7 +660,6 @@ def gen_IMRPhenomD(f: Float[Array, " n_freq"], params: Float[Array, "7"], f_ref:
     f_ref: Reference frequency for the waveform
 
     Returns:
-    --------
       h0 (array): Strain
     """
     # Lets make this easier by starting in Mchirp and eta space
@@ -694,7 +691,6 @@ def gen_IMRPhenomD_hphc(
     f_ref: Reference frequency for the waveform
 
     Returns:
-    --------
       hp (array): Strain of the plus polarization
       hc (array): Strain of the cross polarization
     """
