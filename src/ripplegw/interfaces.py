@@ -39,7 +39,7 @@ class Waveform(ABC):
             dict[str, Float[Array, " n_freq"]]: Dictionary with keys ``"p"``
                 (plus polarization) and ``"c"`` (cross polarization).
         """
-        return NotImplemented
+        raise NotImplementedError("Waveform.__call__ must be implemented by subclasses")
 
 
 class IMRPhenomD(Waveform):
