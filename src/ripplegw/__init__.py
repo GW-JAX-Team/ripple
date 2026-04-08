@@ -1,3 +1,10 @@
+from importlib.metadata import version, PackageNotFoundError
+
+try:
+    __version__ = version("ripplegw")
+except PackageNotFoundError:
+    __version__ = "unknown"
+
 from .interfaces import (
     IMRPhenomD,
     IMRPhenomPv2,
@@ -11,6 +18,7 @@ from .interfaces import (
 )
 
 __all__ = [
+    "__version__",
     "IMRPhenomD",
     "IMRPhenomPv2",
     "TaylorF2",
