@@ -22,6 +22,7 @@ from .IMRPhenomD import Phase as IMRPhenomD_Phase
 from .IMRPhenomD import IMRPhenDAmplitude_NoCut
 from .IMRPhenomD import get_IIb_raw_phase
 from .IMRPhenomPv2_utils import FinalSpin0815
+from .IMRPhenomXHM import build_pWF22, XLALSimIMRPhenomXHMGethlmModes
 
 
 # Phase shift due to leading order complex amplitude
@@ -49,8 +50,6 @@ def generate_xphm(
     """Generate IMRPhenomXPHM plus and cross polarizations."""
     Mf = XLALSimIMRPhenomXUtilsHztoMf(frequency_array, mass_1 + mass_2)
 
-    m1_SI = mass_1 * MSUN
-    m2_SI = mass_2 * MSUN
     Mtot = mass_1 + mass_2
 
     # Overall amplitude prefactor from LAL's XLALSimPhenomUtilsFDamp0:
@@ -59,32 +58,25 @@ def generate_xphm(
     dist_m = distance * MPC  # distance in meters
     amp0 = Mtot * MRSUN * Mtot * MTSUN / dist_m
 
-    extra_params = {
-        "ModeArray": jnp.array(
-            [[2, 1], [2, 2], [3, 2], [3, 3], [4, 4]], dtype=jnp.int32
-        )
-    }
+    # Mode order: [(2,1),(2,2),(3,2),(3,3),(4,4)]
+    _ell_mm_pairs = [(2, 1), (2, 2), (3, 2), (3, 3), (4, 4)]
+    _mode_array = jnp.array([[2, 1], [2, 2], [3, 2], [3, 3], [4, 4]], dtype=jnp.int32)
 
-    hlm = XLALSimIMRPhenomHMGethlmModes(
-        frequency_array,
-        m1_SI,
-        m2_SI,
-        chi1x,
-        chi1y,
-        chi1z,
-        chi2x,
-        chi2y,
-        chi2z,
-        0.0,  # Convention 1: pWF->phi0 = 0 (LALSimIMRPhenomX_precession.c:837).
-        # phiRef enters exclusively through kappa->alpha0->alpha_offset and
-        # zeta_polarization in twistup; passing phi0 here would add a
-        # spurious mm*phiRef phase shift to every mode.
-        frequency_array[1] - frequency_array[0],
-        reference_frequency,
-        extra_params,
-    )
+    # Build 22-mode waveform parameter struct and geometric frequency array.
+    M_s = Mtot * MTSUN  # total mass in seconds
+    freqs_geom = frequency_array * M_s  # dimensionless geometric frequencies
 
-    ells = extra_params["ModeArray"][:, 0]
+    # pWF22 uses only aligned-spin components chi1z, chi2z for t0 and phase.
+    pWF22 = build_pWF22(mass_1, mass_2, chi1z, chi2z, reference_frequency)
+
+    # Generate XHM modes with phi0=0 (same convention as old HM call:
+    # phiRef enters through twistup only, not through mode generation).
+    hlm_dict = XLALSimIMRPhenomXHMGethlmModes(freqs_geom, pWF22, 0.0, _ell_mm_pairs)
+
+    # Stack into (5, n_freqs) array in mode order [(2,1),(2,2),(3,2),(3,3),(4,4)]
+    hlm = jnp.stack([hlm_dict[lm] for lm in _ell_mm_pairs])
+
+    ells = _mode_array[:, 0]
     minus1l = jnp.where(ells % 2 != 0, -1, 1)
     hlms = minus1l[:, None] * hlm * amp0
 

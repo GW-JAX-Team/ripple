@@ -74,6 +74,7 @@ def check_is_tidal(waveform_name: str) -> bool:
     bbh_waveforms = [
         "IMRPhenomD",
         "IMRPhenomXAS",
+        "IMRPhenomXHM",
         "IMRPhenomPv2",
         "IMRPhenomXPHM",
         "SineGaussian",
@@ -171,6 +172,19 @@ def get_jitted_waveform(waveform_name: str, fs: jnp.ndarray, f_ref: float):
         @jax.jit
         def waveform(theta):
             hp, hc = waveform_generator(fs, theta, f_ref)
+            return hp, hc
+
+    elif waveform_name == "IMRPhenomXHM":
+        # Aligned-spin higher-mode waveform.
+        # theta (from test framework) = [Mc, eta, s1z, s2z, dist_mpc, tc, phic, iota]
+        from ripplegw.waveforms.IMRPhenomXHM import gen_IMRPhenomXHM_hphc
+        from ripplegw.conversions import Mc_eta_to_ms
+
+        @jax.jit
+        def waveform(theta):
+            m1, m2 = Mc_eta_to_ms(jnp.array([theta[0], theta[1]]))
+            theta_xhm = jnp.array([m1, m2, theta[2], theta[3], theta[4], theta[5], theta[6], theta[7]])
+            hp, hc = gen_IMRPhenomXHM_hphc(fs, theta_xhm, f_ref)
             return hp, hc
 
     elif waveform_name == "IMRPhenomXPHM":
