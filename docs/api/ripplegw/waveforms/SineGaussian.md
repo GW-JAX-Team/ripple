@@ -1,0 +1,1 @@
+::: ripplegw.waveforms.SineGaussian
