@@ -1,0 +1,89 @@
+[project]
+site_name = "ripple"
+site_url = "https://gw-jax-team.github.io/ripple/"
+site_description = "A JAX-based package for differentiable gravitational-wave waveform generation"
+site_author = "GW JAX Team"
+repo_url = "https://github.com/GW-JAX-Team/ripple"
+repo_name = "GW-JAX-Team/ripple"
+
+extra_javascript = [
+    "javascripts/mathjax.js",
+    "https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js",
+]
+
+nav = [
+    {"Home" = "index.md"},
+    {"Installation" = "installation.md"},
+    {"Quick Start" = "quickstart.md"},
+    {"Tutorials" = [
+        "tutorials/index.md",
+        {"Generating Waveforms" = "tutorials/generating_waveforms.md"},
+    ]},
+    {"FAQ" = "FAQ.md"},
+    {"Contributing" = "contributing.md"},
+    {"API" = [
+        {"constants" = "api/ripplegw/constants.md"},
+        {"conversions" = "api/ripplegw/conversions.md"},
+        {"interfaces" = "api/ripplegw/interfaces.md"},
+        {"Waveforms" = [
+            {"IMRPhenomD" = "api/ripplegw/waveforms/IMRPhenomD.md"},
+            {"IMRPhenomD_NRTidalv2" = "api/ripplegw/waveforms/IMRPhenomD_NRTidalv2.md"},
+            {"IMRPhenomD_QNMdata" = "api/ripplegw/waveforms/IMRPhenomD_QNMdata.md"},
+            {"IMRPhenomD_utils" = "api/ripplegw/waveforms/IMRPhenomD_utils.md"},
+            {"IMRPhenomPv2" = "api/ripplegw/waveforms/IMRPhenomPv2.md"},
+            {"IMRPhenomPv2_utils" = "api/ripplegw/waveforms/IMRPhenomPv2_utils.md"},
+            {"IMRPhenomXAS" = "api/ripplegw/waveforms/IMRPhenomXAS.md"},
+            {"IMRPhenomXAS_NRTidalv3" = "api/ripplegw/waveforms/IMRPhenomXAS_NRTidalv3.md"},
+            {"IMRPhenomXPHM" = "api/ripplegw/waveforms/IMRPhenomXPHM.md"},
+            {"IMRPhenomX_utils" = "api/ripplegw/waveforms/IMRPhenomX_utils.md"},
+            {"IMRPhenom_tidal_utils" = "api/ripplegw/waveforms/IMRPhenom_tidal_utils.md"},
+            {"LALSimIMRPhenomX_precession" = "api/ripplegw/waveforms/LALSimIMRPhenomX_precession.md"},
+            {"NRTidalv3_utils" = "api/ripplegw/waveforms/NRTidalv3_utils.md"},
+            {"SineGaussian" = "api/ripplegw/waveforms/SineGaussian.md"},
+            {"TaylorF2" = "api/ripplegw/waveforms/TaylorF2.md"},
+            {"elliptic_integrals" = "api/ripplegw/waveforms/elliptic_integrals.md"},
+            {"initialize_MSA_system" = "api/ripplegw/waveforms/initialize_MSA_system.md"},
+            {"spherical_harmonics" = "api/ripplegw/waveforms/spherical_harmonics.md"},
+        ]},
+    ]},
+]
+
+[project.theme]
+variant = "modern"
+features = [
+    "navigation.instant",
+    "navigation.tabs",
+    "navigation.top",
+    "toc.follow",
+    "header.autohide",
+]
+
+[project.markdown_extensions.pymdownx.arithmatex]
+generic = true
+
+[project.markdown_extensions.pymdownx.superfences]
+
+[project.markdown_extensions.pymdownx.details]
+
+[project.markdown_extensions.pymdownx.snippets]
+
+[project.markdown_extensions.admonition]
+
+[project.markdown_extensions.toc]
+permalink = "¤"
+toc_depth = 4
+
+[project.plugins.mkdocstrings.handlers.python]
+paths = ["src"]
+
+[project.plugins.mkdocstrings.handlers.python.options]
+docstring_style = "google"
+filters = ["!^logger$"]
+inherited_members = true
+show_root_heading = true
+show_root_full_path = true
+show_if_no_docstring = true
+show_signature_annotations = true
+show_source = false
+members_order = "source"
+heading_level = 3
