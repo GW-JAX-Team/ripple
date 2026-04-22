@@ -30,3 +30,7 @@ docs/_build/
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Zensical generated files
+_zensical_build.toml
+site/
