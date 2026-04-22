@@ -1,0 +1,2032 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A JAX-based package for differentiable gravitational-wave waveform generation">
+      
+      
+        <meta name="author" content="GW JAX Team">
+      
+      
+        <link rel="canonical" href="https://gw-jax-team.github.io/ripple/development/api/ripplegw/waveforms/IMRPhenomX_utils/">
+      
+      
+        <link rel="prev" href="../IMRPhenomXPHM/">
+      
+      
+        <link rel="next" href="../IMRPhenom_tidal_utils/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="zensical-0.0.34">
+    
+    
+      
+        <title>IMRPhenomX utils - ripple</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../../../../assets/stylesheets/modern/main.53a7feaf.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,a=__md_scope)=>JSON.parse(t.getItem(a.pathname+"."+e)),__md_set=(e,t,a=localStorage,_=__md_scope)=>{try{a.setItem(_.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-label="Navigation"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ripplegw.waveforms.IMRPhenomX_utils" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../../.." title="ripple" class="md-header__button md-logo" aria-label="ripple" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer" aria-label="Navigation">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ripple
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              IMRPhenomX utils
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search" aria-label="Search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/GW-JAX-Team/ripple" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GW-JAX-Team/ripple
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../.." class="md-tabs__link">
+        
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../../installation/" class="md-tabs__link">
+        
+  
+  Installation
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../../quickstart/" class="md-tabs__link">
+        
+  
+  Quick Start
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../tutorials/" class="md-tabs__link">
+          
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../../FAQ/" class="md-tabs__link">
+        
+  
+  FAQ
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../../contributing/" class="md-tabs__link">
+        
+  
+  Contributing
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../constants/" class="md-tabs__link">
+          
+  
+  API
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="ripple" class="md-nav__button md-logo" aria-label="ripple" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+
+    </a>
+    ripple
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/GW-JAX-Team/ripple" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GW-JAX-Team/ripple
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../tutorials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../tutorials/generating_waveforms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generating Waveforms
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../FAQ/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7_1" id="__nav_7_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ripplegw
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    ripplegw
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../constants/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    constants
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../conversions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    conversions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../interfaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    interfaces
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_1_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7_1_4" id="__nav_7_1_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    waveforms
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_7_1_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_1_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    waveforms
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMRPhenomD/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMRPhenomD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMRPhenomD_NRTidalv2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMRPhenomD_NRTidalv2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMRPhenomD_QNMdata/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMRPhenomD_QNMdata
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMRPhenomD_utils/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMRPhenomD_utils
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMRPhenomPv2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMRPhenomPv2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMRPhenomPv2_utils/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMRPhenomPv2_utils
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMRPhenomXAS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMRPhenomXAS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMRPhenomXAS_NRTidalv3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMRPhenomXAS_NRTidalv3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMRPhenomXPHM/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMRPhenomXPHM
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMRPhenomX_utils
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMRPhenomX_utils
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomX_utils" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IMRPhenomX_utils
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="IMRPhenomX_utils">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomX_utils.fM_CUT" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fM_CUT
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomX_utils.PhenomX_amp_coeff_table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PhenomX_amp_coeff_table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomX_utils.PhenomX_phase_coeff_table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PhenomX_phase_coeff_table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomX_utils.get_cutoff_fMs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_cutoff_fMs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomX_utils.calc_phaseatpeak" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        calc_phaseatpeak
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomX_utils.nospin_CV" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        nospin_CV
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomX_utils.Eqspin_CV" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eqspin_CV
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomX_utils.Uneqspin_CV" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Uneqspin_CV
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomX_utils.Amp_Nospin_CV" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amp_Nospin_CV
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomX_utils.Amp_Eqspin_CV" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amp_Eqspin_CV
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomX_utils.Amp_Uneqspin_CV" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amp_Uneqspin_CV
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMRPhenom_tidal_utils/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMRPhenom_tidal_utils
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../LALSimIMRPhenomX_precession/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LALSimIMRPhenomX_precession
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NRTidalv3_utils/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NRTidalv3_utils
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SineGaussian/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SineGaussian
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TaylorF2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TaylorF2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../elliptic_integrals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    elliptic_integrals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../initialize_MSA_system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    initialize_MSA_system
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spherical_harmonics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    spherical_harmonics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomX_utils" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IMRPhenomX_utils
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="IMRPhenomX_utils">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomX_utils.fM_CUT" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fM_CUT
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomX_utils.PhenomX_amp_coeff_table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PhenomX_amp_coeff_table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomX_utils.PhenomX_phase_coeff_table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PhenomX_phase_coeff_table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomX_utils.get_cutoff_fMs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_cutoff_fMs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomX_utils.calc_phaseatpeak" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        calc_phaseatpeak
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomX_utils.nospin_CV" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        nospin_CV
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomX_utils.Eqspin_CV" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eqspin_CV
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomX_utils.Uneqspin_CV" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Uneqspin_CV
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomX_utils.Amp_Nospin_CV" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amp_Nospin_CV
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomX_utils.Amp_Eqspin_CV" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amp_Eqspin_CV
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomX_utils.Amp_Uneqspin_CV" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amp_Uneqspin_CV
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+  
+  
+
+
+  <h1 id="__skip">IMRPhenomX utils</h1>
+
+<div class="doc doc-object doc-module">
+
+
+
+<h3 id="ripplegw.waveforms.IMRPhenomX_utils" class="doc doc-heading">
+            <code>ripplegw.waveforms.IMRPhenomX_utils</code>
+
+
+<a href="#ripplegw.waveforms.IMRPhenomX_utils" class="headerlink" title="Permanent link">¤</a></h3>
+
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ripplegw.waveforms.IMRPhenomX_utils.fM_CUT" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">fM_CUT</span> <span class="o">=</span> <span class="mf">0.3</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
+  </span>
+
+<a href="#ripplegw.waveforms.IMRPhenomX_utils.fM_CUT" class="headerlink" title="Permanent link">¤</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ripplegw.waveforms.IMRPhenomX_utils.PhenomX_amp_coeff_table" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">PhenomX_amp_coeff_table</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="mf">0.015178276424448592</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.06098548699809163</span><span class="p">,</span> <span class="mf">0.4845148547154606</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.09799277215675059</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.02300153747158323</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.10495263104245876</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.01761591799745109</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.14404522791467844</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.04834642258922544</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.14189350657140673</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.7340448493183307</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0018724905795891192</span><span class="p">,</span> <span class="mf">34.90874132485147</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.058572000924124644</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.1970535595488723</span><span class="p">,</span> <span class="mf">8.4630293045015</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">15.430818840453686</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.08746408292050666</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.20646621646484237</span><span class="p">,</span> <span class="mf">0.788717372588848</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.018924013869130434</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.21291764491897636</span><span class="p">,</span> <span class="o">+</span><span class="mf">0.8282888482429105</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.332123330797879</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.004389995099201855</span><span class="p">,</span> <span class="mf">105.84553997647659</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.16212854591357853</span><span class="p">,</span> <span class="mf">1.617404703616985</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.186012733446088</span><span class="p">,</span> <span class="mf">5.629598195000046</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.04507019231274476</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0055835408962206</span><span class="p">,</span> <span class="o">-</span><span class="mf">4.127597118865669</span><span class="p">,</span> <span class="mf">18.353433894421833</span><span class="p">,</span> <span class="o">-</span><span class="mf">41.0378120175805</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.31443470118113853</span><span class="p">,</span> <span class="mf">5.215501942120774</span><span class="p">,</span> <span class="o">-</span><span class="mf">18.80590889704093</span><span class="p">,</span> <span class="mf">19.099315016873643</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">5.852706459485663</span><span class="p">,</span> <span class="o">-</span><span class="mf">5.717874483424523</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.05575955418803233</span><span class="p">,</span> <span class="mf">208.92352600701068</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.4873184918202145</span><span class="p">,</span> <span class="mf">1974.6112656679577</span><span class="p">,</span> <span class="mf">27563.641024162127</span><span class="p">,</span> <span class="o">-</span><span class="mf">19837.908020966777</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">143.29004876335128</span><span class="p">,</span> <span class="mf">458.4097306093354</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">27.952730865904343</span><span class="p">,</span> <span class="o">-</span><span class="mf">365.55631765202895</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1612.2681322644232</span><span class="p">,</span> <span class="mf">3.2646808851249016</span><span class="p">,</span> <span class="o">-</span><span class="mf">260.3494489873286</span><span class="p">,</span> <span class="mf">3011.446602208493</span><span class="p">,</span> <span class="o">-</span><span class="mf">6962.675551371755</span><span class="p">,</span> <span class="o">-</span><span class="mf">19.38970173389662</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1486.4658089990298</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">12.647425554323242</span><span class="p">,</span> <span class="o">-</span><span class="mf">10.540154508599963</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.016404056649860943</span><span class="p">,</span> <span class="o">-</span><span class="mf">296.473359655246</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.8312293675316895</span><span class="p">,</span> <span class="mf">7.480371544268765</span><span class="p">,</span> <span class="o">-</span><span class="mf">18.256121237800397</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">10.915453595496611</span><span class="p">,</span> <span class="o">-</span><span class="mf">30.578409433912874</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5869408584532747</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.1467158405070222</span><span class="p">,</span> <span class="mf">0.25295441250444334</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.031852563636196894</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.8489481072076472</span><span class="p">,</span> <span class="mf">4.6849496672664594</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">3.8775263105069953</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.41755361841226</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.00548054788508203</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.3666000000000007</span><span class="p">,</span> <span class="o">-</span><span class="mf">4.091333144596439</span><span class="p">,</span> <span class="mf">2.109081209912545</span><span class="p">,</span> <span class="o">-</span><span class="mf">4.222259944408823</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.7440263888207594</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.07179105336478316</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.8752427297525086</span><span class="p">,</span> <span class="mf">2.331724812782498</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.05633734476062242</span><span class="p">,</span> <span class="mf">0.4168560229353532</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.6330998412809531</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.03689164742964719</span><span class="p">,</span> <span class="mf">25.417967754401182</span><span class="p">,</span> <span class="mf">162.52904393600332</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">61.19874463331437</span><span class="p">,</span> <span class="o">-</span><span class="mf">29.628854485544874</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.14352506969368556</span><span class="p">,</span> <span class="o">-</span><span class="mf">4.805034453745424</span><span class="p">,</span> <span class="mf">27.675454081988036</span><span class="p">,</span> <span class="o">-</span><span class="mf">48.31945248941757</span><span class="p">,</span> <span class="mf">0.026356911108320547</span><span class="p">,</span> <span class="mf">1.11147906765112</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.398327419614959</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.751501972663298</span><span class="p">,</span> <span class="mf">0.19967405175523437</span><span class="p">,</span> <span class="mf">6.176053843938542</span><span class="p">,</span> <span class="o">-</span><span class="mf">47.99096500250743</span><span class="p">,</span> <span class="mf">81.9290740950083</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.05292913111731128</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.2874540719094058</span><span class="p">,</span> <span class="o">-</span><span class="mf">5.104257870393138</span><span class="p">,</span> <span class="mf">30.491948143930266</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.18147275151697131</span><span class="p">,</span> <span class="o">-</span><span class="mf">8.990840289951514</span><span class="p">,</span> <span class="mf">72.08174136362386</span><span class="p">,</span> <span class="o">-</span><span class="mf">132.77982622925845</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.4160870461211452</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.04426571511345366</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]])</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
+  </span>
+
+<a href="#ripplegw.waveforms.IMRPhenomX_utils.PhenomX_amp_coeff_table" class="headerlink" title="Permanent link">¤</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ripplegw.waveforms.IMRPhenomX_utils.PhenomX_phase_coeff_table" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">PhenomX_phase_coeff_table</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="mf">17294.000000000007</span><span class="p">,</span> <span class="o">-</span><span class="mf">19943.076428555978</span><span class="p">,</span> <span class="mf">483033.0998073767</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">4.460294035404433</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">68384.62786426462</span><span class="p">,</span> <span class="mf">67663.42759836042</span><span class="p">,</span> <span class="o">-</span><span class="mf">2179.3505885609297</span><span class="p">,</span> <span class="mf">19703.894135534803</span><span class="p">,</span> <span class="mf">32614.091002011017</span><span class="p">,</span> <span class="o">-</span><span class="mf">58475.33302037833</span><span class="p">,</span> <span class="mf">62190.404951852535</span><span class="p">,</span> <span class="mf">18298.307770807573</span><span class="p">,</span> <span class="o">-</span><span class="mf">303141.1945565486</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">148368.4954044637</span><span class="p">,</span> <span class="o">-</span><span class="mf">758386.5685734496</span><span class="p">,</span> <span class="o">-</span><span class="mf">137991.37032619823</span><span class="p">,</span> <span class="mf">1076587.7367729193</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">2.0412979553629143</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">12017.062595934838</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mf">7579.300000000004</span><span class="p">,</span> <span class="o">-</span><span class="mf">120297.86185566607</span><span class="p">,</span> <span class="mf">1169435.6931282217</span><span class="p">,</span> <span class="o">-</span><span class="mf">557253.0066989232</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">18.53018618227582</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">27089.36915061857</span><span class="p">,</span> <span class="o">-</span><span class="mf">66228.9369155027</span><span class="p">,</span> <span class="o">-</span><span class="mf">44331.41741405198</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">50644.13475990821</span><span class="p">,</span> <span class="mf">157036.45676788126</span><span class="p">,</span> <span class="mf">126736.43159783827</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">150022.21343386435</span><span class="p">,</span> <span class="o">-</span><span class="mf">50166.382087278434</span><span class="p">,</span> <span class="o">-</span><span class="mf">399712.22891153296</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">593633.5370110178</span><span class="p">,</span> <span class="o">-</span><span class="mf">325423.99477314285</span><span class="p">,</span> <span class="o">+</span><span class="mf">847483.2999508682</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.5232497464826662</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.062957826830017</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.130185486082531</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">3843.083992827935</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">15415.000000000007</span><span class="p">,</span> <span class="mf">873401.6255736464</span><span class="p">,</span> <span class="mf">376665.64637025696</span><span class="p">,</span> <span class="o">-</span><span class="mf">3971998.0569125614</span><span class="p">,</span> <span class="mf">8913612.508054944</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">46.83697749859996</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">397951.95299014193</span><span class="p">,</span> <span class="o">-</span><span class="mf">207180.42746987</span><span class="p">,</span> <span class="o">-</span><span class="mf">130668.37221912303</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1005307.3129700898</span><span class="p">,</span> <span class="mf">1235279.439281927</span><span class="p">,</span> <span class="o">-</span><span class="mf">174952.69161683554</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1982632.3844247842</span><span class="p">,</span> <span class="mf">208349.45742548333</span><span class="p">,</span> <span class="mf">895372.155565861</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">4662143.741417853</span><span class="p">,</span> <span class="o">-</span><span class="mf">584728.050612325</span><span class="p">,</span> <span class="o">-</span><span class="mf">1689418.9124921719</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">9.675704197652225</span><span class="p">,</span> <span class="mf">3.5804521763363075</span><span class="p">,</span> <span class="mf">2.5298346636273306</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">24708.109411857182</span><span class="p">,</span> <span class="mf">24703.28267342699</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">47752.17032707405</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1296.9289110696955</span><span class="p">],</span> <span class="p">[</span><span class="mf">2439.000000000001</span><span class="p">,</span> <span class="o">-</span><span class="mf">31133.52170083207</span><span class="p">,</span> <span class="mf">28867.73328134167</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.41143032589262585</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">16116.057657391262</span><span class="p">,</span> <span class="mf">9861.635308837876</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">82355.86732027541</span><span class="p">,</span> <span class="o">-</span><span class="mf">25843.06175439942</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">229284.04542668918</span><span class="p">,</span> <span class="mf">117410.37432997991</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">375818.0132734753</span><span class="p">,</span> <span class="o">-</span><span class="mf">386247.80765802023</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.7385208695213668</span><span class="p">,</span> <span class="mf">0.25294420589064653</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">194.5554531509207</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.9951733419499662</span><span class="p">,</span> <span class="mf">101.21991715215253</span><span class="p">,</span> <span class="mf">632.4731389009143</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.00016803066316882238</span><span class="p">,</span> <span class="mf">0.11412314719189287</span><span class="p">,</span> <span class="mf">1.8413983770369362</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">18.694178521101332</span><span class="p">,</span> <span class="mf">16.89845522539974</span><span class="p">,</span> <span class="mf">0.3612417066833153</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">697.6773920613674</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">147.53381808989846</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">4941.31613710257</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">3531.552143264721</span><span class="p">,</span> <span class="o">-</span><span class="mf">14302.70838220423</span><span class="p">,</span> <span class="mf">178.85850322465944</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">2.965640445745779</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.7706595614504725</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">356.74395864902294</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1693.326644293169</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">5.126358906504587</span><span class="p">,</span> <span class="o">-</span><span class="mf">227.46830225846668</span><span class="p">,</span> <span class="mf">688.3609087244353</span><span class="p">,</span> <span class="o">-</span><span class="mf">751.4184178636324</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.004551938711031158</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.7811680872741462</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.1549280856660919</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.9539250460041732</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.84311102369862</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">73.79645135116367</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">8.13494176717772</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">539.4071941841604</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">936.3740515136005</span><span class="p">,</span> <span class="mf">1862.9097047992134</span><span class="p">,</span> <span class="mf">224.77581754671272</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.5308507364054487</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">2993.3598520496153</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mf">82.54500000000004</span><span class="p">,</span> <span class="o">-</span><span class="mf">5581973.49185435</span><span class="p">,</span> <span class="o">-</span><span class="mf">352257424.21184325</span><span class="p">,</span> <span class="mf">1466725833.4378073</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">66757.12830903867</span><span class="p">,</span> <span class="mf">5385164.380400193</span><span class="p">,</span> <span class="mf">2517658.5751772933</span><span class="p">,</span> <span class="mf">19.416719811164853</span><span class="p">,</span> <span class="o">-</span><span class="mf">36.066611959079935</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.8612656616290079</span><span class="p">,</span> <span class="mf">5.95010003393006</span><span class="p">,</span> <span class="mf">4.984750041013893</span><span class="p">,</span> <span class="mf">207.69898051583655</span><span class="p">,</span> <span class="o">-</span><span class="mf">132.88417400679026</span><span class="p">,</span> <span class="o">-</span><span class="mf">17.671713040498304</span><span class="p">,</span> <span class="mf">29.071788188638315</span><span class="p">,</span> <span class="mf">37.462217031512786</span><span class="p">,</span> <span class="mf">170.97203068800542</span><span class="p">,</span> <span class="o">-</span><span class="mf">107.41099349364234</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">647.8103976942541</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1365.1499998427248</span><span class="p">,</span> <span class="mf">1152.425940764218</span><span class="p">,</span> <span class="mf">415.7134909564443</span><span class="p">,</span> <span class="mf">1897.5444343138167</span><span class="p">,</span> <span class="o">-</span><span class="mf">866.283566780576</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.1492259468169692</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">7343.130973149263</span><span class="p">,</span> <span class="o">-</span><span class="mf">20486.813161100774</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">515.9898508588834</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.4248820426833804</span><span class="p">,</span> <span class="o">-</span><span class="mf">906.746595921514</span><span class="p">,</span> <span class="o">-</span><span class="mf">282820.39946006844</span><span class="p">,</span> <span class="o">-</span><span class="mf">967049.2793750163</span><span class="p">,</span> <span class="mf">670077.5414916876</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1670.9440812294847</span><span class="p">,</span> <span class="mf">19783.077247023448</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.22814271667259703</span><span class="p">,</span> <span class="mf">1.1366593671801855</span><span class="p">,</span> <span class="mf">0.4818323187946999</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">12.840649528989287</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">61.17248283184154</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">711.8532052499075</span><span class="p">,</span> <span class="mf">269.9234918621958</span><span class="p">,</span> <span class="mf">941.6974723887743</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">3499.432393555856</span><span class="p">,</span> <span class="o">-</span><span class="mf">877.8811492839261</span><span class="p">,</span> <span class="o">-</span><span class="mf">4974.189172654984</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">4939.642457025497</span><span class="p">,</span> <span class="o">-</span><span class="mf">227.7672020783411</span><span class="p">,</span> <span class="mf">8745.201037897836</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.2442293719740283</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">514.8494071830514</span><span class="p">,</span> <span class="mf">1493.3851099678195</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.7207992174994245</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.237332073800276</span><span class="p">,</span> <span class="mf">6.086871214811216</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.006851189888541745</span><span class="p">,</span> <span class="mf">0.06099184229137391</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.15500218299268662</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.06519048552628343</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.20035146870472367</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.2697933899920511</span><span class="p">,</span> <span class="o">-</span><span class="mf">25.25397971063995</span><span class="p">,</span> <span class="o">-</span><span class="mf">5.215945111216946</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.28745205203100666</span><span class="p">,</span> <span class="mf">5.7756520242745735</span><span class="p">,</span> <span class="o">+</span><span class="mf">4.917070939324979</span><span class="p">,</span> <span class="o">+</span><span class="mf">58.59408241189781</span><span class="p">,</span> <span class="o">+</span><span class="mf">153.95945758807616</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">43.97332874253772</span><span class="p">,</span> <span class="o">-</span><span class="mf">11.61488280763592</span><span class="p">,</span> <span class="o">+</span><span class="mf">160.14971486043524</span><span class="p">,</span> <span class="o">-</span><span class="mf">693.0504179144295</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">308.62513664956975</span><span class="p">,</span> <span class="o">+</span><span class="mf">835.1725103648205</span><span class="p">,</span> <span class="o">-</span><span class="mf">47.56042058800358</span><span class="p">,</span> <span class="o">+</span><span class="mf">338.7263666984089</span><span class="p">,</span> <span class="o">-</span><span class="mf">22.384949087140086</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.6628745847248266</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">23.504907495268824</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">9.460253118496386</span><span class="p">,</span> <span class="o">+</span><span class="mf">9.429314399633007</span><span class="p">,</span> <span class="o">+</span><span class="mf">64.69109972468395</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.0670554310666559</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.09987544893382533</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.04497628581617564</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">17.36495157980372</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">191.00932194869588</span><span class="p">,</span> <span class="o">-</span><span class="mf">62.997389062600035</span><span class="p">,</span> <span class="o">+</span><span class="mf">64.42947340363101</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">930.3458437154668</span><span class="p">,</span> <span class="o">+</span><span class="mf">808.457330742532</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">774.3633787391745</span><span class="p">,</span> <span class="o">-</span><span class="mf">2177.554979351284</span><span class="p">,</span> <span class="o">-</span><span class="mf">1031.846477275069</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.7267610313751913</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">36.66374091965371</span><span class="p">,</span> <span class="mf">91.60477826830407</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">8.506898502692536</span><span class="p">,</span> <span class="o">+</span><span class="mf">13.936621412517798</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.40919671232073945</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.046849371468156265</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.7280582989361533</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">18.41570325463385</span><span class="p">,</span> <span class="o">-</span><span class="mf">13.743271480938104</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">73.8367329022058</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">95.57802408341716</span><span class="p">,</span> <span class="o">+</span><span class="mf">215.78111099820157</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">27.976989112929353</span><span class="p">,</span> <span class="o">+</span><span class="mf">6.404060932334562</span><span class="p">,</span> <span class="o">+</span><span class="mf">109.04824706217418</span><span class="p">,</span> <span class="o">-</span><span class="mf">633.1966645925428</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.6862449113932192</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">641.8965762829259</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mf">85.86062966719405</span><span class="p">,</span> <span class="o">-</span><span class="mf">4616.740713893726</span><span class="p">,</span> <span class="o">-</span><span class="mf">4925.756920247186</span><span class="p">,</span> <span class="o">+</span><span class="mf">7732.064464348168</span><span class="p">,</span> <span class="o">+</span><span class="mf">12828.269960300782</span><span class="p">,</span> <span class="o">-</span><span class="mf">39783.51698102803</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="o">+</span><span class="mf">50.206318806624004</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">33.335857451144356</span><span class="p">,</span> <span class="o">-</span><span class="mf">36.49019206094966</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.835967351280833</span><span class="p">,</span> <span class="mf">2.302712009652155</span><span class="p">,</span> <span class="mf">1.6533417657003922</span><span class="p">,</span> <span class="o">-</span><span class="mf">69.19412903018717</span><span class="p">,</span> <span class="mf">26.580344399838758</span><span class="p">,</span> <span class="o">-</span><span class="mf">15.399770764623746</span><span class="p">,</span> <span class="mf">31.231253209893488</span><span class="p">,</span> <span class="mf">97.69027029734173</span><span class="p">,</span> <span class="mf">93.64156367505917</span><span class="p">,</span> <span class="o">-</span><span class="mf">18.184492163348665</span><span class="p">,</span> <span class="mf">423.48863373726243</span><span class="p">,</span> <span class="o">-</span><span class="mf">104.36120236420928</span><span class="p">,</span> <span class="o">-</span><span class="mf">719.8775484010988</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1497.3545918387515</span><span class="p">,</span> <span class="o">-</span><span class="mf">101.72731770500685</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1075.8686153198323</span><span class="p">,</span> <span class="o">-</span><span class="mf">3443.0233614187396</span><span class="p">,</span> <span class="o">-</span><span class="mf">4253.974688619423</span><span class="p">,</span> <span class="o">-</span><span class="mf">608.2901586790335</span><span class="p">,</span> <span class="mf">5064.173605639933</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.3705601055555852</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">22.363215261437862</span><span class="p">,</span> <span class="mf">156.08206945239374</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">7.05731400277692</span><span class="p">,</span> <span class="mf">22.455288821807095</span><span class="p">,</span> <span class="mf">119.43820622871043</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.26026709603623255</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">7.9407123129681425</span><span class="p">,</span> <span class="mf">9.486783128047414</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">134.88158268621922</span><span class="p">,</span> <span class="o">-</span><span class="mf">56.05992404859163</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">316.26970506215554</span><span class="p">,</span> <span class="mf">90.31815139272628</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.7162058321905909</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">43.82713604567481</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]])</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
+  </span>
+
+<a href="#ripplegw.waveforms.IMRPhenomX_utils.PhenomX_phase_coeff_table" class="headerlink" title="Permanent link">¤</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ripplegw.waveforms.IMRPhenomX_utils.get_cutoff_fMs" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_cutoff_fMs</span><span class="p">(</span><span class="n">m1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="n">chi1</span><span class="p">,</span> <span class="n">chi2</span><span class="p">)</span></code>
+
+<a href="#ripplegw.waveforms.IMRPhenomX_utils.get_cutoff_fMs" class="headerlink" title="Permanent link">¤</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ripplegw.waveforms.IMRPhenomX_utils.calc_phaseatpeak" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">calc_phaseatpeak</span><span class="p">(</span><span class="n">eta</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">chia</span><span class="p">,</span> <span class="n">delta</span><span class="p">)</span></code>
+
+<a href="#ripplegw.waveforms.IMRPhenomX_utils.calc_phaseatpeak" class="headerlink" title="Permanent link">¤</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ripplegw.waveforms.IMRPhenomX_utils.nospin_CV" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">nospin_CV</span><span class="p">(</span><span class="n">NoSpin_coeffs</span><span class="p">,</span> <span class="n">eta</span><span class="p">)</span></code>
+
+<a href="#ripplegw.waveforms.IMRPhenomX_utils.nospin_CV" class="headerlink" title="Permanent link">¤</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ripplegw.waveforms.IMRPhenomX_utils.Eqspin_CV" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">Eqspin_CV</span><span class="p">(</span><span class="n">EqSpin_coeffs</span><span class="p">,</span> <span class="n">eta</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span></code>
+
+<a href="#ripplegw.waveforms.IMRPhenomX_utils.Eqspin_CV" class="headerlink" title="Permanent link">¤</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ripplegw.waveforms.IMRPhenomX_utils.Uneqspin_CV" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">Uneqspin_CV</span><span class="p">(</span><span class="n">EqSpin_coeffs</span><span class="p">,</span> <span class="n">eta</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">chia</span><span class="p">)</span></code>
+
+<a href="#ripplegw.waveforms.IMRPhenomX_utils.Uneqspin_CV" class="headerlink" title="Permanent link">¤</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ripplegw.waveforms.IMRPhenomX_utils.Amp_Nospin_CV" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">Amp_Nospin_CV</span><span class="p">(</span><span class="n">NoSpin_coeffs</span><span class="p">,</span> <span class="n">eta</span><span class="p">)</span></code>
+
+<a href="#ripplegw.waveforms.IMRPhenomX_utils.Amp_Nospin_CV" class="headerlink" title="Permanent link">¤</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ripplegw.waveforms.IMRPhenomX_utils.Amp_Eqspin_CV" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">Amp_Eqspin_CV</span><span class="p">(</span><span class="n">EqSpin_coeffs</span><span class="p">,</span> <span class="n">eta</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span></code>
+
+<a href="#ripplegw.waveforms.IMRPhenomX_utils.Amp_Eqspin_CV" class="headerlink" title="Permanent link">¤</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ripplegw.waveforms.IMRPhenomX_utils.Amp_Uneqspin_CV" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">Amp_Uneqspin_CV</span><span class="p">(</span><span class="n">UneqSpin_coeffs</span><span class="p">,</span> <span class="n">eta</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">chia</span><span class="p">)</span></code>
+
+<a href="#ripplegw.waveforms.IMRPhenomX_utils.Amp_Uneqspin_CV" class="headerlink" title="Permanent link">¤</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate":null,"base":"../../../..","features":["navigation.instant","navigation.tabs","navigation.top","toc.follow","header.autohide"],"search":"../../../../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"default":"stable","provider":"mike"}}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.9f55f5b1.min.js"></script>
+      
+        <script src="../../../../javascripts/mathjax.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
