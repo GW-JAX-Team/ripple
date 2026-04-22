@@ -1,4 +1,5 @@
 site_name: ripple
+site_url: https://ripplegw.readthedocs.io
 site_description: A JAX-based package for differentiable gravitational-wave waveform generation
 site_author: GW JAX Team
 repo_url: https://github.com/GW-JAX-Team/ripple
@@ -7,8 +8,10 @@ repo_name: GW-JAX-Team/ripple
 theme:
     name: material
     features:
-        - navigation
-        - toc
+        - navigation.instant
+        - navigation.tabs
+        - navigation.top
+        - toc.follow
         - header.autohide
     palette:
         - scheme: slate
@@ -29,8 +32,7 @@ markdown_extensions:
         generic: true
     - pymdownx.superfences
     - pymdownx.details
-    - pymdownx.snippets:
-        base_path: docs
+    - pymdownx.snippets
     - admonition
     - toc:
         permalink: "¤"
@@ -39,8 +41,7 @@ markdown_extensions:
 plugins:
     - search
     - autorefs
-    - mkdocs-jupyter:
-        include: ["*.ipynb"]
+    - mkdocs-jupyter
     - gen-files:
         scripts:
         - docs/gen_ref_pages.py
@@ -71,3 +72,7 @@ nav:
     - FAQ: FAQ.md
     - Contributing: contributing.md
     - API: api/ripplegw/*
+
+extra_javascript:
+    - javascripts/mathjax.js
+    - https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js

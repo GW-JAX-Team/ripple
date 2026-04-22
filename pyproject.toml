@@ -52,7 +52,7 @@ doc = [
     "mkdocs-jupyter<0.26.0",
     "mkdocs-literate-nav",
     "mkdocs-material",
-    "mkdocs",
+    "mkdocs<2",
     "mkdocstrings[python]",
     "pymdown-extensions",
 ]
