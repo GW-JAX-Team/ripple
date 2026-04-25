@@ -544,8 +544,8 @@ class IMRPhenomXPHM(Waveform):
             "s2_y",
             "s2_z",
             "d_L",
-            "iota",
             "phase_c",
+            "iota",
         )
 
     def __call__(
