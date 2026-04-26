@@ -25,6 +25,20 @@ class Waveform(ABC):
     def __init__(self):
         pass
 
+    @property
+    @abstractmethod
+    def parameter_names(self) -> tuple[str, ...]:
+        """Ordered tuple of parameter names required by this waveform model.
+
+        Returns:
+            tuple[str, ...]: Parameter names in the order they are consumed,
+                matching the keys expected in the ``params`` dict passed to
+                ``__call__``.
+        """
+        raise NotImplementedError(
+            "Waveform.parameter_names must be implemented by subclasses"
+        )
+
     @abstractmethod
     def __call__(
         self, axis: Float[Array, " n_freq"], params: dict[str, Float]
@@ -57,6 +71,10 @@ class IMRPhenomD(Waveform):
             f_ref (float): Reference frequency in Hz. Defaults to 20.0.
         """
         self.f_ref = f_ref
+
+    @property
+    def parameter_names(self) -> tuple[str, ...]:
+        return ("M_c", "eta", "s1_z", "s2_z", "d_L", "phase_c", "iota")
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
@@ -110,6 +128,22 @@ class IMRPhenomPv2(Waveform):
             f_ref (float): Reference frequency in Hz. Defaults to 20.0.
         """
         self.f_ref = f_ref
+
+    @property
+    def parameter_names(self) -> tuple[str, ...]:
+        return (
+            "M_c",
+            "eta",
+            "s1_x",
+            "s1_y",
+            "s1_z",
+            "s2_x",
+            "s2_y",
+            "s2_z",
+            "d_L",
+            "phase_c",
+            "iota",
+        )
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
@@ -175,6 +209,23 @@ class TaylorF2(Waveform):
         """
         self.f_ref = f_ref
         self.use_lambda_tildes = use_lambda_tildes
+
+    @property
+    def parameter_names(self) -> tuple[str, ...]:
+        return (
+            "M_c",
+            "eta",
+            "s1_z",
+            "s2_z",
+            *(
+                ("lambda_tilde", "delta_lambda_tilde")
+                if self.use_lambda_tildes
+                else ("lambda_1", "lambda_2")
+            ),
+            "d_L",
+            "phase_c",
+            "iota",
+        )
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
@@ -258,6 +309,23 @@ class IMRPhenomD_NRTidalv2(Waveform):
         self.use_lambda_tildes = use_lambda_tildes
         self.no_taper = no_taper
 
+    @property
+    def parameter_names(self) -> tuple[str, ...]:
+        return (
+            "M_c",
+            "eta",
+            "s1_z",
+            "s2_z",
+            *(
+                ("lambda_tilde", "delta_lambda_tilde")
+                if self.use_lambda_tildes
+                else ("lambda_1", "lambda_2")
+            ),
+            "d_L",
+            "phase_c",
+            "iota",
+        )
+
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
     ) -> dict[str, Float[Array, " n_freq"]]:
@@ -327,6 +395,10 @@ class IMRPhenomXAS(Waveform):
             f_ref (float): Reference frequency in Hz. Defaults to 20.0.
         """
         self.f_ref = f_ref
+
+    @property
+    def parameter_names(self) -> tuple[str, ...]:
+        return ("M_c", "eta", "s1_z", "s2_z", "d_L", "phase_c", "iota")
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
@@ -398,6 +470,23 @@ class IMRPhenomXAS_NRTidalv3(Waveform):
         self.use_lambda_tildes = use_lambda_tildes
         self.no_taper = no_taper
 
+    @property
+    def parameter_names(self) -> tuple[str, ...]:
+        return (
+            "M_c",
+            "eta",
+            "s1_z",
+            "s2_z",
+            *(
+                ("lambda_tilde", "delta_lambda_tilde")
+                if self.use_lambda_tildes
+                else ("lambda_1", "lambda_2")
+            ),
+            "d_L",
+            "phase_c",
+            "iota",
+        )
+
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
     ) -> dict[str, Float[Array, " n_freq"]]:
@@ -467,6 +556,22 @@ class IMRPhenomXPHM(Waveform):
         """
         self.f_ref = f_ref
 
+    @property
+    def parameter_names(self) -> tuple[str, ...]:
+        return (
+            "M_c",
+            "eta",
+            "s1_x",
+            "s1_y",
+            "s1_z",
+            "s2_x",
+            "s2_y",
+            "s2_z",
+            "d_L",
+            "phase_c",
+            "iota",
+        )
+
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
     ) -> dict[str, Float[Array, " n_freq"]]:
@@ -476,7 +581,7 @@ class IMRPhenomXPHM(Waveform):
             frequency (Float[Array, " n_freq"]): Frequency array in Hz.
             params (dict[str, Float]): Source parameters with keys
                 ``M_c``, ``eta``, ``s1_x``, ``s1_y``, ``s1_z``,
-                ``s2_x``, ``s2_y``, ``s2_z``, ``d_L``, ``iota``, ``phase_c``.
+                ``s2_x``, ``s2_y``, ``s2_z``, ``d_L``, ``phase_c``, ``iota``.
 
         Returns:
             dict[str, Float[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
@@ -513,6 +618,10 @@ class SineGaussian(Waveform):
     def __init__(self) -> None:
         pass
 
+    @property
+    def parameter_names(self) -> tuple[str, ...]:
+        return ("Q", "f_0", "hrss", "phase", "e")
+
     def __call__(
         self, t: Float[Array, " n_time"], params: dict[str, Float]
     ) -> dict[str, Float[Array, " n_time"]]:
@@ -521,7 +630,7 @@ class SineGaussian(Waveform):
             t: Time grid centered at t=0. Create using
                ``jnp.arange(-duration/2, duration/2, 1/fs)``.
             params: Dictionary with keys ``Q`` (quality factor), ``f_0``
-                (central frequency in Hz), ``hrss``, ``phi`` (phase),
+                (central frequency in Hz), ``hrss``, ``phase`` (phase),
                 ``e`` (eccentricity).
         """
         output = {}
