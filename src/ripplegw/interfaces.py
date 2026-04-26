@@ -212,12 +212,20 @@ class TaylorF2(Waveform):
 
     @property
     def parameter_names(self) -> tuple[str, ...]:
-        tidal = (
-            ("lambda_tilde", "delta_lambda_tilde")
-            if self.use_lambda_tildes
-            else ("lambda_1", "lambda_2")
+        return (
+            "M_c",
+            "eta",
+            "s1_z",
+            "s2_z",
+            *(
+                ("lambda_tilde", "delta_lambda_tilde")
+                if self.use_lambda_tildes
+                else ("lambda_1", "lambda_2")
+            ),
+            "d_L",
+            "phase_c",
+            "iota",
         )
-        return ("M_c", "eta", "s1_z", "s2_z") + tidal + ("d_L", "phase_c", "iota")
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
@@ -303,12 +311,20 @@ class IMRPhenomD_NRTidalv2(Waveform):
 
     @property
     def parameter_names(self) -> tuple[str, ...]:
-        tidal = (
-            ("lambda_tilde", "delta_lambda_tilde")
-            if self.use_lambda_tildes
-            else ("lambda_1", "lambda_2")
+        return (
+            "M_c",
+            "eta",
+            "s1_z",
+            "s2_z",
+            *(
+                ("lambda_tilde", "delta_lambda_tilde")
+                if self.use_lambda_tildes
+                else ("lambda_1", "lambda_2")
+            ),
+            "d_L",
+            "phase_c",
+            "iota",
         )
-        return ("M_c", "eta", "s1_z", "s2_z") + tidal + ("d_L", "phase_c", "iota")
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
@@ -456,12 +472,20 @@ class IMRPhenomXAS_NRTidalv3(Waveform):
 
     @property
     def parameter_names(self) -> tuple[str, ...]:
-        tidal = (
-            ("lambda_tilde", "delta_lambda_tilde")
-            if self.use_lambda_tildes
-            else ("lambda_1", "lambda_2")
+        return (
+            "M_c",
+            "eta",
+            "s1_z",
+            "s2_z",
+            *(
+                ("lambda_tilde", "delta_lambda_tilde")
+                if self.use_lambda_tildes
+                else ("lambda_1", "lambda_2")
+            ),
+            "d_L",
+            "phase_c",
+            "iota",
         )
-        return ("M_c", "eta", "s1_z", "s2_z") + tidal + ("d_L", "phase_c", "iota")
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
@@ -606,7 +630,7 @@ class SineGaussian(Waveform):
             t: Time grid centered at t=0. Create using
                ``jnp.arange(-duration/2, duration/2, 1/fs)``.
             params: Dictionary with keys ``Q`` (quality factor), ``f_0``
-                (central frequency in Hz), ``hrss``, ``phi`` (phase),
+                (central frequency in Hz), ``hrss``, ``phase`` (phase),
                 ``e`` (eccentricity).
         """
         output = {}
