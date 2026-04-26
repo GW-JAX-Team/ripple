@@ -557,7 +557,7 @@ class IMRPhenomXPHM(Waveform):
             frequency (Float[Array, " n_freq"]): Frequency array in Hz.
             params (dict[str, Float]): Source parameters with keys
                 ``M_c``, ``eta``, ``s1_x``, ``s1_y``, ``s1_z``,
-                ``s2_x``, ``s2_y``, ``s2_z``, ``d_L``, ``iota``, ``phase_c``.
+                ``s2_x``, ``s2_y``, ``s2_z``, ``d_L``, ``phase_c``, ``iota``.
 
         Returns:
             dict[str, Float[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
