@@ -1526,15 +1526,13 @@
 <span class="n">hp</span> <span class="o">=</span> <span class="n">polarizations</span><span class="p">[</span><span class="s2">&quot;p&quot;</span><span class="p">]</span>
 <span class="n">hc</span> <span class="o">=</span> <span class="n">polarizations</span><span class="p">[</span><span class="s2">&quot;c&quot;</span><span class="p">]</span>
 </code></pre></div>
-<p>All waveform models share the same interface, so switching models only
-requires changing one line:</p>
+<p>All waveform models share the same interface, so switching models only requires changing one line:</p>
 <div class="highlight"><pre><span></span><code><span class="n">waveform</span> <span class="o">=</span> <span class="n">ripplegw</span><span class="o">.</span><span class="n">IMRPhenomXAS</span><span class="p">(</span><span class="n">f_ref</span><span class="o">=</span><span class="mf">20.0</span><span class="p">)</span>   <span class="c1"># same params dict</span>
 <span class="n">waveform</span> <span class="o">=</span> <span class="n">ripplegw</span><span class="o">.</span><span class="n">TaylorF2</span><span class="p">(</span><span class="n">f_ref</span><span class="o">=</span><span class="mf">20.0</span><span class="p">)</span>       <span class="c1"># add lambda_1, lambda_2 for BNS</span>
 </code></pre></div>
 <p>See <code>ripplegw.waveform_preset</code> for the full list of available models.</p>
 <h2 id="gpu-and-gradient-support">GPU and Gradient Support<a class="headerlink" href="#gpu-and-gradient-support" title="Permanent link">¤</a></h2>
-<p>ripple waveforms are pure JAX functions, so they work out of the box with
-<code>jax.jit</code>, <code>jax.grad</code>, and <code>jax.vmap</code>:</p>
+<p>ripple waveforms are pure JAX functions, so they work out of the box with <code>jax.jit</code>, <code>jax.grad</code>, and <code>jax.vmap</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
 
 <span class="c1"># JIT-compile for fast repeated evaluation</span>
@@ -1547,8 +1545,8 @@ requires changing one line:</p>
 
 <span class="n">grad_Mc</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">log_likelihood</span><span class="p">)(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;M_c&quot;</span><span class="p">])</span>
 </code></pre></div>
-<p>GPU execution requires no code changes — JAX will automatically use the GPU
-if one is available. See the <a href="../installation/">Installation</a> page for GPU setup.</p>
+<p>GPU execution requires no code changes — JAX will automatically use the GPU if one is available.
+See the <a href="../installation/">Installation</a> page for GPU setup.</p>
 
 
 
