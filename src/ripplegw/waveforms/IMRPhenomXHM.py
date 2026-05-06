@@ -13,7 +13,7 @@ The 22-mode reuses ripple's existing IMRPhenomXAS.py (Phase + Amp functions).
 """
 
 from dataclasses import dataclass
-from typing import Any, Tuple
+from typing import Tuple
 import jax
 import jax.numpy as jnp
 from jax import Array
@@ -31,8 +31,6 @@ from .spherical_harmonics import (
     compute_sminus2_l3,
     compute_sminus2_l4,
 )
-
-Real = Any
 
 # ---------------------------------------------------------------------------
 # Section 1: QNM fits
@@ -459,7 +457,13 @@ class XHMWaveformStruct:
     XHMRingdownAmpVersion: int
 
 
-def build_pWF22(m1: Real, m2: Real, chi1z: Real, chi2z: Real, f_ref: float) -> dict:
+def build_pWF22(
+    m1: float | Array,
+    m2: float | Array,
+    chi1z: float | Array,
+    chi2z: float | Array,
+    f_ref: float,
+) -> dict:
     """
     Build the 22-mode waveform parameter dict needed by XHM functions.
 
@@ -666,7 +670,7 @@ def xhm_set_waveform_variables(ell: int, emm: int, pWF22: dict) -> XHMWaveformSt
     MixingOn = ell == 3 and emm == 2
     # Ampzero: odd modes vanish at equal mass (delta=0); check conservatively
     Ampzero = False  # evaluated per-frequency; not statically zero for GW150914
-    XHMRingdownAmpVersion = jax.lax.select(modeInt == 2, 1, 0)
+    XHMRingdownAmpVersion = 1 if modeInt == 2 else 0
 
     return XHMWaveformStruct(
         ell=ell,
@@ -730,7 +734,7 @@ def XLALSimIMRPhenomXLinb(eta: float, STotR: float, dchi: float, delta: float) -
     return noSpin + eqSpin + uneqSpin
 
 
-def XLALSimIMRPhenomXPsi4ToStrain(eta: Real, STotR: Real, dchi: Real) -> Real:
+def XLALSimIMRPhenomXPsi4ToStrain(eta: float, STotR: float, dchi: float) -> Array:
     """
     Psi4-to-strain conversion factor for the time-shift.
 
@@ -809,7 +813,7 @@ def IMRPhenomX_TimeShift_22(pWF22: dict) -> float:
 # ---------------------------------------------------------------------------
 
 
-def _xhm_insp_phase_LambdaPN(modeTag: int, eta: Real) -> Real:
+def _xhm_insp_phase_LambdaPN(modeTag: int, eta: float) -> float | Array:
     """
     Leading-order PN phase correction for each mode's inspiral ansatz.
 
@@ -1364,15 +1368,15 @@ def _xhm_inter_phase_colloc_pts(
 
 
 def _xhm_inter_phase_ansatz_int(
-    Mf: Real,
-    c0: Real,
-    c1: Real,
-    c2: Real,
-    c4: Real,
-    cL: Real,
-    fRD: Real,
-    fDA: Real,
-) -> Real:
+    Mf: float | Array,
+    c0: float | Array,
+    c1: float | Array,
+    c2: float | Array,
+    c4: float | Array,
+    cL: float | Array,
+    fRD: float | Array,
+    fDA: float | Array,
+) -> Array:
     """
     Integral of intermediate phase ansatz (non-32 modes):
       phi = c0*f + c1*log(f) - c2/f - c4/(3*f^3) + cL*atan((f-fRD)/fDA)
@@ -1390,15 +1394,15 @@ def _xhm_inter_phase_ansatz_int(
 
 
 def _xhm_inter_phase_ansatz_deriv(
-    Mf: Real,
-    c0: Real,
-    c1: Real,
-    c2: Real,
-    c4: Real,
-    cL: Real,
-    fRD: Real,
-    fDA: Real,
-) -> Real:
+    Mf: float | Array,
+    c0: float | Array,
+    c1: float | Array,
+    c2: float | Array,
+    c4: float | Array,
+    cL: float | Array,
+    fRD: float | Array,
+    fDA: float | Array,
+) -> float | Array:
     """
     Derivative of intermediate phase ansatz (non-32 modes):
       dphi = c0 + c1/f + c2/f^2 + c4/f^4 + cL*fDA/(fDA^2+(f-fRD)^2)
@@ -1500,8 +1504,13 @@ def _xhm_rd_phase_alphaL_22fit(
 
 
 def _xhm_rd_phase_ansatz_int(
-    Mf: Real, alpha0: Real, alpha2: Real, alphaL: Real, fRD: Real, fDA: Real
-) -> Real:
+    Mf: float | Array,
+    alpha0: float | Array,
+    alpha2: float | Array,
+    alphaL: float | Array,
+    fRD: float | Array,
+    fDA: float | Array,
+) -> Array:
     """
     Integral of ringdown phase ansatz (alpha0 is effectively C1RD from continuity):
       phi = alpha0*f - fRD^2*alpha2/f + alphaL*atan((f-fRD)/fDA)
@@ -1512,8 +1521,13 @@ def _xhm_rd_phase_ansatz_int(
 
 
 def _xhm_rd_phase_ansatz_deriv(
-    Mf: Real, alpha0: Real, alpha2: Real, alphaL: Real, fRD: Real, fDA: Real
-) -> Real:
+    Mf: float | Array,
+    alpha0: float | Array,
+    alpha2: float | Array,
+    alphaL: float | Array,
+    fRD: float | Array,
+    fDA: float | Array,
+) -> float | Array:
     """
     Derivative of ringdown phase ansatz:
       dphi = alpha0 + fRD^2*alpha2/f^2 + alphaL*fDA/(fDA^2+(f-fRD)^2)
@@ -1529,16 +1543,16 @@ def _xhm_rd_phase_ansatz_deriv(
 
 
 def _xhm_inter_phase_ansatz_int_6(
-    Mf: Real,
-    c0: Real,
-    cL: Real,
-    c1: Real,
-    c2: Real,
-    c4: Real,
-    c3: Real,
-    fRD: Real,
-    fDA: Real,
-) -> Real:
+    Mf: float | Array,
+    c0: float | Array,
+    cL: float | Array,
+    c1: float | Array,
+    c2: float | Array,
+    c4: float | Array,
+    c3: float | Array,
+    fRD: float | Array,
+    fDA: float | Array,
+) -> Array:
     """6-coefficient intermediate phase integral (used for 32 mode with mixing).
     Ansatz: c0 + cL*L + c1/f + c2/f^2 + c4/f^4 + c3/f^3  (derivative)
     Integral: c0*f + cL*atan(...) + c1*log(f) - c2/f - c4/(3f^3) - c3/(2f^2)
@@ -1554,16 +1568,16 @@ def _xhm_inter_phase_ansatz_int_6(
 
 
 def _xhm_inter_phase_ansatz_deriv_6(
-    Mf: Real,
-    c0: Real,
-    cL: Real,
-    c1: Real,
-    c2: Real,
-    c4: Real,
-    c3: Real,
-    fRD: Real,
-    fDA: Real,
-) -> Real:
+    Mf: float | Array,
+    c0: float | Array,
+    cL: float | Array,
+    c1: float | Array,
+    c2: float | Array,
+    c4: float | Array,
+    c3: float | Array,
+    fRD: float | Array,
+    fDA: float | Array,
+) -> float | Array:
     """6-coefficient intermediate phase derivative (used for 32 mode with mixing)."""
     return (
         c0
@@ -1576,15 +1590,15 @@ def _xhm_inter_phase_ansatz_deriv_6(
 
 
 def _xhm_rd_phase_spheroidal_int(
-    Mf: Real,
-    alpha0_S: Real,
-    alphaL_S: Real,
-    alpha2_S: Real,
-    alpha4_S: Real,
-    phi0_S: Real,
-    fRING: Real,
-    fDAMP: Real,
-) -> Real:
+    Mf: float | Array,
+    alpha0_S: float | Array,
+    alphaL_S: float | Array,
+    alpha2_S: float | Array,
+    alpha4_S: float | Array,
+    phi0_S: float | Array,
+    fRING: float | Array,
+    fDAMP: float | Array,
+) -> Array:
     """Spheroidal RD phase integral (version 122019).
     phi(f) = phi0_S + alpha0_S*f - alpha2_S/f - alpha4_S/(3*f^3) + alphaL_S*atan(...)
     Source: IMRPhenomXHM_RD_Phase_AnsatzInt MixingOn=1, LALSimIMRPhenomXHM_ringdown.c.
@@ -1810,7 +1824,7 @@ def _xhm_rd_phase_32_collocpts(
 
 def _xhm_rd_phase_32_spheroidal_time_shift(
     eta: float, STotR: float, dchi: float, delta: float
-) -> Real:
+) -> Array:
     """Time shift fit for 32-mode spheroidal phase (version 122019).
     Source: IMRPhenomXHM_RD_Phase_32_SpheroidalTimeShift, LALSimIMRPhenomXHM_ringdown.c.
     """
@@ -1866,7 +1880,7 @@ def _xhm_rd_phase_32_spheroidal_time_shift(
 
 def _xhm_rd_phase_32_spheroidal_phase_shift(
     eta: float, STotR: float, dchi: float, delta: float, chi1L: float, chi2L: float
-) -> Real:
+) -> Array:
     """Phase shift fit for 32-mode spheroidal phase (version 122019).
     Source: IMRPhenomXHM_RD_Phase_32_SpheroidalPhaseShift, LALSimIMRPhenomXHM_ringdown.c.
     """
@@ -2125,7 +2139,7 @@ def _xhm_s2s_complex(
     fAmpRDfalloff32: float,
     rdaux_poly_c: Array,
     rdaux_falloff_amp: float,
-    rdaux_falloff_slope: Real,
+    rdaux_falloff_slope: float | Array,
 ) -> complex:
     """SpheroidalToSpherical for version 122022, mode 32 (RingdownAmpVersion=1).
 
@@ -2170,7 +2184,7 @@ def _compute_32_hlm(
     pWF22: dict,
     t0: float,
     phifRef: float,
-    phi0: Real,
+    phi0: float | Array,
 ) -> Array:
     """Evaluate complex h_{3,2}(f) with spheroidal mode mixing (version 122019).
 
@@ -2645,28 +2659,28 @@ class XHMPhaseCoefficients:
     """
 
     # Inspiral: deviation from 22-mode rescaling
-    ins_c0: Real
-    ins_c1: Real
-    ins_c2: Real
-    ins_c4: Real
-    ins_C1INSP: Real  # continuity shift for dphi at fMatchIN
-    ins_CINSP: Real  # continuity shift for phi at fMatchIN
+    ins_c0: float | Array
+    ins_c1: float | Array
+    ins_c2: float | Array
+    ins_c4: float | Array
+    ins_C1INSP: float | Array  # continuity shift for dphi at fMatchIN
+    ins_CINSP: float | Array  # continuity shift for phi at fMatchIN
 
     # Intermediate: 5 polynomial coefficients [c0, c1, c2, c4, cL]
-    inter_c0: Real
-    inter_c1: Real
-    inter_c2: Real
-    inter_c4: Real
-    inter_cL: Real
+    inter_c0: float | Array
+    inter_c1: float | Array
+    inter_c2: float | Array
+    inter_c4: float | Array
+    inter_cL: float | Array
 
     # Ringdown: alpha2, alphaL (alpha0 = C1RD), CRD
-    rd_alpha2: Real
-    rd_alphaL: Real
-    rd_C1RD: Real
-    rd_CRD: Real
+    rd_alpha2: float | Array
+    rd_alphaL: float | Array
+    rd_C1RD: float | Array
+    rd_CRD: float | Array
 
     # Phase normalization
-    deltaphiLM: Real
+    deltaphiLM: float | Array
 
     # Boundary frequencies
     fMatchIN: float
@@ -3039,49 +3053,7 @@ def xhm_phase_ModeMixing(
     Source: IMRPhenomXHM_Phase_ModeMixing in LALSimIMRPhenomXHM.c.
     Note: deferred to second implementation pass (see plan §6).
     """
-    # TODO: implement mode mixing phase
-    # raise NotImplementedError("32-mode mixing deferred to second pass")
-
-    emm = pWFHM.emm
-    modeTag = pWFHM.modeTag
-    M_s = pWF22["M_s"]
-    theta = pWF22["theta"]
-    phase_coeffs = pWF22["phase_coeffs"]
-    eta = pWF22["eta"]
-    m_over_2 = emm * 0.5
-
-    fMatchIN = pPhase.fMatchIN
-    fMatchIM = pPhase.fMatchIM
-    fRING = pPhase.fRING
-    fDAMP = pPhase.fDAMP
-
-    # Inspiral: same as noModeMixing (but with 32-mode LambdaPN)
-    LambdaPN = _xhm_insp_phase_LambdaPN(modeTag, eta)
-    phi_ins = (
-        m_over_2 / eta * get_inspiral_phase(2.0 * Mf / emm, theta, phase_coeffs)
-        + LambdaPN * Mf
-        + pPhase.ins_C1INSP * Mf
-        + pPhase.ins_CINSP
-    )
-
-    # Intermediate: same as noModeMixing (but with 32-mode collocation fit coefficients)
-    phi_inter = _xhm_inter_phase_ansatz_int(
-        Mf,
-        pPhase.inter_c0,
-        pPhase.inter_c1,
-        pPhase.inter_c2,
-        pPhase.inter_c4,
-        pPhase.inter_cL,
-        fRING,
-        fDAMP,
-    )
-
-    # Ringdown: mode mixing ansatz
-    phi_ring = jnp.imag(
-        _xhm_s2s_complex(
-            Mf,
-        )
-    )
+    raise NotImplementedError("32-mode mixing phase deferred to second pass")
 
 
 # def SpheroidalToSphericalRecycle(
@@ -3366,7 +3338,7 @@ def _xhm_pn_amp_coeffs(
     return (pnInit, pnOneTh, pnTwoTh, pnThreeTh, pnFourTh, pnFiveTh, pnSixTh)
 
 
-def _xhm_pn_poly(f: float, pn_coeffs: tuple) -> complex:
+def _xhm_pn_poly(f: float | Array, pn_coeffs: tuple) -> Array:
     """Evaluate complex PN polynomial at frequency f."""
     c0, c1, c2, c3, c4, c5, c6 = pn_coeffs
     return (
@@ -3381,14 +3353,14 @@ def _xhm_pn_poly(f: float, pn_coeffs: tuple) -> complex:
 
 
 def _xhm_insp_rescaled(
-    f: float,
-    PNgf: float,
+    f: float | Array,
+    PNgf: float | Array,
     pn_coeffs: tuple,
-    rho1: float,
-    rho2: float,
-    rho3: float,
-    fc: float,
-) -> float:
+    rho1: float | Array,
+    rho2: float | Array,
+    rho3: float | Array,
+    fc: float | Array,
+) -> Array:
     """
     Inspiral amplitude ansatz in 'rescaled' units (InspRescaleFactor=1).
     Returns: PNglobalfactor * |pn_poly(f)| + rho1*(f/fc)^(7/3) + rho2*(f/fc)^(8/3) + rho3*(f/fc)^3
@@ -3399,22 +3371,6 @@ def _xhm_insp_rescaled(
         + rho2 * (f / fc) ** (8.0 / 3.0)
         + rho3 * (f / fc) ** 3.0
     )
-
-
-def XHM_RD_Amp_Ansatz(
-    Mf: Array,
-    pWFHM: XHMWaveformStruct,
-    pAmplm: XHMAmpCoefficients,
-) -> Array:
-    """
-    Amplitude ansatz for the ringdown
-    For the modes with mixing this is the ansatz of the spheroidal part
-    """
-
-    RDAmpFlag = pWFHM.XHMRingdownAmpVersion
-    fRING = pWFHM.fRING
-    fDAMP = pWFHM.fDAMP
-    dfr = Mf - fRING
 
 
 def _xhm_rd_rescaled(
@@ -3438,8 +3394,13 @@ def _xhm_rd_rescaled(
 
 
 def _xhm_rd_rescaled_v1(
-    f: Real, alambda: Real, lambda_: Real, sigma: Real, fRING: Real, fDAMP: Real
-) -> Real:
+    f: float | Array,
+    alambda: float | Array,
+    lambda_: float | Array,
+    sigma: float | Array,
+    fRING: float | Array,
+    fDAMP: float | Array,
+) -> Array:
     """
     RD amplitude ansatz case 1 (122022 for mode 32).
     Returns: fDAMP*|alambda| * exp(-lambda*(f-fRING)/(fDAMP*sigma)) / ((f-fRING)^2+(fDAMP*sigma)^2)
@@ -6391,7 +6352,7 @@ def _xhm_rd_amp_rdaux_pts(
     return rdaux1, rdaux2
 
 
-def _xhm_fAmpMatchIN(pWFHM: "XHMWaveformStruct", pWF22: dict) -> Real:
+def _xhm_fAmpMatchIN(pWFHM: "XHMWaveformStruct", pWF22: dict) -> Array:
     """Inspiral-to-intermediate cutoff frequency (version 122022)."""
     eta = pWF22["eta"]
     chi1 = pWF22["chi1L"]
@@ -6442,29 +6403,29 @@ class XHMAmpCoefficients:
     """
 
     # PN global factor: (2/emm)^(-7/6) * prefactor[modeInt]
-    PNglobalfactor: Real
+    PNglobalfactor: float | Array
     # Complex PN polynomial coefficients
     pn_coeffs: (
         tuple  # (pnInit, pnOneTh, pnTwoTh, pnThreeTh, pnFourTh, pnFiveTh, pnSixTh)
     )
     # Inspiral pseudo-PN coefficients (rho1, rho2, rho3)
-    ins_rho1: Real
-    ins_rho2: Real
-    ins_rho3: Real
+    ins_rho1: float | Array
+    ins_rho2: float | Array
+    ins_rho3: float | Array
     # Inspiral cutoff (= fAmpMatchIN after veto, for pseudo-PN normalization)
-    fAmpMatchIN: Real
+    fAmpMatchIN: float | Array
     # Intermediate polynomial coefficients (122022 direct: c0..c7, shape (8,))
     inter_c: Array
     # Ringdown parameters
-    ring_alambda: Real
-    ring_lambda: Real
-    ring_sigma: Real
+    ring_alambda: float | Array
+    ring_lambda: float | Array
+    ring_sigma: float | Array
     # Boundary frequencies
-    fAmpMatchIM: Real
-    fRING: Real
-    fDAMP: Real
+    fAmpMatchIM: float | Array
+    fRING: float | Array
+    fDAMP: float | Array
     # Amplitude normalization (sqrt(2*eta/3)*pi^(-1/6), from pWF22->ampNorm)
-    ampNorm: Real
+    ampNorm: float | Array
     # SPA coefficients for mode (2,1) inspiral; None for other modes
     spa_coeffs: object = None
 
@@ -7567,7 +7528,7 @@ def XLALSimIMRPhenomXHMEvaluateOnehlmMode(
     pAmp: XHMAmpCoefficients,
     pWF22: dict,
     t0: float,
-    phi0: Real,
+    phi0: float | Array,
 ) -> Array:
     """
     Evaluate complex hlm for one mode at all frequencies.
@@ -7601,7 +7562,7 @@ def XLALSimIMRPhenomXHMEvaluateOnehlmMode(
 def XLALSimIMRPhenomXHMGethlmModes(
     freqs_geom: Array,
     pWF22: dict,
-    phi0: Real,
+    phi0: float | Array,
     ell_mm_pairs: list,
 ) -> dict:
     """
