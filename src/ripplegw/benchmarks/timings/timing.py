@@ -7,6 +7,7 @@ with various configurations including hardware selection and precision.
 
 import argparse
 import json
+import logging
 import time
 from datetime import datetime
 from pathlib import Path
@@ -21,6 +22,8 @@ from ripplegw.benchmarks.utils import (
     get_git_hash,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def setup_jax_config(use_float64, device):
     """Configure JAX settings for precision and device."""
@@ -29,16 +32,16 @@ def setup_jax_config(use_float64, device):
     if device == "cpu":
         jax.config.update("jax_platform_name", "cpu")
 
-    print(f"\n{'=' * 60}")
-    print("JAX Configuration")
-    print(f"{'=' * 60}")
-    print(f"Precision: {'float64' if use_float64 else 'float32'}")
-    print(f"Requested device: {device}")
-    print(f"JAX devices: {jax.devices()}")
-    print(f"Default backend: {jax.default_backend()}")
+    logger.info("\n%s", "=" * 60)
+    logger.info("JAX Configuration")
+    logger.info("=" * 60)
+    logger.info("Precision: %s", "float64" if use_float64 else "float32")
+    logger.info("Requested device: %s", device)
+    logger.info("JAX devices: %s", jax.devices())
+    logger.info("Default backend: %s", jax.default_backend())
     for d in jax.devices():
-        print(f"  Device: {d.device_kind}, Platform: {d.platform}")
-    print(f"{'=' * 60}\n")
+        logger.info("  Device: %s, Platform: %s", d.device_kind, d.platform)
+    logger.info("=" * 60)
 
     return get_device_name()
 
@@ -99,20 +102,20 @@ def time_imrphenomxphm(params, config):
     n_runs = config.get("n_runs", 5)
 
     # First run (includes JIT compilation)
-    print(f"\n{'=' * 60}")
-    print("First run (includes JIT compilation)")
-    print(f"{'=' * 60}")
+    logger.info("\n%s", "=" * 60)
+    logger.info("First run (includes JIT compilation)")
+    logger.info("=" * 60)
     start = time.time()
     hp, hc = generate_xphm_batched(params_stacked)
     hp.block_until_ready()
     hc.block_until_ready()
     first_run_time = time.time() - start
-    print(f"First run time (includes JIT compilation): {first_run_time:.3f} s")
+    logger.info("First run time (includes JIT compilation): %.3f s", first_run_time)
 
     # Timed runs
-    print(f"\n{'=' * 60}")
-    print(f"Timed runs ({n_runs} repetitions)")
-    print(f"{'=' * 60}")
+    logger.info("\n%s", "=" * 60)
+    logger.info("Timed runs (%d repetitions)", n_runs)
+    logger.info("=" * 60)
     exec_times = []
     for i in range(n_runs):
         start = time.time()
@@ -121,7 +124,7 @@ def time_imrphenomxphm(params, config):
         hc.block_until_ready()
         t = time.time() - start
         exec_times.append(t)
-        print(f"  Run {i + 1}: {t:.6f} s")
+        logger.info("  Run %d: %.6f s", i + 1, t)
 
     return first_run_time, exec_times
 
@@ -198,20 +201,20 @@ def time_waveform(waveform, batched_params, config):
     n_runs = config.get("n_runs", 5)
 
     # First run (includes JIT compilation)
-    print(f"\n{'=' * 60}")
-    print("First run (includes JIT compilation)")
-    print(f"{'=' * 60}")
+    logger.info("\n%s", "=" * 60)
+    logger.info("First run (includes JIT compilation)")
+    logger.info("=" * 60)
     start = time.time()
     result = waveform_batched(batched_params)
     result["p"].block_until_ready()
     result["c"].block_until_ready()
     first_run_time = time.time() - start
-    print(f"First run time (includes JIT compilation): {first_run_time:.3f} s")
+    logger.info("First run time (includes JIT compilation): %.3f s", first_run_time)
 
     # Timed runs
-    print(f"\n{'=' * 60}")
-    print(f"Timed runs ({n_runs} repetitions)")
-    print(f"{'=' * 60}")
+    logger.info("\n%s", "=" * 60)
+    logger.info("Timed runs (%d repetitions)", n_runs)
+    logger.info("=" * 60)
     exec_times = []
     for i in range(n_runs):
         start = time.time()
@@ -220,7 +223,7 @@ def time_waveform(waveform, batched_params, config):
         result["c"].block_until_ready()
         t = time.time() - start
         exec_times.append(t)
-        print(f"  Run {i + 1}: {t:.6f} s")
+        logger.info("  Run %d: %.6f s", i + 1, t)
 
     return first_run_time, exec_times
 
@@ -248,16 +251,16 @@ def run_timing(args):
     config["device_name"] = device_name
 
     # Print configuration
-    print(f"{'=' * 60}")
-    print("Timing Configuration")
-    print(f"{'=' * 60}")
-    print(f"Waveform: {args.waveform}")
-    print(f"Number of waveforms: {args.n_waveforms}")
-    print(f"Duration: {args.duration} s")
-    print(f"Frequency range: {args.f_min} - {args.f_max} Hz")
-    print(f"Reference frequency: {args.f_ref} Hz")
-    print(f"Git hash: {config['git_hash']}")
-    print(f"{'=' * 60}\n")
+    logger.info("=" * 60)
+    logger.info("Timing Configuration")
+    logger.info("=" * 60)
+    logger.info("Waveform: %s", args.waveform)
+    logger.info("Number of waveforms: %d", args.n_waveforms)
+    logger.info("Duration: %s s", args.duration)
+    logger.info("Frequency range: %s - %s Hz", args.f_min, args.f_max)
+    logger.info("Reference frequency: %s Hz", args.f_ref)
+    logger.info("Git hash: %s", config["git_hash"])
+    logger.info("=" * 60)
 
     # Generate parameters based on waveform type
     waveform_type = get_waveform_type(args.waveform)
@@ -267,19 +270,19 @@ def run_timing(args):
     else:
         params = generate_bbh_parameters(args.n_waveforms)
 
-    print(f"Generated {args.n_waveforms} parameter sets")
-    print(f"Parameter keys: {list(params.keys())}\n")
+    logger.info("Generated %d parameter sets", args.n_waveforms)
+    logger.info("Parameter keys: %s", list(params.keys()))
 
     # Run timing based on waveform
     if args.waveform == "IMRPhenomXPHM":
-        print(" Running XPHM timing benchmark...")
+        logger.info("Running XPHM timing benchmark...")
         first_run_time, exec_times = time_imrphenomxphm(params, config)
 
     else:
         import ripplegw
 
         if args.waveform == "IMRPhenomPv2":
-            print(
+            logger.info(
                 "Running precessing waveform timing benchmark (note: XPHM is separated)..."
             )
             waveform = ripplegw.waveform_preset["IMRPhenomPv2"](
@@ -287,14 +290,14 @@ def run_timing(args):
             )
             batched_params = _prepare_precessing_params(params)
         elif waveform_type == "bns":
-            print(f"Running BNS waveform timing benchmark ({args.waveform})...")
+            logger.info("Running BNS waveform timing benchmark (%s)...", args.waveform)
             waveform = ripplegw.waveform_preset[args.waveform](
                 f_ref=config["reference_frequency"]  # type: ignore
             )
             batched_params = _prepare_bns_params(params)
         else:
-            print(
-                f"Running aligned-spin waveform timing benchmark ({args.waveform})..."
+            logger.info(
+                "Running aligned-spin waveform timing benchmark (%s)...", args.waveform
             )
             waveform = ripplegw.waveform_preset[args.waveform](
                 f_ref=config["reference_frequency"]  # type: ignore
@@ -315,18 +318,20 @@ def run_timing(args):
     std_wps = args.n_waveforms * std_exec / (mean_exec**2)
 
     # Print results
-    print(f"\n{'=' * 60}")
-    print("Timing Results")
-    print(f"{'=' * 60}")
-    print(f"First run time (includes JIT compilation): {first_run_time:.6f} s")
-    print(f"Timed runs ({args.n_runs} repetitions):")
-    print(f"  Mean execution time: {mean_exec:.6f} s")
-    print(f"  Std  execution time: {std_exec:.6f} s")
-    print(f"  Min  execution time: {min_exec:.6f} s")
-    print(f"  Max  execution time: {max_exec:.6f} s")
-    print(f"Mean time per waveform: {mean_tpw_ms:.3f} ms  (+/- {std_tpw_ms:.3f} ms)")
-    print(f"Mean waveforms per second: {mean_wps:.1f}  (+/- {std_wps:.1f})")
-    print(f"{'=' * 60}\n")
+    logger.info("\n%s", "=" * 60)
+    logger.info("Timing Results")
+    logger.info("=" * 60)
+    logger.info("First run time (includes JIT compilation): %.6f s", first_run_time)
+    logger.info("Timed runs (%d repetitions):", args.n_runs)
+    logger.info("  Mean execution time: %.6f s", mean_exec)
+    logger.info("  Std  execution time: %.6f s", std_exec)
+    logger.info("  Min  execution time: %.6f s", min_exec)
+    logger.info("  Max  execution time: %.6f s", max_exec)
+    logger.info(
+        "Mean time per waveform: %.3f ms  (+/- %.3f ms)", mean_tpw_ms, std_tpw_ms
+    )
+    logger.info("Mean waveforms per second: %.1f  (+/- %.1f)", mean_wps, std_wps)
+    logger.info("=" * 60)
 
     # Save results
     results = {
@@ -357,7 +362,7 @@ def run_timing(args):
     with open(output_path, "w") as f:
         json.dump(results, f, indent=2)
 
-    print(f"Results saved to: {output_path}")
+    logger.info("Results saved to: %s", output_path)
 
 
 def get_waveform_type(waveform):
