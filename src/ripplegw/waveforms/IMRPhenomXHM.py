@@ -453,6 +453,9 @@ class XHMWaveformStruct:
     nCollocPtsInterPhase: int  # = 6 for 32, else 5
     etaEMR: float  # = 0.05
 
+    # Model version parameters
+    XHMRingdownAmpVersion: int
+
 
 def build_pWF22(m1: float, m2: float, chi1z: float, chi2z: float, f_ref: float) -> dict:
     """
@@ -660,6 +663,7 @@ def xhm_set_waveform_variables(ell: int, emm: int, pWF22: dict) -> XHMWaveformSt
     MixingOn = ell == 3 and emm == 2
     # Ampzero: odd modes vanish at equal mass (delta=0); check conservatively
     Ampzero = False  # evaluated per-frequency; not statically zero for GW150914
+    XHMRingdownAmpVersion = jax.lax.select(modeInt == 2, 1, 0)
 
     return XHMWaveformStruct(
         ell=ell,
@@ -678,6 +682,7 @@ def xhm_set_waveform_variables(ell: int, emm: int, pWF22: dict) -> XHMWaveformSt
         nCollocPtsRDPhase=4,
         nCollocPtsInterPhase=6 if MixingOn else 5,
         etaEMR=0.05,
+        XHMRingdownAmpVersion=XHMRingdownAmpVersion,
     )
 
 
@@ -3017,7 +3022,76 @@ def xhm_phase_ModeMixing(
     Note: deferred to second implementation pass (see plan §6).
     """
     # TODO: implement mode mixing phase
-    raise NotImplementedError("32-mode mixing deferred to second pass")
+    # raise NotImplementedError("32-mode mixing deferred to second pass")
+
+    emm = pWFHM.emm
+    modeTag = pWFHM.modeTag
+    M_s = pWF22["M_s"]
+    theta = pWF22["theta"]
+    phase_coeffs = pWF22["phase_coeffs"]
+    eta = pWF22["eta"]
+    m_over_2 = emm * 0.5
+
+    fMatchIN = pPhase.fMatchIN
+    fMatchIM = pPhase.fMatchIM
+    fRING = pPhase.fRING
+    fDAMP = pPhase.fDAMP
+
+    # Inspiral: same as noModeMixing (but with 32-mode LambdaPN)
+    LambdaPN = _xhm_insp_phase_LambdaPN(modeTag, eta)
+    phi_ins = (
+        m_over_2 / eta * get_inspiral_phase(2.0 * Mf / emm, theta, phase_coeffs)
+        + LambdaPN * Mf
+        + pPhase.ins_C1INSP * Mf
+        + pPhase.ins_CINSP
+    )
+
+    # Intermediate: same as noModeMixing (but with 32-mode collocation fit coefficients)
+    phi_inter = _xhm_inter_phase_ansatz_int(
+        Mf,
+        pPhase.inter_c0,
+        pPhase.inter_c1,
+        pPhase.inter_c2,
+        pPhase.inter_c4,
+        pPhase.inter_cL,
+        fRING,
+        fDAMP,
+    )
+
+    # Ringdown: mode mixing ansatz
+    phi_ring = jnp.imag(
+        _xhm_s2s_complex(
+            Mf,
+        )
+    )
+
+
+# def SpheroidalToSphericalRecycle(
+#         Mf: Array,
+#         wf22: Array,
+#         eta: float,
+#         pAmplm: XHMAmpCoefficients,
+#         pPhaselm: XHMPhaseCoefficients,
+#         pWFHM: XHMWaveformStruct,
+# ):
+#     """
+#     Based on SpheroidalToSphericalRecycle from LALSimIMRPhenomXHM_internals.c
+#     We recycle the already computed 22-mode phase and amplitude information
+#     The rotation consists of a linear transformation using the mixing coefficients given by Berti [10.1103/PhysRevD.90.064012].
+
+#     h32_spherical = a1 * h22_spheroidal + a2 * h32_spheroidal,  where a1, a2 are the mixing coefficients.
+
+#     Since the 22 is the most dominant mode, it will not show a significant mixing with any other mode,
+#     so we can assume that h22_spheroidal = h22_spherical
+
+#     In principle this could be generalized to the 43 mode: for the time being, assume the mode solved for is only the 32.
+#     """
+#     ampNorm = jnp.sqrt(2*eta/3)/PI # same as in WF22, sqrt(2*eta/3)/Pi, this is the normalization factor of the leading order of the 22-mode
+#     wf22R_denom = jax.lax.select(
+#         pWFHM.XHMRingdownAmpVersion == 0,
+#         ampNorm * Mf**(-7/6),
+#         1 # Not certain about not rescaling here
+#     )
 
 
 # ---------------------------------------------------------------------------
@@ -3307,6 +3381,22 @@ def _xhm_insp_rescaled(
         + rho2 * (f / fc) ** (8.0 / 3.0)
         + rho3 * (f / fc) ** 3.0
     )
+
+
+def XHM_RD_Amp_Ansatz(
+    Mf: Array,
+    pWFHM: XHMWaveformStruct,
+    pAmplm: XHMAmpCoefficients,
+) -> Array:
+    """
+    Amplitude ansatz for the ringdown
+    For the modes with mixing this is the ansatz of the spheroidal part
+    """
+
+    RDAmpFlag = pWFHM.XHMRingdownAmpVersion
+    fRING = pWFHM.fRING
+    fDAMP = pWFHM.fDAMP
+    dfr = Mf - fRING
 
 
 def _xhm_rd_rescaled(
@@ -7477,10 +7567,9 @@ def XLALSimIMRPhenomXHMEvaluateOnehlmMode(
     Mf_ref = pWF22["Mf_ref"]
 
     # Phase
-    if pWFHM.MixingOn:
-        phase_lm = xhm_phase_ModeMixing(freqs_geom, pPhase, pWFHM, pWF22, t0)
-    else:
-        phase_lm = xhm_phase_noModeMixing(freqs_geom, pPhase, pWFHM, pWF22, t0)
+    # if pWFHM.MixingOn:
+    #     phase_lm = xhm_phase_ModeMixing(freqs_geom, pPhase, pWFHM, pWF22, t0)
+    phase_lm = xhm_phase_noModeMixing(freqs_geom, pPhase, pWFHM, pWF22, t0)
 
     # Amplitude
     if pAmp is not None:
