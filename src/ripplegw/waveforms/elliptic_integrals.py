@@ -5,14 +5,10 @@ This module provides JAX-compatible implementations of elliptic integrals,
 specifically the incomplete elliptic integral of the first kind (F).
 """
 
-import logging
-
 import jax
 import jax.numpy as jnp
 from jax.scipy.integrate import trapezoid
 from jaxtyping import Float
-
-logger = logging.getLogger(__name__)
 
 
 def ellint_F(phi: Float, k: Float, n_points: int = 1000) -> Float:
@@ -81,53 +77,6 @@ def ellint_F(phi: Float, k: Float, n_points: int = 1000) -> Float:
     result: Float = jnp.where(is_k_zero, case_k_zero(), inner)
 
     return result
-
-
-def ellint_Kcomp(k: Float, n_points: int = 1000) -> Float:
-    """
-    Compute the complete elliptic integral of the first kind.
-
-    This is K(k) = F(π/2, k) = ∫₀^(π/2) dt / √(1 - k² sin²(t))
-
-    Equivalent to GSL's gsl_sf_ellint_Kcomp(k, GSL_PREC_DOUBLE).
-
-    Args:
-        k: The modulus, where 0 ≤ k² ≤ 1
-        n_points: Number of integration points (default: 1000)
-
-    Returns:
-        The value of K(k)
-    """
-    return ellint_F(jnp.pi / 2.0, k, n_points)
-
-
-def ellint_F_carlson(phi: Float, k: Float) -> Float:
-    """
-    Compute the incomplete elliptic integral of the first kind using Carlson's method.
-
-    This is an alternative implementation using Carlson symmetric form:
-    F(φ, k) = sin(φ) * R_F(cos²(φ), 1 - k² sin²(φ), 1)
-
-    This method can be more accurate for certain parameter ranges but requires
-    implementing Carlson's R_F function.
-
-    Args:
-        phi: The amplitude in radians
-        k: The modulus
-
-    Returns:
-        The value of F(φ, k)
-
-    Note:
-        This is a placeholder for a future implementation using Carlson's
-        symmetric elliptic integrals, which are numerically more stable.
-    """
-    # For now, fall back to the trapezoidal integration method
-    logger.warning(
-        "ellint_F_carlson is a placeholder and delegates to ellint_F; "
-        "implement Carlson's R_F for the intended behaviour."
-    )
-    return ellint_F(phi, k)
 
 
 def gsl_sf_elljac_e(u: Float, m: Float, max_iter: int = 16):

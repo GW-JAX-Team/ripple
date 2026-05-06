@@ -78,15 +78,6 @@ def PhenomPCoreTwistUp(
     sBetah3 = sBetah2 * sBetah
     sBetah4 = sBetah3 * sBetah
 
-    # d2 = jnp.array(
-    #     [
-    #         sBetah4,
-    #         2 * cBetah * sBetah3,
-    #         jnp.sqrt(6) * sBetah2 * cBetah2,
-    #         2 * cBetah3 * sBetah,
-    #         cBetah4,
-    #     ]
-    # )
     Y2mA = jnp.array(Y2m)  # need to pass Y2m in a 5-component list
     hp_sum = 0
     hc_sum = 0
