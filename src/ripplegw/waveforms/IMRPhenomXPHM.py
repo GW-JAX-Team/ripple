@@ -22,7 +22,6 @@ from .IMRPhenomD import Phase as IMRPhenomD_Phase
 from .IMRPhenomD import IMRPhenDAmplitude_NoCut
 from .IMRPhenomD import get_IIb_raw_phase
 from .IMRPhenomPv2_utils import FinalSpin0815
-from .IMRPhenomXHM import build_pWF22, XLALSimIMRPhenomXHMGethlmModes
 
 
 # Phase shift due to leading order complex amplitude
@@ -62,19 +61,24 @@ def generate_xphm(
     _ell_mm_pairs = [(2, 1), (2, 2), (3, 2), (3, 3), (4, 4)]
     _mode_array = jnp.array([[2, 1], [2, 2], [3, 2], [3, 3], [4, 4]], dtype=jnp.int32)
 
-    # Build 22-mode waveform parameter struct and geometric frequency array.
-    M_s = Mtot * MTSUN  # total mass in seconds
-    freqs_geom = frequency_array * M_s  # dimensionless geometric frequencies
-
-    # pWF22 uses only aligned-spin components chi1z, chi2z for t0 and phase.
-    pWF22 = build_pWF22(mass_1, mass_2, chi1z, chi2z, reference_frequency)
-
-    # Generate XHM modes with phi0=0 (same convention as old HM call:
-    # phiRef enters through twistup only, not through mode generation).
-    hlm_dict = XLALSimIMRPhenomXHMGethlmModes(freqs_geom, pWF22, 0.0, _ell_mm_pairs)
-
-    # Stack into (5, n_freqs) array in mode order [(2,1),(2,2),(3,2),(3,3),(4,4)]
-    hlm = jnp.stack([hlm_dict[lm] for lm in _ell_mm_pairs])
+    # Build the co-precessing seed used by LAL's current XPHM validation path.
+    # The repo's LAL-side helpers explicitly enable TwistPhenomHM=1, which twists
+    # up the legacy PhenomHM modes rather than the XHM modes.
+    hlm = XLALSimIMRPhenomHMGethlmModes(
+        frequency_array,
+        mass_1 * MSUN,
+        mass_2 * MSUN,
+        chi1x,
+        chi1y,
+        chi1z,
+        chi2x,
+        chi2y,
+        chi2z,
+        0.0,
+        0.0,
+        reference_frequency,
+        {"ModeArray": _mode_array},
+    )
 
     ells = _mode_array[:, 0]
     minus1l = jnp.where(ells % 2 != 0, -1, 1)

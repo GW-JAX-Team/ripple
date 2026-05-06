@@ -18,6 +18,7 @@ def IMRPhenomX_Initialize_MSA_System(
     chi2z,
     reference_frequency,
     pflag=223,
+    expansion_order=5,
 ):
     """
     First initialize the system of variables needed for Chatziioannou et al, PRD, 88, 063011, (2013), arXiv:1307.4418:
@@ -256,7 +257,6 @@ def IMRPhenomX_Initialize_MSA_System(
             eta,
         )
     )
-    """
     a5 = eta * (
         domegadt_constants_NS[7]
         + eta * (domegadt_constants_NS[8])
@@ -268,7 +268,6 @@ def IMRPhenomX_Initialize_MSA_System(
             q,
         )
     )
-    """
 
     # Useful powers of a_0
     a0_2 = a0 * a0
@@ -281,7 +280,7 @@ def IMRPhenomX_Initialize_MSA_System(
     g2 = -(a2 / a0_2)
     g3 = -(a3 / a0_2)
     g4 = -(a4 * a0 - a2_2) / a0_3
-    # g5 = 0.0  # -(a5 * a0 - 2.0 * a3 * a2) / a0_3
+    g5 = -(a5 * a0 - 2.0 * a3 * a2) / a0_3
 
     # Useful powers of delta
     delta = delta_qq
@@ -437,13 +436,11 @@ def IMRPhenomX_Initialize_MSA_System(
     ) - adD * fdD * fdD
 
     # Eq. D15 in PRD, 95, 104004, (2017), arXiv:1703.03967
-    """
     Omegaz5 = (
         (cdD - adDfdD + adDhdD_2) * fdD * (Seff + 2.0 * hdD)
         - (cdD + adDhdD_2 - 2.0 * adDfdD) * hdD_2 * (Seff + hdD)
         - adDfdD * fdD * hdD
     )
-    """
 
     # Coefficients of Eq. 65, as defined in Equations D16 - D21 of PRD, 95, 104004, (2017), arXiv:1703.03967
     Omegaz0_coeff = 3.0 * g0 * Omegaz0
@@ -451,7 +448,9 @@ def IMRPhenomX_Initialize_MSA_System(
     Omegaz2_coeff = 3.0 * (g0 * Omegaz2 + g2 * Omegaz0)
     Omegaz3_coeff = 3.0 * (g0 * Omegaz3 + g2 * Omegaz1 + g3 * Omegaz0)
     Omegaz4_coeff = 3.0 * (g0 * Omegaz4 + g2 * Omegaz2 + g3 * Omegaz1 + g4 * Omegaz0)
-    Omegaz5_coeff = 0  # 3.0 * (g0 * Omegaz5 + g2 * Omegaz3 + g3 * Omegaz2 + g4 * Omegaz1 + g5 * Omegaz0)
+    Omegaz5_coeff = 3.0 * (
+        g0 * Omegaz5 + g2 * Omegaz3 + g3 * Omegaz2 + g4 * Omegaz1 + g5 * Omegaz0
+    )
 
     # Coefficients of zeta: in Appendix E of PRD, 95, 104004, (2017), arXiv:1703.03967
     c1oveta2 = c_1 / eta2
@@ -460,7 +459,7 @@ def IMRPhenomX_Initialize_MSA_System(
     Omegazeta2 = Omegaz2 + Omegaz1 * c1oveta2
     Omegazeta3 = Omegaz3 + Omegaz2 * c1oveta2 + gdD
     Omegazeta4 = Omegaz4 + Omegaz3 * c1oveta2 - gdD * Seff - gdD * hdD
-    # Omegazeta5 = Omegaz5 + Omegaz4 * c1oveta2 + gdD * hdD * Seff + gdD * (hdD_2 - fdD)
+    Omegazeta5 = Omegaz5 + Omegaz4 * c1oveta2 + gdD * hdD * Seff + gdD * (hdD_2 - fdD)
 
     Omegazeta0_coeff = -g0 * Omegazeta0
     Omegazeta1_coeff = -1.5 * g0 * Omegazeta1
@@ -469,7 +468,57 @@ def IMRPhenomX_Initialize_MSA_System(
     Omegazeta4_coeff = 3.0 * (
         g0 * Omegazeta4 + g2 * Omegazeta2 + g3 * Omegazeta1 + g4 * Omegazeta0
     )
-    Omegazeta5_coeff = 0.0  # 1.5 * (g0 * Omegazeta5 + g2 * Omegazeta3 + g3 * Omegazeta2 + g4 * Omegazeta1 + g5 * Omegazeta0)
+    Omegazeta5_coeff = 1.5 * (
+        g0 * Omegazeta5
+        + g2 * Omegazeta3
+        + g3 * Omegazeta2
+        + g4 * Omegazeta1
+        + g5 * Omegazeta0
+    )
+
+    # LAL's default PhenomXPExpansionOrder=5 truncates the 5th-order correction
+    # coefficients before phiz_0/zeta_0 are initialized.
+    if expansion_order == -1:
+        pass
+    elif expansion_order == 1:
+        Omegaz1_coeff = 0.0
+        Omegazeta1_coeff = 0.0
+        Omegaz2_coeff = 0.0
+        Omegazeta2_coeff = 0.0
+        Omegaz3_coeff = 0.0
+        Omegazeta3_coeff = 0.0
+        Omegaz4_coeff = 0.0
+        Omegazeta4_coeff = 0.0
+        Omegaz5_coeff = 0.0
+        Omegazeta5_coeff = 0.0
+    elif expansion_order == 2:
+        Omegaz2_coeff = 0.0
+        Omegazeta2_coeff = 0.0
+        Omegaz3_coeff = 0.0
+        Omegazeta3_coeff = 0.0
+        Omegaz4_coeff = 0.0
+        Omegazeta4_coeff = 0.0
+        Omegaz5_coeff = 0.0
+        Omegazeta5_coeff = 0.0
+    elif expansion_order == 3:
+        Omegaz3_coeff = 0.0
+        Omegazeta3_coeff = 0.0
+        Omegaz4_coeff = 0.0
+        Omegazeta4_coeff = 0.0
+        Omegaz5_coeff = 0.0
+        Omegazeta5_coeff = 0.0
+    elif expansion_order == 4:
+        Omegaz4_coeff = 0.0
+        Omegazeta4_coeff = 0.0
+        Omegaz5_coeff = 0.0
+        Omegazeta5_coeff = 0.0
+    elif expansion_order == 5:
+        Omegaz5_coeff = 0.0
+        Omegazeta5_coeff = 0.0
+    else:
+        raise ValueError(
+            f"Expansion order for MSA corrections = {expansion_order} not recognized."
+        )
 
     # Get psi0 term
     psi0 = compute_psi0(
