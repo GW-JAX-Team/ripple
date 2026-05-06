@@ -629,6 +629,10 @@ class IMRPhenomXHM(Waveform):
         """
         self.f_ref = f_ref
 
+    @property
+    def parameter_names(self) -> tuple[str, ...]:
+        return ("M_c", "eta", "s1_z", "s2_z", "d_L", "phase_c", "iota")
+
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
     ) -> dict[str, Float[Array, " n_freq"]]:
