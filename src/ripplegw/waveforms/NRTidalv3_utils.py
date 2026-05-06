@@ -165,7 +165,7 @@ def general_planck_taper(x, y1, y2):
 def get_tidal_phase(M_omega: Array, NRTidalv3_coeffs: Array, PN_coeffs: Array):
     """
     Tidal phase correction for NRTidalv3, Eq. (27,30), from Abac, et. al. (2023) (https://arxiv.org/pdf/2311.07456.pdf)
-    Jaxified version of SimNRTunedTidesFDTidalPhase_v3.
+    JAXified version of SimNRTunedTidesFDTidalPhase_v3.
 
     Args:
         M_omega (Array): Dimensionless angular GW frequency
@@ -277,7 +277,7 @@ def get_tidal_phase_PN(
 ):
     """
     PN tidal phase correction, at 7.5PN, to connect with NRTidalv3 Phase post-merger, see Eq. (22) and (45) of https://arxiv.org/pdf/2311.07456.pdf
-    Jaxified version of SimNRTunedTidesFDTidalPhase_PN
+    JAXified version of SimNRTunedTidesFDTidalPhase_PN
 
     Args:
         M_omega (Array): Dimensionless angular GW frequency

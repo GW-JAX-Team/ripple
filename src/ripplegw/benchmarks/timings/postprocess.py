@@ -7,11 +7,14 @@ for different waveform approximants, comparing float32 vs float64 performance.
 
 import argparse
 import json
+import logging
 import math
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import jax.numpy as jnp
+
+logger = logging.getLogger(__name__)
 
 try:
     import matplotlib.pyplot as plt  # type: ignore[import]
@@ -42,7 +45,7 @@ def load_timing_results(
     json_files = list(results_dir.glob("*.json"))
 
     if not json_files:
-        print(f"No JSON files found in {results_dir}")
+        logger.warning("No JSON files found in %s", results_dir)
         return results
 
     for json_file in json_files:
@@ -89,7 +92,7 @@ def create_time_per_waveform_plot(
 ):
     """Create bar chart comparing time per waveform for float32 vs float64."""
     if not HAS_MATPLOTLIB:
-        print("matplotlib not available, skipping plot.")
+        logger.warning("matplotlib not available, skipping plot.")
         return
     waveforms = sorted(organized_results.keys())
     float32_times = []
@@ -180,7 +183,7 @@ def create_time_per_waveform_plot(
 
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches="tight")
-    print(f"Saved time per waveform plot to: {output_path}")
+    logger.info("Saved time per waveform plot to: %s", output_path)
     plt.close()
 
 
@@ -192,7 +195,7 @@ def create_throughput_plot(
 ):
     """Create bar chart comparing throughput (waveforms/s) for float32 vs float64."""
     if not HAS_MATPLOTLIB:
-        print("matplotlib not available, skipping plot.")
+        logger.warning("matplotlib not available, skipping plot.")
         return
     waveforms = sorted(organized_results.keys())
     float32_throughput = []
@@ -283,7 +286,7 @@ def create_throughput_plot(
 
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches="tight")
-    print(f"Saved throughput plot to: {output_path}")
+    logger.info("Saved throughput plot to: %s", output_path)
     plt.close()
 
 
@@ -302,19 +305,19 @@ def run_postprocess(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if not results_dir.exists():
-        print(f"Error: Results directory not found: {results_dir}")
+        logger.error("Results directory not found: %s", results_dir)
         return
 
-    print(f"Loading results from: {results_dir}")
+    logger.info("Loading results from: %s", results_dir)
     if gpu_filter:
-        print(f"Filtering by device: {gpu_filter}")
+        logger.info("Filtering by device: %s", gpu_filter)
     results = load_timing_results(results_dir, gpu_filter=gpu_filter)
 
     if not results:
-        print("No timing results found!")
+        logger.warning("No timing results found!")
         return
 
-    print(f"Loaded {len(results)} timing results")
+    logger.info("Loaded %d timing results", len(results))
 
     organized = organize_results_by_waveform(results)
 
@@ -322,13 +325,13 @@ def run_postprocess(
     device_name = first_result.get("device_name", "Unknown")
     n_waveforms = first_result.get("n_waveforms", 0)
 
-    print("\nGenerating plots for:")
-    print(f"  Device: {device_name}")
-    print(f"  N waveforms: {n_waveforms}")
-    print(f"  Waveforms analyzed: {', '.join(sorted(organized.keys()))}")
+    logger.info("Generating plots for:")
+    logger.info("  Device: %s", device_name)
+    logger.info("  N waveforms: %d", n_waveforms)
+    logger.info("  Waveforms analyzed: %s", ", ".join(sorted(organized.keys())))
 
     if not HAS_MATPLOTLIB:
-        print("matplotlib not available, skipping plots.")
+        logger.warning("matplotlib not available, skipping plots.")
         return
 
     create_time_per_waveform_plot(
@@ -344,7 +347,7 @@ def run_postprocess(
         n_waveforms,
     )
 
-    print("\nPostprocessing complete!")
+    logger.info("Postprocessing complete!")
 
 
 def main() -> None:

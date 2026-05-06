@@ -941,7 +941,7 @@ def IMRPhenomHMEvaluateOnehlmMode(
 
 
 def XLALSimPhenomUtilsPhenomPv2FinalSpin(
-    m1: float, m2: float, chi1_l: float, chi2_l: float, chip: float
+    m1: Float, m2: Float, chi1_l: Float, chi2_l: Float, chip: Float
 ):
     """
     Implementation of XLALSimPhenomUtilsPhenomPv2FinalSpin in LALSimPhenomUtils.c

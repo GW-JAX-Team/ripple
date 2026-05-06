@@ -48,13 +48,10 @@ cross-validation = [
     "lalsuite",
 ]
 doc = [
-    "mkdocs-gen-files",
-    "mkdocs-jupyter<0.26.0",
-    "mkdocs-literate-nav",
-    "mkdocs-material",
-    "mkdocs",
+    "jupytext",
     "mkdocstrings[python]",
     "pymdown-extensions",
+    "zensical",
 ]
 
 [project.scripts]
@@ -62,7 +59,7 @@ ripple_time = "ripplegw.benchmarks.timings.timing:main"
 
 [project.urls]
 Homepage = "https://github.com/GW-JAX-Team/ripple"
-Documentation = "https://ripple.readthedocs.io"
+Documentation = "https://gw-jax-team.github.io/ripple/"
 Repository = "https://github.com/GW-JAX-Team/ripple"
 "Bug Tracker" = "https://github.com/GW-JAX-Team/ripple/issues"
 Changelog = "https://github.com/GW-JAX-Team/ripple/releases"
