@@ -68,7 +68,7 @@ BBH_BOUNDS = {
 # Per-waveform mismatch thresholds.
 # These represent expected float64 agreement between the ripple and LAL
 # implementations; simpler/more-analytical waveforms achieve near-machine
-# precision while complex NR-calibrated ones accumulate more rounding error.
+# precision while complex ones accumulate more rounding error.
 #
 # IMRPhenomPv2 NOTE: the 1e-4 threshold is intentionally loose and does NOT
 # reflect a deficiency in ripple's implementation. The mismatch is entirely a
@@ -85,13 +85,14 @@ BBH_BOUNDS = {
 MISMATCH_THRESHOLDS = {
     "IMRPhenomD": 1e-6,
     "IMRPhenomXAS": 1e-13,
-    "IMRPhenomD_NRTidalv2": 1e-9,
+    "IMRPhenomXHM": 1e-6,
+    "IMRPhenomD_NRTidalv2": 1e-8,
     "IMRPhenomXAS_NRTidalv3": 1e-6,
     "TaylorF2": 1e-14,
     "IMRPhenomPv2": 1e-4,  # see note above
     "IMRPhenomXPHM": 1e-6,
 }
-DEFAULT_MISMATCH_THRESHOLD = 1e-5  # fallback for unknown waveforms
+DEFAULT_MISMATCH_THRESHOLD = 1e-6  # fallback for unknown waveforms
 
 
 def get_mismatch_threshold(waveform_name: str) -> float:
@@ -357,6 +358,7 @@ def psd_data():
     [
         pytest.param("IMRPhenomD", BBH_BOUNDS, id="IMRPhenomD"),
         pytest.param("IMRPhenomXAS", BBH_BOUNDS, id="IMRPhenomXAS"),
+        pytest.param("IMRPhenomXHM", BBH_BOUNDS, id="IMRPhenomXHM"),
         pytest.param("IMRPhenomD_NRTidalv2", DEFAULT_BOUNDS, id="IMRPhenomD_NRTidalv2"),
         pytest.param(
             "IMRPhenomXAS_NRTidalv3", DEFAULT_BOUNDS, id="IMRPhenomXAS_NRTidalv3"

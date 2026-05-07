@@ -50,13 +50,6 @@ def gen_SineGaussian_hphc(
 
     quality, frequency, hrss, phase, eccentricity = theta
 
-    # add dimension for calculating waveforms in batch
-    # quality = quality.reshape(-1, 1)
-    # frequency = frequency.reshape(-1, 1)
-    # hrss = hrss.reshape(-1, 1)
-    # phase = phase.reshape(-1, 1)
-    # eccentricity = eccentricity.reshape(-1, 1)
-
     pi = jnp.array([PI])
 
     # calculate relative hplus / hcross amplitudes based on eccentricity

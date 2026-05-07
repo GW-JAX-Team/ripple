@@ -49,8 +49,6 @@ def generate_xphm(
     """Generate IMRPhenomXPHM plus and cross polarizations."""
     Mf = XLALSimIMRPhenomXUtilsHztoMf(frequency_array, mass_1 + mass_2)
 
-    m1_SI = mass_1 * MSUN
-    m2_SI = mass_2 * MSUN
     Mtot = mass_1 + mass_2
 
     # Overall amplitude prefactor from LAL's XLALSimPhenomUtilsFDamp0:
@@ -59,32 +57,30 @@ def generate_xphm(
     dist_m = distance * MPC  # distance in meters
     amp0 = Mtot * MRSUN * Mtot * MTSUN / dist_m
 
-    extra_params = {
-        "ModeArray": jnp.array(
-            [[2, 1], [2, 2], [3, 2], [3, 3], [4, 4]], dtype=jnp.int32
-        )
-    }
+    # Mode order: [(2,1),(2,2),(3,2),(3,3),(4,4)]
+    _ell_mm_pairs = [(2, 1), (2, 2), (3, 2), (3, 3), (4, 4)]
+    _mode_array = jnp.array([[2, 1], [2, 2], [3, 2], [3, 3], [4, 4]], dtype=jnp.int32)
 
+    # Build the co-precessing seed used by LAL's current XPHM validation path.
+    # The repo's LAL-side helpers explicitly enable TwistPhenomHM=1, which twists
+    # up the legacy PhenomHM modes rather than the XHM modes.
     hlm = XLALSimIMRPhenomHMGethlmModes(
         frequency_array,
-        m1_SI,
-        m2_SI,
+        mass_1 * MSUN,
+        mass_2 * MSUN,
         chi1x,
         chi1y,
         chi1z,
         chi2x,
         chi2y,
         chi2z,
-        0.0,  # Convention 1: pWF->phi0 = 0 (LALSimIMRPhenomX_precession.c:837).
-        # phiRef enters exclusively through kappa->alpha0->alpha_offset and
-        # zeta_polarization in twistup; passing phi0 here would add a
-        # spurious mm*phiRef phase shift to every mode.
-        frequency_array[1] - frequency_array[0],
+        0.0,
+        0.0,
         reference_frequency,
-        extra_params,
+        {"ModeArray": _mode_array},
     )
 
-    ells = extra_params["ModeArray"][:, 0]
+    ells = _mode_array[:, 0]
     minus1l = jnp.where(ells % 2 != 0, -1, 1)
     hlms = minus1l[:, None] * hlm * amp0
 
