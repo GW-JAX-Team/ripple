@@ -1074,6 +1074,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../IMRPhenomXHM/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  IMRPhenomXHM
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../IMRPhenomXPHM/" class="md-nav__link">
         
   
@@ -1341,28 +1368,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ripplegw.waveforms.elliptic_integrals.ellint_Kcomp" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        ellint_Kcomp
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#ripplegw.waveforms.elliptic_integrals.ellint_F_carlson" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        ellint_F_carlson
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#ripplegw.waveforms.elliptic_integrals.gsl_sf_elljac_e" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1517,28 +1522,6 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         ellint_F
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#ripplegw.waveforms.elliptic_integrals.ellint_Kcomp" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        ellint_Kcomp
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#ripplegw.waveforms.elliptic_integrals.ellint_F_carlson" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        ellint_F_carlson
       </span>
     </span>
   </a>
@@ -1735,194 +1718,6 @@ F(φ, k) = ∫₀^φ dt / √(1 - k² sin²(t))</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">ellint_F</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">4</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">)</span>  <span class="c1"># Incomplete elliptic integral</span>
 </code></pre></div>
 
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h4 id="ripplegw.waveforms.elliptic_integrals.ellint_Kcomp" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">ellint_Kcomp</span><span class="p">(</span><span class="n">k</span><span class="p">:</span> <span class="n">Float</span><span class="p">,</span> <span class="n">n_points</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span></code>
-
-<a href="#ripplegw.waveforms.elliptic_integrals.ellint_Kcomp" class="headerlink" title="Permanent link">¤</a></h4>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Compute the complete elliptic integral of the first kind.</p>
-<p>This is K(k) = F(π/2, k) = ∫₀^(π/2) dt / √(1 - k² sin²(t))</p>
-<p>Equivalent to GSL's gsl_sf_ellint_Kcomp(k, GSL_PREC_DOUBLE).</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>k</code>
-            </td>
-            <td>
-                  <code><span title="jaxtyping.Float">Float</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The modulus, where 0 ≤ k² ≤ 1</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>n_points</code>
-            </td>
-            <td>
-                  <code><span title="int">int</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Number of integration points (default: 1000)</p>
-              </div>
-            </td>
-            <td>
-                  <code>1000</code>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="jaxtyping.Float">Float</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The value of K(k)</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h4 id="ripplegw.waveforms.elliptic_integrals.ellint_F_carlson" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">ellint_F_carlson</span><span class="p">(</span><span class="n">phi</span><span class="p">:</span> <span class="n">Float</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">Float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span></code>
-
-<a href="#ripplegw.waveforms.elliptic_integrals.ellint_F_carlson" class="headerlink" title="Permanent link">¤</a></h4>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Compute the incomplete elliptic integral of the first kind using Carlson's method.</p>
-<p>This is an alternative implementation using Carlson symmetric form:
-F(φ, k) = sin(φ) * R_F(cos²(φ), 1 - k² sin²(φ), 1)</p>
-<p>This method can be more accurate for certain parameter ranges but requires
-implementing Carlson's R_F function.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>phi</code>
-            </td>
-            <td>
-                  <code><span title="jaxtyping.Float">Float</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The amplitude in radians</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>k</code>
-            </td>
-            <td>
-                  <code><span title="jaxtyping.Float">Float</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The modulus</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="jaxtyping.Float">Float</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The value of F(φ, k)</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<details class="note" open>
-  <summary>Note</summary>
-  <p>This is a placeholder for a future implementation using Carlson's
-symmetric elliptic integrals, which are numerically more stable.</p>
-</details>
 
     </div>
 
