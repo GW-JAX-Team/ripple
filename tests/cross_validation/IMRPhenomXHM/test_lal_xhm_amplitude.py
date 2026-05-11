@@ -13,7 +13,7 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
-from tests.cross_validation.xhm_helpers import (
+from tests.cross_validation.IMRPhenomXHM.xhm_helpers import (
     LAL_AVAILABLE,
     FIDUCIAL_PARAMS,
     NON_22_MODES,

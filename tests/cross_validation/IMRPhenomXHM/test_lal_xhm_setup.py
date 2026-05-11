@@ -20,7 +20,7 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 import pytest
 
-from tests.cross_validation.xhm_helpers import (
+from tests.cross_validation.IMRPhenomXHM.xhm_helpers import (
     LAL_AVAILABLE,
     FIDUCIAL_PARAMS,
     XHM_MODES,
