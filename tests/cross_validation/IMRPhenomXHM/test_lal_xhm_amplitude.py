@@ -45,7 +45,7 @@ _TOL = {
     # (2,2) goes through XAS path (validated by IMRPhenomXAS tests).
     (2, 1): dict(inspiral=1e-10, intermediate=1e-10, ringdown=1e-10),
     (3, 3): dict(inspiral=1e-10, intermediate=1e-10, ringdown=1e-10),
-    (3, 2): dict(inspiral=1e-9,  intermediate=1e-9,  ringdown=1e-9),
+    (3, 2): dict(inspiral=1e-9, intermediate=1e-9, ringdown=1e-9),
     (4, 4): dict(inspiral=1e-10, intermediate=1e-10, ringdown=1e-10),
 }
 
@@ -67,6 +67,7 @@ def _ripple_amp_only(freqs_hz, ell, m, params=FIDUCIAL_PARAMS):
         # 32 with mixing: amplitude is the magnitude of the complex hlm
         # before the (-1)^l and amp0 prefactors.
         from ripplegw.waveforms.IMRPhenomXHM import IMRPhenomX_TimeShift_22
+
         t0 = IMRPhenomX_TimeShift_22(pWF22)
         # phifRef does not affect the magnitude.
         hlm = _compute_32_hlm(freqs_geom, pWFHM, pWF22, t0, 0.0, 0.0)
@@ -79,12 +80,15 @@ def _ripple_amp_only(freqs_hz, ell, m, params=FIDUCIAL_PARAMS):
     # LAL's SimIMRPhenomXHMAmplitude returns the *physical* amplitude in
     # SI: Amp_lm = amp0 * Amp_geom_lm with amp0 = M^2 * MRSUN * MTSUN / d.
     from ripplegw.constants import MTSUN, MRSUN, MPC
+
     Mtot = params["m1"] + params["m2"]
     amp0 = Mtot * MRSUN * Mtot * MTSUN / (params["distance_mpc"] * MPC)
     return amp_geom * amp0
 
 
-@pytest.mark.parametrize("ell,m", NON_22_MODES, ids=[f"{l}{m}" for l, m in NON_22_MODES])
+@pytest.mark.parametrize(
+    "ell,m", NON_22_MODES, ids=[f"{l}{m}" for l, m in NON_22_MODES]
+)
 def test_per_mode_amplitude_per_region(ell, m):
     """Bisect amplitude error across inspiral/intermediate/ringdown."""
     freqs_hz = make_freq_grid(f_min=20.0, f_max=512.0, df=0.125)

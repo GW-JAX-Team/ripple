@@ -69,7 +69,11 @@ def _ripple_phase_only(freqs_hz, ell, m, params=FIDUCIAL_PARAMS):
 
     if ell == 2 and m == 2:
         # 22 mode: ripple uses XAS phase + t0.
-        phase_22 = np.asarray(IMRPhenomXAS_Phase(jnp.array(freqs_hz), pWF22["theta"], pWF22["phase_coeffs"]))
+        phase_22 = np.asarray(
+            IMRPhenomXAS_Phase(
+                jnp.array(freqs_hz), pWF22["theta"], pWF22["phase_coeffs"]
+            )
+        )
         phase = phase_22 + float(t0) * np.asarray(freqs_geom)
         return phase
 
@@ -84,7 +88,9 @@ def _ripple_phase_only(freqs_hz, ell, m, params=FIDUCIAL_PARAMS):
     return phase
 
 
-@pytest.mark.parametrize("ell,m", NON_22_MODES, ids=[f"{l}{m}" for l, m in NON_22_MODES])
+@pytest.mark.parametrize(
+    "ell,m", NON_22_MODES, ids=[f"{l}{m}" for l, m in NON_22_MODES]
+)
 def test_per_mode_phase_per_region(ell, m):
     freqs_hz = make_freq_grid(f_min=20.0, f_max=512.0, df=0.125)
 

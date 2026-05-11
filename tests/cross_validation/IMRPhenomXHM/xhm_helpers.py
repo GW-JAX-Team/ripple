@@ -31,14 +31,14 @@ except ImportError:  # pragma: no cover
 # have non-zero amplitude), and total mass that places fRD inside the
 # default 20 Hz – 1024 Hz analysis band.
 FIDUCIAL_PARAMS = dict(
-    m1=36.0,    # solar masses
+    m1=36.0,  # solar masses
     m2=29.0,
     chi1z=0.30,
     chi2z=-0.10,
     distance_mpc=400.0,
     f_ref=20.0,
     inclination=0.4,  # rad
-    phi_ref=0.0,      # rad
+    phi_ref=0.0,  # rad
 )
 
 # Fiducial precessing parameters (for XPHM tests).
@@ -109,8 +109,12 @@ def lal_xhm_amplitude(freqs_hz, ell, m, params=FIDUCIAL_PARAMS):
         int(m),
         p["m1"] * lal.MSUN_SI,
         p["m2"] * lal.MSUN_SI,
-        0.0, 0.0, p["chi1z"],
-        0.0, 0.0, p["chi2z"],
+        0.0,
+        0.0,
+        p["chi1z"],
+        0.0,
+        0.0,
+        p["chi2z"],
         p["distance_mpc"] * 1e6 * lal.PC_SI,
         p["phi_ref"],
         p["f_ref"],
@@ -134,8 +138,12 @@ def lal_xhm_phase(freqs_hz, ell, m, params=FIDUCIAL_PARAMS):
         int(m),
         p["m1"] * lal.MSUN_SI,
         p["m2"] * lal.MSUN_SI,
-        0.0, 0.0, p["chi1z"],
-        0.0, 0.0, p["chi2z"],
+        0.0,
+        0.0,
+        p["chi1z"],
+        0.0,
+        0.0,
+        p["chi2z"],
         p["distance_mpc"] * 1e6 * lal.PC_SI,
         p["phi_ref"],
         p["f_ref"],
@@ -228,8 +236,12 @@ def lal_xphm_one_mode_freqseq(freqs_hz, ell, m, params=FIDUCIAL_PARAMS_PREC):
         int(m),
         p["m1"] * lal.MSUN_SI,
         p["m2"] * lal.MSUN_SI,
-        p["chi1x"], p["chi1y"], p["chi1z"],
-        p["chi2x"], p["chi2y"], p["chi2z"],
+        p["chi1x"],
+        p["chi1y"],
+        p["chi1z"],
+        p["chi2x"],
+        p["chi2y"],
+        p["chi2z"],
         p["distance_mpc"] * 1e6 * lal.PC_SI,
         p["inclination"],
         p["phi_ref"],
@@ -262,12 +274,18 @@ def lal_xphm_full(freqs_hz, params=FIDUCIAL_PARAMS_PREC):
     hp, hc = lalsim.SimIMRPhenomXPHM(
         p["m1"] * lal.MSUN_SI,
         p["m2"] * lal.MSUN_SI,
-        p["chi1x"], p["chi1y"], p["chi1z"],
-        p["chi2x"], p["chi2y"], p["chi2z"],
+        p["chi1x"],
+        p["chi1y"],
+        p["chi1z"],
+        p["chi2x"],
+        p["chi2y"],
+        p["chi2z"],
         p["distance_mpc"] * 1e6 * lal.PC_SI,
         p["inclination"],
         p["phi_ref"],
-        f_min, f_max, df,
+        f_min,
+        f_max,
+        df,
         p["f_ref"],
         lalparams,
     )
@@ -285,6 +303,7 @@ def lal_xphm_full(freqs_hz, params=FIDUCIAL_PARAMS_PREC):
 def ripple_pwf22(params=FIDUCIAL_PARAMS):
     """Return (pWF22, freqs_geom_factor M_s) for the fiducial parameters."""
     from ripplegw.waveforms.IMRPhenomXHM import build_pWF22
+
     pWF22 = build_pWF22(
         params["m1"], params["m2"], params["chi1z"], params["chi2z"], params["f_ref"]
     )
@@ -300,7 +319,8 @@ def ripple_xhm_one_mode_complex(freqs_hz, ell, m, params=FIDUCIAL_PARAMS):
     """
     import jax.numpy as jnp
     from ripplegw.waveforms.IMRPhenomXHM import (
-        XLALSimIMRPhenomXHMGethlmModes, build_pWF22,
+        XLALSimIMRPhenomXHMGethlmModes,
+        build_pWF22,
     )
     from ripplegw.constants import MTSUN, MRSUN, MPC
 
@@ -325,10 +345,18 @@ def ripple_xhm_hphc(freqs_hz, params=FIDUCIAL_PARAMS):
     import jax.numpy as jnp
     from ripplegw.waveforms.IMRPhenomXHM import gen_IMRPhenomXHM_hphc
 
-    theta = jnp.array([
-        params["m1"], params["m2"], params["chi1z"], params["chi2z"],
-        params["distance_mpc"], 0.0, params["phi_ref"], params["inclination"],
-    ])
+    theta = jnp.array(
+        [
+            params["m1"],
+            params["m2"],
+            params["chi1z"],
+            params["chi2z"],
+            params["distance_mpc"],
+            0.0,
+            params["phi_ref"],
+            params["inclination"],
+        ]
+    )
     hp, hc = gen_IMRPhenomXHM_hphc(jnp.array(freqs_hz), theta, params["f_ref"])
     return np.asarray(hp), np.asarray(hc)
 
@@ -339,11 +367,19 @@ def ripple_xphm_hphc(freqs_hz, params=FIDUCIAL_PARAMS_PREC):
     from ripplegw.waveforms.IMRPhenomXPHM import generate_xphm
 
     hp, hc = generate_xphm(
-        params["m1"], params["m2"],
-        params["chi1x"], params["chi1y"], params["chi1z"],
-        params["chi2x"], params["chi2y"], params["chi2z"],
-        params["distance_mpc"], params["inclination"], params["phi_ref"],
-        jnp.array(freqs_hz), params["f_ref"],
+        params["m1"],
+        params["m2"],
+        params["chi1x"],
+        params["chi1y"],
+        params["chi1z"],
+        params["chi2x"],
+        params["chi2y"],
+        params["chi2z"],
+        params["distance_mpc"],
+        params["inclination"],
+        params["phi_ref"],
+        jnp.array(freqs_hz),
+        params["f_ref"],
     )
     return np.asarray(hp), np.asarray(hc)
 
@@ -361,8 +397,11 @@ def region_masks(freqs_hz, ell, m, params=FIDUCIAL_PARAMS):
     boundaries as a coarse proxy that works well enough to bisect.
     """
     from ripplegw.waveforms.IMRPhenomXHM import (
-        build_pWF22, xhm_set_waveform_variables, xhm_get_amp_coefficients,
+        build_pWF22,
+        xhm_set_waveform_variables,
+        xhm_get_amp_coefficients,
     )
+
     pWF22 = build_pWF22(
         params["m1"], params["m2"], params["chi1z"], params["chi2z"], params["f_ref"]
     )

@@ -59,7 +59,8 @@ def _strict_xphm(inclination):
 
 
 @pytest.mark.parametrize(
-    "inclination", [0.0, np.pi / 4.0, np.pi / 2.0, 3.0 * np.pi / 4.0],
+    "inclination",
+    [0.0, np.pi / 4.0, np.pi / 2.0, 3.0 * np.pi / 4.0],
     ids=lambda i: f"inc{i:.2f}",
 )
 def test_xphm_hphc_strict(inclination):
