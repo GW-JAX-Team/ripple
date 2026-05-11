@@ -852,6 +852,7 @@ def test_waveform_mismatch(
         {
             "waveform": waveform_name,
             "n_samples": n_samples,
+            "T": T,
             "n_finite": len(finite_mismatches),
             "n_failed": len(failed_params),
             "n_msa_fallback": n_msa_fallback,
