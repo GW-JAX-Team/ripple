@@ -384,6 +384,7 @@ def main():
         choices=[
             "IMRPhenomXPHM",
             "IMRPhenomXAS",
+            "IMRPhenomXHM",
             "IMRPhenomD",
             "IMRPhenomPv2",
             "TaylorF2",
