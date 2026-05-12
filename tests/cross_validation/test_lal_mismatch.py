@@ -752,7 +752,7 @@ def test_waveform_mismatch(
     ax.set_xlabel(r"$\log_{10}\,\mathcal{M}$")
     ax.set_ylabel("Count")
     ax.set_title("Mismatch distribution")
-    ax.legend()
+    ax.legend(loc="upper right")
 
     # Helper: scatter normal points + overlay MSA-fallback points with red "x"
     def _scatter_with_fallback(ax, x, y, c, cmap, s=20, alpha=0.8):
