@@ -82,14 +82,14 @@ BBH_BOUNDS = {
 # ≈ 22 Hz), introducing a derivative error of 5–12 μs depending on the
 # system. Ripple's exact derivative is the more accurate result. Worst-case
 # mismatch reaches ~1.3e-5 for high-mass-ratio, high-spin systems; the 1e-4
-# threshold gives comfortable headroom. See tests/Pv2_dev/ for full analysis.
+# threshold gives comfortable headroom.
 MISMATCH_THRESHOLDS = {
-    "IMRPhenomD": 1e-6,
-    "IMRPhenomXAS": 1e-13,
+    "IMRPhenomD": 1e-12,
+    "IMRPhenomXAS": 1e-15,
     "IMRPhenomXHM": 1e-6,
     "IMRPhenomD_NRTidalv2": 1e-8,
     "IMRPhenomXAS_NRTidalv3": 1e-6,
-    "TaylorF2": 1e-14,
+    "TaylorF2": 1e-15,
     "IMRPhenomPv2": 1e-4,  # see note above
     "IMRPhenomXPHM": 1e-6,
 }
