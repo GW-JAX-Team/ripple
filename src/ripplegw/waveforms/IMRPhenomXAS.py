@@ -310,10 +310,10 @@ def get_inspiral_phase(fM_s: Array, theta: Array, phase_coeffs: Array) -> Array:
     f23 = f13 * f13
     f43 = fM_s * f13
     f53 = fM_s * f23
-    f2  = fM_s * fM_s
+    f2 = fM_s * fM_s
     f73 = f2 * f13
     f83 = f2 * f23
-    f3  = f2 * fM_s
+    f3 = f2 * fM_s
     f103 = f3 * f13
     f113 = f3 * f23
     log_f = jnp.log(fM_s)
@@ -333,12 +333,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, phase_coeffs: Array) -> Array:
         + phi8L * f83 * log_f
     )
 
-    phi_Ins = phi_TF2 + (
-        sigma1 * f83
-        + sigma2 * f3
-        + sigma3 * f103
-        + sigma4 * f113
-    )
+    phi_Ins = phi_TF2 + (sigma1 * f83 + sigma2 * f3 + sigma3 * f103 + sigma4 * f113)
 
     phiN = -(3.0 * PI ** (-5.0 / 3.0)) / 128.0
     return phi_Ins * phiN / f53
