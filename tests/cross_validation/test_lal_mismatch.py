@@ -833,8 +833,6 @@ def test_waveform_mismatch(
         df["m2"].values,
         log10_m,
         "viridis",
-        s=30,
-        alpha=0.9,
     )
     ax.set_xlabel(r"$m_1\;[M_\odot]$")
     ax.set_ylabel(r"$m_2\;[M_\odot]$")
