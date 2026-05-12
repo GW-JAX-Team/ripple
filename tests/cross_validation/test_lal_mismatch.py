@@ -33,6 +33,7 @@ from tests.utils import (
     get_lal_waveform,
     get_nyquist_mask,
     compute_match,
+    compute_mismatch,
     generate_random_params,
     LAL_AVAILABLE,
 )
@@ -533,9 +534,9 @@ def test_waveform_mismatch(
     def _waveform_and_match(inputs):
         theta_rip, hp_lal_m, hc_lal_m = inputs
         hp_rip, hc_rip = waveform(theta_rip)
-        match_hp = compute_match(hp_rip * nyquist_mask, hp_lal_m, psd_interp, fs)
-        match_hc = compute_match(hc_rip * nyquist_mask, hc_lal_m, psd_interp, fs)
-        return match_hp, match_hc
+        mismatch_hp = compute_mismatch(hp_rip * nyquist_mask, hp_lal_m, psd_interp, fs)
+        mismatch_hc = compute_mismatch(hc_rip * nyquist_mask, hc_lal_m, psd_interp, fs)
+        return mismatch_hp, mismatch_hc
 
     # Phase 2 + 3: try fast vmap path; on GPU OOM fall back to jax.lax.map
     # with batch_size, which vmaps over chunks of `batch_size` samples
@@ -558,14 +559,14 @@ def test_waveform_mismatch(
             fn = jax.jit(
                 lambda xs: jax.lax.map(_waveform_and_match, xs, batch_size=batch_size)
             )
-        match_hp, match_hc = fn(xs)
-        match_hp.block_until_ready()  # surface OOM before np.array()
-        return np.array(match_hp), np.array(match_hc)
+        mismatch_hp, mismatch_hc = fn(xs)
+        mismatch_hp.block_until_ready()  # surface OOM before np.array()
+        return np.array(mismatch_hp), np.array(mismatch_hc)
 
     batch_size = None  # None → full vmap
     while True:
         try:
-            match_hp_np, match_hc_np = _run_with_batch_size(batch_size)
+            mismatch_hp_np, mismatch_hc_np = _run_with_batch_size(batch_size)
             break
         except Exception as e:
             if not _is_oom(e):
@@ -583,8 +584,8 @@ def test_waveform_mismatch(
     # Phase 4: assemble results, inserting NaN for failed samples
     mismatches_hp = np.full(n_samples, np.nan)
     mismatches_hc = np.full(n_samples, np.nan)
-    mismatches_hp[valid_mask] = 1.0 - match_hp_np
-    mismatches_hc[valid_mask] = 1.0 - match_hc_np
+    mismatches_hp[valid_mask] = mismatch_hp_np
+    mismatches_hc[valid_mask] = mismatch_hc_np
 
     # Flag NaN/Inf mismatches in otherwise-valid samples
     for i in np.where(valid_mask)[0]:
@@ -691,7 +692,9 @@ def test_waveform_mismatch(
         df["chi_eff"] = (df["m1"] * df["chi1z"] + df["m2"] * df["chi2z"]) / df[
             "m_total"
         ]
-    df["log10_mismatch"] = np.log10(np.abs(df["mismatch"].clip(1e-30)))
+    df["log10_mismatch"] = np.where(
+        df["mismatch"] > 0, np.log10(df["mismatch"]), np.nan
+    )
     df = df.sort_values(by="mismatch", ascending=False)
     df.to_csv(results_file, index=False)
 
@@ -719,6 +722,9 @@ def test_waveform_mismatch(
     fallback_col = df["msa_fallback"].values.astype(bool)
     # Masks for the two groups
     normal_mask = finite_mask & ~fallback_col
+    # Samples with mismatch = 0 (below machine precision) are excluded from
+    # the log-scale histogram but counted separately for annotation.
+    n_zero_mismatch = int(((df["mismatch"].values == 0.0) & ~fallback_col).sum())
 
     fig, axes = plt.subplots(2, 2, figsize=(12, 9))
     fig.suptitle(f"{waveform_name}: ripple vs LAL mismatch", fontsize=13)
@@ -732,6 +738,17 @@ def test_waveform_mismatch(
         linestyle="--",
         label=f"threshold = {mismatch_threshold:.0e}",
     )
+    if n_zero_mismatch > 0:
+        ax.text(
+            0.02,
+            0.97,
+            f"{n_zero_mismatch} samples at mismatch = 0\n(below machine precision, not shown)",
+            transform=ax.transAxes,
+            va="top",
+            ha="left",
+            fontsize=8,
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="lightblue", alpha=0.7),
+        )
     ax.set_xlabel(r"$\log_{10}\,\mathcal{M}$")
     ax.set_ylabel("Count")
     ax.set_title("Mismatch distribution")

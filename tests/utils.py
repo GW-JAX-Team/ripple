@@ -490,6 +490,27 @@ def compute_match(
     return match.real
 
 
+def compute_mismatch(
+    h1: jnp.ndarray, h2: jnp.ndarray, psd: jnp.ndarray, frequencies: jnp.ndarray
+) -> float:
+    """Compute 1 - match with improved numerical precision for near-unity matches.
+
+    Uses the algebraically equivalent but numerically stable identity:
+        1 - match = (A*B - C²) / (sqrt(A*B) * (sqrt(A*B) + C))
+    where A = <h1|h1>, B = <h2|h2>, C = |<h1|h2>|.
+
+    This avoids catastrophic cancellation when computing 1 - match directly for
+    match ≈ 1, allowing mismatches down to ~10*eps to be resolved correctly.
+    The result is clipped to [0, 1] to suppress floating-point noise below zero.
+    """
+    h1_sq = noise_weighted_inner_product(h1, h1, psd, frequencies)
+    h2_sq = noise_weighted_inner_product(h2, h2, psd, frequencies)
+    h1_h2_abs = jnp.abs(_noise_weighted_inner_product_complex(h1, h2, psd, frequencies))
+    denom = jnp.sqrt(h1_sq * h2_sq)
+    mismatch = (h1_sq * h2_sq - h1_h2_abs**2) / (denom * (denom + h1_h2_abs))
+    return jnp.clip(mismatch.real, 0.0)
+
+
 def generate_random_params(
     n: int,
     bounds: dict,
