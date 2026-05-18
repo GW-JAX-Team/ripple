@@ -104,6 +104,7 @@ def generate_xphm(
     return hp, hc
 
 
+# TODO this is a temporary function for testing with XHM and should become the standard version once tested
 def DEV_generate_xphm_xhm(
     freqs: Array,
     theta: Array,
