@@ -22,6 +22,7 @@ from .IMRPhenomD import Phase as IMRPhenomD_Phase
 from .IMRPhenomD import IMRPhenDAmplitude_NoCut
 from .IMRPhenomD import get_IIb_raw_phase
 from .IMRPhenomPv2_utils import FinalSpin0815
+from .IMRPhenomXHM import XLALSimIMRPhenomXHMGethlmModes, build_pWF22
 
 
 # Phase shift due to leading order complex amplitude
@@ -97,6 +98,64 @@ def generate_xphm(
         phi0,
         inclination,
         reference_frequency,
+        hlms,
+    )
+
+    return hp, hc
+
+
+def DEV_generate_xphm_xhm(
+    freqs: Array,
+    theta: Array,
+    f_ref: float,
+):
+    """Generate IMRPhenomXPHM plus and cross polarizations."""
+    m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, distance, tc, phi_ref, inclination = theta
+
+    Mtot = m1 + m2  # solar masses
+    M_s = Mtot * MTSUN  # total mass in seconds
+    dist_m = distance * MPC  # distance in metres
+    amp0 = Mtot * MRSUN * Mtot * MTSUN / dist_m
+
+    Mf = XLALSimIMRPhenomXUtilsHztoMf(freqs, m1 + m2)
+
+    freqs_geom = freqs * M_s
+    pWF22 = build_pWF22(m1, m2, s1z, s2z, f_ref)
+
+    ell_mm_pairs = [(2, 1), (2, 2) , (3, 3), (3, 2), (4, 4)]
+    _mode_array = jnp.array([[2, 1], [2, 2], [3, 2], [3, 3], [4, 4]], dtype=jnp.int32)
+
+    hlm_dict = XLALSimIMRPhenomXHMGethlmModes(
+        freqs_geom, pWF22, phi0=phi_ref, ell_mm_pairs=ell_mm_pairs
+    )
+    hlm = jnp.stack(
+        [
+            jnp.zeros_like(hlm_dict[(2, 1)]), #hlm_dict[(2, 1)],
+            hlm_dict[(2, 2)],
+            jnp.zeros_like(hlm_dict[(2, 1)]), #hlm_dict[(3, 3)],
+            jnp.zeros_like(hlm_dict[(2, 1)]), #hlm_dict[(3, 2)],
+            jnp.zeros_like(hlm_dict[(2, 1)]), #hlm_dict[(4, 4)],
+        ],
+        axis=0,
+    )
+
+    ells = _mode_array[:, 0]
+    minus1l = jnp.where(ells % 2 != 0, -1, 1)
+    hlms = minus1l[:, None] * hlm * amp0
+
+    hp, hc = twistup(
+        Mf,
+        m1,
+        m2,
+        s1x,
+        s1y,
+        s1z,
+        s2x,
+        s2y,
+        s2z,
+        phi_ref,
+        inclination,
+        f_ref,
         hlms,
     )
 
