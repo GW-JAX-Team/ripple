@@ -123,7 +123,7 @@ def DEV_generate_xphm_xhm(
     freqs_geom = freqs * M_s
     pWF22 = build_pWF22(m1, m2, s1z, s2z, f_ref)
 
-    ell_mm_pairs = [(2, 1), (2, 2) , (3, 3), (3, 2), (4, 4)]
+    ell_mm_pairs = [(2, 1), (2, 2), (3, 3), (3, 2), (4, 4)]
     _mode_array = jnp.array([[2, 1], [2, 2], [3, 2], [3, 3], [4, 4]], dtype=jnp.int32)
 
     hlm_dict = XLALSimIMRPhenomXHMGethlmModes(
@@ -131,11 +131,11 @@ def DEV_generate_xphm_xhm(
     )
     hlm = jnp.stack(
         [
-            jnp.zeros_like(hlm_dict[(2, 1)]), #hlm_dict[(2, 1)],
+            jnp.zeros_like(hlm_dict[(2, 1)]),  # hlm_dict[(2, 1)],
             hlm_dict[(2, 2)],
-            jnp.zeros_like(hlm_dict[(2, 1)]), #hlm_dict[(3, 3)],
-            jnp.zeros_like(hlm_dict[(2, 1)]), #hlm_dict[(3, 2)],
-            jnp.zeros_like(hlm_dict[(2, 1)]), #hlm_dict[(4, 4)],
+            jnp.zeros_like(hlm_dict[(2, 1)]),  # hlm_dict[(3, 3)],
+            jnp.zeros_like(hlm_dict[(2, 1)]),  # hlm_dict[(3, 2)],
+            jnp.zeros_like(hlm_dict[(2, 1)]),  # hlm_dict[(4, 4)],
         ],
         axis=0,
     )

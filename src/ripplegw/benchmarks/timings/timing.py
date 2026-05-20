@@ -46,89 +46,6 @@ def setup_jax_config(use_float64, device):
     return get_device_name()
 
 
-def time_imrphenomxphm(params, config):
-    """
-    Time IMRPhenomXPHM waveform generation.
-    # TODO: need to see why the way it is called is different from other waveform models, and whether we want to keep this or not
-    """
-    from ripplegw.waveforms import IMRPhenomXPHM
-
-    # Build frequency array from config
-    f = jnp.arange(
-        config["minimum_frequency"],
-        config["maximum_frequency"],
-        1.0 / config["duration"],
-    )
-
-    # Stack parameters into a single array for vmap
-    params_stacked = jnp.stack(
-        [
-            params["mass_1"],
-            params["mass_2"],
-            params["spin_1x"],
-            params["spin_1y"],
-            params["spin_1z"],
-            params["spin_2x"],
-            params["spin_2y"],
-            params["spin_2z"],
-            params["luminosity_distance"],
-            params["theta_jn"],
-            params["phase"],
-        ],
-        axis=1,
-    )
-
-    # Create JIT-compiled vmapped version
-    @jax.jit
-    def generate_xphm_batched(xs):
-        return jax.vmap(
-            lambda p: IMRPhenomXPHM.generate_xphm(
-                p[0],
-                p[1],
-                p[2],
-                p[3],
-                p[4],
-                p[5],
-                p[6],
-                p[7],
-                p[8],
-                p[9],
-                p[10],
-                f,
-                config["reference_frequency"],
-            )
-        )(xs)
-
-    n_runs = config.get("n_runs", 5)
-
-    # First run (includes JIT compilation)
-    logger.info("\n%s", "=" * 60)
-    logger.info("First run (includes JIT compilation)")
-    logger.info("=" * 60)
-    start = time.time()
-    hp, hc = generate_xphm_batched(params_stacked)
-    hp.block_until_ready()
-    hc.block_until_ready()
-    first_run_time = time.time() - start
-    logger.info("First run time (includes JIT compilation): %.3f s", first_run_time)
-
-    # Timed runs
-    logger.info("\n%s", "=" * 60)
-    logger.info("Timed runs (%d repetitions)", n_runs)
-    logger.info("=" * 60)
-    exec_times = []
-    for i in range(n_runs):
-        start = time.time()
-        hp, hc = generate_xphm_batched(params_stacked)
-        hp.block_until_ready()
-        hc.block_until_ready()
-        t = time.time() - start
-        exec_times.append(t)
-        logger.info("  Run %d: %.6f s", i + 1, t)
-
-    return first_run_time, exec_times
-
-
 def _prepare_aligned_params(params):
     """Build a batched param dict for aligned-spin BBH waveforms (IMRPhenomXAS, IMRPhenomD)."""
     from ripplegw.conversions import ms_to_Mc_eta
@@ -274,37 +191,33 @@ def run_timing(args):
     logger.info("Parameter keys: %s", list(params.keys()))
 
     # Run timing based on waveform
-    if args.waveform == "IMRPhenomXPHM":
-        logger.info("Running XPHM timing benchmark...")
-        first_run_time, exec_times = time_imrphenomxphm(params, config)
+    import ripplegw
 
+    precessing_waveforms = ["IMRPhenomXPHM", "IMRPhenomXP", "IMRPhenomPv2"]
+    if args.waveform in precessing_waveforms:
+        logger.info(
+            "Running precessing waveform timing benchmark (%s)...", args.waveform
+        )
+        waveform = ripplegw.waveform_preset[args.waveform](
+            f_ref=config["reference_frequency"]  # type: ignore
+        )
+        batched_params = _prepare_precessing_params(params)
+    elif waveform_type == "bns":
+        logger.info("Running BNS waveform timing benchmark (%s)...", args.waveform)
+        waveform = ripplegw.waveform_preset[args.waveform](
+            f_ref=config["reference_frequency"]  # type: ignore
+        )
+        batched_params = _prepare_bns_params(params)
     else:
-        import ripplegw
+        logger.info(
+            "Running aligned-spin waveform timing benchmark (%s)...", args.waveform
+        )
+        waveform = ripplegw.waveform_preset[args.waveform](
+            f_ref=config["reference_frequency"]  # type: ignore
+        )
+        batched_params = _prepare_aligned_params(params)
 
-        if args.waveform == "IMRPhenomPv2":
-            logger.info(
-                "Running precessing waveform timing benchmark (note: XPHM is separated)..."
-            )
-            waveform = ripplegw.waveform_preset["IMRPhenomPv2"](
-                f_ref=config["reference_frequency"]  # type: ignore
-            )
-            batched_params = _prepare_precessing_params(params)
-        elif waveform_type == "bns":
-            logger.info("Running BNS waveform timing benchmark (%s)...", args.waveform)
-            waveform = ripplegw.waveform_preset[args.waveform](
-                f_ref=config["reference_frequency"]  # type: ignore
-            )
-            batched_params = _prepare_bns_params(params)
-        else:
-            logger.info(
-                "Running aligned-spin waveform timing benchmark (%s)...", args.waveform
-            )
-            waveform = ripplegw.waveform_preset[args.waveform](
-                f_ref=config["reference_frequency"]  # type: ignore
-            )
-            batched_params = _prepare_aligned_params(params)
-
-        first_run_time, exec_times = time_waveform(waveform, batched_params, config)
+    first_run_time, exec_times = time_waveform(waveform, batched_params, config)
 
     # Compute statistics over timed runs
     exec_times_arr = jnp.array(exec_times)
@@ -383,6 +296,7 @@ def main():
         type=str,
         choices=[
             "IMRPhenomXPHM",
+            "IMRPhenomXP",
             "IMRPhenomXAS",
             "IMRPhenomD",
             "IMRPhenomPv2",

@@ -1,22 +1,21 @@
 import jax
 import jax.numpy as jnp
-from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
-from ..constants import PI, MSUN, MTSUN, MRSUN, MPC
+from ..constants import PI, MTSUN
 from ..conversions import Mc_eta_to_ms
-from jaxtyping import Array, Float, Integer
-from .spherical_harmonics import (
-    compute_sminus2_l2,
-    compute_sminus2_l3,
-    compute_sminus2_l4,
-)
-from dataclasses import dataclass
+from jaxtyping import Array
 from . import LALSimIMRPhenomX_precession as pPrec
 
 
 from .IMRPhenomXAS import gen_IMRPhenomXAS
-from .IMRPhenomXPHM import IMRPhenomXWignerdCoefficients_cosbeta, twist_22, BetaPowers, apply_polarization_rotation # spaghetti code! FIXME
+from .IMRPhenomXPHM import (
+    IMRPhenomXWignerdCoefficients_cosbeta,
+    twist_22,
+    BetaPowers,
+    apply_polarization_rotation,
+)  # spaghetti code! FIXME
 
 jax.config.update("jax_enable_x64", True)
+
 
 def gen_IMRPhenomXP_hphc(f: Array, theta: Array, f_ref: float):
     """
@@ -42,7 +41,9 @@ def gen_IMRPhenomXP_hphc(f: Array, theta: Array, f_ref: float):
     Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, D, tc, phic, iota = theta
 
     theta_XAS = jnp.array([Mc, eta, s1z, s2z, D, tc, phic])
-    h0_XAS = gen_IMRPhenomXAS(f, theta_XAS, f_ref) * jnp.exp(-1j*PI) # We are adding in the PI-shift from Y22 later in the twisting up
+    h0_XAS = gen_IMRPhenomXAS(f, theta_XAS, f_ref) * jnp.exp(
+        -1j * PI
+    )  # We are adding in the PI-shift from Y22 later in the twisting up
 
     # gen_IMRPhenomXAS normalises with amp0 = 2*sqrt(5/64π)*M_s²/(D*Mpc/c),
     # encoding the spherical-harmonic prefactor for hp = h0*(1+cos²ι)/2.
@@ -51,7 +52,7 @@ def gen_IMRPhenomXP_hphc(f: Array, theta: Array, f_ref: float):
     h0_bare = h0_XAS / (2.0 * jnp.sqrt(5.0 / (64.0 * PI)))
 
     m1, m2 = Mc_eta_to_ms((Mc, eta))
-    Mf = (m1+m2) * f * MTSUN
+    Mf = (m1 + m2) * f * MTSUN
 
     ### Twist up ###
     bigM = 1
@@ -141,7 +142,6 @@ def gen_IMRPhenomXP_hphc(f: Array, theta: Array, f_ref: float):
     cexp_i_alpha_2 = jnp.exp(1j * alpha)
     hp_twist_22, hc_twist_22 = twist_22(cexp_i_alpha_2, theta_JN, beta_powers_2)
 
-
     # epsilon is returned from compute_evolved_spin_given_setup; apply e^{-2i*epsilon}/2 scaling
     # (hc_twist_22 already includes the factor of i from the transfer function construction)
     # Factor of 2 matches LAL's cexp(-2.0*I*epsilon); XPHM applies this via eps_2 * 2.
@@ -160,4 +160,3 @@ def gen_IMRPhenomXP_hphc(f: Array, theta: Array, f_ref: float):
     hp, hc = apply_polarization_rotation(zeta_polarisations, _hp, _hc)
 
     return hp, hc
-

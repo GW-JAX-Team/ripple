@@ -90,6 +90,7 @@ MISMATCH_THRESHOLDS = {
     "IMRPhenomXAS_NRTidalv3": 1e-6,
     "TaylorF2": 1e-14,
     "IMRPhenomPv2": 1e-4,  # see note above
+    "IMRPhenomXP": 1e-6,
     "IMRPhenomXPHM": 1e-6,
 }
 DEFAULT_MISMATCH_THRESHOLD = 1e-6  # fallback for unknown waveforms
@@ -365,6 +366,7 @@ def psd_data():
         ),
         pytest.param("TaylorF2", DEFAULT_BOUNDS, id="TaylorF2"),
         pytest.param("IMRPhenomPv2", BBH_BOUNDS, id="IMRPhenomPv2"),
+        pytest.param("IMRPhenomXP", BBH_BOUNDS, id="IMRPhenomXP"),
         pytest.param("IMRPhenomXPHM", BBH_BOUNDS, id="IMRPhenomXPHM"),
     ],
 )
@@ -471,7 +473,7 @@ def test_waveform_mismatch(
                 return i, hp, hc, False, None  # MSA ok
             except Exception as e:
                 msg = str(e)
-                is_msa = waveform_name == "IMRPhenomXPHM"
+                is_msa = waveform_name in ("IMRPhenomXPHM", "IMRPhenomXP")
                 return i, None, None, is_msa, msg  # MSA fallback or real error
 
         # Use sched_getaffinity when available (Linux): respects SLURM cgroup
