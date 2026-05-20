@@ -2,7 +2,6 @@ import jax
 import jax.numpy as jnp
 from ..constants import PI, MTSUN
 from ..conversions import Mc_eta_to_ms
-from jaxtyping import Array
 from . import LALSimIMRPhenomX_precession as pPrec
 
 
@@ -17,7 +16,7 @@ from .IMRPhenomXPHM import (
 jax.config.update("jax_enable_x64", True)
 
 
-def gen_IMRPhenomXP_hphc(f: Array, theta: Array, f_ref: float):
+def gen_IMRPhenomXP_hphc(f, theta, f_ref):
     """
     Generate PhenomXP frequency domain waveform.
     vars array contains both intrinsic and extrinsic variables
@@ -51,7 +50,7 @@ def gen_IMRPhenomXP_hphc(f: Array, theta: Array, f_ref: float):
     # factor before handing h0 to the twist-up (matching LAL's bare hcoprec).
     h0_bare = h0_XAS / (2.0 * jnp.sqrt(5.0 / (64.0 * PI)))
 
-    m1, m2 = Mc_eta_to_ms((Mc, eta))
+    m1, m2 = Mc_eta_to_ms(jnp.array([Mc, eta]))
     Mf = (m1 + m2) * f * MTSUN
 
     ### Twist up ###
