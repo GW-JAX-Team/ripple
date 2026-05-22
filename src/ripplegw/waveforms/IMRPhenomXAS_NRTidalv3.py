@@ -24,7 +24,7 @@ from .NRTidalv3_utils import (
 )
 from .IMRPhenomD_NRTidalv2 import get_qm_phase_correction, get_spin_phase_correction
 from . import IMRPhenomX_utils
-from .IMRPhenomXAS import Amp, Phase, PhaseDerivative
+from .IMRPhenomXAS import Amp, Phase
 
 
 def _gen_IMRPhenomXAS_NRTidalv3(
@@ -96,61 +96,26 @@ def _gen_IMRPhenomXAS_NRTidalv3(
 
     bbh_phase_coeffs = IMRPhenomX_utils.PhenomX_phase_coeff_table
 
-    eta = m1 * m2 / (m1 + m2) ** 2
-    delta = jnp.sqrt(1.0 - 4.0 * eta)
-    mm1 = 0.5 * (1.0 + delta)
-    mm2 = 0.5 * (1.0 - delta)
-    StotR = (mm1**2 + mm2**2) ** (-1.0) * (
-        mm1**2 * theta_intrinsic[2] + mm2**2 * theta_intrinsic[3]
-    )
-    chia = theta_intrinsic[2] - theta_intrinsic[3]
-
-    fMs_RD, fMs_damp, _, _ = IMRPhenomX_utils.get_cutoff_fMs(
-        m1, m2, theta_intrinsic[2], theta_intrinsic[3]
-    )
-    lina, linb, psi4tostrain = IMRPhenomX_utils.calc_phaseatpeak(
-        eta, StotR, chia, delta
-    )
-    dphi22Ref = (
-        jax.grad(Phase)(
-            (fMs_RD - fMs_damp) / M_s, theta_intrinsic[:4], bbh_phase_coeffs
-        )
-        / M_s
-    )
-    linb = linb - dphi22Ref - 2.0 * PI * (500.0 + psi4tostrain)
-
     phiTfRef = jax.lax.cond(
         no_taper,
         lambda _: fullTidalPhaseCorrection(f_ref * M_s, theta_intrinsic, P_P_fref),
         lambda _: phenomx_tidal_phase(theta_intrinsic, f_ref * M_s),
         operand=None,
     )
-    dphiXAS = jax.lax.cond(
-        df > 0.0,
-        lambda _: (
-            (
-                Phase(f_final, theta_intrinsic[:4], bbh_phase_coeffs)
-                - Phase(f_final - df, theta_intrinsic[:4], bbh_phase_coeffs)
-            )
-            / (df * M_s)
-        ),
-        lambda _: PhaseDerivative(f_final, theta_intrinsic[:4], bbh_phase_coeffs) / M_s,
-        operand=None,
-    )
-    linb = linb - (dphiXAS + linb - dphiT)
-    phifRef = (
-        -(
-            Phase(f_ref, theta_intrinsic[:4], bbh_phase_coeffs)
-            + linb * (f_ref * M_s)
-            + lina
-            - phiTfRef
-        )
-        + PI / 4.0
-        + PI
-    )
-
+    dphiXAS = (
+        Phase(f_final, theta_intrinsic[:4], bbh_phase_coeffs)
+        - Phase(f_final - df, theta_intrinsic[:4], bbh_phase_coeffs)
+    ) / (df * M_s)
+    linb = dphiT - dphiXAS
     ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] + 2 * theta_extrinsic[2]
-    phase_shift = linb * f_Ms + lina + phifRef - 2.0 * PI + ext_phase_contrib
+    phase_shift = (
+        linb * (f_Ms - f_ref * M_s)
+        - Phase(f_ref, theta_intrinsic[:4], bbh_phase_coeffs)
+        + phiTfRef
+        + PI / 4.0
+        - PI
+        + ext_phase_contrib
+    )
 
     # Get tidal phase and spin corrections for BNS
     PN_coeffs = get_tidalphasePN_coeffs(theta_intrinsic)
