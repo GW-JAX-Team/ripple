@@ -39,7 +39,7 @@ pytestmark = pytest.mark.skipif(
 # Per-region tolerances on the relative amplitude error.
 # The 22 mode dominates the SNR so its tolerance must be tightest;
 # subdominant modes are allowed proportionally looser bands.
-# Values calibrated so that, when satisfied, the 1e-6 mismatch budget
+# Values calibrated so that, when satisfied, the 1e-6 overlap loss budget
 # is comfortably met after the noise-weighted integral.
 _TOL = {
     # (2,2) goes through XAS path (validated by IMRPhenomXAS tests).

@@ -466,13 +466,14 @@ def _noise_weighted_inner_product_complex(
     return 4 * trapezoid(integrand, x=frequencies, axis=-1)
 
 
-def compute_match(
+def compute_overlap(
     h1: jnp.ndarray, h2: jnp.ndarray, psd: jnp.ndarray, frequencies: jnp.ndarray
 ) -> float:
-    """Compute the match between two waveforms.
+    """Compute the noise-weighted overlap between two waveforms.
 
-    The match is phase-maximized: match = |<h1|h2>| / sqrt(<h1|h1> * <h2|h2>),
-    which corresponds to maximizing over a constant phase offset between h1 and h2.
+    overlap = Re(<h1|h2>) / sqrt(<h1|h1> * <h2|h2>)
+
+    No maximization over time or phase is performed.
 
     Args:
         h1: First waveform.
@@ -481,34 +482,31 @@ def compute_match(
         frequencies: Frequency array.
 
     Returns:
-        Match value (scalar between 0 and 1).
+        Overlap value (scalar between 0 and 1 for well-matched waveforms).
     """
     h1_sq = noise_weighted_inner_product(h1, h1, psd, frequencies)
     h2_sq = noise_weighted_inner_product(h2, h2, psd, frequencies)
     h1_h2 = _noise_weighted_inner_product_complex(h1, h2, psd, frequencies)
-    match = jnp.abs(h1_h2) / jnp.sqrt(h1_sq * h2_sq)
-    return match.real
+    return h1_h2.real / jnp.sqrt(h1_sq * h2_sq)
 
 
-def compute_mismatch(
+def compute_overlap_loss(
     h1: jnp.ndarray, h2: jnp.ndarray, psd: jnp.ndarray, frequencies: jnp.ndarray
 ) -> float:
-    """Compute 1 - match with improved numerical precision for near-unity matches.
+    """Compute 1 - overlap with improved numerical precision for near-unity overlaps.
 
-    Uses the algebraically equivalent but numerically stable identity:
-        1 - match = (A*B - C²) / (sqrt(A*B) * (sqrt(A*B) + C))
-    where A = <h1|h1>, B = <h2|h2>, C = |<h1|h2>|.
+    Uses the numerically stable identity:
+        1 - C/sqrt(A*B) = (A*B - C²) / (sqrt(A*B) * (sqrt(A*B) + C))
+    where A = <h1|h1>, B = <h2|h2>, C = Re(<h1|h2>).
 
-    This avoids catastrophic cancellation when computing 1 - match directly for
-    match ≈ 1, allowing mismatches down to ~10*eps to be resolved correctly.
-    The result is clipped to [0, 1] to suppress floating-point noise below zero.
+    No maximization over time or phase is performed.
     """
     h1_sq = noise_weighted_inner_product(h1, h1, psd, frequencies)
     h2_sq = noise_weighted_inner_product(h2, h2, psd, frequencies)
-    h1_h2_abs = jnp.abs(_noise_weighted_inner_product_complex(h1, h2, psd, frequencies))
+    h1_h2 = _noise_weighted_inner_product_complex(h1, h2, psd, frequencies).real
     denom = jnp.sqrt(h1_sq * h2_sq)
-    mismatch = (h1_sq * h2_sq - h1_h2_abs**2) / (denom * (denom + h1_h2_abs))
-    return jnp.clip(mismatch.real, 0.0)
+    overlap_loss = (h1_sq * h2_sq - h1_h2**2) / (denom * (denom + h1_h2))
+    return jnp.clip(overlap_loss, 0.0)
 
 
 def generate_random_params(

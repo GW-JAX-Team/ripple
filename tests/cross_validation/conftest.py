@@ -1,7 +1,7 @@
 """Cross-validation test configuration and session summary.
 
-This conftest collects per-waveform mismatch statistics from all
-test_waveform_mismatch runs and prints a formatted summary at the end of the
+This conftest collects per-waveform overlap loss statistics from all
+test_waveform_overlap runs and prints a formatted summary at the end of the
 session, including hardware information and pass/fail status per waveform.
 """
 

@@ -30,11 +30,11 @@ jobs:
       - name: Run tests
         run: |
           if [[ "${{ matrix.python-version }}" == "3.12" ]]; then
-            MISMATCH_TESTS=""
+            OVERLAP_TESTS=""
             if [[ "${{ github.base_ref }}" == "main" || "${{ github.ref }}" == "refs/heads/main" ]]; then
-              MISMATCH_TESTS="tests/cross_validation/test_lal_mismatch.py"
+              OVERLAP_TESTS="tests/cross_validation/test_lal_overlap.py"
             fi
-            uv run pytest --cov=ripplegw --cov-report=term-missing tests/unit tests/integration tests/cross_validation/test_lal_constants.py $MISMATCH_TESTS --ignore=tests/benchmarks
+            uv run pytest --cov=ripplegw --cov-report=term-missing tests/unit tests/integration tests/cross_validation/test_lal_constants.py $OVERLAP_TESTS --ignore=tests/benchmarks
           else
             uv run pytest tests/unit tests/integration tests/cross_validation/test_lal_constants.py --ignore=tests/benchmarks
           fi

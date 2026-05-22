@@ -1,6 +1,6 @@
 """Cross-validation tests comparing ripple waveforms against LALSuite.
 
-These tests compute noise-weighted mismatches between ripple and LALSuite
+These tests compute noise-weighted overlaps between ripple and LALSuite
 waveforms over randomly sampled parameter sets. They verify that ripple
 achieves machine-precision agreement with LAL.
 
@@ -9,7 +9,7 @@ Nyquist Boundary Handling:
     sometimes zeros 1 bin, sometimes 2 bins depending on the waveform parameters.
     To ensure a fair comparison, we apply the same Nyquist mask (zeroing the
     last 2 frequency bins) to both LAL and ripple waveforms before computing
-    the match.
+    the overlap.
 """
 
 import os
@@ -32,8 +32,7 @@ from tests.utils import (
     get_jitted_waveform,
     get_lal_waveform,
     get_nyquist_mask,
-    compute_match,
-    compute_mismatch,
+    compute_overlap_loss,
     generate_random_params,
     LAL_AVAILABLE,
 )
@@ -66,24 +65,24 @@ BBH_BOUNDS = {
     "d_L": [100.0, 3000.0],  # Distance (Mpc)
 }
 
-# Per-waveform mismatch thresholds.
+# Per-waveform overlap loss thresholds.
 # These represent expected float64 agreement between the ripple and LAL
 # implementations; simpler/more-analytical waveforms achieve near-machine
 # precision while complex ones accumulate more rounding error.
 #
 # IMRPhenomPv2 NOTE: the 1e-4 threshold is intentionally loose and does NOT
-# reflect a deficiency in ripple's implementation. The mismatch is entirely a
-# pure time shift (amplitude agreement is perfect to <1e-9). The shift arises
-# because LAL computes the coalescence-time correction t0 via a 10-point
+# reflect a deficiency in ripple's implementation. The overlap loss is entirely
+# due to a pure time shift (amplitude agreement is perfect to <1e-9). The shift
+# arises because LAL computes the coalescence-time correction t0 via a 10-point
 # natural cubic spline over [0.8*f_RD, 1.2*f_RD] (GSL gsl_interp_cspline,
-# LALSimIMRPhenomP.c lines 1060–1151), whereas ripple uses exact JAX autodiff.
-# The coarse 10-point grid (~9–12 Hz spacing) underresolves the Lorentzian
+# LALSimIMRPhenomP.c lines 1060-1151), whereas ripple uses exact JAX autodiff.
+# The coarse 10-point grid (~9-12 Hz spacing) underresolves the Lorentzian
 # arctan feature in the merger-ringdown phase (characteristic width ~f_damp
-# ≈ 22 Hz), introducing a derivative error of 5–12 μs depending on the
+# ≈ 22 Hz), introducing a derivative error of 5-12 μs depending on the
 # system. Ripple's exact derivative is the more accurate result. Worst-case
-# mismatch reaches ~1.3e-5 for high-mass-ratio, high-spin systems; the 1e-4
-# threshold gives comfortable headroom.
-MISMATCH_THRESHOLDS = {
+# overlap loss reaches ~1.3e-5 for high-mass-ratio, high-spin systems; the
+# 1e-4 threshold gives comfortable headroom.
+OVERLAP_LOSS_THRESHOLDS = {
     "IMRPhenomD": 1e-12,
     "IMRPhenomXAS": 1e-15,
     "IMRPhenomXHM": 1e-6,
@@ -93,12 +92,12 @@ MISMATCH_THRESHOLDS = {
     "IMRPhenomPv2": 1e-4,  # see note above
     "IMRPhenomXPHM": 1e-6,
 }
-DEFAULT_MISMATCH_THRESHOLD = 1e-6  # fallback for unknown waveforms
+DEFAULT_OVERLAP_LOSS_THRESHOLD = 1e-6  # fallback for unknown waveforms
 
 
-def get_mismatch_threshold(waveform_name: str) -> float:
-    """Return the per-waveform mismatch threshold."""
-    return MISMATCH_THRESHOLDS.get(waveform_name, DEFAULT_MISMATCH_THRESHOLD)
+def get_overlap_loss_threshold(waveform_name: str) -> float:
+    """Return the per-waveform overlap loss threshold."""
+    return OVERLAP_LOSS_THRESHOLDS.get(waveform_name, DEFAULT_OVERLAP_LOSS_THRESHOLD)
 
 
 # ============================================================================
@@ -249,7 +248,7 @@ def convert_parameters_lal_to_ripple(
     return theta_ripple
 
 
-def compute_ripple_lal_mismatch(
+def compute_ripple_lal_overlap_loss(
     hphc_lal: tuple,
     hphc_ripple: tuple,
     fs: jnp.ndarray,
@@ -260,11 +259,11 @@ def compute_ripple_lal_mismatch(
     psd: np.ndarray,
     psd_freqs: np.ndarray,
 ) -> tuple[float, float]:
-    """Compute mismatch between ripple and LAL waveforms.
+    """Compute overlap loss between ripple and LAL waveforms.
 
     Args:
-        waveform_name: Name of the waveform.
-        theta_lal: Parameter array in LAL format.
+        hphc_lal: (hp, hc) from LALSuite.
+        hphc_ripple: (hp, hc) from ripple.
         fs: Ripple frequency array.
         f_l: Lower frequency.
         f_u: Upper frequency.
@@ -274,8 +273,8 @@ def compute_ripple_lal_mismatch(
         psd_freqs: PSD frequencies.
 
     Returns:
-        Tuple (mismatch_hp, mismatch_hc) where each is 1 - match for the
-        respective polarization. For aligned-spin waveforms hc = i*hp in the
+        Tuple (overlap_loss_hp, overlap_loss_hc) where each is 1 - overlap for
+        the respective polarization. For aligned-spin waveforms hc = i*hp in the
         frequency domain, so both should agree. For precessing waveforms the
         two polarizations are independent and both are tested.
     """
@@ -292,13 +291,11 @@ def compute_ripple_lal_mismatch(
     # Interpolate PSD to ripple frequency grid
     psd_interp = jnp.interp(fs, psd_freqs, psd)
 
-    # Compute match for both polarizations
-    match_hp = compute_match(hp_ripple_masked, hp_lal_masked, psd_interp, fs)
-    match_hc = compute_match(hc_ripple_masked, hc_lal_masked, psd_interp, fs)
-    mismatch_hp = 1.0 - match_hp
-    mismatch_hc = 1.0 - match_hc
+    # Compute overlap loss for both polarizations
+    overlap_loss_hp = compute_overlap_loss(hp_ripple_masked, hp_lal_masked, psd_interp, fs)
+    overlap_loss_hc = compute_overlap_loss(hc_ripple_masked, hc_lal_masked, psd_interp, fs)
 
-    return mismatch_hp, mismatch_hc
+    return overlap_loss_hp, overlap_loss_hc
 
 
 # ============================================================================
@@ -369,7 +366,7 @@ def psd_data():
         pytest.param("IMRPhenomXPHM", BBH_BOUNDS, id="IMRPhenomXPHM"),
     ],
 )
-def test_waveform_mismatch(
+def test_waveform_overlap(
     waveform_name,
     bounds,
     freq_params,
@@ -378,10 +375,10 @@ def test_waveform_mismatch(
     n_samples,
     cache_lal,
 ):
-    """Test that ripple waveforms match LALSuite to machine precision.
+    """Test that ripple waveforms agree with LALSuite to machine precision.
 
     This test generates random parameter sets, computes both LAL and ripple
-    waveforms, and verifies that the mismatch is below the threshold.
+    waveforms, and verifies that the overlap loss is below the threshold.
     """
     check_lal_available()
 
@@ -407,7 +404,7 @@ def test_waveform_mismatch(
         n_samples, bounds, is_tidal=is_tidal, is_precessing=is_precessing, seed=42
     )
 
-    # Compute mismatches for all samples
+    # Compute overlap losses for all samples
     failed_params = []
 
     # Generate ripple waveform
@@ -454,7 +451,7 @@ def test_waveform_mismatch(
         # the MSA system fails to initialize.  Because 222 is only used for XPHM
         # and only fails on MSA init, any exception from an XPHM call is an MSA
         # failure.  These samples are tracked separately and excluded from the
-        # mismatch assertion and histogram.
+        # overlap loss assertion and histogram.
 
         def _compute_lal(i_theta):
             i, theta_lal = i_theta
@@ -524,19 +521,20 @@ def test_waveform_mismatch(
     # Shared inputs for Phases 2 & 3
     nyquist_mask = get_nyquist_mask(fs)
     psd_interp = jnp.interp(fs, jnp.array(psd_freqs), jnp.array(psd))
+
     theta_ripple_batch = jnp.stack(theta_ripple_list)
     hp_lal_batch = jnp.stack(lal_hp_list) * nyquist_mask
     hc_lal_batch = jnp.stack(lal_hc_list) * nyquist_mask
 
     # Per-sample function used by both the vmap and the lax.map fallback.
-    # Combines waveform generation + match so the lax.map path keeps peak
+    # Combines waveform generation + overlap so the lax.map path keeps peak
     # memory at O(1 sample) instead of O(N samples).
-    def _waveform_and_match(inputs):
+    def _waveform_and_overlap(inputs):
         theta_rip, hp_lal_m, hc_lal_m = inputs
         hp_rip, hc_rip = waveform(theta_rip)
-        mismatch_hp = compute_mismatch(hp_rip * nyquist_mask, hp_lal_m, psd_interp, fs)
-        mismatch_hc = compute_mismatch(hc_rip * nyquist_mask, hc_lal_m, psd_interp, fs)
-        return mismatch_hp, mismatch_hc
+        overlap_loss_hp = compute_overlap_loss(hp_rip * nyquist_mask, hp_lal_m, psd_interp, fs)
+        overlap_loss_hc = compute_overlap_loss(hc_rip * nyquist_mask, hc_lal_m, psd_interp, fs)
+        return overlap_loss_hp, overlap_loss_hc
 
     # Phase 2 + 3: try fast vmap path; on GPU OOM fall back to jax.lax.map
     # with batch_size, which vmaps over chunks of `batch_size` samples
@@ -554,19 +552,19 @@ def test_waveform_mismatch(
     def _run_with_batch_size(batch_size: int | None):
         if batch_size is None:
             # Full vmap — batch_size equals the whole dataset
-            fn = jax.jit(jax.vmap(_waveform_and_match))
+            fn = jax.jit(jax.vmap(_waveform_and_overlap))
         else:
             fn = jax.jit(
-                lambda xs: jax.lax.map(_waveform_and_match, xs, batch_size=batch_size)
+                lambda xs: jax.lax.map(_waveform_and_overlap, xs, batch_size=batch_size)
             )
-        mismatch_hp, mismatch_hc = fn(xs)
-        mismatch_hp.block_until_ready()  # surface OOM before np.array()
-        return np.array(mismatch_hp), np.array(mismatch_hc)
+        overlap_loss_hp, overlap_loss_hc = fn(xs)
+        overlap_loss_hp.block_until_ready()  # surface OOM before np.array()
+        return np.array(overlap_loss_hp), np.array(overlap_loss_hc)
 
     batch_size = None  # None → full vmap
     while True:
         try:
-            mismatch_hp_np, mismatch_hc_np = _run_with_batch_size(batch_size)
+            overlap_loss_hp_np, overlap_loss_hc_np = _run_with_batch_size(batch_size)
             break
         except Exception as e:
             if not _is_oom(e):
@@ -582,30 +580,30 @@ def test_waveform_mismatch(
             batch_size = next_batch
 
     # Phase 4: assemble results, inserting NaN for failed samples
-    mismatches_hp = np.full(n_samples, np.nan)
-    mismatches_hc = np.full(n_samples, np.nan)
-    mismatches_hp[valid_mask] = mismatch_hp_np
-    mismatches_hc[valid_mask] = mismatch_hc_np
+    overlap_losses_hp = np.full(n_samples, np.nan)
+    overlap_losses_hc = np.full(n_samples, np.nan)
+    overlap_losses_hp[valid_mask] = overlap_loss_hp_np
+    overlap_losses_hc[valid_mask] = overlap_loss_hc_np
 
-    # Flag NaN/Inf mismatches in otherwise-valid samples
+    # Flag NaN/Inf overlap losses in otherwise-valid samples
     for i in np.where(valid_mask)[0]:
-        if not np.isfinite(mismatches_hp[i]) or not np.isfinite(mismatches_hc[i]):
-            failed_params.append((i, theta_batch[i], "NaN/Inf mismatch"))
-    # Worst-case mismatch over both polarizations
-    mismatches = np.maximum(mismatches_hp, mismatches_hc)
+        if not np.isfinite(overlap_losses_hp[i]) or not np.isfinite(overlap_losses_hc[i]):
+            failed_params.append((i, theta_batch[i], "NaN/Inf overlap loss"))
+    # Worst-case overlap loss over both polarizations
+    overlap_losses = np.maximum(overlap_losses_hp, overlap_losses_hc)
 
-    # Separate MSA-fallback samples: they have valid mismatches but should not
-    # be included in the threshold assertion (LAL used NNLO angles, not MSA).
+    # Separate MSA-fallback samples: they have valid overlap losses but should
+    # not be included in the threshold assertion (LAL used NNLO angles, not MSA).
     n_msa_fallback = int(msa_fallback_mask.sum())
-    testable_mask = np.isfinite(mismatches) & ~msa_fallback_mask
-    testable_mismatches = mismatches[testable_mask]
-    finite_mismatches = mismatches[np.isfinite(mismatches)]
+    testable_mask = np.isfinite(overlap_losses) & ~msa_fallback_mask
+    testable_overlap_losses = overlap_losses[testable_mask]
+    finite_overlap_losses = overlap_losses[np.isfinite(overlap_losses)]
 
-    n_nonfinite = mismatches.size - finite_mismatches.size
-    assert finite_mismatches.size > 0, (
-        f"All {mismatches.size} per-sample mismatches are non-finite for {waveform_name}. "
+    n_nonfinite = overlap_losses.size - finite_overlap_losses.size
+    assert finite_overlap_losses.size > 0, (
+        f"All {overlap_losses.size} per-sample overlap losses are non-finite for {waveform_name}. "
         f"Non-finite count: {n_nonfinite}. "
-        f"Sample mismatches (first {min(10, mismatches.size)}): {mismatches[:10]}. "
+        f"Sample overlap losses (first {min(10, overlap_losses.size)}): {overlap_losses[:10]}. "
         f"Failed samples: {len(failed_params)}."
     )
 
@@ -616,7 +614,7 @@ def test_waveform_mismatch(
     run_tag = f"n{n_samples}_{T_str}"
     results_dir = Path(__file__).parent / "results" / run_tag
     results_dir.mkdir(parents=True, exist_ok=True)
-    results_file = results_dir / f"mismatch_{waveform_name}.csv"
+    results_file = results_dir / f"overlap_loss_{waveform_name}.csv"
 
     # Build dataframe
     if is_tidal:
@@ -634,9 +632,9 @@ def test_waveform_mismatch(
             "tc": theta_batch[:, 7],
             "phi_ref": theta_batch[:, 8],
             "inclination": theta_batch[:, 9],
-            "mismatch_hp": mismatches_hp,
-            "mismatch_hc": mismatches_hc,
-            "mismatch": mismatches,
+            "overlap_loss_hp": overlap_losses_hp,
+            "overlap_loss_hc": overlap_losses_hc,
+            "overlap_loss": overlap_losses,
             "msa_fallback": msa_fallback_mask,
         }
     elif is_precessing:
@@ -659,9 +657,9 @@ def test_waveform_mismatch(
             "tc": theta_batch[:, 9],
             "phi_ref": theta_batch[:, 10],
             "inclination": theta_batch[:, 11],
-            "mismatch_hp": mismatches_hp,
-            "mismatch_hc": mismatches_hc,
-            "mismatch": mismatches,
+            "overlap_loss_hp": overlap_losses_hp,
+            "overlap_loss_hc": overlap_losses_hc,
+            "overlap_loss": overlap_losses,
             "msa_fallback": msa_fallback_mask,
         }
     else:
@@ -676,9 +674,9 @@ def test_waveform_mismatch(
             "tc": theta_batch[:, 5],
             "phi_ref": theta_batch[:, 6],
             "inclination": theta_batch[:, 7],
-            "mismatch_hp": mismatches_hp,
-            "mismatch_hc": mismatches_hc,
-            "mismatch": mismatches,
+            "overlap_loss_hp": overlap_losses_hp,
+            "overlap_loss_hc": overlap_losses_hc,
+            "overlap_loss": overlap_losses,
             "msa_fallback": msa_fallback_mask,
         }
 
@@ -692,42 +690,42 @@ def test_waveform_mismatch(
         df["chi_eff"] = (df["m1"] * df["chi1z"] + df["m2"] * df["chi2z"]) / df[
             "m_total"
         ]
-    df["log10_mismatch"] = np.where(
-        df["mismatch"] > 0, np.log10(df["mismatch"]), np.nan
+    df["log10_overlap_loss"] = np.where(
+        df["overlap_loss"] > 0, np.log10(df["overlap_loss"]), np.nan
     )
-    df = df.sort_values(by="mismatch", ascending=False)
+    df = df.sort_values(by="overlap_loss", ascending=False)
     df.to_csv(results_file, index=False)
 
     # Print statistics
-    print(f"\n{waveform_name} Mismatch Statistics:")
+    print(f"\n{waveform_name} Overlap Loss Statistics:")
     print(f"  Samples: {n_samples}")
     if n_msa_fallback > 0:
         print(f"  MSA fallback (NNLO): {n_msa_fallback} (excluded from assertion)")
-    print(f"  Testable samples: {len(testable_mismatches)}")
-    print(f"  Mean mismatch: {np.mean(finite_mismatches):.2e}")
-    print(f"  Median mismatch: {np.median(finite_mismatches):.2e}")
-    print(f"  Min mismatch: {np.min(finite_mismatches):.2e}")
-    print(f"  Max mismatch: {np.max(finite_mismatches):.2e}")
+    print(f"  Testable samples: {len(testable_overlap_losses)}")
+    print(f"  Mean overlap loss: {np.mean(finite_overlap_losses):.2e}")
+    print(f"  Median overlap loss: {np.median(finite_overlap_losses):.2e}")
+    print(f"  Min overlap loss: {np.min(finite_overlap_losses):.2e}")
+    print(f"  Max overlap loss: {np.max(finite_overlap_losses):.2e}")
     print(f"  Failed samples: {len(failed_params)}")
     print(f"  Results saved to: {results_file}")
 
-    # Plot mismatch distribution
+    # Plot overlap loss distribution
     figures_dir = Path(__file__).parent / "figures" / run_tag
     figures_dir.mkdir(parents=True, exist_ok=True)
 
-    mismatch_threshold = get_mismatch_threshold(waveform_name)
-    log10_thresh = np.log10(mismatch_threshold)
-    log10_m = df["log10_mismatch"].values
+    overlap_loss_threshold = get_overlap_loss_threshold(waveform_name)
+    log10_thresh = np.log10(overlap_loss_threshold)
+    log10_m = df["log10_overlap_loss"].values
     finite_mask = np.isfinite(log10_m)
     fallback_col = df["msa_fallback"].values.astype(bool)
     # Masks for the two groups
     normal_mask = finite_mask & ~fallback_col
-    # Samples with mismatch = 0 (below machine precision) are excluded from
+    # Samples with overlap loss = 0 (below machine precision) are excluded from
     # the log-scale histogram but counted separately for annotation.
-    n_zero_mismatch = int(((df["mismatch"].values == 0.0) & ~fallback_col).sum())
+    n_zero_overlap_loss = int(((df["overlap_loss"].values == 0.0) & ~fallback_col).sum())
 
     fig, axes = plt.subplots(2, 2, figsize=(12, 9))
-    fig.suptitle(f"{waveform_name}: ripple vs LAL mismatch", fontsize=13)
+    fig.suptitle(f"{waveform_name}: ripple vs LAL overlap loss", fontsize=13)
 
     # (0,0) - histogram (MSA-fallback samples excluded: no waveform generated)
     ax = axes[0, 0]
@@ -736,22 +734,22 @@ def test_waveform_mismatch(
         log10_thresh,
         color="red",
         linestyle="--",
-        label=f"threshold = {mismatch_threshold:.0e}",
+        label=f"threshold = {overlap_loss_threshold:.0e}",
     )
-    if n_zero_mismatch > 0:
+    if n_zero_overlap_loss > 0:
         ax.text(
             0.02,
             0.97,
-            f"{n_zero_mismatch} samples at mismatch = 0\n(below machine precision, not shown)",
+            f"{n_zero_overlap_loss} samples at overlap loss = 0\n(below machine precision, not shown)",
             transform=ax.transAxes,
             va="top",
             ha="left",
             fontsize=8,
             bbox=dict(boxstyle="round,pad=0.3", facecolor="lightblue", alpha=0.7),
         )
-    ax.set_xlabel(r"$\log_{10}\,\mathcal{M}$")
+    ax.set_xlabel(r"$\log_{10}(1 - \mathcal{O})$")
     ax.set_ylabel("Count")
-    ax.set_title("Mismatch distribution")
+    ax.set_title("Overlap loss distribution")
     ax.legend(loc="upper right")
 
     # Helper: scatter normal points + overlay MSA-fallback points with red "x"
@@ -789,11 +787,11 @@ def test_waveform_mismatch(
     ax.set_xlabel(r"$M_{\rm total}\;[M_\odot]$")
     ax.set_ylabel(r"$q$")
     ax.set_title(r"$M_{\rm total}$ vs $q$")
-    fig.colorbar(sc, ax=ax, label=r"$\log_{10}\,\mathcal{M}$")
+    fig.colorbar(sc, ax=ax, label=r"$\log_{10}(1 - \mathcal{O})$")
     if fallback_col.any():
         ax.legend()
 
-    # (1,0) - mismatch vs chi_eff / lambda_tilde / chi_mag
+    # (1,0) - overlap loss vs chi_eff / lambda_tilde / chi_mag
     ax = axes[1, 0]
     if is_tidal:
         # Compute lambda_tilde from lambda1, lambda2, m1, m2
@@ -821,11 +819,11 @@ def test_waveform_mismatch(
     ax.set_xlabel(x_label)
     ax.set_ylabel(r"$\iota$")
     ax.set_title(f"{x_label} vs $\\iota$")
-    fig.colorbar(sc, ax=ax, label=r"$\log_{10}\,\mathcal{M}$")
+    fig.colorbar(sc, ax=ax, label=r"$\log_{10}(1 - \mathcal{O})$")
     if fallback_col.any():
         ax.legend()
 
-    # (1,1) - 2D: m1 vs m2 colored by mismatch
+    # (1,1) - 2D: m1 vs m2 colored by overlap loss
     ax = axes[1, 1]
     sc = _scatter_with_fallback(
         ax,
@@ -837,24 +835,24 @@ def test_waveform_mismatch(
     ax.set_xlabel(r"$m_1\;[M_\odot]$")
     ax.set_ylabel(r"$m_2\;[M_\odot]$")
     ax.set_title(r"$m_1$ vs $m_2$")
-    fig.colorbar(sc, ax=ax, label=r"$\log_{10}\,\mathcal{M}$")
+    fig.colorbar(sc, ax=ax, label=r"$\log_{10}(1 - \mathcal{O})$")
     if fallback_col.any():
         ax.legend()
 
     fig.tight_layout()
-    fig_file = figures_dir / f"mismatch_{waveform_name}.png"
+    fig_file = figures_dir / f"overlap_loss_{waveform_name}.png"
 
     fig.savefig(fig_file, dpi=150)
     plt.close(fig)
     print(f"  Figure saved to: {fig_file}")
 
-    # Assert that all mismatches are below threshold
+    # Assert that all overlap losses are below threshold
     # MSA-fallback samples are excluded: LAL used NNLO angles (not MSA) so a
-    # large mismatch against ripple's MSA implementation is expected.
-    max_testable_mismatch = (
-        np.max(testable_mismatches) if testable_mismatches.size > 0 else 0.0
+    # large overlap loss against ripple's MSA implementation is expected.
+    max_testable_overlap_loss = (
+        np.max(testable_overlap_losses) if testable_overlap_losses.size > 0 else 0.0
     )
-    mismatch_threshold = get_mismatch_threshold(waveform_name)
+    overlap_loss_threshold = get_overlap_loss_threshold(waveform_name)
 
     if failed_params:
         print("\nFailed parameters:")
@@ -868,26 +866,27 @@ def test_waveform_mismatch(
             "waveform": waveform_name,
             "n_samples": n_samples,
             "T": T,
-            "n_finite": len(finite_mismatches),
+            "n_finite": len(finite_overlap_losses),
             "n_failed": len(failed_params),
             "n_msa_fallback": n_msa_fallback,
-            "mean": float(np.mean(finite_mismatches)),
-            "median": float(np.median(finite_mismatches)),
-            "min": float(np.min(finite_mismatches)),
-            "max": float(max_testable_mismatch),
-            "threshold": mismatch_threshold,
+            "mean": float(np.mean(finite_overlap_losses)),
+            "median": float(np.median(finite_overlap_losses)),
+            "min": float(np.min(finite_overlap_losses)),
+            "max": float(max_testable_overlap_loss),
+            "threshold": overlap_loss_threshold,
             "passed": bool(
-                len(failed_params) == 0 and max_testable_mismatch < mismatch_threshold
+                len(failed_params) == 0
+                and max_testable_overlap_loss < overlap_loss_threshold
             ),
         }
     )
 
     assert len(failed_params) == 0, f"{len(failed_params)}/{n_samples} samples failed"
-    assert testable_mismatches.size > 0 or n_msa_fallback > 0, (
+    assert testable_overlap_losses.size > 0 or n_msa_fallback > 0, (
         f"No testable samples for {waveform_name}"
     )
-    if testable_mismatches.size > 0:
-        assert max_testable_mismatch < mismatch_threshold, (
-            f"Max mismatch {max_testable_mismatch:.2e} exceeds threshold "
-            f"{mismatch_threshold:.2e} (excluding {n_msa_fallback} MSA-fallback samples)"
+    if testable_overlap_losses.size > 0:
+        assert max_testable_overlap_loss < overlap_loss_threshold, (
+            f"Max overlap loss {max_testable_overlap_loss:.2e} exceeds threshold "
+            f"{overlap_loss_threshold:.2e} (excluding {n_msa_fallback} MSA-fallback samples)"
         )
