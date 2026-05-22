@@ -1027,6 +1027,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomD_NRTidalv2.get_qm_phase_correction" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        get_qm_phase_correction
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomD_NRTidalv2.Phase_with_qm_correction" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Phase_with_qm_correction
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#ripplegw.waveforms.IMRPhenomD_NRTidalv2._get_merger_frequency" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1681,6 +1703,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomD_NRTidalv2.get_qm_phase_correction" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        get_qm_phase_correction
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomD_NRTidalv2.Phase_with_qm_correction" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Phase_with_qm_correction
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#ripplegw.waveforms.IMRPhenomD_NRTidalv2._get_merger_frequency" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -2279,7 +2323,10 @@
 
     <div class="doc doc-contents ">
 
-        <p>Get the higher order spin corrections, as detailed in Section III C of the NRTidalv2 paper.</p>
+        <p>Get the higher order spin corrections (3.5PN only).</p>
+<p>LAL's IMRPhenomD_NRTidalv2 uses XLALSimInspiralGetHOSpinTerms which only
+computes the 3.5PN spin-squared and spin-cubed terms. The 2PN and 3PN terms
+described in the NRTidalv2 paper are NOT included in LAL's implementation.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -2344,12 +2391,53 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Higher order spin corrections to the phase</p>
+                <p>Higher order spin corrections to the phase (3.5PN only).</p>
               </div>
             </td>
           </tr>
       </tbody>
     </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ripplegw.waveforms.IMRPhenomD_NRTidalv2.get_qm_phase_correction" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_qm_phase_correction</span><span class="p">(</span><span class="n">fM_s</span><span class="p">:</span> <span class="n">Array</span> <span class="o">|</span> <span class="n">Float</span><span class="p">,</span> <span class="n">theta</span><span class="p">:</span> <span class="n">Array</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Array</span></code>
+
+<a href="#ripplegw.waveforms.IMRPhenomD_NRTidalv2.get_qm_phase_correction" class="headerlink" title="Permanent link">¤</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Return the residual quadrupole-monopole phase correction hidden inside
+LAL's IMRPhenomD baseline when it is called in NRTidalv2 mode.</p>
+<p>LAL passes dQuadMon{1,2} into TaylorF2AlignedPhasing while constructing the
+IMRPhenomD inspiral phase. This shifts the 2PN and 3PN spin-squared pieces
+of the BBH baseline before the usual phase-reference alignment is applied.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ripplegw.waveforms.IMRPhenomD_NRTidalv2.Phase_with_qm_correction" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">Phase_with_qm_correction</span><span class="p">(</span><span class="n">f</span><span class="p">:</span> <span class="n">Array</span><span class="p">,</span> <span class="n">theta_bbh</span><span class="p">:</span> <span class="n">Array</span><span class="p">,</span> <span class="n">theta_intrinsic</span><span class="p">:</span> <span class="n">Array</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">:</span> <span class="n">Array</span><span class="p">,</span> <span class="n">transition_freqs</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Float</span><span class="p">,</span> <span class="n">Float</span><span class="p">,</span> <span class="n">Float</span><span class="p">,</span> <span class="n">Float</span><span class="p">,</span> <span class="n">Float</span><span class="p">,</span> <span class="n">Float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Array</span></code>
+
+<a href="#ripplegw.waveforms.IMRPhenomD_NRTidalv2.Phase_with_qm_correction" class="headerlink" title="Permanent link">¤</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Compute the IMRPhenomD BBH phase with the hidden NRTidalv2 quadrupole
+correction included before the region-I/IIa matching.</p>
 
 
     </div>
