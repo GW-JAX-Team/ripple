@@ -13,7 +13,7 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 import pytest
 
-from tests.cross_validation.xhm_helpers import (
+from tests.cross_validation.IMRPhenomXHM.xhm_helpers import (
     LAL_AVAILABLE,
     FIDUCIAL_PARAMS,
     lal_xhm_full,
@@ -29,7 +29,9 @@ pytestmark = pytest.mark.skipif(
 _INC_CASES = [0.0, np.pi / 4.0, np.pi / 2.0, 3.0 * np.pi / 4.0, np.pi]
 
 
-@pytest.mark.parametrize("inclination", _INC_CASES, ids=[f"inc{i:.2f}" for i in _INC_CASES])
+@pytest.mark.parametrize(
+    "inclination", _INC_CASES, ids=[f"inc{i:.2f}" for i in _INC_CASES]
+)
 def test_xhm_hphc_strict(inclination):
     params = dict(FIDUCIAL_PARAMS)
     params["inclination"] = inclination

@@ -298,6 +298,7 @@ def main():
             "IMRPhenomXPHM",
             "IMRPhenomXP",
             "IMRPhenomXAS",
+            "IMRPhenomXHM",
             "IMRPhenomD",
             "IMRPhenomPv2",
             "TaylorF2",

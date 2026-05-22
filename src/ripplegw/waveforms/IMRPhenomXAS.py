@@ -306,30 +306,37 @@ def get_inspiral_phase(fM_s: Array, theta: Array, phase_coeffs: Array) -> Array:
     sigma3 = (-5.0 / 5.0) * coeffs_Ins[2]
     sigma4 = (-5.0 / 6.0) * coeffs_Ins[3]
 
+    f13 = fM_s ** (1.0 / 3.0)
+    f23 = f13 * f13
+    f43 = fM_s * f13
+    f53 = fM_s * f23
+    f2 = fM_s * fM_s
+    f73 = f2 * f13
+    f83 = f2 * f23
+    f3 = f2 * fM_s
+    f103 = f3 * f13
+    f113 = f3 * f23
+    log_f = jnp.log(fM_s)
+
     phi_TF2 = (
         phi0
-        + phi1 * (fM_s ** (1.0 / 3.0))
-        + phi2 * (fM_s ** (2.0 / 3.0))
+        + phi1 * f13
+        + phi2 * f23
         + phi3 * fM_s
-        + phi4 * (fM_s ** (4.0 / 3.0))
-        + phi5 * (fM_s ** (5.0 / 3.0))
-        + phi5L * (fM_s ** (5.0 / 3.0)) * jnp.log(fM_s)
-        + phi6 * (fM_s**2.0)
-        + phi6L * (fM_s**2.0) * jnp.log(fM_s)
-        + phi7 * (fM_s ** (7.0 / 3.0))
-        + phi8 * (fM_s ** (8.0 / 3.0))
-        + phi8L * (fM_s ** (8.0 / 3.0)) * jnp.log(fM_s)
+        + phi4 * f43
+        + phi5 * f53
+        + phi5L * f53 * log_f
+        + phi6 * f2
+        + phi6L * f2 * log_f
+        + phi7 * f73
+        + phi8 * f83
+        + phi8L * f83 * log_f
     )
 
-    phi_Ins = phi_TF2 + (
-        sigma1 * (fM_s ** (8.0 / 3.0))
-        + sigma2 * (fM_s**3.0)
-        + sigma3 * (fM_s ** (10.0 / 3.0))
-        + sigma4 * (fM_s ** (11.0 / 3.0))
-    )
+    phi_Ins = phi_TF2 + (sigma1 * f83 + sigma2 * f3 + sigma3 * f103 + sigma4 * f113)
 
     phiN = -(3.0 * PI ** (-5.0 / 3.0)) / 128.0
-    return phi_Ins * phiN * (fM_s ** -(5.0 / 3.0))
+    return phi_Ins * phiN / f53
 
 
 def get_intermediate_raw_phase(

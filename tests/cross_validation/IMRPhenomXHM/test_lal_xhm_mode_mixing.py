@@ -13,7 +13,7 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 import pytest
 
-from tests.cross_validation.xhm_helpers import (
+from tests.cross_validation.IMRPhenomXHM.xhm_helpers import (
     LAL_AVAILABLE,
     FIDUCIAL_PARAMS,
     lal_xhm_one_mode_freqseq,
@@ -31,17 +31,20 @@ pytestmark = pytest.mark.skipif(
 # - large mass ratio (q >= 4) makes the (3,2) mode a substantial fraction of (2,2)
 # - high aligned spin shifts QNM frequencies
 _MIXING_CASES = [
-    dict(m1=50.0, m2=10.0, chi1z=0.7,  chi2z=0.0),
+    dict(m1=50.0, m2=10.0, chi1z=0.7, chi2z=0.0),
     dict(m1=50.0, m2=10.0, chi1z=-0.5, chi2z=0.2),
-    dict(m1=80.0, m2=20.0, chi1z=0.6,  chi2z=-0.3),
-    dict(m1=40.0, m2=15.0, chi1z=0.0,  chi2z=0.5),
+    dict(m1=80.0, m2=20.0, chi1z=0.6, chi2z=-0.3),
+    dict(m1=40.0, m2=15.0, chi1z=0.0, chi2z=0.5),
 ]
 
 
 @pytest.mark.parametrize(
-    "case", _MIXING_CASES, ids=[
-        f"q{int(c['m1']/c['m2'])}_s{c['chi1z']:+.1f}_{c['chi2z']:+.1f}" for c in _MIXING_CASES
-    ]
+    "case",
+    _MIXING_CASES,
+    ids=[
+        f"q{int(c['m1'] / c['m2'])}_s{c['chi1z']:+.1f}_{c['chi2z']:+.1f}"
+        for c in _MIXING_CASES
+    ],
 )
 def test_32_mixing_complex_hlm(case):
     params = dict(FIDUCIAL_PARAMS, **case)
@@ -64,9 +67,5 @@ def test_32_mixing_complex_hlm(case):
 
     # Slightly looser than Layer 5 (3,2) because mode mixing amplifies
     # any small QNM/coefficient errors.
-    assert max_amp_err < 1e-8, (
-        f"{case}: max relative amp err = {max_amp_err:.3e}"
-    )
-    assert max_phase_err < 1e-7, (
-        f"{case}: max abs phase err = {max_phase_err:.3e} rad"
-    )
+    assert max_amp_err < 1e-8, f"{case}: max relative amp err = {max_amp_err:.3e}"
+    assert max_phase_err < 1e-7, f"{case}: max abs phase err = {max_phase_err:.3e} rad"

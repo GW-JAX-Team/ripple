@@ -13,7 +13,7 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 import pytest
 
-from tests.cross_validation.xhm_helpers import (
+from tests.cross_validation.IMRPhenomXHM.xhm_helpers import (
     LAL_AVAILABLE,
     FIDUCIAL_PARAMS,
     XHM_MODES,
@@ -35,12 +35,14 @@ _TOL = {
     (2, 2): dict(amp=1e-12, phase=1e-9),
     (2, 1): dict(amp=5e-10, phase=5e-9),
     (3, 3): dict(amp=5e-10, phase=5e-9),
-    (3, 2): dict(amp=1e-9,  phase=1e-8),
+    (3, 2): dict(amp=1e-9, phase=1e-8),
     (4, 4): dict(amp=5e-10, phase=5e-9),
 }
 
 
-@pytest.mark.parametrize("phi_ref_label,phi_ref", [("phi0", 0.0), ("phi_pi3", np.pi / 3.0)])
+@pytest.mark.parametrize(
+    "phi_ref_label,phi_ref", [("phi0", 0.0), ("phi_pi3", np.pi / 3.0)]
+)
 @pytest.mark.parametrize("ell,m", XHM_MODES, ids=[f"{l}{m}" for l, m in XHM_MODES])
 def test_per_mode_complex_hlm(ell, m, phi_ref_label, phi_ref):
     params = dict(FIDUCIAL_PARAMS)
