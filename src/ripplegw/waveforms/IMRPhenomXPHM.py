@@ -74,7 +74,7 @@ def generate_xphm(
         chi2x,
         chi2y,
         chi2z,
-        0.0,
+        phi0,
         0.0,
         reference_frequency,
         {"ModeArray": _mode_array},
