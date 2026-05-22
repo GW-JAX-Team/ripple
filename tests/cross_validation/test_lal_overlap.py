@@ -87,7 +87,7 @@ OVERLAP_LOSS_THRESHOLDS = {
     "IMRPhenomD": 1e-12,
     "IMRPhenomXAS": 1e-15,
     "IMRPhenomXHM": 1e-6,
-    "IMRPhenomD_NRTidalv2": 1e-8,
+    "IMRPhenomD_NRTidalv2": 1e-12,
     "IMRPhenomXAS_NRTidalv3": 1e-6,
     "TaylorF2": 1e-15,
     "IMRPhenomPv2": 1e-4,  # see note above
@@ -690,8 +690,10 @@ def test_waveform_overlap(
         df["chi_eff"] = (df["m1"] * df["chi1z"] + df["m2"] * df["chi2z"]) / df[
             "m_total"
         ]
-    df["log10_overlap_loss"] = np.where(
-        df["overlap_loss"] > 0, np.log10(df["overlap_loss"]), np.nan
+    df["log10_overlap_loss"] = np.nan
+    positive_loss_mask = df["overlap_loss"] > 0
+    df.loc[positive_loss_mask, "log10_overlap_loss"] = np.log10(
+        df.loc[positive_loss_mask, "overlap_loss"]
     )
     df = df.sort_values(by="overlap_loss", ascending=False)
     df.to_csv(results_file, index=False)
