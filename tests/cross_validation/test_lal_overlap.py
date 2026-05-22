@@ -14,6 +14,7 @@ Nyquist Boundary Handling:
 
 import os
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 import jax
 import jax.numpy as jnp
@@ -21,21 +22,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytest
-from pathlib import Path
 
-from ripplegw.conversions import ms_to_Mc_eta, lambdas_to_lambda_tildes
+from ripplegw.conversions import lambdas_to_lambda_tildes, ms_to_Mc_eta
 from tests.utils import (
-    check_lal_available,
-    check_is_tidal,
+    LAL_AVAILABLE,
     check_is_precessing,
+    check_is_tidal,
+    check_lal_available,
+    compute_overlap_loss,
+    generate_random_params,
     get_freqs,
     get_jitted_waveform,
     get_lal_waveform,
     get_nyquist_mask,
-    compute_overlap,
-    compute_overlap_loss,
-    generate_random_params,
-    LAL_AVAILABLE,
 )
 
 jax.config.update("jax_enable_x64", True)
@@ -293,8 +292,12 @@ def compute_ripple_lal_overlap_loss(
     psd_interp = jnp.interp(fs, psd_freqs, psd)
 
     # Compute overlap loss for both polarizations
-    overlap_loss_hp = 1.0 - compute_overlap(hp_ripple_masked, hp_lal_masked, psd_interp, fs)
-    overlap_loss_hc = 1.0 - compute_overlap(hc_ripple_masked, hc_lal_masked, psd_interp, fs)
+    overlap_loss_hp = compute_overlap_loss(
+        hp_ripple_masked, hp_lal_masked, psd_interp, fs
+    )
+    overlap_loss_hc = compute_overlap_loss(
+        hc_ripple_masked, hc_lal_masked, psd_interp, fs
+    )
 
     return overlap_loss_hp, overlap_loss_hc
 
@@ -522,6 +525,18 @@ def test_waveform_overlap(
     # Shared inputs for Phases 2 & 3
     nyquist_mask = get_nyquist_mask(fs)
     psd_interp = jnp.interp(fs, jnp.array(psd_freqs), jnp.array(psd))
+    if len(theta_ripple_list) == 0:
+        if failed_params:
+            pytest.fail(
+                f"{len(failed_params)}/{n_samples} samples failed during LAL "
+                f"generation for {waveform_name}; failure params recorded"
+            )
+        if msa_fallback_mask.any():
+            pytest.skip(
+                f"All {n_samples} samples for {waveform_name} used MSA fallback; "
+                "no valid LAL waveforms to compare"
+            )
+        pytest.fail(f"No valid LAL samples for {waveform_name}")
     theta_ripple_batch = jnp.stack(theta_ripple_list)
     hp_lal_batch = jnp.stack(lal_hp_list) * nyquist_mask
     hc_lal_batch = jnp.stack(lal_hc_list) * nyquist_mask
@@ -532,8 +547,12 @@ def test_waveform_overlap(
     def _waveform_and_overlap(inputs):
         theta_rip, hp_lal_m, hc_lal_m = inputs
         hp_rip, hc_rip = waveform(theta_rip)
-        overlap_loss_hp = compute_overlap_loss(hp_rip * nyquist_mask, hp_lal_m, psd_interp, fs)
-        overlap_loss_hc = compute_overlap_loss(hc_rip * nyquist_mask, hc_lal_m, psd_interp, fs)
+        overlap_loss_hp = compute_overlap_loss(
+            hp_rip * nyquist_mask, hp_lal_m, psd_interp, fs
+        )
+        overlap_loss_hc = compute_overlap_loss(
+            hc_rip * nyquist_mask, hc_lal_m, psd_interp, fs
+        )
         return overlap_loss_hp, overlap_loss_hc
 
     # Phase 2 + 3: try fast vmap path; on GPU OOM fall back to jax.lax.map
@@ -587,7 +606,9 @@ def test_waveform_overlap(
 
     # Flag NaN/Inf overlap losses in otherwise-valid samples
     for i in np.where(valid_mask)[0]:
-        if not np.isfinite(overlap_losses_hp[i]) or not np.isfinite(overlap_losses_hc[i]):
+        if not np.isfinite(overlap_losses_hp[i]) or not np.isfinite(
+            overlap_losses_hc[i]
+        ):
             failed_params.append((i, theta_batch[i], "NaN/Inf overlap loss"))
     # Worst-case overlap loss over both polarizations
     overlap_losses = np.maximum(overlap_losses_hp, overlap_losses_hc)
@@ -724,7 +745,9 @@ def test_waveform_overlap(
     normal_mask = finite_mask & ~fallback_col
     # Samples with overlap loss = 0 (below machine precision) are excluded from
     # the log-scale histogram but counted separately for annotation.
-    n_zero_overlap_loss = int(((df["overlap_loss"].values == 0.0) & ~fallback_col).sum())
+    n_zero_overlap_loss = int(
+        ((df["overlap_loss"].values == 0.0) & ~fallback_col).sum()
+    )
 
     fig, axes = plt.subplots(2, 2, figsize=(12, 9))
     fig.suptitle(f"{waveform_name}: ripple vs LAL overlap loss", fontsize=13)
