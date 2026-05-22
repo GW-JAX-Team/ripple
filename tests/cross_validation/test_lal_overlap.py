@@ -35,6 +35,9 @@ from tests.utils import (
     get_jitted_waveform,
     get_lal_waveform,
     get_nyquist_mask,
+    compute_overlap_loss,
+    generate_random_params,
+    LAL_AVAILABLE,
 )
 
 jax.config.update("jax_enable_x64", True)
@@ -75,10 +78,10 @@ BBH_BOUNDS = {
 # due to a pure time shift (amplitude agreement is perfect to <1e-9). The shift
 # arises because LAL computes the coalescence-time correction t0 via a 10-point
 # natural cubic spline over [0.8*f_RD, 1.2*f_RD] (GSL gsl_interp_cspline,
-# LALSimIMRPhenomP.c lines 1060–1151), whereas ripple uses exact JAX autodiff.
-# The coarse 10-point grid (~9–12 Hz spacing) underresolves the Lorentzian
+# LALSimIMRPhenomP.c lines 1060-1151), whereas ripple uses exact JAX autodiff.
+# The coarse 10-point grid (~9-12 Hz spacing) underresolves the Lorentzian
 # arctan feature in the merger-ringdown phase (characteristic width ~f_damp
-# ≈ 22 Hz), introducing a derivative error of 5–12 μs depending on the
+# ≈ 22 Hz), introducing a derivative error of 5-12 μs depending on the
 # system. Ripple's exact derivative is the more accurate result. Worst-case
 # overlap loss reaches ~1.3e-5 for high-mass-ratio, high-spin systems; the
 # 1e-4 threshold gives comfortable headroom.
