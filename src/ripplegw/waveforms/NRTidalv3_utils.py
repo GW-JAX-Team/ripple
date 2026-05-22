@@ -235,15 +235,7 @@ def phenomx_tidal_phase(theta_intrinsic: Array, Mf: Float) -> Float:
     d_1B = NRTidalv3_coeffs[11]
 
     c_NewtA = PN_coeffs[0]
-    c_1A = PN_coeffs[1]
-    c_3over2A = PN_coeffs[2]
-    c_2A = PN_coeffs[3]
-    c_5over2A = PN_coeffs[4]
     c_NewtB = PN_coeffs[5]
-    c_1B = PN_coeffs[6]
-    c_3over2B = PN_coeffs[7]
-    c_2B = PN_coeffs[8]
-    c_5over2B = PN_coeffs[9]
 
     n_1A = NRTidalv3_coeffs[12]
     n_3over2A = NRTidalv3_coeffs[13]
