@@ -3,8 +3,16 @@
 import jax.numpy as jnp
 from ..constants import MTSUN, PI, TWO_PI
 from jaxtyping import Array, Float
-from .IMRPhenom_tidal_utils import get_kappa
-from .IMRPhenomD_NRTidalv2 import get_spin_phase_correction
+from .IMRPhenom_tidal_utils import get_kappa, get_quadparam_octparam
+from .IMRPhenomD_NRTidalv2 import (
+    get_qm_phase_correction,
+    get_spin_phase_correction,
+)
+from .TaylorF2 import (
+    get_4PNQM2SCoeff,
+    get_4PNQM2SOCoeff,
+    get_6PNQM2SCoeff,
+)
 
 
 """
@@ -131,9 +139,423 @@ def fullTidalPhaseCorrection(
         NRTidalv3_phase * (1 - P_P)
         + get_tidal_phase_PN(x, Xa, lambda1, lambda2, PN_coeffs) * P_P
     )
+    psi_QM = get_qm_phase_correction(Mf, theta_intrinsic)
     psi_SS = get_spin_phase_correction(x_23, theta_intrinsic)
 
-    return psi_T + psi_SS
+    return psi_T + psi_QM + psi_SS
+
+
+def _get_phenomx_spin_coefficients(theta_intrinsic: Array):
+    m1, m2, chi1, chi2, lambda1, lambda2 = theta_intrinsic
+    M = m1 + m2
+    X_A = m1 / M
+    X_B = m2 / M
+
+    quadparam1, octparam1 = get_quadparam_octparam(lambda1)
+    quadparam2, octparam2 = get_quadparam_octparam(lambda2)
+    dquadmon1 = quadparam1 - 1.0
+    dquadmon2 = quadparam2 - 1.0
+    octparam1 = octparam1 - 1.0
+    octparam2 = octparam2 - 1.0
+    chi1_sq = chi1 * chi1
+    chi2_sq = chi2 * chi2
+    X_Asq = X_A * X_A
+    X_Bsq = X_B * X_B
+
+    c2pn = (get_4PNQM2SOCoeff(X_A) + get_4PNQM2SCoeff(X_A)) * dquadmon1 * chi1_sq + (
+        get_4PNQM2SOCoeff(X_B) + get_4PNQM2SCoeff(X_B)
+    ) * dquadmon2 * chi2_sq
+    c3pn = (
+        get_6PNQM2SCoeff(X_A) * dquadmon1 * chi1_sq
+        + get_6PNQM2SCoeff(X_B) * dquadmon2 * chi2_sq
+    )
+    ss_3p5pn = (
+        -400.0 * PI * dquadmon1 * chi1_sq * X_Asq
+        - 400.0 * PI * dquadmon2 * chi2_sq * X_Bsq
+    )
+    sss_3p5pn = (
+        10.0
+        * ((X_Asq + 308.0 / 3.0 * X_A) * chi1 + (X_Bsq - 89.0 / 3.0 * X_B) * chi2)
+        * dquadmon1
+        * X_Asq
+        * chi1_sq
+        + 10.0
+        * ((X_Bsq + 308.0 / 3.0 * X_B) * chi2 + (X_Asq - 89.0 / 3.0 * X_A) * chi1)
+        * dquadmon2
+        * X_Bsq
+        * chi2_sq
+        - 440.0 * octparam1 * X_A * X_Asq * chi1_sq * chi1
+        - 440.0 * octparam2 * X_B * X_Bsq * chi2_sq * chi2
+    )
+    return c2pn, c3pn, ss_3p5pn + sss_3p5pn
+
+
+def phenomx_tidal_phase(theta_intrinsic: Array, Mf: Float) -> Float:
+    m1, m2, _, _, lambda1, lambda2 = theta_intrinsic
+    M = m1 + m2
+    X_A = m1 / M
+    X_B = m2 / M
+    pfaN = 3.0 / (128.0 * X_A * X_B)
+    c2pn, c3pn, c3p5pn = _get_phenomx_spin_coefficients(theta_intrinsic)
+
+    phase_tidal = (
+        pfaN * c2pn / ((PI ** (1.0 / 3.0)) * (Mf ** (1.0 / 3.0)))
+        + pfaN * c3pn * ((PI * Mf) ** (1.0 / 3.0))
+        + pfaN * c3p5pn * ((PI * Mf) ** (2.0 / 3.0))
+    )
+
+    PN_coeffs = get_tidalphasePN_coeffs(theta_intrinsic)
+    NRTidalv3_coeffs = get_NRTidalv3_coefficients(theta_intrinsic, PN_coeffs)
+
+    s1 = NRTidalv3_coeffs[0]
+    s2 = NRTidalv3_coeffs[1]
+    s3 = NRTidalv3_coeffs[2]
+    s2s3 = s2 * s3
+    s2Mf = -2.0 * s2 * PI * Mf
+    exps2s3 = jnp.cosh(s2s3) + jnp.sinh(s2s3)
+    exps2Mf = jnp.cosh(s2Mf) + jnp.sinh(s2Mf)
+
+    dynk2barfunc = (
+        1.0
+        + (s1 - 1.0) / (1.0 + exps2Mf * exps2s3)
+        - (s1 - 1.0) / (1.0 + exps2s3)
+        - 2.0 * (PI * Mf) * (s1 - 1.0) * s2 * exps2s3 / ((1.0 + exps2s3) ** 2)
+    )
+
+    kappaA = NRTidalv3_coeffs[4]
+    kappaB = NRTidalv3_coeffs[5]
+    dynkappaA = kappaA * dynk2barfunc
+    dynkappaB = kappaB * dynk2barfunc
+
+    n_5over2A = NRTidalv3_coeffs[6]
+    n_3A = NRTidalv3_coeffs[7]
+    d_1A = NRTidalv3_coeffs[8]
+    n_5over2B = NRTidalv3_coeffs[9]
+    n_3B = NRTidalv3_coeffs[10]
+    d_1B = NRTidalv3_coeffs[11]
+
+    c_NewtA = PN_coeffs[0]
+    c_1A = PN_coeffs[1]
+    c_3over2A = PN_coeffs[2]
+    c_2A = PN_coeffs[3]
+    c_5over2A = PN_coeffs[4]
+    c_NewtB = PN_coeffs[5]
+    c_1B = PN_coeffs[6]
+    c_3over2B = PN_coeffs[7]
+    c_2B = PN_coeffs[8]
+    c_5over2B = PN_coeffs[9]
+
+    n_1A = NRTidalv3_coeffs[12]
+    n_3over2A = NRTidalv3_coeffs[13]
+    n_2A = NRTidalv3_coeffs[14]
+    d_3over2A = NRTidalv3_coeffs[15]
+    n_1B = NRTidalv3_coeffs[16]
+    n_3over2B = NRTidalv3_coeffs[17]
+    n_2B = NRTidalv3_coeffs[18]
+    d_3over2B = NRTidalv3_coeffs[19]
+
+    Mf_23 = Mf ** (2.0 / 3.0)
+    Mf_43 = Mf ** (4.0 / 3.0)
+    Mf_53 = Mf ** (5.0 / 3.0)
+
+    NRphasetermA = -(
+        c_NewtA
+        * dynkappaA
+        * (PI ** (5.0 / 3.0))
+        * Mf_53
+        * (
+            1.0
+            + (PI ** (2.0 / 3.0)) * Mf_23 * n_1A
+            + PI * Mf * n_3over2A
+            + (PI ** (4.0 / 3.0)) * Mf_43 * n_2A
+            + (PI ** (5.0 / 3.0)) * Mf_53 * n_5over2A
+            + (PI**2) * (Mf**2) * n_3A
+        )
+        / (1.0 + (PI ** (2.0 / 3.0)) * Mf_23 * d_1A + PI * Mf * d_3over2A)
+    )
+    NRphasetermB = -(
+        c_NewtB
+        * dynkappaB
+        * (PI ** (5.0 / 3.0))
+        * Mf_53
+        * (
+            1.0
+            + (PI ** (2.0 / 3.0)) * Mf_23 * n_1B
+            + PI * Mf * n_3over2B
+            + (PI ** (4.0 / 3.0)) * Mf_43 * n_2B
+            + (PI ** (5.0 / 3.0)) * Mf_53 * n_5over2B
+            + (PI**2) * (Mf**2) * n_3B
+        )
+        / (1.0 + (PI ** (2.0 / 3.0)) * Mf_23 * d_1B + PI * Mf * d_3over2B)
+    )
+    NRphaseNRT = NRphasetermA + NRphasetermB
+
+    PNtidalphase = get_tidal_phase_PN(PI * Mf, X_A, lambda1, lambda2, PN_coeffs)
+    Mfmerger = _get_merger_frequency(theta_intrinsic) * MTSUN * M
+    plancktaperfn = general_planck_taper(Mf, 1.15 * Mfmerger, 1.35 * Mfmerger)
+    phase_tidal = (
+        phase_tidal + NRphaseNRT * (1.0 - plancktaperfn) + PNtidalphase * plancktaperfn
+    )
+    return phase_tidal
+
+
+def phenomx_tidal_phase_derivative(theta_intrinsic: Array, Mf: Float) -> Float:
+    m1, m2, _, _, lambda1, lambda2 = theta_intrinsic
+    M = m1 + m2
+    X_A = m1 / M
+    X_B = m2 / M
+    pfaN = 3.0 / (128.0 * X_A * X_B)
+    c2pn, c3pn, c3p5pn = _get_phenomx_spin_coefficients(theta_intrinsic)
+
+    dphase = (
+        pfaN
+        * (-c2pn + c3pn * ((PI * Mf) ** (2.0 / 3.0)))
+        / (3.0 * (PI ** (1.0 / 3.0)) * (Mf ** (4.0 / 3.0)))
+    )
+    dphase = dphase + (2.0 * c3p5pn * pfaN * (PI ** (2.0 / 3.0))) / (
+        3.0 * (Mf ** (1.0 / 3.0))
+    )
+
+    PN_coeffs = get_tidalphasePN_coeffs(theta_intrinsic)
+    NRTidalv3_coeffs = get_NRTidalv3_coefficients(theta_intrinsic, PN_coeffs)
+
+    s1 = NRTidalv3_coeffs[0]
+    s2 = NRTidalv3_coeffs[1]
+    s3 = NRTidalv3_coeffs[2]
+    s2s3 = s2 * s3
+    s2Mf = -2.0 * s2 * PI * Mf
+    exps2s3 = jnp.cosh(s2s3) + jnp.sinh(s2s3)
+    exps2Mf = jnp.cosh(s2Mf) + jnp.sinh(s2Mf)
+
+    dynk2barfunc = (
+        1.0
+        + (s1 - 1.0) / (1.0 + exps2Mf * exps2s3)
+        - (s1 - 1.0) / (1.0 + exps2s3)
+        - 2.0 * (PI * Mf) * (s1 - 1.0) * s2 * exps2s3 / ((1.0 + exps2s3) ** 2)
+    )
+    dynk2barfunc_deriv = (s1 - 1.0) * (2.0 * PI) * s2 * (
+        jnp.cosh(-s2s3) + jnp.sinh(-s2s3)
+    ) * (jnp.cosh(-s2Mf) + jnp.sinh(-s2Mf)) / (
+        (
+            1.0
+            + (jnp.cosh(-s2Mf) + jnp.sinh(-s2Mf)) * (jnp.cosh(-s2s3) + jnp.sinh(-s2s3))
+        )
+        ** 2
+    ) - 2.0 * PI * (s1 - 1.0) * s2 * exps2s3 / ((1.0 + exps2s3) ** 2)
+
+    kappaA = NRTidalv3_coeffs[4]
+    kappaB = NRTidalv3_coeffs[5]
+    n_5over2A = NRTidalv3_coeffs[6]
+    n_3A = NRTidalv3_coeffs[7]
+    d_1A = NRTidalv3_coeffs[8]
+    n_5over2B = NRTidalv3_coeffs[9]
+    n_3B = NRTidalv3_coeffs[10]
+    d_1B = NRTidalv3_coeffs[11]
+
+    c_NewtA = PN_coeffs[0]
+    c_1A = PN_coeffs[1]
+    c_3over2A = PN_coeffs[2]
+    c_2A = PN_coeffs[3]
+    c_5over2A = PN_coeffs[4]
+    c_NewtB = PN_coeffs[5]
+    c_1B = PN_coeffs[6]
+    c_3over2B = PN_coeffs[7]
+    c_2B = PN_coeffs[8]
+    c_5over2B = PN_coeffs[9]
+
+    n_1A = NRTidalv3_coeffs[12]
+    n_3over2A = NRTidalv3_coeffs[13]
+    n_2A = NRTidalv3_coeffs[14]
+    d_3over2A = NRTidalv3_coeffs[15]
+    n_1B = NRTidalv3_coeffs[16]
+    n_3over2B = NRTidalv3_coeffs[17]
+    n_2B = NRTidalv3_coeffs[18]
+    d_3over2B = NRTidalv3_coeffs[19]
+
+    nrtuned_dphaseA1 = -(
+        c_NewtA
+        * kappaA
+        * dynk2barfunc_deriv
+        * (PI ** (5.0 / 3.0))
+        * (Mf ** (5.0 / 3.0))
+        * (
+            1.0
+            + (PI ** (2.0 / 3.0)) * (Mf ** (2.0 / 3.0)) * n_1A
+            + PI * Mf * n_3over2A
+            + (PI ** (4.0 / 3.0)) * (Mf ** (4.0 / 3.0)) * n_2A
+            + (PI ** (5.0 / 3.0)) * (Mf ** (5.0 / 3.0)) * n_5over2A
+            + (PI**2) * (Mf**2) * n_3A
+        )
+        / (1.0 + (PI ** (2.0 / 3.0)) * (Mf ** (2.0 / 3.0)) * d_1A + PI * Mf * d_3over2A)
+    )
+    nrtuned_dphaseB1 = -(
+        c_NewtB
+        * kappaB
+        * dynk2barfunc_deriv
+        * (PI ** (5.0 / 3.0))
+        * (Mf ** (5.0 / 3.0))
+        * (
+            1.0
+            + (PI ** (2.0 / 3.0)) * (Mf ** (2.0 / 3.0)) * n_1B
+            + PI * Mf * n_3over2B
+            + (PI ** (4.0 / 3.0)) * (Mf ** (4.0 / 3.0)) * n_2B
+            + (PI ** (5.0 / 3.0)) * (Mf ** (5.0 / 3.0)) * n_5over2B
+            + (PI**2) * (Mf**2) * n_3B
+        )
+        / (1.0 + (PI ** (2.0 / 3.0)) * (Mf ** (2.0 / 3.0)) * d_1B + PI * Mf * d_3over2B)
+    )
+    nrtuned_dphaseA2 = (
+        c_NewtA
+        * kappaA
+        * dynk2barfunc
+        * (PI ** (5.0 / 3.0))
+        * (Mf ** (2.0 / 3.0))
+        * (
+            -5.0
+            - (PI ** (2.0 / 3.0)) * (Mf ** (2.0 / 3.0)) * (3.0 * d_1A + 7.0 * n_1A)
+            - 2.0 * PI * Mf * (d_3over2A + 4.0 * n_3over2A)
+            - (PI ** (4.0 / 3.0))
+            * (Mf ** (4.0 / 3.0))
+            * (5.0 * d_1A * n_1A + 9.0 * n_2A)
+            - 2.0
+            * (PI ** (5.0 / 3.0))
+            * (Mf ** (5.0 / 3.0))
+            * (2.0 * d_3over2A * n_1A + 3.0 * d_1A * n_3over2A + 5.0 * n_5over2A)
+            - (PI**2)
+            * (Mf**2)
+            * (7.0 * d_1A * n_2A + 11.0 * n_3A + 5.0 * d_3over2A * n_3over2A)
+            - 2.0
+            * (PI ** (7.0 / 3.0))
+            * (Mf ** (7.0 / 3.0))
+            * (3.0 * d_3over2A * n_2A + 4.0 * d_1A * n_5over2A)
+            - (PI ** (8.0 / 3.0))
+            * (Mf ** (8.0 / 3.0))
+            * (9.0 * d_1A * n_3A + 7.0 * d_3over2A * n_5over2A)
+            - 2.0 * (PI**3) * (Mf**3) * (4.0 * d_3over2A * n_3A)
+        )
+        / (
+            3.0
+            * (
+                1.0
+                + (PI ** (2.0 / 3.0)) * (Mf ** (2.0 / 3.0)) * d_1A
+                + PI * Mf * d_3over2A
+            )
+            ** 2
+        )
+    )
+    nrtuned_dphaseB2 = (
+        c_NewtB
+        * kappaB
+        * dynk2barfunc
+        * (PI ** (5.0 / 3.0))
+        * (Mf ** (2.0 / 3.0))
+        * (
+            -5.0
+            - (PI ** (2.0 / 3.0)) * (Mf ** (2.0 / 3.0)) * (3.0 * d_1B + 7.0 * n_1B)
+            - 2.0 * PI * Mf * (d_3over2B + 4.0 * n_3over2B)
+            - (PI ** (4.0 / 3.0))
+            * (Mf ** (4.0 / 3.0))
+            * (5.0 * d_1B * n_1B + 9.0 * n_2B)
+            - 2.0
+            * (PI ** (5.0 / 3.0))
+            * (Mf ** (5.0 / 3.0))
+            * (2.0 * d_3over2B * n_1B + 3.0 * d_1B * n_3over2B + 5.0 * n_5over2B)
+            - (PI**2)
+            * (Mf**2)
+            * (7.0 * d_1B * n_2B + 11.0 * n_3B + 5.0 * d_3over2B * n_3over2B)
+            - 2.0
+            * (PI ** (7.0 / 3.0))
+            * (Mf ** (7.0 / 3.0))
+            * (3.0 * d_3over2B * n_2B + 4.0 * d_1B * n_5over2B)
+            - (PI ** (8.0 / 3.0))
+            * (Mf ** (8.0 / 3.0))
+            * (9.0 * d_1B * n_3B + 7.0 * d_3over2B * n_5over2B)
+            - 2.0 * (PI**3) * (Mf**3) * (4.0 * d_3over2B * n_3B)
+        )
+        / (
+            3.0
+            * (
+                1.0
+                + (PI ** (2.0 / 3.0)) * (Mf ** (2.0 / 3.0)) * d_1B
+                + PI * Mf * d_3over2B
+            )
+            ** 2
+        )
+    )
+    nrtuned_dphase_nrt = (
+        nrtuned_dphaseA1 + nrtuned_dphaseA2 + nrtuned_dphaseB1 + nrtuned_dphaseB2
+    )
+
+    pnpolyA = (
+        1.0
+        + (PI ** (2.0 / 3.0)) * (Mf ** (2.0 / 3.0)) * c_1A
+        + PI * Mf * c_3over2A
+        + (PI ** (4.0 / 3.0)) * (Mf ** (4.0 / 3.0)) * c_2A
+        + (PI ** (5.0 / 3.0)) * (Mf ** (5.0 / 3.0)) * c_5over2A
+    )
+    pnpolyB = (
+        1.0
+        + (PI ** (2.0 / 3.0)) * (Mf ** (2.0 / 3.0)) * c_1B
+        + PI * Mf * c_3over2B
+        + (PI ** (4.0 / 3.0)) * (Mf ** (4.0 / 3.0)) * c_2B
+        + (PI ** (5.0 / 3.0)) * (Mf ** (5.0 / 3.0)) * c_5over2B
+    )
+    dpnpolyA = (
+        (2.0 / 3.0) * (Mf ** (-1.0 / 3.0)) * (PI ** (2.0 / 3.0)) * c_1A
+        + PI * c_3over2A
+        + (4.0 / 3.0) * (Mf ** (1.0 / 3.0)) * (PI ** (4.0 / 3.0)) * c_2A
+        + (5.0 / 3.0) * (Mf ** (2.0 / 3.0)) * (PI ** (5.0 / 3.0)) * c_5over2A
+    )
+    dpnpolyB = (
+        (2.0 / 3.0) * (Mf ** (-1.0 / 3.0)) * (PI ** (2.0 / 3.0)) * c_1B
+        + PI * c_3over2B
+        + (4.0 / 3.0) * (Mf ** (1.0 / 3.0)) * (PI ** (4.0 / 3.0)) * c_2B
+        + (5.0 / 3.0) * (Mf ** (2.0 / 3.0)) * (PI ** (5.0 / 3.0)) * c_5over2B
+    )
+    pntuned_dphase = -c_NewtA * kappaA * (
+        (5.0 / 3.0) * (Mf ** (2.0 / 3.0)) * (PI ** (5.0 / 3.0)) * pnpolyA
+        + (Mf ** (5.0 / 3.0)) * (PI ** (5.0 / 3.0)) * dpnpolyA
+    ) - c_NewtB * kappaB * (
+        (5.0 / 3.0) * (Mf ** (2.0 / 3.0)) * (PI ** (5.0 / 3.0)) * pnpolyB
+        + (Mf ** (5.0 / 3.0)) * (PI ** (5.0 / 3.0)) * dpnpolyB
+    )
+
+    nrphase_nrt = get_tidal_phase(PI * Mf, NRTidalv3_coeffs, PN_coeffs)
+    pntidalphase = get_tidal_phase_PN(PI * Mf, X_A, lambda1, lambda2, PN_coeffs)
+    Mfmerger = _get_merger_frequency(theta_intrinsic) * MTSUN * M
+    Mftaperstart = 1.15 * Mfmerger
+    Mftaperend = 1.35 * Mfmerger
+    plancktaperfn = general_planck_taper(Mf, Mftaperstart, Mftaperend)
+
+    dplancktaper = jnp.where(
+        Mf <= Mftaperstart,
+        0.0,
+        jnp.where(
+            Mf >= Mftaperend,
+            0.0,
+            -(
+                jnp.cosh(
+                    (Mftaperend - Mftaperstart) / (Mf - Mftaperstart)
+                    + (Mftaperend - Mftaperstart) / (Mf - Mftaperend)
+                )
+                + jnp.sinh(
+                    (Mftaperend - Mftaperstart) / (Mf - Mftaperstart)
+                    + (Mftaperend - Mftaperstart) / (Mf - Mftaperend)
+                )
+            )
+            * (
+                -(Mftaperend - Mftaperstart) / ((Mf - Mftaperstart) ** 2)
+                - (Mftaperend - Mftaperstart) / ((Mf - Mftaperend) ** 2)
+            )
+            * (plancktaperfn**2),
+        ),
+    )
+    return (
+        dphase
+        + nrtuned_dphase_nrt * (1.0 - plancktaperfn)
+        + pntuned_dphase * plancktaperfn
+        - (nrphase_nrt - pntidalphase) * dplancktaper
+    )
 
 
 def changePhase_if_min(f, NRTidalv3_phase, valid):

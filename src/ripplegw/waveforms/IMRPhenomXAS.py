@@ -802,6 +802,80 @@ def Phase(
     return phase
 
 
+def PhaseDerivative(
+    f: float,
+    theta: Array,
+    phase_coeffs: Array,
+) -> Array:
+    """
+    Compute d Phase / d f for IMRPhenomXAS using the same piecewise construction
+    as Phase(), but without differentiating through the final Heaviside assembly.
+    """
+
+    m1, m2, chi1, chi2 = theta
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
+    M_s = m1_s + m2_s
+    eta = m1_s * m2_s / (M_s**2.0)
+
+    fM_s = f * M_s
+    fMs_RD, _, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
+    fMs_IMmatch = 0.6 * (0.5 * fMs_RD + fMs_ISCO)
+    fMs_INmatch = fMs_MECO
+    deltafMs = (fMs_IMmatch - fMs_INmatch) * 0.03
+    f1_Ms = fMs_INmatch - 1.0 * deltafMs
+    f2_Ms = fMs_IMmatch + 0.5 * deltafMs
+
+    phi_Ins_match_f1, dphi_Ins_match_f1 = jax.value_and_grad(get_inspiral_phase)(
+        f1_Ms, theta, phase_coeffs
+    )
+    phi_MRD_match_f2, dphi_MRD_match_f2 = jax.value_and_grad(
+        get_mergerringdown_raw_phase, has_aux=True
+    )(f2_Ms, theta, phase_coeffs)
+    phi_MRD_match_f2, (cL, CV_phase_RD0) = get_mergerringdown_raw_phase(
+        f2_Ms, theta, phase_coeffs
+    )
+
+    phi_Int_match_f1, dphi_Int_match_f1 = jax.value_and_grad(
+        get_intermediate_raw_phase
+    )(f1_Ms, theta, phase_coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL)
+    alpha1 = dphi_Ins_match_f1 - dphi_Int_match_f1
+    alpha0 = phi_Ins_match_f1 - phi_Int_match_f1 - alpha1 * f1_Ms
+
+    phi_Int_func = lambda fM_s_: (
+        get_intermediate_raw_phase(
+            fM_s_, theta, phase_coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL
+        )
+        + alpha1 * fM_s_
+        + alpha0
+    )
+
+    phi_Int_match_f2, dphi_Int_match_f2 = jax.value_and_grad(phi_Int_func)(f2_Ms)
+    beta1 = dphi_Int_match_f2 - dphi_MRD_match_f2
+
+    dphi_Ins = jax.grad(get_inspiral_phase)(fM_s, theta, phase_coeffs)
+    dphi_Int = jax.grad(phi_Int_func)(fM_s)
+    dphi_MRD = (
+        jax.grad(lambda x: get_mergerringdown_raw_phase(x, theta, phase_coeffs)[0])(
+            fM_s
+        )
+        + beta1
+    )
+
+    dphase_dMf = jax.lax.cond(
+        fM_s < f1_Ms,
+        lambda _: dphi_Ins / eta,
+        lambda _: jax.lax.cond(
+            fM_s < f2_Ms,
+            lambda __: dphi_Int / eta,
+            lambda __: dphi_MRD / eta,
+            operand=None,
+        ),
+        operand=None,
+    )
+    return dphase_dMf * M_s
+
+
 def get_Amp0(fM_s: Array, eta: Float) -> Array:
     Amp0 = (
         (2.0 / 3.0 * eta) ** (1.0 / 2.0) * (fM_s) ** (-7.0 / 6.0) * PI ** (-1.0 / 6.0)
