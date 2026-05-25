@@ -1635,8 +1635,8 @@ specifically the incomplete elliptic integral of the first kind (F).</p>
     <div class="doc doc-contents ">
 
         <p>Compute the incomplete elliptic integral of the first kind.</p>
-<p>This function computes F(φ, k) using the Legendre form:
-F(φ, k) = ∫₀^φ dt / √(1 - k² sin²(t))</p>
+<p>This function computes F(phi, k) using the Legendre form:
+F(phi, k) = integral_0^phi dt / sqrt(1 - k^2 sin^2(t))</p>
 <p>This is equivalent to GSL's gsl_sf_ellint_F(phi, k, GSL_PREC_DOUBLE).</p>
 
 
@@ -1676,7 +1676,7 @@ F(φ, k) = ∫₀^φ dt / √(1 - k² sin²(t))</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The modulus, where 0 ≤ k² ≤ 1 (note: this is k, not m = k²)</p>
+                <p>The modulus, where 0 &lt;= k^2 &lt;= 1 (note: this is k, not m = k^2)</p>
               </div>
             </td>
             <td>
@@ -1718,7 +1718,7 @@ F(φ, k) = ∫₀^φ dt / √(1 - k² sin²(t))</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The value of F(φ, k)</p>
+                <p>The value of F(phi, k)</p>
               </div>
             </td>
           </tr>
@@ -1729,8 +1729,8 @@ F(φ, k) = ∫₀^φ dt / √(1 - k² sin²(t))</p>
 <details class="notes" open>
   <summary>Notes</summary>
   <ul>
-<li>For k = 0: F(φ, 0) = φ</li>
-<li>For |k| = 1 and |φ| &lt; π/2: F(φ, ±1) = arctanh(sin(φ))</li>
+<li>For k = 0: F(phi, 0) = phi</li>
+<li>For |k| = 1 and |phi| &lt; pi/2: F(phi, +/-1) = arctanh(sin(phi))</li>
 <li>The implementation uses numerical integration via trapezoidal rule</li>
 <li>JAX-compatible (can be used in jit, grad, vmap, etc.)</li>
 </ul>
@@ -1762,15 +1762,15 @@ F(φ, k) = ∫₀^φ dt / √(1 - k² sin²(t))</p>
 Landen transformation, which is the same algorithm used by GSL.</p>
 <p>The Jacobian elliptic functions are defined by the inverse of the elliptic
 integral of the first kind:
-    u = F(φ, k) = ∫₀^φ dt / √(1 - k² sin²(t))</p>
+    u = F(phi, k) = integral_0^phi dt / sqrt(1 - k^2 sin^2(t))</p>
 
 
 <details class="then" open>
   <summary>Then</summary>
-  <p>sn(u|m) = sin(φ)
-cn(u|m) = cos(φ)
-dn(u|m) = √(1 - k² sin²(φ))</p>
-</details>        <p>where m = k² is the parameter (0 ≤ m ≤ 1).</p>
+  <p>sn(u|m) = sin(phi)
+cn(u|m) = cos(phi)
+dn(u|m) = sqrt(1 - k^2 sin^2(phi))</p>
+</details>        <p>where m = k^2 is the parameter (0 &lt;= m &lt;= 1).</p>
 <p>This is equivalent to GSL's gsl_sf_elljac_e(u, m, &amp;sn, &amp;cn, &amp;dn).</p>
 
 
@@ -1810,7 +1810,7 @@ dn(u|m) = √(1 - k² sin²(φ))</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The parameter (m = k², where k is the modulus), 0 ≤ m ≤ 1</p>
+                <p>The parameter (m = k^2, where k is the modulus), 0 &lt;= m &lt;= 1</p>
               </div>
             </td>
             <td>
