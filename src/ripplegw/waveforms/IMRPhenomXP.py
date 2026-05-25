@@ -1,11 +1,12 @@
 import jax
 import jax.numpy as jnp
-from ..constants import PI, MTSUN
+from ..constants import PI, MTSUN, MRSUN, MPC
 from ..conversions import Mc_eta_to_ms
 from . import LALSimIMRPhenomX_precession as pPrec
+from .initialize_MSA_system import IMRPhenomX_Initialize_MSA_System
 
 
-from .IMRPhenomXAS import gen_IMRPhenomXAS
+from .IMRPhenomXHM import XLALSimIMRPhenomXHMGethlmModes, build_pWF22
 from .IMRPhenomXPHM import (
     IMRPhenomXWignerdCoefficients_cosbeta,
     twist_22,
@@ -39,21 +40,9 @@ def gen_IMRPhenomXP_hphc(f, theta, f_ref):
 
     Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, D, tc, phic, iota = theta
 
-    theta_XAS = jnp.array([Mc, eta, s1z, s2z, D, tc, phic])
-    h0_XAS = gen_IMRPhenomXAS(f, theta_XAS, f_ref) * jnp.exp(
-        -1j * PI
-    )  # We are adding in the PI-shift from Y22 later in the twisting up
-
-    # gen_IMRPhenomXAS normalises with amp0 = 2*sqrt(5/64π)*M_s²/(D*Mpc/c),
-    # encoding the spherical-harmonic prefactor for hp = h0*(1+cos²ι)/2.
-    # The twist-up already applies Y_{2m} via hp_sum, so we must strip that
-    # factor before handing h0 to the twist-up (matching LAL's bare hcoprec).
-    h0_bare = h0_XAS / (2.0 * jnp.sqrt(5.0 / (64.0 * PI)))
-
     m1, m2 = Mc_eta_to_ms(jnp.array([Mc, eta]))
-    Mf = (m1 + m2) * f * MTSUN
 
-    ### Twist up ###
+    ### Geometry first: need phiJ_Sf for co-precessing phase convention ###
     bigM = 1
     eta2 = jnp.power(eta, 2)
     chi1L = s1z
@@ -92,8 +81,7 @@ def gen_IMRPhenomXP_hphc(f, theta, f_ref):
         )
     )
 
-    # Fused call: compute J0, thetaJN, kappa, and zeta_polarization in one pass
-    # (avoids recomputing J0/thetaJ_Sf/phiJ_Sf twice).
+    # Fused call: compute J0, thetaJN, kappa, and zeta_polarization in one pass.
     theta_JN, Nz_Jf, Nx_Jf, phiJ_Sf, kappa, zeta_polarisations = (
         pPrec.compute_thetaJN_kappa_and_zeta(
             mass_1_fraction,
@@ -109,6 +97,30 @@ def gen_IMRPhenomXP_hphc(f, theta, f_ref):
             iota,
         )
     )
+
+    # Co-precessing (2,2) waveform via XHM using MSA-averaged afinal_prec for fRING/fDAMP.
+    # For PrecVersion=222 LAL uses fsflag=3 (MSA formula), not chiTot_perp (fsflag=4).
+    # We call IMRPhenomX_Initialize_MSA_System to get SAv2, S1L_pav, S2L_pav and pass
+    # them to build_pWF22 which computes afinal_prec_MSA internally.
+    _msa_init = IMRPhenomX_Initialize_MSA_System(
+        mass_1=m1, mass_2=m2,
+        chi1x=s1x, chi1y=s1y, chi1z=s1z,
+        chi2x=s2x, chi2y=s2y, chi2z=s2z,
+        reference_frequency=f_ref,
+    )
+    pWF22_prec = build_pWF22(
+        m1, m2, s1z, s2z, f_ref,
+        msa_SAv2=_msa_init[15],
+        msa_S1L_pav=_msa_init[32],
+        msa_S2L_pav=_msa_init[33],
+    )
+    Mf = (m1 + m2) * f * MTSUN
+    hlm_22 = XLALSimIMRPhenomXHMGethlmModes(
+        Mf, pWF22_prec, phi0=0.0, ell_mm_pairs=[(2, 2)]
+    )[(2, 2)]
+    dist_m = D * MPC
+    amp0 = (m1 + m2) * MRSUN * (m1 + m2) * MTSUN / dist_m
+    h0_bare = hlm_22 * amp0 * jnp.exp(2j * PI * f * tc)
 
     # Compute MSA precession constants once (independent of emm and Mf) so they
     # are not redundantly recomputed for each of the 5 modes inside the vmap.

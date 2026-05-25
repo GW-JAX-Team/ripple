@@ -10,6 +10,7 @@ from .spherical_harmonics import (
 )
 from dataclasses import dataclass
 from . import LALSimIMRPhenomX_precession as pPrec
+from .initialize_MSA_system import IMRPhenomX_Initialize_MSA_System
 
 
 # Some pre-XPHM ripple code
@@ -30,6 +31,42 @@ from .IMRPhenomXHM import XLALSimIMRPhenomXHMGethlmModes, build_pWF22
 # "Spherical hrmonic modes for numerical relativity"
 # List of phase shifts: the index is the azimuthal number m
 CSHIFT = jnp.array([0.0, PI / 2.0, 0.0, -PI / 2.0, PI, PI / 2.0, 0.0])
+
+
+def compute_chip(m1, m2, chi1x, chi1y, chi2x, chi2y):
+    """
+    Effective precession spin parameter chi_p.
+
+    LALSimIMRPhenomX_precession.c lines 260-275:
+      A1 = 2 + 3*m2/(2*m1), A2 = 2 + 3*m1/(2*m2)
+      chip = max(A1*m1^2*chi1_perp, A2*m2^2*chi2_perp) / (A1*m1^2)
+    """
+    chi1_perp = jnp.sqrt(chi1x**2 + chi1y**2)
+    chi2_perp = jnp.sqrt(chi2x**2 + chi2y**2)
+    q = m2 / m1  # assumes m1 >= m2
+    A1 = 2.0 + 1.5 * q
+    A2 = 2.0 + 1.5 / q
+    return jnp.maximum(A1 * chi1_perp * m1**2, A2 * chi2_perp * m2**2) / (A1 * m1**2)
+
+
+def compute_chiTot_perp(m1, m2, chi1x, chi1y, chi2x, chi2y):
+    """
+    Total perpendicular spin parameter for afinal_prec (LAL PhenomXPFinalSpinMod=4, the default).
+
+    LALSimIMRPhenomX_precession.c lines 237-241:
+      STot_perp = |S1_perp + S2_perp|  where S_i = chi_i * (mi/M)^2
+      chiTot_perp = STot_perp * M^2 / m1^2
+
+    This is used by build_pWF22 (as its 'chip' argument) to compute afinal_prec via
+      Sperp = chiTot_perp * mm1^2 = STot_perp
+      afinal_prec = sign(a_aln) * sqrt(STot_perp^2 + a_aln^2)
+    matching LAL's default fsflag=4 convention.
+    """
+    mm1 = m1 / (m1 + m2)
+    mm2 = m2 / (m1 + m2)
+    Sx = chi1x * mm1**2 + chi2x * mm2**2
+    Sy = chi1y * mm1**2 + chi2y * mm2**2
+    return jnp.sqrt(Sx**2 + Sy**2) / mm1**2
 
 
 def generate_xphm(
@@ -60,30 +97,29 @@ def generate_xphm(
 
     # Mode order: [(2,1),(2,2),(3,2),(3,3),(4,4)]
     _ell_mm_pairs = [(2, 1), (2, 2), (3, 2), (3, 3), (4, 4)]
-    _mode_array = jnp.array([[2, 1], [2, 2], [3, 2], [3, 3], [4, 4]], dtype=jnp.int32)
 
-    # Build the co-precessing seed used by LAL's current XPHM validation path.
-    # The repo's LAL-side helpers explicitly enable TwistPhenomHM=1, which twists
-    # up the legacy PhenomHM modes rather than the XHM modes.
-    hlm = XLALSimIMRPhenomHMGethlmModes(
-        frequency_array,
-        mass_1 * MSUN,
-        mass_2 * MSUN,
-        chi1x,
-        chi1y,
-        chi1z,
-        chi2x,
-        chi2y,
-        chi2z,
-        0.0,
-        0.0,
-        reference_frequency,
-        {"ModeArray": _mode_array},
+    # Use XHM (PhenomXAS-based) modes as the co-precessing seed — matches LAL
+    # default (TwistPhenomHM=0) and Bilby. XHM uses IMRPhenomX_TimeShift_22 for
+    # the t0 convention, which is the correct PE coalescence-time reference.
+    # phi0=0.0 follows LAL convention=1 (pWF->phi0 = 0 for the co-precessing modes).
+    # Use MSA-averaged afinal_prec (fsflag=3) for PrecVersion=222, matching LAL default.
+    _msa_init = IMRPhenomX_Initialize_MSA_System(
+        mass_1=mass_1, mass_2=mass_2,
+        chi1x=chi1x, chi1y=chi1y, chi1z=chi1z,
+        chi2x=chi2x, chi2y=chi2y, chi2z=chi2z,
+        reference_frequency=reference_frequency,
     )
+    pWF22 = build_pWF22(
+        mass_1, mass_2, chi1z, chi2z, reference_frequency,
+        msa_SAv2=_msa_init[15],
+        msa_S1L_pav=_msa_init[32],
+        msa_S2L_pav=_msa_init[33],
+    )
+    hlm_dict = XLALSimIMRPhenomXHMGethlmModes(Mf, pWF22, phi0=0.0, ell_mm_pairs=_ell_mm_pairs)
 
-    ells = _mode_array[:, 0]
-    minus1l = jnp.where(ells % 2 != 0, -1, 1)
-    hlms = minus1l[:, None] * hlm * amp0
+    hlms = jnp.stack(
+        [(-1 if ell % 2 != 0 else 1) * hlm_dict[(ell, mm)] for (ell, mm) in _ell_mm_pairs]
+    ) * amp0
 
     hp, hc = twistup(
         Mf,
@@ -98,65 +134,6 @@ def generate_xphm(
         phi0,
         inclination,
         reference_frequency,
-        hlms,
-    )
-
-    return hp, hc
-
-
-# TODO this is a temporary function for testing with XHM and should become the standard version once tested
-def DEV_generate_xphm_xhm(
-    freqs: Array,
-    theta: Array,
-    f_ref: float,
-):
-    """Generate IMRPhenomXPHM plus and cross polarizations."""
-    m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, distance, tc, phi_ref, inclination = theta
-
-    Mtot = m1 + m2  # solar masses
-    M_s = Mtot * MTSUN  # total mass in seconds
-    dist_m = distance * MPC  # distance in metres
-    amp0 = Mtot * MRSUN * Mtot * MTSUN / dist_m
-
-    Mf = XLALSimIMRPhenomXUtilsHztoMf(freqs, m1 + m2)
-
-    freqs_geom = freqs * M_s
-    pWF22 = build_pWF22(m1, m2, s1z, s2z, f_ref)
-
-    ell_mm_pairs = [(2, 1), (2, 2), (3, 3), (3, 2), (4, 4)]
-    _mode_array = jnp.array([[2, 1], [2, 2], [3, 2], [3, 3], [4, 4]], dtype=jnp.int32)
-
-    hlm_dict = XLALSimIMRPhenomXHMGethlmModes(
-        freqs_geom, pWF22, phi0=phi_ref, ell_mm_pairs=ell_mm_pairs
-    )
-    hlm = jnp.stack(
-        [
-            jnp.zeros_like(hlm_dict[(2, 1)]),  # hlm_dict[(2, 1)],
-            hlm_dict[(2, 2)],
-            jnp.zeros_like(hlm_dict[(2, 1)]),  # hlm_dict[(3, 3)],
-            jnp.zeros_like(hlm_dict[(2, 1)]),  # hlm_dict[(3, 2)],
-            jnp.zeros_like(hlm_dict[(2, 1)]),  # hlm_dict[(4, 4)],
-        ],
-        axis=0,
-    )
-
-    ells = _mode_array[:, 0]
-    minus1l = jnp.where(ells % 2 != 0, -1, 1)
-    hlms = minus1l[:, None] * hlm * amp0
-
-    hp, hc = twistup(
-        Mf,
-        m1,
-        m2,
-        s1x,
-        s1y,
-        s1z,
-        s2x,
-        s2y,
-        s2z,
-        phi_ref,
-        inclination,
-        f_ref,
         hlms,
     )
 

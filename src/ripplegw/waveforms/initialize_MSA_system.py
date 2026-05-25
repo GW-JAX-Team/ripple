@@ -201,11 +201,11 @@ def IMRPhenomX_Initialize_MSA_System(
 
     # Average spin couplings over one precession cycle: A9 - A14 of arXiv:1703.03967
     # omqsq = (1.0 - q) * (1.0 - q) + 1e-16
-    # omq2 = (1.0 - q * q) + 1e-16
+    omq2 = (1.0 - q * q) + 1e-16
 
     # Precession averaged spin couplings, Eq. A9 - A14 of arXiv:1703.03967, note that we only use the initial values
-    # S1L_pav = (c_1 * (1.0 + q) - q * eta * Seff) / (eta * omq2)
-    # S2L_pav = -q * (c_1 * (1.0 + q) - eta * Seff) / (eta * omq2)
+    S1L_pav = (c_1 * (1.0 + q) - q * eta * Seff) / (eta * omq2)
+    S2L_pav = -q * (c_1 * (1.0 + q) - eta * Seff) / (eta * omq2)
     # S1S2_pav = 0.5 * SAv2 - 0.5 * (S1_norm_2 + S2_norm_2)
     # S1Lsq_pav = (S1L_pav*S1L_pav + ((Spl2mSmi2)*(Spl2mSmi2) * v_0_2) / (32.0 * eta2 * omqsq))
     # S2Lsq_pav = (S2L_pav*S2L_pav + (q*q*(Spl2mSmi2)*(Spl2mSmi2) * v_0_2) / (32.0 * eta2 * omqsq))
@@ -631,6 +631,8 @@ def IMRPhenomX_Initialize_MSA_System(
             constants_L_4,
             S1_norm_2,
             S2_norm_2,
+            S1L_pav,
+            S2L_pav,
         ]
     )
 

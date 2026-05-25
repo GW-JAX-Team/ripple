@@ -340,7 +340,8 @@ def get_inspiral_phase(fM_s: Array, theta: Array, phase_coeffs: Array) -> Array:
 
 
 def get_intermediate_raw_phase(
-    fM_s: Array, theta: Array, phase_coeffs: Array, dPhaseIN, dPhaseRD, cL
+    fM_s: Array, theta: Array, phase_coeffs: Array, dPhaseIN, dPhaseRD, cL,
+    chip: float = 0.0,
 ) -> Array:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
@@ -355,7 +356,7 @@ def get_intermediate_raw_phase(
     chia = chi1 - chi2
 
     fMs_RD, fMs_damp, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(
-        m1, m2, chi1, chi2
+        m1, m2, chi1, chi2, chip=chip
     )
 
     gpoints5 = jnp.array(
@@ -552,7 +553,7 @@ def get_intermediate_raw_phase(
 
 
 def get_mergerringdown_raw_phase(
-    fM_s: Array, theta: Array, phase_coeffs: Array
+    fM_s: Array, theta: Array, phase_coeffs: Array, chip: float = 0.0
 ) -> tuple[Array, tuple[Array, Array]]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
@@ -567,7 +568,7 @@ def get_mergerringdown_raw_phase(
     chia = chi1 - chi2
     StotR = (mm1**2 * chi1 + mm2**2 * chi2) / (mm1**2 + mm2**2)
 
-    fMs_RD, fMs_damp, _, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
+    fMs_RD, fMs_damp, _, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2, chip=chip)
     fMs_IMmatch = 0.6 * (0.5 * fMs_RD + fMs_ISCO)
     fMs_PhaseRDMin = fMs_IMmatch
     fMs_PhaseRDMax = fMs_RD + 1.25 * fMs_damp
@@ -725,7 +726,7 @@ def get_mergerringdown_raw_phase(
 
 
 def Phase(
-    f: Float[Array, " n_freq"] | float, theta: Array, phase_coeffs: Array
+    f: Float[Array, " n_freq"] | float, theta: Array, phase_coeffs: Array, chip: float = 0.0
 ) -> Array:
     """
     Computes the phase of the PhenomD waveform following 1508.07253.
@@ -741,7 +742,7 @@ def Phase(
     eta = m1_s * m2_s / (M_s**2.0)
 
     fM_s = f * M_s
-    fMs_RD, _, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
+    fMs_RD, _, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2, chip=chip)
     fMs_IMmatch = 0.6 * (0.5 * fMs_RD + fMs_ISCO)
     fMs_INmatch = fMs_MECO
     deltafMs = (fMs_IMmatch - fMs_INmatch) * 0.03
@@ -751,7 +752,7 @@ def Phase(
     # Calculate the inspiral and raw merger phase (required for the intemediate phase)
     phi_Ins = get_inspiral_phase(fM_s, theta, phase_coeffs)
     phi_MRD, (cL, CV_phase_RD0) = get_mergerringdown_raw_phase(
-        fM_s, theta, phase_coeffs
+        fM_s, theta, phase_coeffs, chip
     )
 
     # Get matching points
@@ -762,20 +763,20 @@ def Phase(
         f1_Ms, theta, phase_coeffs
     )
     phi_MRD_match_f2, dphi_MRD_match_f2 = jax.value_and_grad(
-        get_mergerringdown_raw_phase, has_aux=True
-    )(f2_Ms, theta, phase_coeffs)
-    phi_MRD_match_f2, _ = get_mergerringdown_raw_phase(f2_Ms, theta, phase_coeffs)
+        lambda f_: get_mergerringdown_raw_phase(f_, theta, phase_coeffs, chip), has_aux=True
+    )(f2_Ms)
+    phi_MRD_match_f2, _ = get_mergerringdown_raw_phase(f2_Ms, theta, phase_coeffs, chip)
 
     # Now find the intermediate phase
     phi_Int_match_f1, dphi_Int_match_f1 = jax.value_and_grad(
         get_intermediate_raw_phase
-    )(f1_Ms, theta, phase_coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL)
+    )(f1_Ms, theta, phase_coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL, chip)
     alpha1 = dphi_Ins_match_f1 - dphi_Int_match_f1
     alpha0 = phi_Ins_match_f1 - phi_Int_match_f1 - alpha1 * f1_Ms
 
     phi_Int_func = lambda fM_s_: (
         get_intermediate_raw_phase(
-            fM_s_, theta, phase_coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL
+            fM_s_, theta, phase_coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL, chip
         )
         + alpha1 * fM_s_
         + alpha0
@@ -809,7 +810,7 @@ def get_Amp0(fM_s: Array, eta: Float) -> Array:
     return Amp0
 
 
-def get_inspiral_Amp(fM_s: Array, theta: Array, amp_coeffs: Array) -> Array:
+def get_inspiral_Amp(fM_s: Array, theta: Array, amp_coeffs: Array, chip: float = 0.0) -> Array:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -1015,7 +1016,7 @@ def get_inspiral_Amp(fM_s: Array, theta: Array, amp_coeffs: Array) -> Array:
 
 
 def get_intermediate_Amp(
-    fM_s: Array, theta: Array, amp_coeffs: Array, fMs_AmpRDMin
+    fM_s: Array, theta: Array, amp_coeffs: Array, fMs_AmpRDMin, chip: float = 0.0
 ) -> Array:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
@@ -1040,9 +1041,9 @@ def get_intermediate_Amp(
     # This needs to come from outside
     FMs4 = fMs_AmpRDMin
 
-    inspFMs1, d1 = jax.value_and_grad(get_inspiral_Amp)(FMs1, theta, amp_coeffs)
+    inspFMs1, d1 = jax.value_and_grad(get_inspiral_Amp)(FMs1, theta, amp_coeffs, chip)
     rdFMs4, d4 = jax.value_and_grad(get_mergerringdown_Amp, has_aux=True)(
-        FMs4, theta, amp_coeffs
+        FMs4, theta, amp_coeffs, chip
     )
     rdFMs4 = rdFMs4[0]
 
@@ -1211,6 +1212,7 @@ def get_mergerringdown_Amp(
     fM_s: Array,
     theta: Array,
     amp_coeffs: Array,
+    chip: float = 0.0,
 ) -> tuple[Array, Array]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
@@ -1224,7 +1226,7 @@ def get_mergerringdown_Amp(
     StotR = (mm1**2 * chi1 + mm2**2 * chi2) / (mm1**2 + mm2**2)
     chia = chi1 - chi2
 
-    fMs_RD, fMs_damp, _, _ = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
+    fMs_RD, fMs_damp, _, _ = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2, chip)
 
     gamma2 = (
         IMRPhenomX_utils.Amp_Nospin_CV(amp_coeffs[4, 0:amp_eqspin_indx], eta)
@@ -1286,7 +1288,7 @@ def get_mergerringdown_Amp(
     return Amp_RD, fMs_AmpRDMin
 
 
-def Amp(f: Array, theta: Array, amp_coeffs: Array, D: Float = 1.0) -> Array:
+def Amp(f: Array, theta: Array, amp_coeffs: Array, D: Float = 1.0, chip: float = 0.0) -> Array:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -1304,9 +1306,9 @@ def Amp(f: Array, theta: Array, amp_coeffs: Array, D: Float = 1.0) -> Array:
     # Below
     Overallamp = amp0 * ampNorm
 
-    Amp_Ins = get_inspiral_Amp(fM_s, theta, amp_coeffs)
-    Amp_RD, fMs_AmpRDMin = get_mergerringdown_Amp(fM_s, theta, amp_coeffs)
-    Amp_Int = get_intermediate_Amp(fM_s, theta, amp_coeffs, fMs_AmpRDMin)
+    Amp_Ins = get_inspiral_Amp(fM_s, theta, amp_coeffs, chip)
+    Amp_RD, fMs_AmpRDMin = get_mergerringdown_Amp(fM_s, theta, amp_coeffs, chip)
+    Amp_Int = get_intermediate_Amp(fM_s, theta, amp_coeffs, fMs_AmpRDMin, chip)
 
     Amp = (
         Amp_Ins * jnp.heaviside(fMs_AmpMatchIN - fM_s, 0.5)

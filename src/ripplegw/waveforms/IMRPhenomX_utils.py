@@ -6,9 +6,11 @@ from ..constants import MTSUN, PI
 fM_CUT = 0.3
 
 
-def get_cutoff_fMs(m1, m2, chi1, chi2):
+def get_cutoff_fMs(m1, m2, chi1, chi2, chip=0.0):
     # This function returns a variety of frequencies needed for computing IMRPhenomXAS
     # In particular, we have fRD, fdamp, fMECO, FISCO
+    # chip: effective precession spin parameter. When non-zero, fRD/fdamp are computed
+    # from the precessing final spin afinal_prec (matching LAL's pWF->afinal = afinal_prec).
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
@@ -139,18 +141,23 @@ def get_cutoff_fMs(m1, m2, chi1, chi2):
 
     # Taken from https://lscsoft.docs.ligo.org/lalsuite/lalsimulation/_l_a_l_sim_i_m_r_phenom_t_h_m__fits_8c_source.html
 
-    a2 = a * a
-    a3 = a2 * a
-    a4 = a3 * a
-    a5 = a4 * a
-    a6 = a5 * a
-    a7 = a6 * a
+    # Precessing final spin (= a when chip=0): LAL sets pWF->afinal = afinal_prec,
+    # so fRD/fdamp use a_prec. fISCO keeps using the aligned-spin a.
+    Sperp_prec = chip * mm1 * mm1  # chip * (m1/M)^2
+    a_prec = jnp.copysign(1.0, a) * jnp.sqrt(Sperp_prec**2 + a**2)
 
-    # First the ringdown frequency
+    a2 = a_prec * a_prec
+    a3 = a2 * a_prec
+    a4 = a3 * a_prec
+    a5 = a4 * a_prec
+    a6 = a5 * a_prec
+    a7 = a6 * a_prec
+
+    # First the ringdown frequency (uses a_prec = afinal_prec)
     fRD = (
         (
             0.05947169566573468
-            - 0.14989771215394762 * a
+            - 0.14989771215394762 * a_prec
             + 0.09535606290986028 * a2
             + 0.02260924869042963 * a3
             - 0.02501704155363241 * a4
@@ -160,18 +167,18 @@ def get_cutoff_fMs(m1, m2, chi1, chi2):
         )
         / (
             1
-            - 2.8570126619966296 * a
+            - 2.8570126619966296 * a_prec
             + 2.373335413978394 * a2
             - 0.6036964688511505 * a4
             + 0.0873798215084077 * a6
         )
     ) / (1.0 - Erad)
 
-    # Then the damping frequency
+    # Then the damping frequency (uses a_prec = afinal_prec)
     fdamp = (
         (
             0.014158792290965177
-            - 0.036989395871554566 * a
+            - 0.036989395871554566 * a_prec
             + 0.026822526296575368 * a2
             + 0.0008490933750566702 * a3
             - 0.004843996907020524 * a4
@@ -180,16 +187,19 @@ def get_cutoff_fMs(m1, m2, chi1, chi2):
         )
         / (
             1
-            - 2.5900842798681376 * a
+            - 2.5900842798681376 * a_prec
             + 1.8952576220623967 * a2
             - 0.31416610693042507 * a4
             + 0.009002719412204133 * a6
         )
     ) / (1.0 - Erad)
 
-    Z1 = 1.0 + jnp.cbrt((1.0 - a2)) * (jnp.cbrt(1 + a) + jnp.cbrt(1 - a))
+    # fISCO uses aligned-spin afinal (a), not afinal_prec — LAL sets fISCO before
+    # the precessing final spin override.
+    a_isco2 = a * a
+    Z1 = 1.0 + jnp.cbrt((1.0 - a_isco2)) * (jnp.cbrt(1 + a) + jnp.cbrt(1 - a))
     Z1 = jnp.where(Z1 > 3.0, 3.0, Z1)
-    Z2 = jnp.sqrt(3.0 * a2 + Z1 * Z1)
+    Z2 = jnp.sqrt(3.0 * a_isco2 + Z1 * Z1)
     rISCO = 3.0 + Z2 - jnp.sign(a) * jnp.sqrt((3 - Z1) * (3 + Z1 + 2 * Z2))
     rISCOsq = jnp.sqrt(rISCO)
     rISCO3o2 = rISCOsq * rISCOsq * rISCOsq

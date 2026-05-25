@@ -302,6 +302,7 @@ def get_lal_waveform(
     elif waveform_name == "IMRPhenomXPHM":
         # XPHM uses SimIMRPhenomXPHM directly to configure mode array, TwistPhenomHM,
         # multiband, and PrecVersion settings not exposed via SimInspiralChooseFDWaveform.
+        # TwistPhenomHM=0: XHM (PhenomXAS) co-precessing modes, matching ripple.
         # PrecVersion=222: same MSA as 223 but raises on init failure instead of
         # silently falling back to NNLO (caller excludes those samples).
         m1_kg = theta[0] * lal.MSUN_SI
@@ -312,19 +313,27 @@ def get_lal_waveform(
         phi_ref = theta[10]
         inclination = theta[11]
 
-        lalparams = lal.CreateDict()
-        ModeArray = lalsim.SimInspiralCreateModeArray()
-        for el, em in [(2, 1), (2, 2), (3, 2), (3, 3), (4, 4)]:
-            lalsim.SimInspiralModeArrayActivateMode(ModeArray, el, em)
-        lalsim.SimInspiralWaveformParamsInsertModeArray(lalparams, ModeArray)
-        lalsim.SimInspiralWaveformParamsInsertPhenomXPHMTwistPhenomHM(lalparams, 1)
-        lalsim.SimInspiralWaveformParamsInsertPhenomXPHMMBandVersion(lalparams, 0)
-        lalsim.SimInspiralWaveformParamsInsertPhenomXPHMThresholdMband(lalparams, 0.0)
-        lalsim.SimInspiralWaveformParamsInsertPhenomXPrecVersion(lalparams, 222)
-        hp, hc = lalsim.SimIMRPhenomXPHM(
-            m1_kg, m2_kg, s1x, s1y, s1z, s2x, s2y, s2z,
-            distance, inclination, phi_ref, f_l, f_u, df, f_ref, lalparams,
-        )
+        def _make_xphm_params(prec_version):
+            p = lal.CreateDict()
+            ModeArray = lalsim.SimInspiralCreateModeArray()
+            for el, em in [(2, 1), (2, 2), (3, 2), (3, 3), (4, 4)]:
+                lalsim.SimInspiralModeArrayActivateMode(ModeArray, el, em)
+            lalsim.SimInspiralWaveformParamsInsertModeArray(p, ModeArray)
+            # TwistPhenomHM=0: use XHM (PhenomXAS) modes as co-precessing seed,
+            # matching ripple's implementation and LAL/Bilby default.
+            lalsim.SimInspiralWaveformParamsInsertPhenomXPHMTwistPhenomHM(p, 0)
+            lalsim.SimInspiralWaveformParamsInsertPhenomXPHMMBandVersion(p, 0)
+            lalsim.SimInspiralWaveformParamsInsertPhenomXPHMThresholdMband(p, 0.0)
+            lalsim.SimInspiralWaveformParamsInsertPhenomXPrecVersion(p, prec_version)
+            return p
+
+        def _call_xphm(lalparams):
+            return lalsim.SimIMRPhenomXPHM(
+                m1_kg, m2_kg, s1x, s1y, s1z, s2x, s2y, s2z,
+                distance, inclination, phi_ref, f_l, f_u, df, f_ref, lalparams,
+            )
+
+        hp, hc = _call_xphm(_make_xphm_params(222))
     elif is_precessing:
         # Precessing waveform: theta = [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
         m1_kg = theta[0] * lal.MSUN_SI
