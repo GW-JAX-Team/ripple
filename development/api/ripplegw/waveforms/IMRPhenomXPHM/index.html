@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://gw-jax-team.github.io/ripple/development/api/ripplegw/waveforms/IMRPhenomXPHM/">
       
       
-        <link rel="prev" href="../IMRPhenomXHM/">
+        <link rel="prev" href="../IMRPhenomXP/">
       
       
         <link rel="next" href="../initialize_MSA_system/">
@@ -1215,6 +1215,33 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMRPhenomXP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  IMRPhenomXP
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -1514,6 +1541,28 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         apply_polarization_rotation
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomXPHM.compute_chiTot_perp" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        compute_chiTot_perp
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomXPHM.compute_chip" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        compute_chip
       </span>
     </span>
   </a>
@@ -2087,6 +2136,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomXPHM.compute_chiTot_perp" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        compute_chiTot_perp
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ripplegw.waveforms.IMRPhenomXPHM.compute_chip" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        compute_chip
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#ripplegw.waveforms.IMRPhenomXPHM.generate_xphm" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -2367,6 +2438,22 @@
               <td>
                 <div class="doc-md-description">
                   <p>Apply polarization rotation to waveform components.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;compute_chiTot_perp&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;m1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;chi1x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;chi1y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;chi2x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;chi2y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;" href="./#ripplegw.waveforms.IMRPhenomXPHM.compute_chiTot_perp">compute_chiTot_perp</a></code></td>
+              <td>
+                <div class="doc-md-description">
+                  <p>Total perpendicular spin parameter for afinal_prec (LAL PhenomXPFinalSpinMod=4, the default).</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;compute_chip&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;m1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;chi1x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;chi1y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;chi2x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;chi2y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;" href="./#ripplegw.waveforms.IMRPhenomXPHM.compute_chip">compute_chip</a></code></td>
+              <td>
+                <div class="doc-md-description">
+                  <p>Effective precession spin parameter chi_p.</p>
                 </div>
               </td>
             </tr>
@@ -3496,6 +3583,52 @@ Assuming m1 &gt;= m2</p>
           </tr>
       </tbody>
     </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="ripplegw.waveforms.IMRPhenomXPHM.compute_chiTot_perp" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">compute_chiTot_perp</span><span class="p">(</span><span class="n">m1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="n">chi1x</span><span class="p">,</span> <span class="n">chi1y</span><span class="p">,</span> <span class="n">chi2x</span><span class="p">,</span> <span class="n">chi2y</span><span class="p">)</span></code>
+
+<a href="#ripplegw.waveforms.IMRPhenomXPHM.compute_chiTot_perp" class="headerlink" title="Permanent link">¤</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Total perpendicular spin parameter for afinal_prec (LAL PhenomXPFinalSpinMod=4, the default).</p>
+<p>LALSimIMRPhenomX_precession.c lines 237-241:
+  STot_perp = |S1_perp + S2_perp|  where S_i = chi_i * (mi/M)^2
+  chiTot_perp = STot_perp * M^2 / m1^2</p>
+<p>This is used by build_pWF22 (as its 'chip' argument) to compute afinal_prec via
+  Sperp = chiTot_perp * mm1^2 = STot_perp
+  afinal_prec = sign(a_aln) * sqrt(STot_perp^2 + a_aln^2)
+matching LAL's default fsflag=4 convention.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="ripplegw.waveforms.IMRPhenomXPHM.compute_chip" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">compute_chip</span><span class="p">(</span><span class="n">m1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="n">chi1x</span><span class="p">,</span> <span class="n">chi1y</span><span class="p">,</span> <span class="n">chi2x</span><span class="p">,</span> <span class="n">chi2y</span><span class="p">)</span></code>
+
+<a href="#ripplegw.waveforms.IMRPhenomXPHM.compute_chip" class="headerlink" title="Permanent link">¤</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Effective precession spin parameter chi_p.</p>
+<p>LALSimIMRPhenomX_precession.c lines 260-275:
+  A1 = 2 + 3<em>m2/(2</em>m1), A2 = 2 + 3<em>m1/(2</em>m2)
+  chip = max(A1<em>m1^2</em>chi1_perp, A2<em>m2^2</em>chi2_perp) / (A1*m1^2)</p>
 
 
     </div>
