@@ -18,6 +18,7 @@ nav = [
     {"Tutorials" = [
         "tutorials/index.md",
         {"Generating Waveforms" = "tutorials/generating_waveforms.md"},
+        {"Benchmarking" = "tutorials/benchmarking.md"},
     ]},
     {"FAQ" = "FAQ.md"},
     {"Contributing" = "contributing.md"},
