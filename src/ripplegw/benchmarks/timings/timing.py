@@ -15,6 +15,8 @@ from pathlib import Path
 import jax
 import jax.numpy as jnp
 
+from ripplegw import waveform_preset
+from ripplegw.conversions import ms_to_Mc_eta
 from ripplegw.benchmarks.utils import (
     generate_bbh_parameters,
     generate_bns_parameters,
@@ -48,8 +50,6 @@ def setup_jax_config(use_float64, device):
 
 def _prepare_aligned_params(params):
     """Build a batched param dict for aligned-spin BBH waveforms (IMRPhenomXAS, IMRPhenomD)."""
-    from ripplegw.conversions import ms_to_Mc_eta
-
     Mc, eta = ms_to_Mc_eta(jnp.array([params["mass_1"], params["mass_2"]]))
     return {
         "M_c": Mc,
@@ -64,8 +64,6 @@ def _prepare_aligned_params(params):
 
 def _prepare_precessing_params(params):
     """Build a batched param dict for precessing BBH waveforms (IMRPhenomPv2)."""
-    from ripplegw.conversions import ms_to_Mc_eta
-
     Mc, eta = ms_to_Mc_eta(jnp.array([params["mass_1"], params["mass_2"]]))
     return {
         "M_c": Mc,
@@ -84,8 +82,6 @@ def _prepare_precessing_params(params):
 
 def _prepare_bns_params(params):
     """Build a batched param dict for BNS waveforms (TaylorF2_BNS, IMRPhenomD_NRTidalv2, IMRPhenomXAS_NRTidalv3)."""
-    from ripplegw.conversions import ms_to_Mc_eta
-
     Mc, eta = ms_to_Mc_eta(jnp.array([params["mass_1"], params["mass_2"]]))
     return {
         "M_c": Mc,
@@ -191,20 +187,18 @@ def run_timing(args):
     logger.info("Parameter keys: %s", list(params.keys()))
 
     # Run timing based on waveform
-    import ripplegw
-
     precessing_waveforms = ["IMRPhenomPv2", "IMRPhenomXP", "IMRPhenomXPHM"]
     if args.waveform in precessing_waveforms:
         logger.info(
             "Running precessing waveform timing benchmark (%s)...", args.waveform
         )
-        waveform = ripplegw.waveform_preset[args.waveform](
+        waveform = waveform_preset[args.waveform](
             f_ref=config["reference_frequency"]  # type: ignore
         )
         batched_params = _prepare_precessing_params(params)
     elif waveform_type == "bns":
         logger.info("Running BNS waveform timing benchmark (%s)...", args.waveform)
-        waveform = ripplegw.waveform_preset[args.waveform](
+        waveform = waveform_preset[args.waveform](
             f_ref=config["reference_frequency"]  # type: ignore
         )
         batched_params = _prepare_bns_params(params)
@@ -212,7 +206,7 @@ def run_timing(args):
         logger.info(
             "Running aligned-spin waveform timing benchmark (%s)...", args.waveform
         )
-        waveform = ripplegw.waveform_preset[args.waveform](
+        waveform = waveform_preset[args.waveform](
             f_ref=config["reference_frequency"]  # type: ignore
         )
         batched_params = _prepare_aligned_params(params)
