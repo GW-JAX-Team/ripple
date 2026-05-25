@@ -1988,7 +1988,7 @@ def _xhm_s2s_complex(
     wf22R = amp22 * ampNorm * Mf^(-7/6) * exp(i*phi22)  (v1: scaled)
     Returns |S2S| in full-strain units.
     """
-    amp22, _ = get_mergerringdown_Amp(Mf, theta, amp_coeffs_22)  # pyright: ignore[reportArgumentType]
+    amp22, _ = get_mergerringdown_Amp(Mf, theta, amp_coeffs_22, chip=chip)
     phi22 = IMRPhenomXAS_Phase(Mf / M_s, theta, phase_coeffs, chip) + t0 * Mf + phifRef
     wf22R = amp22 * ampNorm * Mf ** (-7.0 / 6.0) * jnp.exp(1j * phi22)
 
