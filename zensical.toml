@@ -18,6 +18,7 @@ nav = [
     {"Tutorials" = [
         "tutorials/index.md",
         {"Generating Waveforms" = "tutorials/generating_waveforms.md"},
+        {"Benchmarking" = "tutorials/benchmarking.md"},
     ]},
     {"FAQ" = "FAQ.md"},
     {"Contributing" = "contributing.md"},
@@ -58,12 +59,15 @@ paths = ["src"]
 
 [project.plugins.mkdocstrings.handlers.python.options]
 docstring_style = "google"
-filters = ["!^logger$"]
-inherited_members = true
-show_root_heading = true
-show_root_full_path = true
-show_if_no_docstring = true
+filters = ["!^_[^_]", "!^logger$"]
+inherited_members = false
+group_by_category = true
+show_category_heading = false
+summary = {attributes = true, functions = true}
+show_root_heading = false
+show_root_full_path = false
+show_if_no_docstring = false
 show_signature_annotations = true
 show_source = false
-members_order = "source"
+members_order = ["__all__", "alphabetical"]
 heading_level = 3

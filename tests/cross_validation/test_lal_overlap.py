@@ -35,6 +35,9 @@ from tests.utils import (
     get_jitted_waveform,
     get_lal_waveform,
     get_nyquist_mask,
+    compute_overlap_loss,
+    generate_random_params,
+    LAL_AVAILABLE,
 )
 
 jax.config.update("jax_enable_x64", True)
@@ -75,21 +78,22 @@ BBH_BOUNDS = {
 # due to a pure time shift (amplitude agreement is perfect to <1e-9). The shift
 # arises because LAL computes the coalescence-time correction t0 via a 10-point
 # natural cubic spline over [0.8*f_RD, 1.2*f_RD] (GSL gsl_interp_cspline,
-# LALSimIMRPhenomP.c lines 1060–1151), whereas ripple uses exact JAX autodiff.
-# The coarse 10-point grid (~9–12 Hz spacing) underresolves the Lorentzian
+# LALSimIMRPhenomP.c lines 1060-1151), whereas ripple uses exact JAX autodiff.
+# The coarse 10-point grid (~9-12 Hz spacing) underresolves the Lorentzian
 # arctan feature in the merger-ringdown phase (characteristic width ~f_damp
-# ≈ 22 Hz), introducing a derivative error of 5–12 μs depending on the
+# ≈ 22 Hz), introducing a derivative error of 5-12 μs depending on the
 # system. Ripple's exact derivative is the more accurate result. Worst-case
 # overlap loss reaches ~1.3e-5 for high-mass-ratio, high-spin systems; the
 # 1e-4 threshold gives comfortable headroom.
 OVERLAP_LOSS_THRESHOLDS = {
-    "IMRPhenomD": 1e-12,
-    "IMRPhenomXAS": 1e-15,
-    "IMRPhenomXHM": 1e-6,
-    "IMRPhenomD_NRTidalv2": 1e-12,
-    "IMRPhenomXAS_NRTidalv3": 1e-6,
     "TaylorF2": 1e-15,
+    "IMRPhenomD": 1e-12,
+    "IMRPhenomD_NRTidalv2": 1e-15,
     "IMRPhenomPv2": 1e-4,  # see note above
+    "IMRPhenomXAS": 1e-15,
+    "IMRPhenomXAS_NRTidalv3": 1e-6,
+    "IMRPhenomXHM": 1e-6,
+    "IMRPhenomXP": 1e-6,
     "IMRPhenomXPHM": 1e-6,
 }
 DEFAULT_OVERLAP_LOSS_THRESHOLD = 1e-6  # fallback for unknown waveforms
@@ -358,15 +362,16 @@ def psd_data():
 @pytest.mark.parametrize(
     "waveform_name,bounds",
     [
+        pytest.param("TaylorF2", DEFAULT_BOUNDS, id="TaylorF2"),
         pytest.param("IMRPhenomD", BBH_BOUNDS, id="IMRPhenomD"),
-        pytest.param("IMRPhenomXAS", BBH_BOUNDS, id="IMRPhenomXAS"),
-        pytest.param("IMRPhenomXHM", BBH_BOUNDS, id="IMRPhenomXHM"),
         pytest.param("IMRPhenomD_NRTidalv2", DEFAULT_BOUNDS, id="IMRPhenomD_NRTidalv2"),
+        pytest.param("IMRPhenomPv2", BBH_BOUNDS, id="IMRPhenomPv2"),
+        pytest.param("IMRPhenomXAS", BBH_BOUNDS, id="IMRPhenomXAS"),
         pytest.param(
             "IMRPhenomXAS_NRTidalv3", DEFAULT_BOUNDS, id="IMRPhenomXAS_NRTidalv3"
         ),
-        pytest.param("TaylorF2", DEFAULT_BOUNDS, id="TaylorF2"),
-        pytest.param("IMRPhenomPv2", BBH_BOUNDS, id="IMRPhenomPv2"),
+        pytest.param("IMRPhenomXHM", BBH_BOUNDS, id="IMRPhenomXHM"),
+        pytest.param("IMRPhenomXP", BBH_BOUNDS, id="IMRPhenomXP"),
         pytest.param("IMRPhenomXPHM", BBH_BOUNDS, id="IMRPhenomXPHM"),
     ],
 )
@@ -473,7 +478,7 @@ def test_waveform_overlap(
                 return i, hp, hc, False, None  # MSA ok
             except Exception as e:
                 msg = str(e)
-                is_msa = waveform_name == "IMRPhenomXPHM"
+                is_msa = waveform_name in ("IMRPhenomXPHM", "IMRPhenomXP")
                 return i, None, None, is_msa, msg  # MSA fallback or real error
 
         # Use sched_getaffinity when available (Linux): respects SLURM cgroup

@@ -16,8 +16,8 @@ def Mc_eta_to_ms(m: Array) -> tuple[Array, Array]:
         m (Array): Array ``(Mchirp, eta)`` — chirp mass and symmetric mass ratio.
 
     Returns:
-        tuple[Array, Array]: Component masses :math:`(m_1, m_2)` in the same
-            units as the chirp mass, with :math:`m_1 \geq m_2`.
+        tuple[Array, Array]: Component masses $(m_1, m_2)$ in the same
+            units as the chirp mass, with $m_1 \geq m_2$.
     """
     Mchirp, eta = m
     M = Mchirp / (eta ** (3 / 5))
@@ -33,7 +33,7 @@ def ms_to_Mc_eta(m: Array) -> tuple[Array, Array]:
         m (Array): Array ``(m1, m2)`` — component masses.
 
     Returns:
-        tuple[Array, Array]: :math:`(\mathcal{M}, \eta)`, with the chirp mass in
+        tuple[Array, Array]: $(\mathcal{M}, \eta)$, with the chirp mass in
             the same units as the component masses.
     """
     m1, m2 = m
