@@ -15,22 +15,22 @@ def ellint_F(phi: Float, k: Float, n_points: int = 1000) -> Float:
     """
     Compute the incomplete elliptic integral of the first kind.
 
-    This function computes F(φ, k) using the Legendre form:
-    F(φ, k) = ∫₀^φ dt / √(1 - k² sin²(t))
+    This function computes F(phi, k) using the Legendre form:
+    F(phi, k) = integral_0^phi dt / sqrt(1 - k^2 sin^2(t))
 
     This is equivalent to GSL's gsl_sf_ellint_F(phi, k, GSL_PREC_DOUBLE).
 
     Args:
         phi: The amplitude (upper limit of integration) in radians
-        k: The modulus, where 0 ≤ k² ≤ 1 (note: this is k, not m = k²)
+        k: The modulus, where 0 <= k^2 <= 1 (note: this is k, not m = k^2)
         n_points: Number of integration points (default: 1000)
 
     Returns:
-        The value of F(φ, k)
+        The value of F(phi, k)
 
     Notes:
-        - For k = 0: F(φ, 0) = φ
-        - For |k| = 1 and |φ| < π/2: F(φ, ±1) = arctanh(sin(φ))
+        - For k = 0: F(phi, 0) = phi
+        - For |k| = 1 and |phi| < pi/2: F(phi, +/-1) = arctanh(sin(phi))
         - The implementation uses numerical integration via trapezoidal rule
         - JAX-compatible (can be used in jit, grad, vmap, etc.)
 
@@ -43,12 +43,12 @@ def ellint_F(phi: Float, k: Float, n_points: int = 1000) -> Float:
     k2: Float = k * k
 
     # Handle special case: k = 0
-    # F(φ, 0) = φ
+    # F(phi, 0) = phi
     def case_k_zero():
         return phi
 
     # Handle special case: |k| = 1
-    # F(φ, ±1) = arctanh(sin(φ)) = 0.5 * ln((1 + sin(φ)) / (1 - sin(φ)))
+    # F(phi, +/-1) = arctanh(sin(phi)) = 0.5 * ln((1 + sin(phi)) / (1 - sin(phi)))
     def case_k_one():
         sin_phi = jnp.sin(phi)
         # Use arctanh for numerical stability
@@ -88,20 +88,20 @@ def gsl_sf_elljac_e(u: Float, m: Float, max_iter: int = 16):
 
     The Jacobian elliptic functions are defined by the inverse of the elliptic
     integral of the first kind:
-        u = F(φ, k) = ∫₀^φ dt / √(1 - k² sin²(t))
+        u = F(phi, k) = integral_0^phi dt / sqrt(1 - k^2 sin^2(t))
 
     Then:
-        sn(u|m) = sin(φ)
-        cn(u|m) = cos(φ)
-        dn(u|m) = √(1 - k² sin²(φ))
+        sn(u|m) = sin(phi)
+        cn(u|m) = cos(phi)
+        dn(u|m) = sqrt(1 - k^2 sin^2(phi))
 
-    where m = k² is the parameter (0 ≤ m ≤ 1).
+    where m = k^2 is the parameter (0 <= m <= 1).
 
     This is equivalent to GSL's gsl_sf_elljac_e(u, m, &sn, &cn, &dn).
 
     Args:
         u: The argument
-        m: The parameter (m = k², where k is the modulus), 0 ≤ m ≤ 1
+        m: The parameter (m = k^2, where k is the modulus), 0 <= m <= 1
         max_iter: Maximum number of Landen transformations (default: 16)
 
     Returns:
