@@ -708,7 +708,7 @@ class SineGaussian(Waveform):
         return "SineGaussian()"
 
 
-#: Mapping from model name strings to :class:`Waveform` subclasses.
+#: Mapping from model name strings to ``Waveform`` subclasses.
 #: Useful for selecting waveform models by name at runtime, e.g. from a
 #: configuration file.
 waveform_preset: dict[str, type[Waveform]] = {
