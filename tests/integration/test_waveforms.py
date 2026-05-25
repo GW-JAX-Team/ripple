@@ -12,14 +12,16 @@ import jax.numpy as jnp
 import pytest
 
 from ripplegw import (
+    TaylorF2,
     IMRPhenomD,
     IMRPhenomD_NRTidalv2,
     IMRPhenomPv2,
     IMRPhenomXAS,
     IMRPhenomXAS_NRTidalv3,
+    IMRPhenomXHM,
+    IMRPhenomXP,
     IMRPhenomXPHM,
     SineGaussian,
-    TaylorF2,
     waveform_preset,
 )
 from ripplegw.conversions import ms_to_Mc_eta, lambdas_to_lambda_tildes
@@ -534,6 +536,100 @@ class TestIMRPhenomXAS_NRTidalv3:
         )
 
 
+class TestIMRPhenomXHM:
+    # --- top-level approximant class ---
+    def test_basic(self, edge_freq_grid, bbh_aligned_dict):
+        output = IMRPhenomXHM(f_ref=20.0)(edge_freq_grid, bbh_aligned_dict)
+        assert_approx_fd_valid(output, edge_freq_grid)
+
+    def test_jit(self, test_freq_grid, bbh_aligned_dict):
+        model = IMRPhenomXHM(f_ref=20.0)
+        output = jax.jit(model)(test_freq_grid, bbh_aligned_dict)
+        assert_approx_fd_valid(output, test_freq_grid)
+
+    def test_repr(self):
+        assert repr(IMRPhenomXHM(f_ref=20.0)) == "IMRPhenomXHM(f_ref=20.0)"
+
+    def test_in_waveform_preset(self):
+        assert "IMRPhenomXHM" in waveform_preset
+        assert isinstance(waveform_preset["IMRPhenomXHM"](f_ref=20.0), IMRPhenomXHM)
+
+    # --- edge cases ---
+    def test_equal_mass(self, edge_freq_grid):
+        """eta = 0.25: equal-mass binary."""
+        params = _bbh_dict(30.0, 30.0)
+        assert params["eta"] == pytest.approx(0.25)
+        assert_approx_fd_valid(
+            IMRPhenomXHM(f_ref=20.0)(edge_freq_grid, params), edge_freq_grid
+        )
+
+    def test_zero_spins(self, edge_freq_grid):
+        """chi1 = chi2 = 0: Schwarzschild limit."""
+        params = _bbh_dict(30.0, 25.0, s1_z=0.0, s2_z=0.0)
+        assert_approx_fd_valid(
+            IMRPhenomXHM(f_ref=20.0)(edge_freq_grid, params), edge_freq_grid
+        )
+
+    def test_max_aligned_spin(self, edge_freq_grid):
+        """chi1 = +0.99, chi2 = -0.99: near-maximal spins."""
+        params = _bbh_dict(30.0, 25.0, s1_z=0.99, s2_z=-0.99)
+        assert_approx_fd_valid(
+            IMRPhenomXHM(f_ref=20.0)(edge_freq_grid, params), edge_freq_grid
+        )
+
+
+class TestIMRPhenomXP:
+    # --- top-level approximant class ---
+    def test_basic(self, edge_freq_grid, bbh_xphm_dict):
+        output = IMRPhenomXP(f_ref=20.0)(edge_freq_grid, bbh_xphm_dict)
+        assert_approx_fd_valid(output, edge_freq_grid)
+
+    def test_jit(self, test_freq_grid, bbh_xphm_dict):
+        model = IMRPhenomXP(f_ref=20.0)
+        output = jax.jit(model)(test_freq_grid, bbh_xphm_dict)
+        assert_approx_fd_valid(output, test_freq_grid)
+
+    def test_repr(self):
+        assert repr(IMRPhenomXP(f_ref=20.0)) == "IMRPhenomXP(f_ref=20.0)"
+
+    def test_in_waveform_preset(self):
+        assert "IMRPhenomXP" in waveform_preset
+        assert isinstance(waveform_preset["IMRPhenomXP"](f_ref=20.0), IMRPhenomXP)
+
+    # --- edge cases ---
+    def test_equal_mass(self, edge_freq_grid):
+        """m_1 = m_2 = 30 Msun — equal-mass limit with precessing spins."""
+        params = _xphm_dict(
+            30.0, 30.0, s1_x=0.1, s1_y=0.2, s1_z=0.3, s2_x=-0.1, s2_y=0.15, s2_z=-0.2
+        )
+        assert_approx_fd_valid(
+            IMRPhenomXP(f_ref=20.0)(edge_freq_grid, params), edge_freq_grid
+        )
+
+    def test_zero_spins(self, edge_freq_grid):
+        """All spin components zero — non-spinning limit."""
+        params = _xphm_dict(30.0, 25.0)
+        assert_approx_fd_valid(
+            IMRPhenomXP(f_ref=20.0)(edge_freq_grid, params), edge_freq_grid
+        )
+
+    def test_aligned_spins_only(self, edge_freq_grid):
+        """In-plane spins zero — reduces to aligned-spin limit."""
+        params = _xphm_dict(30.0, 25.0, s1_z=0.5, s2_z=-0.3)
+        assert_approx_fd_valid(
+            IMRPhenomXP(f_ref=20.0)(edge_freq_grid, params), edge_freq_grid
+        )
+
+    def test_fully_precessing(self, edge_freq_grid):
+        """Large in-plane spin components — strong precession regime."""
+        params = _xphm_dict(
+            30.0, 25.0, s1_x=0.5, s1_y=0.5, s1_z=0.1, s2_x=-0.4, s2_y=0.3, s2_z=-0.1
+        )
+        assert_approx_fd_valid(
+            IMRPhenomXP(f_ref=20.0)(edge_freq_grid, params), edge_freq_grid
+        )
+
+
 class TestTaylorF2:
     # --- top-level approximant class ---
     def test_basic_lambda(self, edge_freq_grid, bns_tidal_dict):
@@ -670,14 +766,15 @@ class TestSineGaussian:
 class TestWaveformPreset:
     def test_all_keys_present(self):
         expected = {
-            "IMRPhenomD",
-            "IMRPhenomPv2",
             "TaylorF2",
+            "IMRPhenomD",
             "IMRPhenomD_NRTidalv2",
+            "IMRPhenomPv2",
             "IMRPhenomXAS",
             "IMRPhenomXAS_NRTidalv3",
-            "IMRPhenomXPHM",
             "IMRPhenomXHM",
+            "IMRPhenomXP",
+            "IMRPhenomXPHM",
             "SineGaussian",
         }
         assert expected == set(waveform_preset.keys())

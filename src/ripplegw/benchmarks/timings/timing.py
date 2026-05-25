@@ -193,7 +193,7 @@ def run_timing(args):
     # Run timing based on waveform
     import ripplegw
 
-    precessing_waveforms = ["IMRPhenomXPHM", "IMRPhenomXP", "IMRPhenomPv2"]
+    precessing_waveforms = ["IMRPhenomPv2", "IMRPhenomXP", "IMRPhenomXPHM"]
     if args.waveform in precessing_waveforms:
         logger.info(
             "Running precessing waveform timing benchmark (%s)...", args.waveform
@@ -295,15 +295,15 @@ def main():
         "waveform",
         type=str,
         choices=[
-            "IMRPhenomXPHM",
-            "IMRPhenomXP",
-            "IMRPhenomXAS",
-            "IMRPhenomXHM",
-            "IMRPhenomD",
-            "IMRPhenomPv2",
             "TaylorF2",
+            "IMRPhenomD",
             "IMRPhenomD_NRTidalv2",
+            "IMRPhenomPv2",
+            "IMRPhenomXAS",
             "IMRPhenomXAS_NRTidalv3",
+            "IMRPhenomXHM",
+            "IMRPhenomXP",
+            "IMRPhenomXPHM",
         ],
         help="Waveform approximant to time",
     )

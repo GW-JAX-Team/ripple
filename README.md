@@ -15,6 +15,7 @@ ripple is a JAX-based package for differentiable gravitational-wave waveform gen
 - IMRPhenomXAS
 - IMRPhenomXAS_NRTidalv3
 - IMRPhenomXHM
+- IMRPhenomXP (MSA)
 - IMRPhenomXPHM (MSA)
 
 For a quick introduction, see the [Quick Start guide](https://gw-jax-team.github.io/ripple/stable/quickstart/).

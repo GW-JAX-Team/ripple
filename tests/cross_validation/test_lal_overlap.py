@@ -86,13 +86,13 @@ BBH_BOUNDS = {
 # overlap loss reaches ~1.3e-5 for high-mass-ratio, high-spin systems; the
 # 1e-4 threshold gives comfortable headroom.
 OVERLAP_LOSS_THRESHOLDS = {
-    "IMRPhenomD": 1e-12,
-    "IMRPhenomXAS": 1e-15,
-    "IMRPhenomXHM": 1e-6,
-    "IMRPhenomD_NRTidalv2": 1e-15,
-    "IMRPhenomXAS_NRTidalv3": 1e-6,
     "TaylorF2": 1e-15,
+    "IMRPhenomD": 1e-12,
+    "IMRPhenomD_NRTidalv2": 1e-15,
     "IMRPhenomPv2": 1e-4,  # see note above
+    "IMRPhenomXAS": 1e-15,
+    "IMRPhenomXAS_NRTidalv3": 1e-6,
+    "IMRPhenomXHM": 1e-6,
     "IMRPhenomXP": 1e-6,
     "IMRPhenomXPHM": 1e-6,
 }
@@ -362,15 +362,15 @@ def psd_data():
 @pytest.mark.parametrize(
     "waveform_name,bounds",
     [
+        pytest.param("TaylorF2", DEFAULT_BOUNDS, id="TaylorF2"),
         pytest.param("IMRPhenomD", BBH_BOUNDS, id="IMRPhenomD"),
-        pytest.param("IMRPhenomXAS", BBH_BOUNDS, id="IMRPhenomXAS"),
-        pytest.param("IMRPhenomXHM", BBH_BOUNDS, id="IMRPhenomXHM"),
         pytest.param("IMRPhenomD_NRTidalv2", DEFAULT_BOUNDS, id="IMRPhenomD_NRTidalv2"),
+        pytest.param("IMRPhenomPv2", BBH_BOUNDS, id="IMRPhenomPv2"),
+        pytest.param("IMRPhenomXAS", BBH_BOUNDS, id="IMRPhenomXAS"),
         pytest.param(
             "IMRPhenomXAS_NRTidalv3", DEFAULT_BOUNDS, id="IMRPhenomXAS_NRTidalv3"
         ),
-        pytest.param("TaylorF2", DEFAULT_BOUNDS, id="TaylorF2"),
-        pytest.param("IMRPhenomPv2", BBH_BOUNDS, id="IMRPhenomPv2"),
+        pytest.param("IMRPhenomXHM", BBH_BOUNDS, id="IMRPhenomXHM"),
         pytest.param("IMRPhenomXP", BBH_BOUNDS, id="IMRPhenomXP"),
         pytest.param("IMRPhenomXPHM", BBH_BOUNDS, id="IMRPhenomXPHM"),
     ],
