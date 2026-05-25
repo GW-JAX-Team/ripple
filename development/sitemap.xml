@@ -31,6 +31,12 @@
         <loc>https://gw-jax-team.github.io/ripple/development/api/ripplegw/interfaces/</loc>
       </url>
       <url>
+        <loc>https://gw-jax-team.github.io/ripple/development/api/ripplegw/waveforms/elliptic_integrals/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/development/api/ripplegw/waveforms/IMRPhenom_tidal_utils/</loc>
+      </url>
+      <url>
         <loc>https://gw-jax-team.github.io/ripple/development/api/ripplegw/waveforms/IMRPhenomD/</loc>
       </url>
       <url>
@@ -49,6 +55,9 @@
         <loc>https://gw-jax-team.github.io/ripple/development/api/ripplegw/waveforms/IMRPhenomPv2_utils/</loc>
       </url>
       <url>
+        <loc>https://gw-jax-team.github.io/ripple/development/api/ripplegw/waveforms/IMRPhenomX_utils/</loc>
+      </url>
+      <url>
         <loc>https://gw-jax-team.github.io/ripple/development/api/ripplegw/waveforms/IMRPhenomXAS/</loc>
       </url>
       <url>
@@ -61,10 +70,7 @@
         <loc>https://gw-jax-team.github.io/ripple/development/api/ripplegw/waveforms/IMRPhenomXPHM/</loc>
       </url>
       <url>
-        <loc>https://gw-jax-team.github.io/ripple/development/api/ripplegw/waveforms/IMRPhenomX_utils/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/development/api/ripplegw/waveforms/IMRPhenom_tidal_utils/</loc>
+        <loc>https://gw-jax-team.github.io/ripple/development/api/ripplegw/waveforms/initialize_MSA_system/</loc>
       </url>
       <url>
         <loc>https://gw-jax-team.github.io/ripple/development/api/ripplegw/waveforms/LALSimIMRPhenomX_precession/</loc>
@@ -76,15 +82,9 @@
         <loc>https://gw-jax-team.github.io/ripple/development/api/ripplegw/waveforms/SineGaussian/</loc>
       </url>
       <url>
-        <loc>https://gw-jax-team.github.io/ripple/development/api/ripplegw/waveforms/TaylorF2/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/development/api/ripplegw/waveforms/elliptic_integrals/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/development/api/ripplegw/waveforms/initialize_MSA_system/</loc>
-      </url>
-      <url>
         <loc>https://gw-jax-team.github.io/ripple/development/api/ripplegw/waveforms/spherical_harmonics/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/development/api/ripplegw/waveforms/TaylorF2/</loc>
       </url>
 </urlset>
