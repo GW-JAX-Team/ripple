@@ -103,13 +103,22 @@ def gen_IMRPhenomXP_hphc(f, theta, f_ref):
     # We call IMRPhenomX_Initialize_MSA_System to get SAv2, S1L_pav, S2L_pav and pass
     # them to build_pWF22 which computes afinal_prec_MSA internally.
     _msa_init = IMRPhenomX_Initialize_MSA_System(
-        mass_1=m1, mass_2=m2,
-        chi1x=s1x, chi1y=s1y, chi1z=s1z,
-        chi2x=s2x, chi2y=s2y, chi2z=s2z,
+        mass_1=m1,
+        mass_2=m2,
+        chi1x=s1x,
+        chi1y=s1y,
+        chi1z=s1z,
+        chi2x=s2x,
+        chi2y=s2y,
+        chi2z=s2z,
         reference_frequency=f_ref,
     )
     pWF22_prec = build_pWF22(
-        m1, m2, s1z, s2z, f_ref,
+        m1,
+        m2,
+        s1z,
+        s2z,
+        f_ref,
         msa_SAv2=_msa_init[15],
         msa_S1L_pav=_msa_init[32],
         msa_S2L_pav=_msa_init[33],

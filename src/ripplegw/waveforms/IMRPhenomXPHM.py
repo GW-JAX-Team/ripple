@@ -104,22 +104,39 @@ def generate_xphm(
     # phi0=0.0 follows LAL convention=1 (pWF->phi0 = 0 for the co-precessing modes).
     # Use MSA-averaged afinal_prec (fsflag=3) for PrecVersion=222, matching LAL default.
     _msa_init = IMRPhenomX_Initialize_MSA_System(
-        mass_1=mass_1, mass_2=mass_2,
-        chi1x=chi1x, chi1y=chi1y, chi1z=chi1z,
-        chi2x=chi2x, chi2y=chi2y, chi2z=chi2z,
+        mass_1=mass_1,
+        mass_2=mass_2,
+        chi1x=chi1x,
+        chi1y=chi1y,
+        chi1z=chi1z,
+        chi2x=chi2x,
+        chi2y=chi2y,
+        chi2z=chi2z,
         reference_frequency=reference_frequency,
     )
     pWF22 = build_pWF22(
-        mass_1, mass_2, chi1z, chi2z, reference_frequency,
+        mass_1,
+        mass_2,
+        chi1z,
+        chi2z,
+        reference_frequency,
         msa_SAv2=_msa_init[15],
         msa_S1L_pav=_msa_init[32],
         msa_S2L_pav=_msa_init[33],
     )
-    hlm_dict = XLALSimIMRPhenomXHMGethlmModes(Mf, pWF22, phi0=0.0, ell_mm_pairs=_ell_mm_pairs)
+    hlm_dict = XLALSimIMRPhenomXHMGethlmModes(
+        Mf, pWF22, phi0=0.0, ell_mm_pairs=_ell_mm_pairs
+    )
 
-    hlms = jnp.stack(
-        [(-1 if ell % 2 != 0 else 1) * hlm_dict[(ell, mm)] for (ell, mm) in _ell_mm_pairs]
-    ) * amp0
+    hlms = (
+        jnp.stack(
+            [
+                (-1 if ell % 2 != 0 else 1) * hlm_dict[(ell, mm)]
+                for (ell, mm) in _ell_mm_pairs
+            ]
+        )
+        * amp0
+    )
 
     hp, hc = twistup(
         Mf,

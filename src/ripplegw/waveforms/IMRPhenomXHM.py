@@ -636,9 +636,12 @@ def IMRPhenomX_TimeShift_22(pWF22: dict) -> float:
     # dphi22Ref must use chip-corrected fRING inside IMRPhenomXAS_Phase so that
     # the ringdown Lorentzian and transition frequencies are consistent with frefFit.
     frefFit_Hz = (fRING22 - fDAMP22) / M_s
-    dphi22Ref = jax.grad(
-        lambda f_: IMRPhenomXAS_Phase(f_, theta, phase_coeffs, chip)
-    )(frefFit_Hz) / M_s
+    dphi22Ref = (
+        jax.grad(lambda f_: IMRPhenomXAS_Phase(f_, theta, phase_coeffs, chip))(
+            frefFit_Hz
+        )
+        / M_s
+    )
 
     tshift = linb - dphi22Ref - 2.0 * PI * (500.0 + psi4tostrain)
     return tshift
@@ -1927,7 +1930,9 @@ def _xhm_get_spheroidal_coeffs(
     frefTS = fRING22 + fDAMP22
     tshift = _xhm_rd_phase_32_spheroidal_time_shift(eta, STotR, dchi, delta)
     dphi22_frefTS = (
-        jax.grad(lambda Mf: IMRPhenomXAS_Phase(Mf / M_s, theta, phase_coeffs, chip))(frefTS)
+        jax.grad(lambda Mf: IMRPhenomXAS_Phase(Mf / M_s, theta, phase_coeffs, chip))(
+            frefTS
+        )
         + t0
     )
     dphi32_frefTS = _xhm_rd_phase_spheroidal_deriv(
@@ -1938,7 +1943,9 @@ def _xhm_get_spheroidal_coeffs(
     # Phase-shift: frefPS = fRING22
     frefPS = fRING22
     phi22_frefPS = (
-        IMRPhenomXAS_Phase(frefPS / M_s, theta, phase_coeffs, chip) + t0 * frefPS + phifRef
+        IMRPhenomXAS_Phase(frefPS / M_s, theta, phase_coeffs, chip)
+        + t0 * frefPS
+        + phifRef
     )
     phishift = _xhm_rd_phase_32_spheroidal_phase_shift(
         eta, STotR, dchi, delta, chi1L, chi2L
@@ -2607,7 +2614,9 @@ def xhm_get_phase_coefficients(
         two_over_m = 2.0 / emm
 
         def dphi22_at(Mf_):
-            return jax.grad(IMRPhenomXAS_Phase)(Mf_ / M_s, theta, phase_coeffs, chip) / M_s
+            return (
+                jax.grad(IMRPhenomXAS_Phase)(Mf_ / M_s, theta, phase_coeffs, chip) / M_s
+            )
 
         insp_vals = jnp.array([dphi22_at(two_over_m * all_freqs[i]) for i in range(3)])
         diff12 = insp_vals[0] - insp_vals[1]
@@ -6649,7 +6658,9 @@ def XLALSimIMRPhenomXHMGethlmModes(
             amp_coeffs_22 = IMRPhenomX_utils.PhenomX_amp_coeff_table
             amp0_1mpc = 2.0 * jnp.sqrt(5.0 / (64.0 * PI)) * M_s**2 / (MPC / C)
             amp_22 = (
-                IMRPhenomXAS_Amp(freqs_geom / M_s, theta, amp_coeffs_22, D=1.0, chip=chip)
+                IMRPhenomXAS_Amp(
+                    freqs_geom / M_s, theta, amp_coeffs_22, D=1.0, chip=chip
+                )
                 / amp0_1mpc
             )
             # 22 mode: phifRef already encodes 2*phi0, so no extra subtraction needed.

@@ -340,7 +340,12 @@ def get_inspiral_phase(fM_s: Array, theta: Array, phase_coeffs: Array) -> Array:
 
 
 def get_intermediate_raw_phase(
-    fM_s: Array, theta: Array, phase_coeffs: Array, dPhaseIN, dPhaseRD, cL,
+    fM_s: Array,
+    theta: Array,
+    phase_coeffs: Array,
+    dPhaseIN,
+    dPhaseRD,
+    cL,
     chip: float = 0.0,
 ) -> Array:
     m1, m2, chi1, chi2 = theta
@@ -568,7 +573,9 @@ def get_mergerringdown_raw_phase(
     chia = chi1 - chi2
     StotR = (mm1**2 * chi1 + mm2**2 * chi2) / (mm1**2 + mm2**2)
 
-    fMs_RD, fMs_damp, _, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2, chip=chip)
+    fMs_RD, fMs_damp, _, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(
+        m1, m2, chi1, chi2, chip=chip
+    )
     fMs_IMmatch = 0.6 * (0.5 * fMs_RD + fMs_ISCO)
     fMs_PhaseRDMin = fMs_IMmatch
     fMs_PhaseRDMax = fMs_RD + 1.25 * fMs_damp
@@ -726,7 +733,10 @@ def get_mergerringdown_raw_phase(
 
 
 def Phase(
-    f: Float[Array, " n_freq"] | float, theta: Array, phase_coeffs: Array, chip: float = 0.0
+    f: Float[Array, " n_freq"] | float,
+    theta: Array,
+    phase_coeffs: Array,
+    chip: float = 0.0,
 ) -> Array:
     """
     Computes the phase of the PhenomD waveform following 1508.07253.
@@ -742,7 +752,9 @@ def Phase(
     eta = m1_s * m2_s / (M_s**2.0)
 
     fM_s = f * M_s
-    fMs_RD, _, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2, chip=chip)
+    fMs_RD, _, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(
+        m1, m2, chi1, chi2, chip=chip
+    )
     fMs_IMmatch = 0.6 * (0.5 * fMs_RD + fMs_ISCO)
     fMs_INmatch = fMs_MECO
     deltafMs = (fMs_IMmatch - fMs_INmatch) * 0.03
@@ -763,7 +775,8 @@ def Phase(
         f1_Ms, theta, phase_coeffs
     )
     phi_MRD_match_f2, dphi_MRD_match_f2 = jax.value_and_grad(
-        lambda f_: get_mergerringdown_raw_phase(f_, theta, phase_coeffs, chip), has_aux=True
+        lambda f_: get_mergerringdown_raw_phase(f_, theta, phase_coeffs, chip),
+        has_aux=True,
     )(f2_Ms)
     phi_MRD_match_f2, _ = get_mergerringdown_raw_phase(f2_Ms, theta, phase_coeffs, chip)
 
@@ -810,7 +823,9 @@ def get_Amp0(fM_s: Array, eta: Float) -> Array:
     return Amp0
 
 
-def get_inspiral_Amp(fM_s: Array, theta: Array, amp_coeffs: Array, chip: float = 0.0) -> Array:
+def get_inspiral_Amp(
+    fM_s: Array, theta: Array, amp_coeffs: Array, chip: float = 0.0
+) -> Array:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -1288,7 +1303,9 @@ def get_mergerringdown_Amp(
     return Amp_RD, fMs_AmpRDMin
 
 
-def Amp(f: Array, theta: Array, amp_coeffs: Array, D: Float = 1.0, chip: float = 0.0) -> Array:
+def Amp(
+    f: Array, theta: Array, amp_coeffs: Array, D: Float = 1.0, chip: float = 0.0
+) -> Array:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
