@@ -411,7 +411,7 @@ def build_pWF22(
         a_aln = afinal  # aligned-spin final spin (before precessing correction)
         Lfinal = a_aln - mm1**2 * chi1z - mm2**2 * chi2z
         afinal_prec = jnp.sqrt(
-            msa_SAv2 + Lfinal**2 + 2.0 * Lfinal * (msa_S1L_pav + msa_S2L_pav)
+            msa_SAv2 + Lfinal**2 + 2.0 * Lfinal * (msa_S1L_pav + msa_S2L_pav)  # type: ignore
         )
         chip = jnp.sqrt(jnp.maximum(afinal_prec**2 - a_aln**2, 0.0)) / (mm1**2)
         afinal = jnp.copysign(1.0, a_aln) * afinal_prec

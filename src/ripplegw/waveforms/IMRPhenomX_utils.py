@@ -1,4 +1,5 @@
 import jax.numpy as jnp
+from jaxtyping import Array
 
 from ..constants import MTSUN, PI
 
@@ -6,7 +7,7 @@ from ..constants import MTSUN, PI
 fM_CUT = 0.3
 
 
-def get_cutoff_fMs(m1, m2, chi1, chi2, chip=0.0):
+def get_cutoff_fMs(m1, m2, chi1, chi2, chip: float | Array = 0.0):
     # This function returns a variety of frequencies needed for computing IMRPhenomXAS
     # In particular, we have fRD, fdamp, fMECO, FISCO
     # chip: effective precession spin parameter. When non-zero, fRD/fdamp are computed

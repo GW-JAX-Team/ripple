@@ -1224,7 +1224,7 @@ def get_intermediate_Amp(
 
 
 def get_mergerringdown_Amp(
-    fM_s: Array,
+    fM_s: float | Array,
     theta: Array,
     amp_coeffs: Array,
     chip: float = 0.0,
