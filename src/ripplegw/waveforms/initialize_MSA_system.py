@@ -1370,7 +1370,9 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
     psi_dot = IMRPhenomX_Return_Psi_dot_MSA(v, Seff, inveta, Spl2, S32)
 
     tan_psi = jnp.tan(psi)
-    atan_psi = jnp.arctan(tan_psi)  # wraps psi to (-π/2, π/2) — required for the incomplete elliptic integral formula
+    atan_psi = jnp.arctan(
+        tan_psi
+    )  # wraps psi to (-π/2, π/2) — required for the incomplete elliptic integral formula
     """
     # C1 = -0.5 * (c0 / d0 - 2.0 * (c0 + c2 + c4) / nc_num)
 
