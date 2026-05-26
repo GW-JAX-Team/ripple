@@ -39,8 +39,6 @@ def get_quadparam_octparam(lambda_: Float) -> tuple[Float, Float]:
     Returns:
         tuple[Float, Float]: Quadrupole and octupole parameters.
     """
-
-    # Check if lambda is low or not, and choose right subroutine
     is_low_lambda = lambda_ < 1
     return jax.lax.cond(
         is_low_lambda,
@@ -48,6 +46,26 @@ def get_quadparam_octparam(lambda_: Float) -> tuple[Float, Float]:
         _get_quadparam_octparam_high,
         lambda_,
     )
+
+
+def get_quadparam_octparam_eos(lambda_: Float) -> tuple[Float, Float]:
+    """
+    Compute the quadrupole and octupole parameters using LAL's
+    XLALSimInspiralEOSQfromLambda relation.
+    """
+
+    quad_coeffs = jnp.array([0.194, 0.0936, 0.0474, -0.00421, 0.000123])
+    oct_coeffs = jnp.array([0.003131, 2.071, -0.7152, 0.2458, -0.03309])
+
+    quadparam = jax.lax.cond(
+        lambda_ < 0.5,
+        lambda _: jnp.asarray(1.0),
+        lambda lam: jnp.exp(universal_relation(quad_coeffs, jnp.log(lam))),
+        lambda_,
+    )
+    octparam = jnp.exp(universal_relation(oct_coeffs, jnp.log(quadparam)))
+
+    return quadparam, octparam
 
 
 def _get_quadparam_octparam_low(lambda_: Float) -> tuple[Float, Float]:

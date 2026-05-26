@@ -438,10 +438,10 @@ def test_waveform_overlap(
         msa_fallback_mask = cached_lal["msa_fallback_mask"].astype(bool)
 
         lal_hp_list = [
-            jnp.array(lal_hp_store[i]) for i in range(n_samples) if valid_mask[i]
+            np.asarray(lal_hp_store[i]) for i in range(n_samples) if valid_mask[i]
         ]
         lal_hc_list = [
-            jnp.array(lal_hc_store[i]) for i in range(n_samples) if valid_mask[i]
+            np.asarray(lal_hc_store[i]) for i in range(n_samples) if valid_mask[i]
         ]
         theta_ripple_list = [
             convert_parameters_lal_to_ripple(theta_batch[i], is_precessing, is_tidal)
@@ -506,8 +506,8 @@ def test_waveform_overlap(
                 theta_ripple = convert_parameters_lal_to_ripple(
                     theta_batch[i], is_precessing, is_tidal
                 )
-                lal_hp_list.append(jnp.array(hp_lal))
-                lal_hc_list.append(jnp.array(hc_lal))
+                lal_hp_list.append(np.asarray(hp_lal))
+                lal_hc_list.append(np.asarray(hc_lal))
                 theta_ripple_list.append(theta_ripple)
                 valid_mask[i] = True
                 lal_hp_store[i] = hp_lal
@@ -542,10 +542,6 @@ def test_waveform_overlap(
                 "no valid LAL waveforms to compare"
             )
         pytest.fail(f"No valid LAL samples for {waveform_name}")
-    theta_ripple_batch = jnp.stack(theta_ripple_list)
-    hp_lal_batch = jnp.stack(lal_hp_list) * nyquist_mask
-    hc_lal_batch = jnp.stack(lal_hc_list) * nyquist_mask
-
     # Per-sample function used by both the vmap and the lax.map fallback.
     # Combines waveform generation + overlap so the lax.map path keeps peak
     # memory at O(1 sample) instead of O(N samples).
@@ -565,25 +561,35 @@ def test_waveform_overlap(
     # sequentially — a middle ground between fully parallel (vmap) and fully
     # sequential (batch_size=1).  We start with batch_size = n_valid // 10 and
     # halve on each OOM until batch_size reaches 1 (purely sequential).
+    # Device arrays are built inside _run_with_batch_size so they are freed
+    # on OOM before the next retry attempt, avoiding stale GPU allocations.
     # See: https://docs.jax.dev/en/latest/_autosummary/jax.lax.map.html
     n_valid = len(theta_ripple_list)
-    xs = (theta_ripple_batch, hp_lal_batch, hc_lal_batch)
 
     def _is_oom(e: Exception) -> bool:
         msg = str(e)
         return "RESOURCE_EXHAUSTED" in msg or "Out of memory" in msg
 
     def _run_with_batch_size(batch_size: int | None):
-        if batch_size is None:
-            # Full vmap — batch_size equals the whole dataset
-            fn = jax.jit(jax.vmap(_waveform_and_overlap))
-        else:
-            fn = jax.jit(
-                lambda xs: jax.lax.map(_waveform_and_overlap, xs, batch_size=batch_size)
-            )
-        overlap_loss_hp, overlap_loss_hc = fn(xs)
-        overlap_loss_hp.block_until_ready()  # surface OOM before np.array()
-        return np.array(overlap_loss_hp), np.array(overlap_loss_hc)
+        # Build device arrays locally so they are freed on OOM before the next
+        # attempt — avoids keeping stale GPU allocations across retry iterations.
+        theta_dev = jnp.stack(theta_ripple_list)
+        hp_dev = jnp.stack(lal_hp_list) * nyquist_mask
+        hc_dev = jnp.stack(lal_hc_list) * nyquist_mask
+        try:
+            if batch_size is None:
+                # Full vmap — batch_size equals the whole dataset
+                fn = jax.jit(jax.vmap(_waveform_and_overlap))
+            else:
+                fn = jax.jit(
+                    lambda xs: jax.lax.map(_waveform_and_overlap, xs, batch_size=batch_size)
+                )
+            overlap_loss_hp, overlap_loss_hc = fn((theta_dev, hp_dev, hc_dev))
+            overlap_loss_hp.block_until_ready()  # surface OOM before np.array()
+            return np.array(overlap_loss_hp), np.array(overlap_loss_hc)
+        except Exception:
+            del theta_dev, hp_dev, hc_dev
+            raise
 
     batch_size = None  # None → full vmap
     while True:
@@ -595,8 +601,28 @@ def test_waveform_overlap(
                 raise
             next_batch = max(1, (n_valid if batch_size is None else batch_size) // 2)
             if batch_size is not None and next_batch == batch_size:
-                # Already at batch_size=1 and still OOM — re-raise
-                raise
+                # batch_size=1 still OOM: jax.lax.map traces the full (n, freq)
+                # input statically even at batch_size=1, requiring compilation
+                # buffers proportional to the full batch.  Fall back to a pure
+                # Python loop — JIT-compiles once for a single (freq,) sample
+                # and reuses, keeping peak GPU memory at O(1 sample).
+                print(
+                    f"\n  [OOM] {waveform_name}: batch_size=1 still OOM, "
+                    "falling back to Python sequential loop..."
+                )
+                _single = jax.jit(_waveform_and_overlap)
+                ols_hp, ols_hc = [], []
+                for k in range(n_valid):
+                    ol_hp, ol_hc = _single((
+                        theta_ripple_list[k],
+                        jnp.array(lal_hp_list[k]) * nyquist_mask,
+                        jnp.array(lal_hc_list[k]) * nyquist_mask,
+                    ))
+                    ols_hp.append(float(ol_hp))
+                    ols_hc.append(float(ol_hc))
+                overlap_loss_hp_np = np.array(ols_hp)
+                overlap_loss_hc_np = np.array(ols_hc)
+                break
             print(
                 f"\n  [OOM] {waveform_name}: retrying with "
                 f"jax.lax.map(batch_size={next_batch})..."
@@ -872,7 +898,7 @@ def test_waveform_overlap(
     fig.tight_layout()
     fig_file = figures_dir / f"overlap_loss_{waveform_name}.png"
 
-    fig.savefig(fig_file, dpi=150)
+    fig.savefig(str(fig_file), dpi=150)
     plt.close(fig)
     print(f"  Figure saved to: {fig_file}")
 
