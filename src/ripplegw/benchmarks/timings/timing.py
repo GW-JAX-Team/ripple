@@ -103,25 +103,63 @@ def time_waveform(waveform, batched_params, config):
         waveform: An instantiated waveform object from ``ripplegw.waveform_preset``.
         batched_params: Dict of JAX arrays, each of shape ``(n_waveforms,)``.
         config: Benchmark configuration dictionary.
+
+    Returns:
+        tuple: ``(first_run_time, exec_times, effective_batch_size)`` where
+        ``effective_batch_size`` is ``None`` when full vmap succeeded or the
+        integer ``batch_size`` used with ``jax.lax.map`` when vmap OOM'd.
     """
     f = jnp.arange(
         config["minimum_frequency"],
         config["maximum_frequency"],
         1.0 / config["duration"],
     )
-
-    waveform_batched = jax.jit(jax.vmap(lambda p: waveform(f, p)))
+    n_waveforms = config["n_waveforms"]
     n_runs = config.get("n_runs", 5)
 
-    # First run (includes JIT compilation)
+    def _make_batched(batch_size):
+        single = lambda p: waveform(f, p)
+        if batch_size is None:
+            return jax.jit(jax.vmap(single))
+        return jax.jit(lambda bp: jax.lax.map(single, bp, batch_size=batch_size))
+
+    def _is_oom(e: Exception) -> bool:
+        msg = str(e)
+        return "RESOURCE_EXHAUSTED" in msg or "Out of memory" in msg
+
+    # First run (includes JIT compilation) — retry with smaller batch_size on OOM.
     logger.info("\n%s", "=" * 60)
     logger.info("First run (includes JIT compilation)")
     logger.info("=" * 60)
-    start = time.time()
-    result = waveform_batched(batched_params)
-    result["p"].block_until_ready()
-    result["c"].block_until_ready()
-    first_run_time = time.time() - start
+    batch_size = None  # None = full vmap over all n_waveforms
+    while True:
+        try:
+            waveform_batched = _make_batched(batch_size)
+            start = time.time()
+            result = waveform_batched(batched_params)
+            result["p"].block_until_ready()
+            result["c"].block_until_ready()
+            first_run_time = time.time() - start
+            break
+        except Exception as e:
+            if not _is_oom(e):
+                raise
+            next_batch = max(1, (n_waveforms if batch_size is None else batch_size) // 2)
+            if batch_size is not None and next_batch == batch_size:
+                raise RuntimeError(
+                    f"OOM at batch_size=1 for {config['waveform']} — "
+                    "a single waveform does not fit on the device"
+                ) from e
+            label = "vmap" if batch_size is None else f"lax.map(batch_size={batch_size})"
+            logger.warning(
+                "OOM with %s, retrying with lax.map(batch_size=%d)...", label, next_batch
+            )
+            batch_size = next_batch
+
+    if batch_size is None:
+        logger.info("Execution mode: vmap (batch_size=%d)", n_waveforms)
+    else:
+        logger.info("Execution mode: lax.map(batch_size=%d) — vmap OOM'd", batch_size)
     logger.info("First run time (includes JIT compilation): %.3f s", first_run_time)
 
     # Timed runs
@@ -138,7 +176,7 @@ def time_waveform(waveform, batched_params, config):
         exec_times.append(t)
         logger.info("  Run %d: %.6f s", i + 1, t)
 
-    return first_run_time, exec_times
+    return first_run_time, exec_times, batch_size
 
 
 def run_timing(args):
@@ -211,7 +249,9 @@ def run_timing(args):
         )
         batched_params = _prepare_aligned_params(params)
 
-    first_run_time, exec_times = time_waveform(waveform, batched_params, config)
+    first_run_time, exec_times, effective_batch_size = time_waveform(
+        waveform, batched_params, config
+    )
 
     # Compute statistics over timed runs
     exec_times_arr = jnp.array(exec_times)
@@ -238,11 +278,17 @@ def run_timing(args):
         "Mean time per waveform: %.3f ms  (+/- %.3f ms)", mean_tpw_ms, std_tpw_ms
     )
     logger.info("Mean waveforms per second: %.1f  (+/- %.1f)", mean_wps, std_wps)
+    if effective_batch_size is not None:
+        logger.info("Execution mode: lax.map(batch_size=%d) — vmap OOM'd", effective_batch_size)
+    else:
+        logger.info("Execution mode: vmap (batch_size=%d)", args.n_waveforms)
     logger.info("=" * 60)
 
     # Save results
     results = {
         **config,
+        "effective_batch_size": effective_batch_size if effective_batch_size is not None else args.n_waveforms,
+        "vmap_oom": effective_batch_size is not None,
         "first_run_time_s": float(first_run_time),
         "timed_run_times_s": [float(t) for t in exec_times],
         "mean_execution_time_s": float(mean_exec),
