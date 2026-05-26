@@ -14,7 +14,7 @@ N_RUNS="50"
 mkdir -p "${OUTDIR}"
 
 PRECISIONS=("float32" "float64")
-MODELS=("TaylorF2" "IMRPhenomD" "IMRPhenomXAS" "IMRPhenomXHM" "IMRPhenomPv2" "IMRPhenomXPHM" "IMRPhenomD_NRTidalv2" "IMRPhenomXAS_NRTidalv3")
+MODELS=("TaylorF2" "IMRPhenomD" "IMRPhenomD_NRTidalv2" "IMRPhenomPv2" "IMRPhenomXAS" "IMRPhenomXAS_NRTidalv3" "IMRPhenomXHM" "IMRPhenomXP" "IMRPhenomXPHM")
 
 TIMING_SUB="${OUTDIR}/timing.sub"
 POSTPROCESS_SUB="${OUTDIR}/postprocess.sub"
