@@ -5,7 +5,6 @@ This module provides JAX-compatible implementations of elliptic integrals,
 specifically the incomplete elliptic integral of the first kind (F).
 """
 
-import jax
 import jax.numpy as jnp
 from jax.scipy.integrate import trapezoid
 from jaxtyping import Float
@@ -154,7 +153,9 @@ def gsl_sf_elljac_e(u: Float, m: Float, max_iter: int = 16):
         a, c = 0.5 * (a + b), 0.5 * (a - b)
         ac_pairs.append((a, c))
 
-    phi_n = (2.0 ** max_iter) * a * u  # a is a_final here; 2^max_iter is a Python constant
+    phi_n = (
+        (2.0**max_iter) * a * u
+    )  # a is a_final here; 2^max_iter is a Python constant
 
     # Backward Landen — same reasoning: Python loop, no scan output tensor.
     phi = phi_n
