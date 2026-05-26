@@ -820,6 +820,7 @@ def PhaseDerivative(
     f: float,
     theta: Array,
     phase_coeffs: Array,
+    chip: float = 0.0,
 ) -> Array:
     """
     Compute d Phase / d f for IMRPhenomXAS using the same piecewise construction
@@ -833,7 +834,7 @@ def PhaseDerivative(
     eta = m1_s * m2_s / (M_s**2.0)
 
     fM_s = f * M_s
-    fMs_RD, _, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
+    fMs_RD, _, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2, chip)
     fMs_IMmatch = 0.6 * (0.5 * fMs_RD + fMs_ISCO)
     fMs_INmatch = fMs_MECO
     deltafMs = (fMs_IMmatch - fMs_INmatch) * 0.03
@@ -845,20 +846,20 @@ def PhaseDerivative(
     )
     phi_MRD_match_f2, dphi_MRD_match_f2 = jax.value_and_grad(
         get_mergerringdown_raw_phase, has_aux=True
-    )(f2_Ms, theta, phase_coeffs)
+    )(f2_Ms, theta, phase_coeffs, chip)
     phi_MRD_match_f2, (cL, CV_phase_RD0) = get_mergerringdown_raw_phase(
-        f2_Ms, theta, phase_coeffs
+        f2_Ms, theta, phase_coeffs, chip
     )
 
     phi_Int_match_f1, dphi_Int_match_f1 = jax.value_and_grad(
         get_intermediate_raw_phase
-    )(f1_Ms, theta, phase_coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL)
+    )(f1_Ms, theta, phase_coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL, chip)
     alpha1 = dphi_Ins_match_f1 - dphi_Int_match_f1
     alpha0 = phi_Ins_match_f1 - phi_Int_match_f1 - alpha1 * f1_Ms
 
     phi_Int_func = lambda fM_s_: (
         get_intermediate_raw_phase(
-            fM_s_, theta, phase_coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL
+            fM_s_, theta, phase_coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL, chip
         )
         + alpha1 * fM_s_
         + alpha0
@@ -870,7 +871,7 @@ def PhaseDerivative(
     dphi_Ins = jax.grad(get_inspiral_phase)(fM_s, theta, phase_coeffs)
     dphi_Int = jax.grad(phi_Int_func)(fM_s)
     dphi_MRD = (
-        jax.grad(lambda x: get_mergerringdown_raw_phase(x, theta, phase_coeffs)[0])(
+        jax.grad(lambda x: get_mergerringdown_raw_phase(x, theta, phase_coeffs, chip)[0])(
             fM_s
         )
         + beta1
