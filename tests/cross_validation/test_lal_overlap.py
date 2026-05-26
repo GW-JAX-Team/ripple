@@ -438,10 +438,10 @@ def test_waveform_overlap(
         msa_fallback_mask = cached_lal["msa_fallback_mask"].astype(bool)
 
         lal_hp_list = [
-            jnp.array(lal_hp_store[i]) for i in range(n_samples) if valid_mask[i]
+            np.asarray(lal_hp_store[i]) for i in range(n_samples) if valid_mask[i]
         ]
         lal_hc_list = [
-            jnp.array(lal_hc_store[i]) for i in range(n_samples) if valid_mask[i]
+            np.asarray(lal_hc_store[i]) for i in range(n_samples) if valid_mask[i]
         ]
         theta_ripple_list = [
             convert_parameters_lal_to_ripple(theta_batch[i], is_precessing, is_tidal)
@@ -506,8 +506,8 @@ def test_waveform_overlap(
                 theta_ripple = convert_parameters_lal_to_ripple(
                     theta_batch[i], is_precessing, is_tidal
                 )
-                lal_hp_list.append(jnp.array(hp_lal))
-                lal_hc_list.append(jnp.array(hc_lal))
+                lal_hp_list.append(np.asarray(hp_lal))
+                lal_hc_list.append(np.asarray(hc_lal))
                 theta_ripple_list.append(theta_ripple)
                 valid_mask[i] = True
                 lal_hp_store[i] = hp_lal
@@ -595,8 +595,30 @@ def test_waveform_overlap(
                 raise
             next_batch = max(1, (n_valid if batch_size is None else batch_size) // 2)
             if batch_size is not None and next_batch == batch_size:
-                # Already at batch_size=1 and still OOM — re-raise
-                raise
+                # batch_size=1 still OOM: jax.lax.map traces the full (n, freq)
+                # input statically even at batch_size=1, requiring compilation
+                # buffers proportional to the full batch.  Fall back to a pure
+                # Python loop — JIT-compiles once for a single (freq,) sample
+                # and reuses, keeping peak GPU memory at O(1 sample).
+                print(
+                    f"\n  [OOM] {waveform_name}: batch_size=1 still OOM, "
+                    "falling back to Python sequential loop..."
+                )
+                # Free the stacked GPU arrays before processing one-by-one.
+                del xs, hp_lal_batch, hc_lal_batch
+                _single = jax.jit(_waveform_and_overlap)
+                ols_hp, ols_hc = [], []
+                for k in range(n_valid):
+                    ol_hp, ol_hc = _single((
+                        theta_ripple_batch[k],
+                        jnp.array(lal_hp_list[k]) * nyquist_mask,
+                        jnp.array(lal_hc_list[k]) * nyquist_mask,
+                    ))
+                    ols_hp.append(float(ol_hp))
+                    ols_hc.append(float(ol_hc))
+                overlap_loss_hp_np = np.array(ols_hp)
+                overlap_loss_hc_np = np.array(ols_hc)
+                break
             print(
                 f"\n  [OOM] {waveform_name}: retrying with "
                 f"jax.lax.map(batch_size={next_batch})..."
