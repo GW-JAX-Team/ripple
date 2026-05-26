@@ -125,87 +125,51 @@ def gsl_sf_elljac_e(u: Float, m: Float, max_iter: int = 16):
     u = jnp.asarray(u)
     m = jnp.asarray(m)
 
-    # Handle special case: m = 0
-    # sn(u|0) = sin(u), cn(u|0) = cos(u), dn(u|0) = 1
-    def case_m_zero():
-        sin_u = jnp.sin(u)
-        cos_u = jnp.cos(u)
-        return sin_u, cos_u, jnp.ones_like(u)
+    # Descending Landen transformation (Abramowitz & Stegun 16.14.1-2, same as GSL).
+    #
+    # Special cases (m≈0, m≈1) are intentionally omitted:
+    #   - The only caller (IMRPhenomX_Return_SNorm_MSA) gates the call behind
+    #     cancel_condition = |Smi2 - Spl2| < 1e-5, which corresponds to m→0;
+    #     when that condition is True, sn_jacobi is not used, so m=0 is never
+    #     reached here in practice.
+    #   - m=1 requires S32 = Smi2 exactly, which cannot occur in float64 for
+    #     non-degenerate spin parameters.
+    #   - JAX's jnp.where evaluates both branches eagerly; omitting the dead-code
+    #     paths (2 sin/cos + 3 tanh/cosh + 6 where/comparison ops per element)
+    #     reduces the compiled kernel size and GPU instruction count.
+    #
+    # Only sn is returned: cn and dn are always discarded by callers (_cn, _dn).
 
-    # Handle special case: m = 1
-    # sn(u|1) = tanh(u), cn(u|1) = sech(u), dn(u|1) = sech(u)
-    def case_m_one():
-        tanh_u = jnp.tanh(u)
-        sech_u = 1.0 / jnp.cosh(u)
-        return tanh_u, sech_u, sech_u
+    def landen_forward(carry, i):
+        a_prev, c_prev = carry
+        b_prev = jnp.sqrt((a_prev - c_prev) * (a_prev + c_prev))
+        a_next = 0.5 * (a_prev + b_prev)
+        c_next = 0.5 * (a_prev - b_prev)
+        return (a_next, c_next), (a_next, c_next)
 
-    # General case: use descending Landen transformation
-    def case_general():
-        # This implements Abramowitz & Stegun 16.14.1-2
-        # Based on GSL's gsl_sf_elljac.c implementation
+    k = jnp.sqrt(m)
+    # unroll=max_iter: fully unroll both scans into straight-line XLA so the
+    # compiler can schedule/pipeline without loop-carried synchronisation.
+    (a_final, _c_final), (a_arr, c_arr) = jax.lax.scan(
+        landen_forward, (jnp.ones_like(k), k), jnp.arange(max_iter), unroll=max_iter
+    )
 
-        # Build the Landen transformation sequence
-        # a[0] = 1, c[0] = k, b[0] = sqrt(1-k^2)
-        def landen_forward(carry, i):
-            a_prev, c_prev = carry
-            # b = sqrt(a^2 - c^2) = sqrt((a-c)(a+c))
-            b_prev = jnp.sqrt((a_prev - c_prev) * (a_prev + c_prev))
-            # Apply the transformation
-            a_next = 0.5 * (a_prev + b_prev)
-            c_next = 0.5 * (a_prev - b_prev)
-            return (a_next, c_next), (a_next, c_next)
+    phi_n = jnp.power(2.0, max_iter) * a_final * u
 
-        k = jnp.sqrt(m)
-        (a_final, _c_final), (a_arr, c_arr) = jax.lax.scan(
-            landen_forward, (jnp.ones_like(k), k), jnp.arange(max_iter)
-        )
+    def landen_backward(phi_curr, i):
+        idx = max_iter - 1 - i
+        a_i = a_arr[idx]
+        c_i = c_arr[idx]
+        sin_phi = jnp.sin(phi_curr)
+        arg = jnp.clip(c_i * sin_phi / a_i, -1.0, 1.0)
+        phi_prev = 0.5 * (phi_curr + jnp.arcsin(arg))
+        return phi_prev, None
 
-        # phi_n = 2^n * a_n * u (in the limit, this approaches the final angle)
-        phi_n = jnp.power(2.0, max_iter) * a_final * u
+    phi_0, _ = jax.lax.scan(
+        landen_backward, phi_n, jnp.arange(max_iter), unroll=max_iter
+    )
 
-        # Now work backward using the inverse transformation
-        # sin(phi_{n-1}) = (a_n / a_{n-1}) * sin(phi_n)
-        # and phi_{n-1} = (phi_n + arcsin(c_n/a_n * sin(phi_n))) / 2
-        def landen_backward(phi_curr, i):
-            idx = max_iter - 1 - i
-            a_i = a_arr[idx]
-            c_i = c_arr[idx]
-
-            sin_phi = jnp.sin(phi_curr)
-            # The inverse transformation
-            # phi_prev = (phi_curr + arcsin(c * sin(phi_curr) / a)) / 2
-            arg = jnp.clip(
-                c_i * sin_phi / a_i, -1.0, 1.0
-            )  # Clip to avoid numerical issues
-            phi_prev = 0.5 * (phi_curr + jnp.arcsin(arg))
-
-            return phi_prev, None
-
-        phi_0, _ = jax.lax.scan(landen_backward, phi_n, jnp.arange(max_iter))
-
-        # Compute the elliptic functions from phi_0
-        sin_phi = jnp.sin(phi_0)
-        cos_phi = jnp.cos(phi_0)
-
-        sn = sin_phi
-        cn = cos_phi
-        dn = jnp.sqrt(1.0 - m * sin_phi * sin_phi)
-
-        return sn, cn, dn
-
-    # Select appropriate case based on m value
-    abs_m = jnp.abs(m)
-    is_m_zero = abs_m < 1e-10
-    is_m_one = jnp.abs(abs_m - 1.0) < 1e-10
-
-    # Compute all three cases
-    sn_zero, cn_zero, dn_zero = case_m_zero()
-    sn_one, cn_one, dn_one = case_m_one()
-    sn_gen, cn_gen, dn_gen = case_general()
-
-    # Select based on m value using nested where
-    sn = jnp.where(is_m_zero, sn_zero, jnp.where(is_m_one, sn_one, sn_gen))
-    cn = jnp.where(is_m_zero, cn_zero, jnp.where(is_m_one, cn_one, cn_gen))
-    dn = jnp.where(is_m_zero, dn_zero, jnp.where(is_m_one, dn_one, dn_gen))
-
+    sn = jnp.sin(phi_0)
+    cn = jnp.cos(phi_0)
+    dn = jnp.sqrt(1.0 - m * sn * sn)
     return sn, cn, dn
