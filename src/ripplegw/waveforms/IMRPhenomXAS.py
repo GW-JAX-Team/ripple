@@ -25,7 +25,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, phase_coeffs: Array) -> Array:
     eta = m1_s * m2_s / (M_s**2.0)
     eta2 = eta * eta
     eta3 = eta2 * eta
-    delta = jnp.sqrt(1.0 - 4.0 * eta)
+    delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
 
     mm1 = 0.5 * (1.0 + delta)
     mm2 = 0.5 * (1.0 - delta)
@@ -353,7 +353,7 @@ def get_intermediate_raw_phase(
     m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
-    delta = jnp.sqrt(1.0 - 4.0 * eta)
+    delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
 
     mm1 = 0.5 * (1.0 + delta)
     mm2 = 0.5 * (1.0 - delta)
@@ -565,7 +565,7 @@ def get_mergerringdown_raw_phase(
     m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
-    delta = jnp.sqrt(1.0 - 4.0 * eta)
+    delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
     mm1 = 0.5 * (1.0 + delta)
     mm2 = 0.5 * (1.0 - delta)
     # chi_eff = mm1 * chi1 + mm2 * chi2
@@ -909,7 +909,7 @@ def get_inspiral_Amp(
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
     eta2 = eta * eta
-    delta = jnp.sqrt(1.0 - 4.0 * eta)
+    delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
 
     mm1 = 0.5 * (1.0 + delta)
     mm2 = 0.5 * (1.0 - delta)
@@ -1116,7 +1116,7 @@ def get_intermediate_Amp(
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
     # eta2 = eta * eta
-    delta = jnp.sqrt(1.0 - 4.0 * eta)
+    delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
 
     mm1 = 0.5 * (1.0 + delta)
     mm2 = 0.5 * (1.0 - delta)
@@ -1311,7 +1311,7 @@ def get_mergerringdown_Amp(
     m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
-    delta = jnp.sqrt(1.0 - 4.0 * eta)
+    delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
 
     mm1 = 0.5 * (1.0 + delta)
     mm2 = 0.5 * (1.0 - delta)
@@ -1431,7 +1431,7 @@ def _gen_IMRPhenomXAS(
 
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
-    delta = jnp.sqrt(1.0 - 4.0 * eta)
+    delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
     mm1 = 0.5 * (1.0 + delta)
     mm2 = 0.5 * (1.0 - delta)
 

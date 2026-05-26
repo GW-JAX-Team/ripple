@@ -21,7 +21,7 @@ def Mc_eta_to_ms(m: Array) -> tuple[Array, Array]:
     """
     Mchirp, eta = m
     M = Mchirp / (eta ** (3 / 5))
-    m2 = (M - jnp.sqrt(M**2 - 4 * M**2 * eta)) / 2
+    m2 = (M - jnp.sqrt(jnp.maximum(M**2 - 4 * M**2 * eta, 0.0))) / 2
     m1 = M - m2
     return m1, m2
 
@@ -51,19 +51,20 @@ def _compute_lambda_tildes_from_eta(
     """Core tidal conversion: individual lambdas → (lambda_tilde, delta_lambda_tilde) given eta."""
     lambda_plus = lambda_1 + lambda_2
     lambda_minus = lambda_1 - lambda_2
+    sqrt_1m4eta = jnp.sqrt(jnp.maximum(1 - 4 * eta, 0.0))
     lambda_tilde = (
         8
         / 13
         * (
             (1 + 7 * eta - 31 * eta**2) * lambda_plus
-            + (1 - 4 * eta) ** 0.5 * (1 + 9 * eta - 11 * eta**2) * lambda_minus
+            + sqrt_1m4eta * (1 + 9 * eta - 11 * eta**2) * lambda_minus
         )
     )
     delta_lambda_tilde = (
         1
         / 2
         * (
-            (1 - 4 * eta) ** 0.5
+            sqrt_1m4eta
             * (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2)
             * lambda_plus
             + (1 - 15910 / 1319 * eta + 32850 / 1319 * eta**2 + 3380 / 1319 * eta**3)
@@ -77,9 +78,10 @@ def _compute_lambdas_from_eta(
     eta: Array, lambda_tilde: Array, delta_lambda_tilde: Array
 ) -> tuple[Array, Array]:
     """Core tidal conversion: (lambda_tilde, delta_lambda_tilde) → individual lambdas given eta."""
+    sqrt_1m4eta = jnp.sqrt(jnp.maximum(1 - 4 * eta, 0.0))
     coefficient_1 = 1 + 7 * eta - 31 * eta**2
-    coefficient_2 = (1 - 4 * eta) ** 0.5 * (1 + 9 * eta - 11 * eta**2)
-    coefficient_3 = (1 - 4 * eta) ** 0.5 * (
+    coefficient_2 = sqrt_1m4eta * (1 + 9 * eta - 11 * eta**2)
+    coefficient_3 = sqrt_1m4eta * (
         1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2
     )
     coefficient_4 = (

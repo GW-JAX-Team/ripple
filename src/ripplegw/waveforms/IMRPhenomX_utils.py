@@ -19,7 +19,7 @@ def get_cutoff_fMs(m1, m2, chi1, chi2, chip: float | Array = 0.0):
     # m1Sq = m1_s * m1_s
     # m2Sq = m2_s * m2_s
 
-    delta = jnp.sqrt(1.0 - 4.0 * eta_s)
+    delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta_s, 0.0))
     mm1 = 0.5 * (1.0 + delta)
     mm2 = 0.5 * (1.0 - delta)
 
@@ -439,7 +439,7 @@ def Eqspin_CV(EqSpin_coeffs, eta, S):
 
 def Uneqspin_CV(EqSpin_coeffs, eta, S, chia):
     chia2 = chia * chia
-    delta = jnp.sqrt(1.0 - 4.0 * eta)
+    delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
     eta2 = eta * eta
     eta3 = eta2 * eta
     eta4 = eta3 * eta
@@ -529,7 +529,7 @@ def Amp_Eqspin_CV(EqSpin_coeffs, eta, S):
 
 
 def Amp_Uneqspin_CV(UneqSpin_coeffs, eta, S, chia):
-    delta = jnp.sqrt(1.0 - 4.0 * eta)
+    delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
     return (
         chia
         * delta
