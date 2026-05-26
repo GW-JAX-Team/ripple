@@ -834,7 +834,9 @@ def PhaseDerivative(
     eta = m1_s * m2_s / (M_s**2.0)
 
     fM_s = f * M_s
-    fMs_RD, _, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2, chip)
+    fMs_RD, _, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(
+        m1, m2, chi1, chi2, chip
+    )
     fMs_IMmatch = 0.6 * (0.5 * fMs_RD + fMs_ISCO)
     fMs_INmatch = fMs_MECO
     deltafMs = (fMs_IMmatch - fMs_INmatch) * 0.03
@@ -871,9 +873,9 @@ def PhaseDerivative(
     dphi_Ins = jax.grad(get_inspiral_phase)(fM_s, theta, phase_coeffs)
     dphi_Int = jax.grad(phi_Int_func)(fM_s)
     dphi_MRD = (
-        jax.grad(lambda x: get_mergerringdown_raw_phase(x, theta, phase_coeffs, chip)[0])(
-            fM_s
-        )
+        jax.grad(
+            lambda x: get_mergerringdown_raw_phase(x, theta, phase_coeffs, chip)[0]
+        )(fM_s)
         + beta1
     )
 
