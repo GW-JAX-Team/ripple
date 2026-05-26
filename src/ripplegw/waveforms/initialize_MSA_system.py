@@ -201,11 +201,14 @@ def IMRPhenomX_Initialize_MSA_System(
 
     # Average spin couplings over one precession cycle: A9 - A14 of arXiv:1703.03967
     # omqsq = (1.0 - q) * (1.0 - q) + 1e-16
-    omq2 = (1.0 - q * q) + 1e-16
+    omq2 = 1.0 - q * q
 
     # Precession averaged spin couplings, Eq. A9 - A14 of arXiv:1703.03967, note that we only use the initial values
-    S1L_pav = (c_1 * (1.0 + q) - q * eta * Seff) / (eta * omq2)
-    S2L_pav = -q * (c_1 * (1.0 + q) - eta * Seff) / (eta * omq2)
+    # Guard against equal mass (omq2=0): XLA constant-folds 1-1=0 and drops 1e-16 epsilon under JIT,
+    # so use jnp.where to safely return 0 at exact q=1.
+    omq2_safe = jnp.where(omq2 == 0.0, jnp.ones_like(omq2), omq2)
+    S1L_pav = jnp.where(omq2 == 0.0, jnp.zeros_like(omq2), (c_1 * (1.0 + q) - q * eta * Seff) / (eta * omq2_safe))
+    S2L_pav = jnp.where(omq2 == 0.0, jnp.zeros_like(omq2), -q * (c_1 * (1.0 + q) - eta * Seff) / (eta * omq2_safe))
     # S1S2_pav = 0.5 * SAv2 - 0.5 * (S1_norm_2 + S2_norm_2)
     # S1Lsq_pav = (S1L_pav*S1L_pav + ((Spl2mSmi2)*(Spl2mSmi2) * v_0_2) / (32.0 * eta2 * omqsq))
     # S2Lsq_pav = (S2L_pav*S2L_pav + (q*q*(Spl2mSmi2)*(Spl2mSmi2) * v_0_2) / (32.0 * eta2 * omqsq))
@@ -289,7 +292,9 @@ def IMRPhenomX_Initialize_MSA_System(
     # delta4 = delta * delta3
 
     # \psi_1 is defined in Eq. C1 of Appendix C in PRD, 95, 104004, (2017), arXiv:1703.03967
-    psi1 = 3.0 * (2.0 * eta2 * Seff - c_1) / (eta * delta2)
+    # Guard: for equal-mass delta2=0, psi1→±inf but delta_qq*psi1→0; set psi1=0 at limit.
+    _delta2_safe = jnp.where(delta2 > 0.0, delta2, jnp.ones_like(delta2))
+    psi1 = jnp.where(delta2 > 0.0, 3.0 * (2.0 * eta2 * Seff - c_1) / (eta * _delta2_safe), 0.0)
 
     c_1_over_nu = c1_over_eta
     c_1_over_nu_2 = c_1_over_nu * c_1_over_nu
@@ -330,7 +335,9 @@ def IMRPhenomX_Initialize_MSA_System(
 
     # if pflag == 222 or pflag == 223:
     u1 = 3.0 * g2 / g0
-    u2 = 0.75 * one_p_q_sq / one_m_q_4
+    # Guard: for equal-mass one_m_q_4=0, u2→+inf but delta_qq*u2→0; set u2=0 at limit.
+    _one_m_q_4_safe = jnp.where(one_m_q_4 > 0.0, one_m_q_4, jnp.ones_like(one_m_q_4))
+    u2 = jnp.where(one_m_q_4 > 0.0, 0.75 * one_p_q_sq / _one_m_q_4_safe, 0.0)
     u3 = -20.0 * c_1_over_nu_2 * q_2 * one_p_q_sq
     u4 = (
         2.0
