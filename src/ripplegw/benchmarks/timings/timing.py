@@ -144,15 +144,21 @@ def time_waveform(waveform, batched_params, config):
         except Exception as e:
             if not _is_oom(e):
                 raise
-            next_batch = max(1, (n_waveforms if batch_size is None else batch_size) // 2)
+            next_batch = max(
+                1, (n_waveforms if batch_size is None else batch_size) // 2
+            )
             if batch_size is not None and next_batch == batch_size:
                 raise RuntimeError(
                     f"OOM at batch_size=1 for {config['waveform']} — "
                     "a single waveform does not fit on the device"
                 ) from e
-            label = "vmap" if batch_size is None else f"lax.map(batch_size={batch_size})"
+            label = (
+                "vmap" if batch_size is None else f"lax.map(batch_size={batch_size})"
+            )
             logger.warning(
-                "OOM with %s, retrying with lax.map(batch_size=%d)...", label, next_batch
+                "OOM with %s, retrying with lax.map(batch_size=%d)...",
+                label,
+                next_batch,
             )
             batch_size = next_batch
 
@@ -279,7 +285,9 @@ def run_timing(args):
     )
     logger.info("Mean waveforms per second: %.1f  (+/- %.1f)", mean_wps, std_wps)
     if effective_batch_size is not None:
-        logger.info("Execution mode: lax.map(batch_size=%d) — vmap OOM'd", effective_batch_size)
+        logger.info(
+            "Execution mode: lax.map(batch_size=%d) — vmap OOM'd", effective_batch_size
+        )
     else:
         logger.info("Execution mode: vmap (batch_size=%d)", args.n_waveforms)
     logger.info("=" * 60)
@@ -287,7 +295,9 @@ def run_timing(args):
     # Save results
     results = {
         **config,
-        "effective_batch_size": effective_batch_size if effective_batch_size is not None else args.n_waveforms,
+        "effective_batch_size": effective_batch_size
+        if effective_batch_size is not None
+        else args.n_waveforms,
         "vmap_oom": effective_batch_size is not None,
         "first_run_time_s": float(first_run_time),
         "timed_run_times_s": [float(t) for t in exec_times],

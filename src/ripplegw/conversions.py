@@ -64,9 +64,7 @@ def _compute_lambda_tildes_from_eta(
         1
         / 2
         * (
-            sqrt_1m4eta
-            * (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2)
-            * lambda_plus
+            sqrt_1m4eta * (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2) * lambda_plus
             + (1 - 15910 / 1319 * eta + 32850 / 1319 * eta**2 + 3380 / 1319 * eta**3)
             * lambda_minus
         )
@@ -81,9 +79,7 @@ def _compute_lambdas_from_eta(
     sqrt_1m4eta = jnp.sqrt(jnp.maximum(1 - 4 * eta, 0.0))
     coefficient_1 = 1 + 7 * eta - 31 * eta**2
     coefficient_2 = sqrt_1m4eta * (1 + 9 * eta - 11 * eta**2)
-    coefficient_3 = sqrt_1m4eta * (
-        1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2
-    )
+    coefficient_3 = sqrt_1m4eta * (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2)
     coefficient_4 = (
         1 - 15910 / 1319 * eta + 32850 / 1319 * eta**2 + 3380 / 1319 * eta**3
     )

@@ -1582,7 +1582,9 @@ def _xhm_rd_phase_32_collocpts(
         )
         * S4
     )
-    p2_uneqSpin = 477.51566939885424 * dchi * jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0)) * eta2
+    p2_uneqSpin = (
+        477.51566939885424 * dchi * jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0)) * eta2
+    )
     p2 = p2_noSpin + p2_eqSpin + p2_uneqSpin
 
     p3_noSpin = (
@@ -1621,7 +1623,9 @@ def _xhm_rd_phase_32_collocpts(
         )
         * S4
     )
-    p3_uneqSpin = 378.2359918274837 * dchi * jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0)) * eta2
+    p3_uneqSpin = (
+        378.2359918274837 * dchi * jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0)) * eta2
+    )
     p3 = p3_noSpin + p3_eqSpin + p3_uneqSpin
 
     p4_noSpin = 3077.0657367004565 + 64.99844502520415 * eta - 357.38692756785395 * eta2
@@ -1655,7 +1659,9 @@ def _xhm_rd_phase_32_collocpts(
         )
         * S4
     )
-    p4_uneqSpin = 390.5443469721231 * dchi * jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0)) * eta2
+    p4_uneqSpin = (
+        390.5443469721231 * dchi * jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0)) * eta2
+    )
     p4 = p4_noSpin + p4_eqSpin + p4_uneqSpin
 
     return jnp.array([p1, p2, p3, p4])
@@ -1713,7 +1719,9 @@ def _xhm_rd_phase_32_spheroidal_time_shift(
         )
         * S4
     )
-    uneqSpin = 465.7904934097202 * dchi * jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0)) * eta2
+    uneqSpin = (
+        465.7904934097202 * dchi * jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0)) * eta2
+    )
     return noSpin + eqSpin + uneqSpin
 
 
