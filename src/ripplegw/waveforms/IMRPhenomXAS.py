@@ -846,10 +846,10 @@ def PhaseDerivative(
     phi_Ins_match_f1, dphi_Ins_match_f1 = jax.value_and_grad(get_inspiral_phase)(
         f1_Ms, theta, phase_coeffs
     )
-    phi_MRD_match_f2, dphi_MRD_match_f2 = jax.value_and_grad(
+    _phi_MRD_match_f2, dphi_MRD_match_f2 = jax.value_and_grad(
         get_mergerringdown_raw_phase, has_aux=True
     )(f2_Ms, theta, phase_coeffs, chip)
-    phi_MRD_match_f2, (cL, CV_phase_RD0) = get_mergerringdown_raw_phase(
+    _phi_MRD_match_f2, (cL, CV_phase_RD0) = get_mergerringdown_raw_phase(
         f2_Ms, theta, phase_coeffs, chip
     )
 
@@ -867,7 +867,7 @@ def PhaseDerivative(
         + alpha0
     )
 
-    phi_Int_match_f2, dphi_Int_match_f2 = jax.value_and_grad(phi_Int_func)(f2_Ms)
+    _phi_Int_match_f2, dphi_Int_match_f2 = jax.value_and_grad(phi_Int_func)(f2_Ms)
     beta1 = dphi_Int_match_f2 - dphi_MRD_match_f2
 
     dphi_Ins = jax.grad(get_inspiral_phase)(fM_s, theta, phase_coeffs)
