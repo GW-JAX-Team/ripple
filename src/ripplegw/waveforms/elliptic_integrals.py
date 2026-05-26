@@ -140,34 +140,30 @@ def gsl_sf_elljac_e(u: Float, m: Float, max_iter: int = 16):
     #
     # Only sn is returned: cn and dn are always discarded by callers (_cn, _dn).
 
-    def landen_forward(carry, i):
-        a_prev, c_prev = carry
-        b_prev = jnp.sqrt((a_prev - c_prev) * (a_prev + c_prev))
-        a_next = 0.5 * (a_prev + b_prev)
-        c_next = 0.5 * (a_prev - b_prev)
-        return (a_next, c_next), (a_next, c_next)
-
     k = jnp.sqrt(m)
-    # unroll=max_iter: fully unroll both scans into straight-line XLA so the
-    # compiler can schedule/pipeline without loop-carried synchronisation.
-    (a_final, _c_final), (a_arr, c_arr) = jax.lax.scan(
-        landen_forward, (jnp.ones_like(k), k), jnp.arange(max_iter), unroll=max_iter
-    )
+    a, c = jnp.ones_like(k), k
 
-    phi_n = jnp.power(2.0, max_iter) * a_final * u
+    # Forward Landen — Python for-loop so each (a_i, c_i) pair is a graph-node
+    # value rather than a slice of a materialised [max_iter, ...] scan-output
+    # tensor.  When vmapped over N samples this keeps the AGM intermediates in
+    # GPU registers instead of allocating 2 × max_iter × N_samples × N_freq
+    # arrays in HBM — critical for PE runs in Jim where N_samples can be O(1000).
+    ac_pairs = []
+    for _ in range(max_iter):
+        b = jnp.sqrt((a - c) * (a + c))
+        a, c = 0.5 * (a + b), 0.5 * (a - b)
+        ac_pairs.append((a, c))
 
-    def landen_backward(phi_curr, i):
-        idx = max_iter - 1 - i
-        a_i = a_arr[idx]
-        c_i = c_arr[idx]
-        sin_phi = jnp.sin(phi_curr)
+    phi_n = (2.0 ** max_iter) * a * u  # a is a_final here; 2^max_iter is a Python constant
+
+    # Backward Landen — same reasoning: Python loop, no scan output tensor.
+    phi = phi_n
+    for a_i, c_i in reversed(ac_pairs):
+        sin_phi = jnp.sin(phi)
         arg = jnp.clip(c_i * sin_phi / a_i, -1.0, 1.0)
-        phi_prev = 0.5 * (phi_curr + jnp.arcsin(arg))
-        return phi_prev, None
+        phi = 0.5 * (phi + jnp.arcsin(arg))
 
-    phi_0, _ = jax.lax.scan(
-        landen_backward, phi_n, jnp.arange(max_iter), unroll=max_iter
-    )
+    phi_0 = phi
 
     sn = jnp.sin(phi_0)
     cn = jnp.cos(phi_0)
