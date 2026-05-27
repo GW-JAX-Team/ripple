@@ -1369,7 +1369,7 @@ def IMRPhenomHMAmplitude(freqs_geom: Array, pHM: dict, ell: int, mm: int):
 def IMRPhenomHMOnePointFiveSpinPN(fM, ell, m, M1, M2, X1z, X2z):
     """
     Implementation of IMRPhenomHMOnePointFiveSpinPN from LALSimIMRPhenomHM.c
-    Currently supported modes: (2,1), (2,2), (3,2), (3,3), (4,4)
+    Currently supported modes: (2,1), (2,2), (3,2), (3,3), (4,3), (4,4)
     """
 
     # LLondon 2017
@@ -1424,6 +1424,11 @@ def IMRPhenomHMOnePointFiveSpinPN(fM, ell, m, M1, M2, X1z, X2z):
         # NO SPIN TERMS to avoid roots
         return (1.0 / 3.0) * jnp.sqrt(5.0 / 7.0) * (v2 * (1.0 - 3.0 * eta)) + 0 * 1j
 
+    def lm_43():
+        # (l,m) = (4,3)
+        # NO SPIN TERMS TO ADD AT DESIRED ORDER
+        return 0.75 * jnp.sqrt(3.0 / 35.0) * v3 * delta * (1.0 - 2.0 * eta) + 0 * 1j
+
     def lm_44():
         # (l,m) = (4,4)
         # THIS IS LEADING ORDER
@@ -1435,10 +1440,12 @@ def IMRPhenomHMOnePointFiveSpinPN(fM, ell, m, M1, M2, X1z, X2z):
     index = jnp.where(
         key == 21,
         0,
-        jnp.where(key == 22, 1, jnp.where(key == 32, 2, jnp.where(key == 33, 3, 4))),
+        jnp.where(
+            key == 22, 1, jnp.where(key == 32, 2, jnp.where(key == 33, 3, jnp.where(key == 43, 4, 5)))
+        ),
     )
 
-    Hlm = jax.lax.switch(index, [lm_21, lm_22, lm_32, lm_33, lm_44])
+    Hlm = jax.lax.switch(index, [lm_21, lm_22, lm_32, lm_33, lm_43, lm_44])
 
     # Compute the final PN Amplitude at Leading Order in fM
     return M * M * PI * jnp.sqrt(eta * 2.0 / 3) * v ** (-3.5) * jnp.abs(Hlm)

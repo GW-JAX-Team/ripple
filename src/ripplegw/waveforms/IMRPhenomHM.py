@@ -40,7 +40,7 @@ def gen_IMRPhenomHM(
 
     extra_params = {
         "ModeArray": jnp.array(
-            [[2, 1], [2, 2], [3, 2], [3, 3], [4, 4]], dtype=jnp.int32
+            [[2, 1], [2, 2], [3, 2], [3, 3], [4, 3], [4, 4]], dtype=jnp.int32
         )
     }
 
