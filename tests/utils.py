@@ -317,9 +317,26 @@ def get_lal_waveform(
         lalparams = lal.CreateDict()
         lalsim.SimInspiralWaveformParamsInsertPhenomXPrecVersion(lalparams, 222)
         hp, hc = lalsim.SimInspiralChooseFDWaveform(
-            m1_kg, m2_kg, s1x, s1y, s1z_val, s2x, s2y, s2z_val,
-            distance, inclination, phi_ref, 0, 0, 0,
-            df, f_l, f_u, f_ref, lalparams, approximant,
+            m1_kg,
+            m2_kg,
+            s1x,
+            s1y,
+            s1z_val,
+            s2x,
+            s2y,
+            s2z_val,
+            distance,
+            inclination,
+            phi_ref,
+            0,
+            0,
+            0,
+            df,
+            f_l,
+            f_u,
+            f_ref,
+            lalparams,
+            approximant,
         )
     elif waveform_name == "IMRPhenomXPHM":
         # XPHM uses SimIMRPhenomXPHM directly to configure mode array, TwistPhenomHM,
@@ -351,8 +368,22 @@ def get_lal_waveform(
 
         def _call_xphm(lalparams):
             return lalsim.SimIMRPhenomXPHM(
-                m1_kg, m2_kg, s1x, s1y, s1z, s2x, s2y, s2z,
-                distance, inclination, phi_ref, f_l, f_u, df, f_ref, lalparams,
+                m1_kg,
+                m2_kg,
+                s1x,
+                s1y,
+                s1z,
+                s2x,
+                s2y,
+                s2z,
+                distance,
+                inclination,
+                phi_ref,
+                f_l,
+                f_u,
+                df,
+                f_ref,
+                lalparams,
             )
 
         hp, hc = _call_xphm(_make_xphm_params(222))

@@ -494,6 +494,7 @@ def test_waveform_overlap(
         with ThreadPoolExecutor(max_workers=n_workers) as pool:
             # map() preserves input order, so result[i] matches theta_batch[i]
             lal_results = list(pool.map(_compute_lal, enumerate(theta_batch)))
+
         lal_hp_list = []
         lal_hc_list = []
         theta_ripple_list = []
@@ -543,6 +544,7 @@ def test_waveform_overlap(
                 "no valid LAL waveforms to compare"
             )
         pytest.fail(f"No valid LAL samples for {waveform_name}")
+
     # Per-sample function used by both the vmap and the lax.map fallback.
     # Combines waveform generation + overlap so the lax.map path keeps peak
     # memory at O(1 sample) instead of O(N samples).
@@ -583,7 +585,9 @@ def test_waveform_overlap(
                 fn = jax.jit(jax.vmap(_waveform_and_overlap))
             else:
                 fn = jax.jit(
-                    lambda xs: jax.lax.map(_waveform_and_overlap, xs, batch_size=batch_size)
+                    lambda xs: jax.lax.map(
+                        _waveform_and_overlap, xs, batch_size=batch_size
+                    )
                 )
             overlap_loss_hp, overlap_loss_hc = fn((theta_dev, hp_dev, hc_dev))
             overlap_loss_hp.block_until_ready()  # surface OOM before np.array()
@@ -614,11 +618,13 @@ def test_waveform_overlap(
                 _single = jax.jit(_waveform_and_overlap)
                 ols_hp, ols_hc = [], []
                 for k in range(n_valid):
-                    ol_hp, ol_hc = _single((
-                        theta_ripple_list[k],
-                        jnp.array(lal_hp_list[k]) * nyquist_mask,
-                        jnp.array(lal_hc_list[k]) * nyquist_mask,
-                    ))
+                    ol_hp, ol_hc = _single(
+                        (
+                            theta_ripple_list[k],
+                            jnp.array(lal_hp_list[k]) * nyquist_mask,
+                            jnp.array(lal_hc_list[k]) * nyquist_mask,
+                        )
+                    )
                     ols_hp.append(float(ol_hp))
                     ols_hc.append(float(ol_hc))
                 overlap_loss_hp_np = np.array(ols_hp)
