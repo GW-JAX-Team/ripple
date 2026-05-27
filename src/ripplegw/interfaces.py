@@ -741,10 +741,32 @@ class IMRPhenomXPHM(Waveform):
 
 
 class IMRPhenomHM(Waveform):
+    """IMRPhenomHM frequency-domain waveform (aligned spins, higher-order modes).
+
+    Attributes:
+        f_ref (float): Reference frequency in Hz.
+    """
+
     f_ref: float
 
-    def __init__(self, f_ref: float = 20.0):
+    def __init__(self, f_ref: float = 20.0) -> None:
+        """
+        Args:
+            f_ref (float): Reference frequency in Hz. Defaults to 20.0.
+        """
         self.f_ref = f_ref
+
+    @property
+    def parameter_names(self) -> tuple[str, ...]:
+        return (
+            "M_c",
+            "eta",
+            "s1_z",
+            "s2_z",
+            "d_L",
+            "phase_c",
+            "iota",
+        )
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
