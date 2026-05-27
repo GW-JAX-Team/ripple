@@ -359,7 +359,6 @@ class IMRPhenomHM(Waveform):
         return f"IMRPhenomHM(f_ref={self.f_ref})"
 
 
-
 class IMRPhenomPv2(Waveform):
     """IMRPhenomPv2 frequency-domain waveform (precessing spins).
 
