@@ -73,12 +73,12 @@ def check_is_tidal(waveform_name: str) -> bool:
     bns_waveforms = ["IMRPhenomD_NRTidalv2", "TaylorF2", "IMRPhenomXAS_NRTidalv3"]
     bbh_waveforms = [
         "IMRPhenomD",
+        "IMRPhenomHM",
+        "IMRPhenomPv2",
         "IMRPhenomXAS",
         "IMRPhenomXHM",
-        "IMRPhenomPv2",
         "IMRPhenomXP",
         "IMRPhenomXPHM",
-        "IMRPhenomHM",
         "SineGaussian",
     ]
 
@@ -136,6 +136,27 @@ def get_jitted_waveform(waveform_name: str, fs: jnp.ndarray, f_ref: float):
         @jax.jit
         def waveform(theta):
             hp, hc = waveform_generator(fs, theta, f_ref)
+            return hp, hc
+
+    elif waveform_name == "IMRPhenomHM":
+        from ripplegw.waveforms.IMRPhenomHM import gen_IMRPhenomHM
+        from ripplegw.conversions import Mc_eta_to_ms
+
+        @jax.jit
+        def waveform(theta):
+            # theta = [Mc, eta, s1z, s2z, dist_mpc, tc, phic, inclination]
+            m1, m2 = Mc_eta_to_ms(jnp.array([theta[0], theta[1]]))
+            hp, hc = gen_IMRPhenomHM(
+                fs,
+                m1,
+                m2,
+                theta[2],
+                theta[3],
+                theta[4],  # distance in Mpc
+                theta[7],  # inclination
+                theta[6],  # phi0
+                f_ref,
+            )
             return hp, hc
 
     elif waveform_name == "IMRPhenomXAS":
@@ -222,27 +243,6 @@ def get_jitted_waveform(waveform_name: str, fs: jnp.ndarray, f_ref: float):
                 theta[11],  # inclination
                 theta[10],  # phi0
                 fs,
-                f_ref,
-            )
-            return hp, hc
-
-    elif waveform_name == "IMRPhenomHM":
-        from ripplegw.waveforms.IMRPhenomHM import gen_IMRPhenomHM
-        from ripplegw.conversions import Mc_eta_to_ms
-
-        @jax.jit
-        def waveform(theta):
-            # theta = [Mc, eta, s1z, s2z, dist_mpc, tc, phic, inclination]
-            m1, m2 = Mc_eta_to_ms(jnp.array([theta[0], theta[1]]))
-            hp, hc = gen_IMRPhenomHM(
-                fs,
-                m1,
-                m2,
-                theta[2],
-                theta[3],
-                theta[4],  # distance in Mpc
-                theta[7],  # inclination
-                theta[6],  # phi0
                 f_ref,
             )
             return hp, hc
@@ -356,46 +356,6 @@ def get_lal_waveform(
             )
 
         hp, hc = _call_xphm(_make_xphm_params(222))
-
-    elif waveform_name == "IMRPhenomHM":
-        m1_kg = theta[0] * lal.MSUN_SI
-        m2_kg = theta[1] * lal.MSUN_SI
-        s1z = theta[2]
-        s2z = theta[3]
-        distance = theta[4] * 1e6 * lal.PC_SI
-        phi_ref = theta[6]
-        inclination = theta[7]
-
-        def _call_hm():
-            lalparams = lal.CreateDict()
-            ModeArray = lalsim.SimInspiralCreateModeArray()
-            for el, em in [(2, 1), (2, 2), (3, 2), (3, 3), (4, 4)]:
-                lalsim.SimInspiralModeArrayActivateMode(ModeArray, el, em)
-            lalsim.SimInspiralWaveformParamsInsertModeArray(lalparams, ModeArray)
-            return lalsim.SimInspiralChooseFDWaveform(
-                m1_kg,
-                m2_kg,
-                0.0,
-                0.0,
-                s1z,
-                0.0,
-                0.0,
-                s2z,
-                distance,
-                inclination,
-                phi_ref,
-                0,
-                0,
-                0,
-                df,
-                f_l,
-                f_u,
-                f_ref,
-                lalparams,
-                approximant,
-            )
-
-        hp, hc = _call_hm()
 
     elif is_precessing:
         # Precessing waveform: theta = [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]

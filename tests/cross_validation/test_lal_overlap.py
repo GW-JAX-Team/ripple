@@ -89,13 +89,13 @@ OVERLAP_LOSS_THRESHOLDS = {
     "TaylorF2": 1e-15,
     "IMRPhenomD": 1e-12,
     "IMRPhenomD_NRTidalv2": 1e-15,
+    "IMRPhenomHM": 1e-6,
     "IMRPhenomPv2": 1e-4,  # see note above
     "IMRPhenomXAS": 1e-15,
     "IMRPhenomXAS_NRTidalv3": 1e-6,
     "IMRPhenomXHM": 1e-6,
     "IMRPhenomXP": 1e-6,
     "IMRPhenomXPHM": 1e-6,
-    "IMRPhenomHM": 1e-6,
 }
 DEFAULT_OVERLAP_LOSS_THRESHOLD = 1e-6  # fallback for unknown waveforms
 
@@ -366,6 +366,7 @@ def psd_data():
         pytest.param("TaylorF2", DEFAULT_BOUNDS, id="TaylorF2"),
         pytest.param("IMRPhenomD", BBH_BOUNDS, id="IMRPhenomD"),
         pytest.param("IMRPhenomD_NRTidalv2", DEFAULT_BOUNDS, id="IMRPhenomD_NRTidalv2"),
+        pytest.param("IMRPhenomHM", BBH_BOUNDS, id="IMRPhenomHM"),
         pytest.param("IMRPhenomPv2", BBH_BOUNDS, id="IMRPhenomPv2"),
         pytest.param("IMRPhenomXAS", BBH_BOUNDS, id="IMRPhenomXAS"),
         pytest.param(
@@ -374,7 +375,6 @@ def psd_data():
         pytest.param("IMRPhenomXHM", BBH_BOUNDS, id="IMRPhenomXHM"),
         pytest.param("IMRPhenomXP", BBH_BOUNDS, id="IMRPhenomXP"),
         pytest.param("IMRPhenomXPHM", BBH_BOUNDS, id="IMRPhenomXPHM"),
-        pytest.param("IMRPhenomHM", BBH_BOUNDS, id="IMRPhenomHM"),
     ],
 )
 def test_waveform_overlap(
