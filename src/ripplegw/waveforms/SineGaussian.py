@@ -25,7 +25,7 @@ def gen_SineGaussian_hphc(
     theta: Array,
 ) -> tuple[Array, Array]:
     """
-    Generate lalinference implementation of a sine-Gaussian waveform in Jax.
+    Generate lalinference implementation of a sine-Gaussian waveform in JAX.
     See
     git.ligo.org/lscsoft/lalsuite/-/blob/master/lalinference/lib/LALInferenceBurstRoutines.c#L381
     for details on parameter definitions.
@@ -49,13 +49,6 @@ def gen_SineGaussian_hphc(
     """
 
     quality, frequency, hrss, phase, eccentricity = theta
-
-    # add dimension for calculating waveforms in batch
-    # quality = quality.reshape(-1, 1)
-    # frequency = frequency.reshape(-1, 1)
-    # hrss = hrss.reshape(-1, 1)
-    # phase = phase.reshape(-1, 1)
-    # eccentricity = eccentricity.reshape(-1, 1)
 
     pi = jnp.array([PI])
 

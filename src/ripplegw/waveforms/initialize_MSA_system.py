@@ -18,6 +18,7 @@ def IMRPhenomX_Initialize_MSA_System(
     chi2z,
     reference_frequency,
     pflag=223,
+    expansion_order=5,
 ):
     """
     First initialize the system of variables needed for Chatziioannou et al, PRD, 88, 063011, (2013), arXiv:1307.4418:
@@ -200,11 +201,22 @@ def IMRPhenomX_Initialize_MSA_System(
 
     # Average spin couplings over one precession cycle: A9 - A14 of arXiv:1703.03967
     # omqsq = (1.0 - q) * (1.0 - q) + 1e-16
-    # omq2 = (1.0 - q * q) + 1e-16
+    omq2 = 1.0 - q * q
 
     # Precession averaged spin couplings, Eq. A9 - A14 of arXiv:1703.03967, note that we only use the initial values
-    # S1L_pav = (c_1 * (1.0 + q) - q * eta * Seff) / (eta * omq2)
-    # S2L_pav = -q * (c_1 * (1.0 + q) - eta * Seff) / (eta * omq2)
+    # Guard against equal mass (omq2=0): XLA constant-folds 1-1=0 and drops 1e-16 epsilon under JIT,
+    # so use jnp.where to safely return 0 at exact q=1.
+    omq2_safe = jnp.where(omq2 == 0.0, jnp.ones_like(omq2), omq2)
+    S1L_pav = jnp.where(
+        omq2 == 0.0,
+        jnp.zeros_like(omq2),
+        (c_1 * (1.0 + q) - q * eta * Seff) / (eta * omq2_safe),
+    )
+    S2L_pav = jnp.where(
+        omq2 == 0.0,
+        jnp.zeros_like(omq2),
+        -q * (c_1 * (1.0 + q) - eta * Seff) / (eta * omq2_safe),
+    )
     # S1S2_pav = 0.5 * SAv2 - 0.5 * (S1_norm_2 + S2_norm_2)
     # S1Lsq_pav = (S1L_pav*S1L_pav + ((Spl2mSmi2)*(Spl2mSmi2) * v_0_2) / (32.0 * eta2 * omqsq))
     # S2Lsq_pav = (S2L_pav*S2L_pav + (q*q*(Spl2mSmi2)*(Spl2mSmi2) * v_0_2) / (32.0 * eta2 * omqsq))
@@ -256,7 +268,6 @@ def IMRPhenomX_Initialize_MSA_System(
             eta,
         )
     )
-    """
     a5 = eta * (
         domegadt_constants_NS[7]
         + eta * (domegadt_constants_NS[8])
@@ -268,7 +279,6 @@ def IMRPhenomX_Initialize_MSA_System(
             q,
         )
     )
-    """
 
     # Useful powers of a_0
     a0_2 = a0 * a0
@@ -281,7 +291,7 @@ def IMRPhenomX_Initialize_MSA_System(
     g2 = -(a2 / a0_2)
     g3 = -(a3 / a0_2)
     g4 = -(a4 * a0 - a2_2) / a0_3
-    # g5 = 0.0  # -(a5 * a0 - 2.0 * a3 * a2) / a0_3
+    g5 = -(a5 * a0 - 2.0 * a3 * a2) / a0_3
 
     # Useful powers of delta
     delta = delta_qq
@@ -290,7 +300,11 @@ def IMRPhenomX_Initialize_MSA_System(
     # delta4 = delta * delta3
 
     # \psi_1 is defined in Eq. C1 of Appendix C in PRD, 95, 104004, (2017), arXiv:1703.03967
-    psi1 = 3.0 * (2.0 * eta2 * Seff - c_1) / (eta * delta2)
+    # Guard: for equal-mass delta2=0, psi1→±inf but delta_qq*psi1→0; set psi1=0 at limit.
+    _delta2_safe = jnp.where(delta2 > 0.0, delta2, jnp.ones_like(delta2))
+    psi1 = jnp.where(
+        delta2 > 0.0, 3.0 * (2.0 * eta2 * Seff - c_1) / (eta * _delta2_safe), 0.0
+    )
 
     c_1_over_nu = c1_over_eta
     c_1_over_nu_2 = c_1_over_nu * c_1_over_nu
@@ -331,7 +345,9 @@ def IMRPhenomX_Initialize_MSA_System(
 
     # if pflag == 222 or pflag == 223:
     u1 = 3.0 * g2 / g0
-    u2 = 0.75 * one_p_q_sq / one_m_q_4
+    # Guard: for equal-mass one_m_q_4=0, u2→+inf but delta_qq*u2→0; set u2=0 at limit.
+    _one_m_q_4_safe = jnp.where(one_m_q_4 > 0.0, one_m_q_4, jnp.ones_like(one_m_q_4))
+    u2 = jnp.where(one_m_q_4 > 0.0, 0.75 * one_p_q_sq / _one_m_q_4_safe, 0.0)
     u3 = -20.0 * c_1_over_nu_2 * q_2 * one_p_q_sq
     u4 = (
         2.0
@@ -437,13 +453,11 @@ def IMRPhenomX_Initialize_MSA_System(
     ) - adD * fdD * fdD
 
     # Eq. D15 in PRD, 95, 104004, (2017), arXiv:1703.03967
-    """
     Omegaz5 = (
         (cdD - adDfdD + adDhdD_2) * fdD * (Seff + 2.0 * hdD)
         - (cdD + adDhdD_2 - 2.0 * adDfdD) * hdD_2 * (Seff + hdD)
         - adDfdD * fdD * hdD
     )
-    """
 
     # Coefficients of Eq. 65, as defined in Equations D16 - D21 of PRD, 95, 104004, (2017), arXiv:1703.03967
     Omegaz0_coeff = 3.0 * g0 * Omegaz0
@@ -451,7 +465,9 @@ def IMRPhenomX_Initialize_MSA_System(
     Omegaz2_coeff = 3.0 * (g0 * Omegaz2 + g2 * Omegaz0)
     Omegaz3_coeff = 3.0 * (g0 * Omegaz3 + g2 * Omegaz1 + g3 * Omegaz0)
     Omegaz4_coeff = 3.0 * (g0 * Omegaz4 + g2 * Omegaz2 + g3 * Omegaz1 + g4 * Omegaz0)
-    Omegaz5_coeff = 0  # 3.0 * (g0 * Omegaz5 + g2 * Omegaz3 + g3 * Omegaz2 + g4 * Omegaz1 + g5 * Omegaz0)
+    Omegaz5_coeff = 3.0 * (
+        g0 * Omegaz5 + g2 * Omegaz3 + g3 * Omegaz2 + g4 * Omegaz1 + g5 * Omegaz0
+    )
 
     # Coefficients of zeta: in Appendix E of PRD, 95, 104004, (2017), arXiv:1703.03967
     c1oveta2 = c_1 / eta2
@@ -460,7 +476,7 @@ def IMRPhenomX_Initialize_MSA_System(
     Omegazeta2 = Omegaz2 + Omegaz1 * c1oveta2
     Omegazeta3 = Omegaz3 + Omegaz2 * c1oveta2 + gdD
     Omegazeta4 = Omegaz4 + Omegaz3 * c1oveta2 - gdD * Seff - gdD * hdD
-    # Omegazeta5 = Omegaz5 + Omegaz4 * c1oveta2 + gdD * hdD * Seff + gdD * (hdD_2 - fdD)
+    Omegazeta5 = Omegaz5 + Omegaz4 * c1oveta2 + gdD * hdD * Seff + gdD * (hdD_2 - fdD)
 
     Omegazeta0_coeff = -g0 * Omegazeta0
     Omegazeta1_coeff = -1.5 * g0 * Omegazeta1
@@ -469,7 +485,57 @@ def IMRPhenomX_Initialize_MSA_System(
     Omegazeta4_coeff = 3.0 * (
         g0 * Omegazeta4 + g2 * Omegazeta2 + g3 * Omegazeta1 + g4 * Omegazeta0
     )
-    Omegazeta5_coeff = 0.0  # 1.5 * (g0 * Omegazeta5 + g2 * Omegazeta3 + g3 * Omegazeta2 + g4 * Omegazeta1 + g5 * Omegazeta0)
+    Omegazeta5_coeff = 1.5 * (
+        g0 * Omegazeta5
+        + g2 * Omegazeta3
+        + g3 * Omegazeta2
+        + g4 * Omegazeta1
+        + g5 * Omegazeta0
+    )
+
+    # LAL's default PhenomXPExpansionOrder=5 truncates the 5th-order correction
+    # coefficients before phiz_0/zeta_0 are initialized.
+    if expansion_order == -1:
+        pass
+    elif expansion_order == 1:
+        Omegaz1_coeff = 0.0
+        Omegazeta1_coeff = 0.0
+        Omegaz2_coeff = 0.0
+        Omegazeta2_coeff = 0.0
+        Omegaz3_coeff = 0.0
+        Omegazeta3_coeff = 0.0
+        Omegaz4_coeff = 0.0
+        Omegazeta4_coeff = 0.0
+        Omegaz5_coeff = 0.0
+        Omegazeta5_coeff = 0.0
+    elif expansion_order == 2:
+        Omegaz2_coeff = 0.0
+        Omegazeta2_coeff = 0.0
+        Omegaz3_coeff = 0.0
+        Omegazeta3_coeff = 0.0
+        Omegaz4_coeff = 0.0
+        Omegazeta4_coeff = 0.0
+        Omegaz5_coeff = 0.0
+        Omegazeta5_coeff = 0.0
+    elif expansion_order == 3:
+        Omegaz3_coeff = 0.0
+        Omegazeta3_coeff = 0.0
+        Omegaz4_coeff = 0.0
+        Omegazeta4_coeff = 0.0
+        Omegaz5_coeff = 0.0
+        Omegazeta5_coeff = 0.0
+    elif expansion_order == 4:
+        Omegaz4_coeff = 0.0
+        Omegazeta4_coeff = 0.0
+        Omegaz5_coeff = 0.0
+        Omegazeta5_coeff = 0.0
+    elif expansion_order == 5:
+        Omegaz5_coeff = 0.0
+        Omegazeta5_coeff = 0.0
+    else:
+        raise ValueError(
+            f"Expansion order for MSA corrections = {expansion_order} not recognized."
+        )
 
     # Get psi0 term
     psi0 = compute_psi0(
@@ -503,7 +569,7 @@ def IMRPhenomX_Initialize_MSA_System(
         )
 
     def no_msa_corrections():
-        return jnp.array([0.0, 0.0, 0.0])
+        return 0.0, 0.0
 
     vMSA = jax.lax.cond(condition, compute_msa_corrections, no_msa_corrections)
 
@@ -544,8 +610,9 @@ def IMRPhenomX_Initialize_MSA_System(
         zeta_0_init,
     )
 
-    phiz_0 = -phiz_0 - vMSA[0]
-    zeta_0 = -zeta_0 - vMSA[1]
+    vMSA_phiz, vMSA_zeta = vMSA
+    phiz_0 = -phiz_0 - vMSA_phiz
+    zeta_0 = -zeta_0 - vMSA_zeta
 
     return jnp.array(
         [
@@ -581,6 +648,8 @@ def IMRPhenomX_Initialize_MSA_System(
             constants_L_4,
             S1_norm_2,
             S2_norm_2,
+            S1L_pav,
+            S2L_pav,
         ]
     )
 
@@ -627,7 +696,7 @@ def IMRPhenomX_Return_Roots_MSA(
         delta_qq,
         Seff,
     )
-    B, C, D = vBCD[0], vBCD[1], vBCD[2]
+    B, C, D = vBCD
 
     B2 = B * B
     B3 = B2 * B
@@ -702,7 +771,7 @@ def IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(
     eta: Float,
     delta_qq: Float,
     Seff: Float,
-) -> Float[Array, "3"]:
+):
     """
     Compute spin evolution coefficients B, C, D for MSA approximation.
 
@@ -717,7 +786,8 @@ def IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(
         Seff (Float): Effective spin parameter.
 
     Returns:
-        Float[Array, "3"]: Array of [B_coeff, C_coeff, D_coeff].
+        Tuple[float, float, float]: A tuple of (B_coeff, C_coeff, D_coeff) spin
+            evolution coefficients for the MSA approximation.
     """
     JNorm2 = JNorm * JNorm
     LNorm2 = LNorm * LNorm
@@ -758,7 +828,7 @@ def IMRPhenomX_Return_Spin_Evolution_Coefficients_MSA(
         + 2.0 * delta * LNorm * Seff * (S1Norm2 - S2Norm2) * J2mL2
     )
 
-    return jnp.array([B_coeff, C_coeff, D_coeff])
+    return B_coeff, C_coeff, D_coeff
 
 
 def IMRPhenomX_Get_PN_sigma(
@@ -1065,7 +1135,7 @@ def IMRPhenomX_Return_Constants_c_MSA(
     S1_norm_2: Float,
     S2_norm_2: Float,
     delta_qq: Float,
-) -> Float[Array, "3"]:
+):
     """
     Compute c constants for MSA approximation.
 
@@ -1083,7 +1153,7 @@ def IMRPhenomX_Return_Constants_c_MSA(
         delta_qq (Float): MSA coefficient delta_qq.
 
     Returns:
-        Float[Array, "3"]: Array of [c0, c2, c4] constants.
+        Tuple[float, float, float]: A tuple of (c0, c2, c4) MSA constants.
     """
     v2 = v * v
     v3 = v * v2
@@ -1118,7 +1188,7 @@ def IMRPhenomX_Return_Constants_c_MSA(
 
     z = JNorm * (0.75 * inveta * (Spl2 - Smi2) ** 2 * (1.0 - Seff * v) * v6)
 
-    return jnp.array([x, y, z])
+    return x, y, z
 
 
 def IMRPhenomX_Return_Constants_d_MSA(
@@ -1127,7 +1197,7 @@ def IMRPhenomX_Return_Constants_d_MSA(
     Spl: Float,
     Spl2: Float,
     Smi2: Float,
-) -> Float[Array, "3"]:
+):
     """
     Compute d constants for MSA approximation.
 
@@ -1139,7 +1209,7 @@ def IMRPhenomX_Return_Constants_d_MSA(
         Smi2 (Float): S_minus squared.
 
     Returns:
-        Float[Array, "3"]: Array of [d0, d2, d4] constants.
+        Tuple[float, float, float]: A tuple of (d0, d2, d4) MSA constants.
     """
     LNorm2 = LNorm * LNorm
     JNorm2 = JNorm * JNorm
@@ -1152,7 +1222,7 @@ def IMRPhenomX_Return_Constants_d_MSA(
 
     z = -((Spl2 - Smi2) ** 2)
 
-    return jnp.array([x, y, z])
+    return x, y, z
 
 
 def IMRPhenomX_Return_Psi_MSA(
@@ -1228,7 +1298,7 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
     psi0: Float,
     psi1: Float,
     psi2: Float,
-) -> Float[Array, "3"]:
+):
     """
     Compute MSA corrections for precession angles.
 
@@ -1254,7 +1324,7 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
         psi2 (Float): MSA coefficient psi2.
 
     Returns:
-        Float[Array, "3"]: Array of MSA corrections [vMSA_x, vMSA_y, 0].
+        Tuple[float, float]: A tuple of (vMSA_x, vMSA_y) MSA corrections.
     """
     v2 = v * v
 
@@ -1300,7 +1370,9 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
     psi_dot = IMRPhenomX_Return_Psi_dot_MSA(v, Seff, inveta, Spl2, S32)
 
     tan_psi = jnp.tan(psi)
-    atan_psi = jnp.arctan(tan_psi)
+    atan_psi = jnp.arctan(
+        tan_psi
+    )  # wraps psi to (-π/2, π/2) — required for the incomplete elliptic integral formula
     """
     # C1 = -0.5 * (c0 / d0 - 2.0 * (c0 + c2 + c4) / nc_num)
 
@@ -1358,7 +1430,7 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
     vMSA_x = jnp.where(jnp.isnan(vMSA_x), 0.0, vMSA_x)
     vMSA_y = jnp.where(jnp.isnan(vMSA_y), 0.0, vMSA_y)
 
-    return jnp.stack([vMSA_x, vMSA_y, jnp.zeros_like(vMSA_x)], axis=0)
+    return vMSA_x, vMSA_y
 
 
 def IMRPhenomX_Return_phiz_MSA(
@@ -1659,7 +1731,7 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
     Omegazeta4_coeff: Float,
     Omegazeta5_coeff: Float,
     zeta_0: Float,
-) -> Float[Array, "3"]:
+):
     """
     Wrapper to generate phi_z, zeta and cos(theta_L) at a given frequency.
 
@@ -1695,7 +1767,7 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
         zeta_0: Initial zeta value (Float)
 
     Returns:
-        Float[Array, "3"]: Array containing [phi_z + phi_z_MSA, zeta + zeta_MSA, cos(theta_L)]
+        Tuple[float, float, float]: A tuple of (phi_z + phi_z_MSA, zeta + zeta_MSA, cos(theta_L))
     """
     L_norm = eta / v
 
@@ -1762,12 +1834,9 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
     )
     cond = jnp.abs(Smi2 - Spl2) > 1.0e-5
 
-    # Create vMSA with zeros matching the shape of vMSA_correction
-    vMSA_zeros = jnp.zeros_like(vMSA_correction)
-    vMSA = jnp.where(cond, vMSA_correction, vMSA_zeros)
-
-    phiz_MSA = vMSA[0]
-    zeta_MSA = vMSA[1]
+    phiz_MSA_corr, zeta_MSA_corr = vMSA_correction
+    phiz_MSA = jnp.where(cond, phiz_MSA_corr, 0.0)
+    zeta_MSA = jnp.where(cond, zeta_MSA_corr, 0.0)
 
     phiz = IMRPhenomX_Return_phiz_MSA(
         v,
@@ -1803,11 +1872,7 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
     )
     cos_theta_L = IMRPhenomX_costhetaLJ(L_norm3PN, J_norm3PN, SNorm)
 
-    vout1 = phiz + phiz_MSA
-    vout2 = zeta + zeta_MSA
-    vout3 = cos_theta_L
-
-    return jnp.array([vout1, vout2, vout3])
+    return phiz + phiz_MSA, zeta + zeta_MSA, cos_theta_L
 
 
 def IMRPhenomX_costhetaLJ(L_norm: Float, J_norm: Float, S_norm: Float) -> Float:
@@ -1859,7 +1924,9 @@ def IMRPhenomX_Return_SNorm_MSA(
         psi = IMRPhenomX_psiofv(v, v2, psi0, psi1, psi2, g0, delta_qq)
 
         # Jacobi elliptic functions
-        sn, cn, dn = gsl_sf_elljac_e(psi, m)  # FIXME
+        sn, _cn, _dn = gsl_sf_elljac_e(
+            psi, m, max_iter=6
+        )  # 6 Landen iterations suffice for float64
         return sn
 
     sn = jnp.where(cancel_condition, 0.0, sn_jacobi(None))

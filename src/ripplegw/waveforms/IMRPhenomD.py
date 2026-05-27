@@ -426,7 +426,6 @@ def Phase(
     Sets time and phase of coealence to be zero.
 
     Returns:
-    --------
         phase (array): Phase of the GW as a function of frequency
     """
     # First lets calculate some of the vairables that will be used below
@@ -587,7 +586,6 @@ def Amp(
     Note that this waveform also assumes that object one is the more massive.
 
     Returns:
-    --------
       Amplitude (array):
     """
 
@@ -662,7 +660,6 @@ def gen_IMRPhenomD(f: Float[Array, " n_freq"], params: Float[Array, "7"], f_ref:
     f_ref: Reference frequency for the waveform
 
     Returns:
-    --------
       h0 (array): Strain
     """
     # Lets make this easier by starting in Mchirp and eta space
@@ -694,7 +691,6 @@ def gen_IMRPhenomD_hphc(
     f_ref: Reference frequency for the waveform
 
     Returns:
-    --------
       hp (array): Strain of the plus polarization
       hc (array): Strain of the cross polarization
     """
@@ -705,65 +701,3 @@ def gen_IMRPhenomD_hphc(
     hc = -1j * h0 * jnp.cos(iota)
 
     return hp, hc
-
-
-####################################################################################################
-######################################## HIGHER-ORDER MODES ########################################
-####################################################################################################
-
-# def PhiMRDAnsatzInt(
-#         f: float,
-#         coeffs: Array,
-#         fRD_22: float,
-#         fDM_22: float,
-#         Rholm: float,
-#         Taulm: float
-# ):
-#     """
-#     See eq. 9 of https://arxiv.org/abs/1708.00404
-#     """
-#     return (
-#         - coeffs[15]/f +
-#         (4.0/3.0) * (coeffs[16] * (f ** (3.0/4.0))) +
-#         coeffs[14] * f +
-#         coeffs[17] * Rholm * jnp.arctan((f - coeffs[18] * fRD_22)/(Rholm * fDM_22 * Taulm))
-#     )
-
-# def HM_mapped_PhenomD_Phase(
-#         Mf: float | Array,
-#         theta: Array,
-#         coeffs: Array,
-#         MfInsJoin: float,
-#         MfMRDJoin: float,
-#         Rholm: float,
-#         Taulm: float
-# ):
-#     """
-#     This is a weird implementation of IMRPhenDPhase from LALSimIMRPhenomD_internals.c (line 1257)
-#     using functions from both LAL and ripple. NOTE: this might be a problem
-#     """
-
-#     # Inspiral: ripple, get_inspiral_phase
-#     # Intermediate: ripple, get_IIa_raw_phase
-#     # MRD: LAL, PhiMRDAnsatzInt
-
-#     m1, m2, chi1, chi2 = theta
-#     M = m1 + m2
-#     eta = m1 * m2 / (M**2.0)
-
-#     return jnp.where(
-#         Mf < MfInsJoin,
-#         get_inspiral_phase(Mf, theta, coeffs) * eta, # Inspiral
-#         jnp.where(
-#             Mf < MfMRDJoin,
-#             get_IIa_raw_phase(Mf, theta, coeffs) * eta,
-#             PhiMRDAnsatzInt(
-#                 Mf,
-#                 coeffs,
-#                 get_fRD(theta)[0],
-#                 get_fDamp(theta)[0],
-#                 Rholm,
-#                 Taulm
-#             )
-#         )
-#     )

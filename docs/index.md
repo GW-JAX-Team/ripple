@@ -2,8 +2,6 @@
 
 ## A JAX-based package for differentiable gravitational-wave waveform generation
 
-[![license](https://badgen.net/badge/License/MIT/blue)](https://github.com/GW-JAX-Team/ripple/blob/main/LICENSE) [![coverage](https://badgen.net/coveralls/c/github/GW-JAX-Team/ripple/main)](https://coveralls.io/github/GW-JAX-Team/ripple?branch=main) [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/GW-JAX-Team/ripple/main.svg)](https://results.pre-commit.ci/latest/github/GW-JAX-Team/ripple/main)
-
 ripple is a JAX-based package for differentiable gravitational-wave waveform generation. By implementing waveform models as differentiable JAX functions, ripple enables gradient-based inference and runs natively on GPU, making it well-suited for use within modern probabilistic inference pipelines such as [Jim](https://github.com/GW-JAX-Team/jim).
 
 **Supported waveforms:**
@@ -11,9 +9,11 @@ ripple is a JAX-based package for differentiable gravitational-wave waveform gen
 - TaylorF2
 - IMRPhenomD
 - IMRPhenomD_NRTidalv2
+- IMRPhenomPv2
 - IMRPhenomXAS
 - IMRPhenomXAS_NRTidalv3
-- IMRPhenomPv2
+- IMRPhenomXHM
+- IMRPhenomXP (MSA)
 - IMRPhenomXPHM (MSA)
 - IMRPhenomHM
 

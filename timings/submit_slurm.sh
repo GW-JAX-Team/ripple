@@ -1,6 +1,6 @@
 #!/bin/bash -l
 # Submit one GPU job per (model, precision) combination, then chain postprocessing.
-# Usage: bash timings/time_all.sh  (from anywhere — uses this script's directory)
+# Usage: bash timings/submit_slurm.sh  (from anywhere — uses this script's directory)
 
 set -e
 
@@ -12,7 +12,7 @@ N_WAVEFORMS="10000"
 N_RUNS="50"
 
 PRECISIONS=("float32" "float64")
-MODELS=("TaylorF2" "IMRPhenomD" "IMRPhenomXAS" "IMRPhenomPv2" "IMRPhenomXPHM" "IMRPhenomD_NRTidalv2" "IMRPhenomXAS_NRTidalv3" "IMRPhenomHM")
+MODELS=("TaylorF2" "IMRPhenomD" "IMRPhenomD_NRTidalv2" "IMRPhenomPv2" "IMRPhenomXAS" "IMRPhenomXAS_NRTidalv3" "IMRPhenomHM" "IMRPhenomXHM" "IMRPhenomXP" "IMRPhenomXPHM")
 
 mkdir -p "${SCRIPT_DIR}/outdir"
 
@@ -28,7 +28,7 @@ for PRECISION in "${PRECISIONS[@]}"; do
             --job-name="ripple-${MODEL}-${PRECISION}" \
             --output="${SCRIPT_DIR}/outdir/${MODEL}_${PRECISION}-%j.out" \
             --parsable \
-            --wrap="cd '${REPO_DIR}' && uv run --extra cuda ripple_time '${MODEL}' --device ${DEVICE} --n-waveforms ${N_WAVEFORMS} --n-runs ${N_RUNS} --precision ${PRECISION}")
+            --wrap="cd '${REPO_DIR}' && uv run --extra cuda ripple-benchmark '${MODEL}' --device ${DEVICE} --n-waveforms ${N_WAVEFORMS} --n-runs ${N_RUNS} --precision ${PRECISION}")
         echo "Submitted ${MODEL} (${PRECISION}): job ${JOB_ID}"
         JOB_IDS+=("${JOB_ID}")
     done

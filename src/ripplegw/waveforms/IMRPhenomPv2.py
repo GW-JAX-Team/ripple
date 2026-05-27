@@ -37,7 +37,7 @@ def PhenomPCoreTwistUp(
 
     # here it is used to be LAL_MTSUN_SI
     f = fHz * MTSUN * M  # Frequency in geometric units
-    q = (1.0 + jnp.sqrt(jnp.abs(1.0 - 4.0 * eta)) - 2.0 * eta) / (2.0 * eta)
+    q = (1.0 + jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0)) - 2.0 * eta) / (2.0 * eta)
     m1 = 1.0 / (1.0 + q)  # Mass of the smaller BH for unit total mass M=1.
     m2 = q / (1.0 + q)  # Mass of the larger BH for unit total mass M=1.
     Sperp = chip * (
@@ -78,15 +78,6 @@ def PhenomPCoreTwistUp(
     sBetah3 = sBetah2 * sBetah
     sBetah4 = sBetah3 * sBetah
 
-    # d2 = jnp.array(
-    #     [
-    #         sBetah4,
-    #         2 * cBetah * sBetah3,
-    #         jnp.sqrt(6) * sBetah2 * cBetah2,
-    #         2 * cBetah3 * sBetah,
-    #         cBetah4,
-    #     ]
-    # )
     Y2mA = jnp.array(Y2m)  # need to pass Y2m in a 5-component list
     hp_sum = 0
     hc_sum = 0
