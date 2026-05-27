@@ -6,10 +6,10 @@ from jaxtyping import Array, Float
 from .waveforms.TaylorF2 import gen_TaylorF2_hphc
 from .waveforms.IMRPhenomD import gen_IMRPhenomD_hphc
 from .waveforms.IMRPhenomD_NRTidalv2 import gen_IMRPhenomD_NRTidalv2_hphc
+from .waveforms.IMRPhenomHM import gen_IMRPhenomHM
 from .waveforms.IMRPhenomPv2 import gen_IMRPhenomPv2_hphc
 from .waveforms.IMRPhenomXAS import gen_IMRPhenomXAS_hphc
 from .waveforms.IMRPhenomXAS_NRTidalv3 import gen_IMRPhenomXAS_NRTidalv3_hphc
-from .waveforms.IMRPhenomHM import gen_IMRPhenomHM
 from .waveforms.IMRPhenomXHM import gen_IMRPhenomXHM_hphc
 from .waveforms.IMRPhenomXP import gen_IMRPhenomXP_hphc
 from .waveforms.IMRPhenomXPHM import generate_xphm

@@ -12,7 +12,7 @@ N_WAVEFORMS="10000"
 N_RUNS="50"
 
 PRECISIONS=("float32" "float64")
-MODELS=("TaylorF2" "IMRPhenomD" "IMRPhenomD_NRTidalv2" "IMRPhenomPv2" "IMRPhenomXAS" "IMRPhenomXAS_NRTidalv3" "IMRPhenomHM" "IMRPhenomXHM" "IMRPhenomXP" "IMRPhenomXPHM")
+MODELS=("TaylorF2" "IMRPhenomD" "IMRPhenomD_NRTidalv2" "IMRPhenomHM" "IMRPhenomPv2" "IMRPhenomXAS" "IMRPhenomXAS_NRTidalv3" "IMRPhenomXHM" "IMRPhenomXP" "IMRPhenomXPHM")
 
 mkdir -p "${SCRIPT_DIR}/outdir"
 

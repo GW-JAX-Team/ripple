@@ -20,6 +20,7 @@ from ripplegw import (
     TaylorF2,
     IMRPhenomD,
     IMRPhenomD_NRTidalv2,
+    IMRPhenomHM,
     IMRPhenomPv2,
     IMRPhenomXAS,
     IMRPhenomXAS_NRTidalv3,
@@ -748,13 +749,13 @@ class TestWaveformPreset:
             "TaylorF2",
             "IMRPhenomD",
             "IMRPhenomD_NRTidalv2",
+            "IMRPhenomHM",
             "IMRPhenomPv2",
             "IMRPhenomXAS",
             "IMRPhenomXAS_NRTidalv3",
             "IMRPhenomXHM",
             "IMRPhenomXP",
             "IMRPhenomXPHM",
-            "IMRPhenomHM",
             "SineGaussian",
         }
         assert expected == set(waveform_preset.keys())
