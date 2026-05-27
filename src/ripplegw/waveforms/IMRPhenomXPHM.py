@@ -1,7 +1,7 @@
 import jax
 import jax.numpy as jnp
-from ..constants import PI, MSUN, MTSUN, MRSUN, MPC
-from jaxtyping import Array, Float, Integer
+from ..constants import MTSUN, MRSUN, MPC
+from jaxtyping import Float
 from .spherical_harmonics import (
     compute_sminus2_l2,
     compute_sminus2_l3,
