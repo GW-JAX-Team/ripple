@@ -24,7 +24,7 @@ from .NRTidalv3_utils import (
 )
 from .IMRPhenomD_NRTidalv2 import get_qm_phase_correction, get_spin_phase_correction
 from . import IMRPhenomX_utils
-from .IMRPhenomXAS import Amp, Phase
+from .IMRPhenomXAS import Amp, Phase, PhaseDerivative
 
 
 def _gen_IMRPhenomXAS_NRTidalv3(
@@ -102,10 +102,7 @@ def _gen_IMRPhenomXAS_NRTidalv3(
         lambda _: phenomx_tidal_phase(theta_intrinsic, f_ref * M_s),
         operand=None,
     )
-    dphiXAS = (
-        Phase(f_final, theta_intrinsic[:4], bbh_phase_coeffs)
-        - Phase(f_final - df, theta_intrinsic[:4], bbh_phase_coeffs)
-    ) / (df * M_s)
+    dphiXAS = PhaseDerivative(f_final, theta_intrinsic[:4], bbh_phase_coeffs) / M_s
     linb = dphiT - dphiXAS
     ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] + 2 * theta_extrinsic[2]
     phase_shift = (
