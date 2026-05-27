@@ -1441,7 +1441,11 @@ def IMRPhenomHMOnePointFiveSpinPN(fM, ell, m, M1, M2, X1z, X2z):
         key == 21,
         0,
         jnp.where(
-            key == 22, 1, jnp.where(key == 32, 2, jnp.where(key == 33, 3, jnp.where(key == 43, 4, 5)))
+            key == 22,
+            1,
+            jnp.where(
+                key == 32, 2, jnp.where(key == 33, 3, jnp.where(key == 43, 4, 5))
+            ),
         ),
     )
 
