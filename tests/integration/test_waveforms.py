@@ -20,6 +20,7 @@ from ripplegw import (
     TaylorF2,
     IMRPhenomD,
     IMRPhenomD_NRTidalv2,
+    IMRPhenomHM,
     IMRPhenomPv2,
     IMRPhenomXAS,
     IMRPhenomXAS_NRTidalv3,
@@ -282,6 +283,59 @@ def _xphm_dict(
     }
 
 
+class TestTaylorF2:
+    @pytest.fixture(scope="class")
+    def model(self):
+        """JIT-compiled TaylorF2 (lambda_1/lambda_2 interface)."""
+        return jax.jit(TaylorF2(f_ref=20.0, use_lambda_tildes=False))
+
+    @pytest.fixture(scope="class")
+    def model_tildes(self):
+        """JIT-compiled TaylorF2 (lambda_tilde interface)."""
+        return jax.jit(TaylorF2(f_ref=20.0, use_lambda_tildes=True))
+
+    # --- top-level approximant class ---
+    def test_basic_lambda(self, model, edge_freq_grid, bns_tidal_dict):
+        output = model(edge_freq_grid, bns_tidal_dict)
+        assert_approx_fd_valid(output, edge_freq_grid)
+
+    def test_basic_lambda_tildes(
+        self, model_tildes, test_freq_grid, bns_tidal_tilde_dict
+    ):
+        assert_approx_fd_valid(
+            model_tildes(test_freq_grid, bns_tidal_tilde_dict), test_freq_grid
+        )
+
+    def test_jit(self, model, test_freq_grid, bns_tidal_dict):
+        """Model is JIT-compiled (via fixture); verify valid output on production grid."""
+        output = model(test_freq_grid, bns_tidal_dict)
+        assert_approx_fd_valid(output, test_freq_grid)
+
+    def test_repr(self):
+        assert repr(TaylorF2(f_ref=20.0)) == "TaylorF2(f_ref=20.0)"
+
+    def test_in_waveform_preset(self):
+        assert "TaylorF2" in waveform_preset
+        assert isinstance(waveform_preset["TaylorF2"](f_ref=20.0), TaylorF2)
+
+    # --- edge cases ---
+    def test_equal_mass(self, model, edge_freq_grid):
+        """eta = 0.25: equal-mass BNS."""
+        params = _bns_dict(1.4, 1.4, lambda_1=500.0, lambda_2=500.0)
+        assert params["eta"] == pytest.approx(0.25)
+        assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
+
+    def test_zero_tidal_deformability(self, model, edge_freq_grid):
+        """lambda_1 = lambda_2 = 0: BH-like tidal correction."""
+        params = _bns_dict(1.4, 1.3, lambda_1=0.0, lambda_2=0.0)
+        assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
+
+    def test_zero_spins(self, model, edge_freq_grid):
+        """Non-spinning BNS."""
+        params = _bns_dict(1.4, 1.3, s1_z=0.0, s2_z=0.0)
+        assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
+
+
 class TestIMRPhenomD:
     @pytest.fixture(scope="class")
     def model(self):
@@ -329,11 +383,63 @@ class TestIMRPhenomD:
         assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
 
 
-class TestIMRPhenomXAS:
+class TestIMRPhenomD_NRTidalv2:
     @pytest.fixture(scope="class")
     def model(self):
-        """JIT-compiled IMRPhenomXAS; shared across all tests in this class."""
-        return jax.jit(IMRPhenomXAS(f_ref=20.0))
+        """JIT-compiled IMRPhenomD_NRTidalv2 (lambda_1/lambda_2 interface)."""
+        return jax.jit(IMRPhenomD_NRTidalv2(f_ref=20.0, use_lambda_tildes=False))
+
+    @pytest.fixture(scope="class")
+    def model_tildes(self):
+        """JIT-compiled IMRPhenomD_NRTidalv2 (lambda_tilde interface)."""
+        return jax.jit(IMRPhenomD_NRTidalv2(f_ref=20.0, use_lambda_tildes=True))
+
+    # --- top-level approximant class ---
+    def test_basic_lambda(self, model, edge_freq_grid, bns_tidal_dict):
+        output = model(edge_freq_grid, bns_tidal_dict)
+        assert_approx_fd_valid(output, edge_freq_grid)
+
+    def test_basic_lambda_tildes(
+        self, model_tildes, test_freq_grid, bns_tidal_tilde_dict
+    ):
+        assert_approx_fd_valid(
+            model_tildes(test_freq_grid, bns_tidal_tilde_dict), test_freq_grid
+        )
+
+    def test_jit(self, model, test_freq_grid, bns_tidal_dict):
+        """Model is JIT-compiled (via fixture); verify valid output on production grid."""
+        output = model(test_freq_grid, bns_tidal_dict)
+        assert_approx_fd_valid(output, test_freq_grid)
+
+    def test_in_waveform_preset(self):
+        assert "IMRPhenomD_NRTidalv2" in waveform_preset
+        assert isinstance(
+            waveform_preset["IMRPhenomD_NRTidalv2"](f_ref=20.0), IMRPhenomD_NRTidalv2
+        )
+
+    # --- edge cases ---
+    def test_equal_mass(self, model, edge_freq_grid):
+        """eta = 0.25: equal-mass BNS."""
+        params = _bns_dict(1.4, 1.4, lambda_1=500.0, lambda_2=500.0)
+        assert params["eta"] == pytest.approx(0.25)
+        assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
+
+    def test_zero_tidal_deformability(self, model, edge_freq_grid):
+        """lambda_1 = lambda_2 = 0: BH-like tidal correction."""
+        params = _bns_dict(1.4, 1.3, lambda_1=0.0, lambda_2=0.0)
+        assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
+
+    def test_zero_spins(self, model, edge_freq_grid):
+        """Non-spinning BNS."""
+        params = _bns_dict(1.4, 1.3, s1_z=0.0, s2_z=0.0)
+        assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
+
+
+class TestIMRPhenomHM:
+    @pytest.fixture(scope="class")
+    def model(self):
+        """JIT-compiled IMRPhenomHM; shared across all tests in this class."""
+        return jax.jit(IMRPhenomHM(f_ref=20.0))
 
     # --- top-level approximant class ---
     def test_basic(self, model, edge_freq_grid, bbh_aligned_dict):
@@ -346,15 +452,15 @@ class TestIMRPhenomXAS:
         assert_approx_fd_valid(output, test_freq_grid)
 
     def test_repr(self):
-        assert repr(IMRPhenomXAS(f_ref=20.0)) == "IMRPhenomXAS(f_ref=20.0)"
+        assert repr(IMRPhenomHM(f_ref=20.0)) == "IMRPhenomHM(f_ref=20.0)"
 
     def test_in_waveform_preset(self):
-        assert "IMRPhenomXAS" in waveform_preset
-        assert isinstance(waveform_preset["IMRPhenomXAS"](f_ref=20.0), IMRPhenomXAS)
+        assert "IMRPhenomHM" in waveform_preset
+        assert isinstance(waveform_preset["IMRPhenomHM"](f_ref=20.0), IMRPhenomHM)
 
     # --- edge cases ---
     def test_equal_mass(self, model, edge_freq_grid):
-        """eta = 0.25: equal-mass binary."""
+        """eta = 0.25: equal-mass binary (delta=0, odd modes vanish)."""
         params = _bbh_dict(30.0, 30.0)
         assert params["eta"] == pytest.approx(0.25)
         assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
@@ -364,9 +470,19 @@ class TestIMRPhenomXAS:
         params = _bbh_dict(30.0, 25.0, s1_z=0.0, s2_z=0.0)
         assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
 
-    def test_max_aligned_spin(self, model, edge_freq_grid):
-        """chi1 = +0.99, chi2 = -0.99: near-maximal spins."""
-        params = _bbh_dict(30.0, 25.0, s1_z=0.99, s2_z=-0.99)
+    def test_face_on(self, model, edge_freq_grid):
+        """iota = 0: face-on (only m=2 modes contribute)."""
+        params = _bbh_dict(30.0, 25.0, iota=0.0)
+        assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
+
+    def test_edge_on(self, model, edge_freq_grid):
+        """iota = pi/2: edge-on (all modes contribute)."""
+        params = _bbh_dict(30.0, 25.0, iota=jnp.pi / 2)
+        assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
+
+    def test_high_mass_ratio(self, model, edge_freq_grid):
+        """q ~ 6: higher modes become significant at large mass ratio."""
+        params = _bbh_dict(60.0, 10.0, s1_z=0.3, s2_z=-0.1, iota=1.2)
         assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
 
 
@@ -412,53 +528,44 @@ class TestIMRPhenomPv2:
         assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
 
 
-class TestIMRPhenomD_NRTidalv2:
+class TestIMRPhenomXAS:
     @pytest.fixture(scope="class")
     def model(self):
-        """JIT-compiled IMRPhenomD_NRTidalv2 (lambda_1/lambda_2 interface)."""
-        return jax.jit(IMRPhenomD_NRTidalv2(f_ref=20.0, use_lambda_tildes=False))
-
-    @pytest.fixture(scope="class")
-    def model_tildes(self):
-        """JIT-compiled IMRPhenomD_NRTidalv2 (lambda_tilde interface)."""
-        return jax.jit(IMRPhenomD_NRTidalv2(f_ref=20.0, use_lambda_tildes=True))
+        """JIT-compiled IMRPhenomXAS; shared across all tests in this class."""
+        return jax.jit(IMRPhenomXAS(f_ref=20.0))
 
     # --- top-level approximant class ---
-    def test_basic_lambda(self, model, edge_freq_grid, bns_tidal_dict):
-        output = model(edge_freq_grid, bns_tidal_dict)
+    def test_basic(self, model, edge_freq_grid, bbh_aligned_dict):
+        output = model(edge_freq_grid, bbh_aligned_dict)
         assert_approx_fd_valid(output, edge_freq_grid)
 
-    def test_basic_lambda_tildes(self, model_tildes, test_freq_grid, bns_tidal_tilde_dict):
-        assert_approx_fd_valid(
-            model_tildes(test_freq_grid, bns_tidal_tilde_dict), test_freq_grid
-        )
-
-    def test_jit(self, model, test_freq_grid, bns_tidal_dict):
+    def test_jit(self, model, test_freq_grid, bbh_aligned_dict):
         """Model is JIT-compiled (via fixture); verify valid output on production grid."""
-        output = model(test_freq_grid, bns_tidal_dict)
+        output = model(test_freq_grid, bbh_aligned_dict)
         assert_approx_fd_valid(output, test_freq_grid)
 
+    def test_repr(self):
+        assert repr(IMRPhenomXAS(f_ref=20.0)) == "IMRPhenomXAS(f_ref=20.0)"
+
     def test_in_waveform_preset(self):
-        assert "IMRPhenomD_NRTidalv2" in waveform_preset
-        assert isinstance(
-            waveform_preset["IMRPhenomD_NRTidalv2"](f_ref=20.0), IMRPhenomD_NRTidalv2
-        )
+        assert "IMRPhenomXAS" in waveform_preset
+        assert isinstance(waveform_preset["IMRPhenomXAS"](f_ref=20.0), IMRPhenomXAS)
 
     # --- edge cases ---
     def test_equal_mass(self, model, edge_freq_grid):
-        """eta = 0.25: equal-mass BNS."""
-        params = _bns_dict(1.4, 1.4, lambda_1=500.0, lambda_2=500.0)
+        """eta = 0.25: equal-mass binary."""
+        params = _bbh_dict(30.0, 30.0)
         assert params["eta"] == pytest.approx(0.25)
         assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
 
-    def test_zero_tidal_deformability(self, model, edge_freq_grid):
-        """lambda_1 = lambda_2 = 0: BH-like tidal correction."""
-        params = _bns_dict(1.4, 1.3, lambda_1=0.0, lambda_2=0.0)
+    def test_zero_spins(self, model, edge_freq_grid):
+        """chi1 = chi2 = 0: Schwarzschild limit."""
+        params = _bbh_dict(30.0, 25.0, s1_z=0.0, s2_z=0.0)
         assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
 
-    def test_zero_spins(self, model, edge_freq_grid):
-        """Non-spinning BNS."""
-        params = _bns_dict(1.4, 1.3, s1_z=0.0, s2_z=0.0)
+    def test_max_aligned_spin(self, model, edge_freq_grid):
+        """chi1 = +0.99, chi2 = -0.99: near-maximal spins."""
+        params = _bbh_dict(30.0, 25.0, s1_z=0.99, s2_z=-0.99)
         assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
 
 
@@ -478,7 +585,9 @@ class TestIMRPhenomXAS_NRTidalv3:
         output = model(edge_freq_grid, bns_tidal_dict)
         assert_approx_fd_valid(output, edge_freq_grid)
 
-    def test_basic_lambda_tildes(self, model_tildes, test_freq_grid, bns_tidal_tilde_dict):
+    def test_basic_lambda_tildes(
+        self, model_tildes, test_freq_grid, bns_tidal_tilde_dict
+    ):
         assert_approx_fd_valid(
             model_tildes(test_freq_grid, bns_tidal_tilde_dict), test_freq_grid
         )
@@ -603,57 +712,6 @@ class TestIMRPhenomXP:
         assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
 
 
-class TestTaylorF2:
-    @pytest.fixture(scope="class")
-    def model(self):
-        """JIT-compiled TaylorF2 (lambda_1/lambda_2 interface)."""
-        return jax.jit(TaylorF2(f_ref=20.0, use_lambda_tildes=False))
-
-    @pytest.fixture(scope="class")
-    def model_tildes(self):
-        """JIT-compiled TaylorF2 (lambda_tilde interface)."""
-        return jax.jit(TaylorF2(f_ref=20.0, use_lambda_tildes=True))
-
-    # --- top-level approximant class ---
-    def test_basic_lambda(self, model, edge_freq_grid, bns_tidal_dict):
-        output = model(edge_freq_grid, bns_tidal_dict)
-        assert_approx_fd_valid(output, edge_freq_grid)
-
-    def test_basic_lambda_tildes(self, model_tildes, test_freq_grid, bns_tidal_tilde_dict):
-        assert_approx_fd_valid(
-            model_tildes(test_freq_grid, bns_tidal_tilde_dict), test_freq_grid
-        )
-
-    def test_jit(self, model, test_freq_grid, bns_tidal_dict):
-        """Model is JIT-compiled (via fixture); verify valid output on production grid."""
-        output = model(test_freq_grid, bns_tidal_dict)
-        assert_approx_fd_valid(output, test_freq_grid)
-
-    def test_repr(self):
-        assert repr(TaylorF2(f_ref=20.0)) == "TaylorF2(f_ref=20.0)"
-
-    def test_in_waveform_preset(self):
-        assert "TaylorF2" in waveform_preset
-        assert isinstance(waveform_preset["TaylorF2"](f_ref=20.0), TaylorF2)
-
-    # --- edge cases ---
-    def test_equal_mass(self, model, edge_freq_grid):
-        """eta = 0.25: equal-mass BNS."""
-        params = _bns_dict(1.4, 1.4, lambda_1=500.0, lambda_2=500.0)
-        assert params["eta"] == pytest.approx(0.25)
-        assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
-
-    def test_zero_tidal_deformability(self, model, edge_freq_grid):
-        """lambda_1 = lambda_2 = 0: BH-like tidal correction."""
-        params = _bns_dict(1.4, 1.3, lambda_1=0.0, lambda_2=0.0)
-        assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
-
-    def test_zero_spins(self, model, edge_freq_grid):
-        """Non-spinning BNS."""
-        params = _bns_dict(1.4, 1.3, s1_z=0.0, s2_z=0.0)
-        assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
-
-
 class TestIMRPhenomXPHM:
     @pytest.fixture(scope="class")
     def model(self):
@@ -748,6 +806,7 @@ class TestWaveformPreset:
             "TaylorF2",
             "IMRPhenomD",
             "IMRPhenomD_NRTidalv2",
+            "IMRPhenomHM",
             "IMRPhenomPv2",
             "IMRPhenomXAS",
             "IMRPhenomXAS_NRTidalv3",

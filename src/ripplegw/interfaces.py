@@ -6,6 +6,7 @@ from jaxtyping import Array, Float
 from .waveforms.TaylorF2 import gen_TaylorF2_hphc
 from .waveforms.IMRPhenomD import gen_IMRPhenomD_hphc
 from .waveforms.IMRPhenomD_NRTidalv2 import gen_IMRPhenomD_NRTidalv2_hphc
+from .waveforms.IMRPhenomHM import gen_IMRPhenomHM
 from .waveforms.IMRPhenomPv2 import gen_IMRPhenomPv2_hphc
 from .waveforms.IMRPhenomXAS import gen_IMRPhenomXAS_hphc
 from .waveforms.IMRPhenomXAS_NRTidalv3 import gen_IMRPhenomXAS_NRTidalv3_hphc
@@ -304,6 +305,58 @@ class IMRPhenomD_NRTidalv2(Waveform):
 
     def __repr__(self):
         return f"IMRPhenomD_NRTidalv2(f_ref={self.f_ref})"
+
+
+class IMRPhenomHM(Waveform):
+    """IMRPhenomHM frequency-domain waveform (aligned spins, higher-order modes).
+
+    Attributes:
+        f_ref (float): Reference frequency in Hz.
+    """
+
+    f_ref: float
+
+    def __init__(self, f_ref: float = 20.0) -> None:
+        """
+        Args:
+            f_ref (float): Reference frequency in Hz. Defaults to 20.0.
+        """
+        self.f_ref = f_ref
+
+    @property
+    def parameter_names(self) -> tuple[str, ...]:
+        return (
+            "M_c",
+            "eta",
+            "s1_z",
+            "s2_z",
+            "d_L",
+            "phase_c",
+            "iota",
+        )
+
+    def __call__(
+        self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
+    ) -> dict[str, Float[Array, " n_freq"]]:
+        output = {}
+        m1, m2 = Mc_eta_to_ms(jnp.array([params["M_c"], params["eta"]]))
+        hp, hc = gen_IMRPhenomHM(
+            frequency,
+            m1,
+            m2,
+            params["s1_z"],
+            params["s2_z"],
+            params["d_L"],
+            params["iota"],
+            params["phase_c"],
+            self.f_ref,
+        )
+        output["p"] = hp
+        output["c"] = hc
+        return output
+
+    def __repr__(self):
+        return f"IMRPhenomHM(f_ref={self.f_ref})"
 
 
 class IMRPhenomPv2(Waveform):
@@ -788,6 +841,7 @@ waveform_preset: dict[str, type[Waveform]] = {
     "TaylorF2": TaylorF2,
     "IMRPhenomD": IMRPhenomD,
     "IMRPhenomD_NRTidalv2": IMRPhenomD_NRTidalv2,
+    "IMRPhenomHM": IMRPhenomHM,
     "IMRPhenomPv2": IMRPhenomPv2,
     "IMRPhenomXAS": IMRPhenomXAS,
     "IMRPhenomXAS_NRTidalv3": IMRPhenomXAS_NRTidalv3,

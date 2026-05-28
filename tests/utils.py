@@ -73,9 +73,10 @@ def check_is_tidal(waveform_name: str) -> bool:
     bns_waveforms = ["IMRPhenomD_NRTidalv2", "TaylorF2", "IMRPhenomXAS_NRTidalv3"]
     bbh_waveforms = [
         "IMRPhenomD",
+        "IMRPhenomHM",
+        "IMRPhenomPv2",
         "IMRPhenomXAS",
         "IMRPhenomXHM",
-        "IMRPhenomPv2",
         "IMRPhenomXP",
         "IMRPhenomXPHM",
         "SineGaussian",
@@ -135,6 +136,27 @@ def get_jitted_waveform(waveform_name: str, fs: jnp.ndarray, f_ref: float):
         @jax.jit
         def waveform(theta):
             hp, hc = waveform_generator(fs, theta, f_ref)
+            return hp, hc
+
+    elif waveform_name == "IMRPhenomHM":
+        from ripplegw.waveforms.IMRPhenomHM import gen_IMRPhenomHM
+        from ripplegw.conversions import Mc_eta_to_ms
+
+        @jax.jit
+        def waveform(theta):
+            # theta = [Mc, eta, s1z, s2z, dist_mpc, tc, phic, inclination]
+            m1, m2 = Mc_eta_to_ms(jnp.array([theta[0], theta[1]]))
+            hp, hc = gen_IMRPhenomHM(
+                fs,
+                m1,
+                m2,
+                theta[2],
+                theta[3],
+                theta[4],  # distance in Mpc
+                theta[7],  # inclination
+                theta[6],  # phi0
+                f_ref,
+            )
             return hp, hc
 
     elif waveform_name == "IMRPhenomXAS":
@@ -295,9 +317,26 @@ def get_lal_waveform(
         lalparams = lal.CreateDict()
         lalsim.SimInspiralWaveformParamsInsertPhenomXPrecVersion(lalparams, 222)
         hp, hc = lalsim.SimInspiralChooseFDWaveform(
-            m1_kg, m2_kg, s1x, s1y, s1z_val, s2x, s2y, s2z_val,
-            distance, inclination, phi_ref, 0, 0, 0,
-            df, f_l, f_u, f_ref, lalparams, approximant,
+            m1_kg,
+            m2_kg,
+            s1x,
+            s1y,
+            s1z_val,
+            s2x,
+            s2y,
+            s2z_val,
+            distance,
+            inclination,
+            phi_ref,
+            0,
+            0,
+            0,
+            df,
+            f_l,
+            f_u,
+            f_ref,
+            lalparams,
+            approximant,
         )
     elif waveform_name == "IMRPhenomXPHM":
         # XPHM uses SimIMRPhenomXPHM directly to configure mode array, TwistPhenomHM,
@@ -329,11 +368,26 @@ def get_lal_waveform(
 
         def _call_xphm(lalparams):
             return lalsim.SimIMRPhenomXPHM(
-                m1_kg, m2_kg, s1x, s1y, s1z, s2x, s2y, s2z,
-                distance, inclination, phi_ref, f_l, f_u, df, f_ref, lalparams,
+                m1_kg,
+                m2_kg,
+                s1x,
+                s1y,
+                s1z,
+                s2x,
+                s2y,
+                s2z,
+                distance,
+                inclination,
+                phi_ref,
+                f_l,
+                f_u,
+                df,
+                f_ref,
+                lalparams,
             )
 
         hp, hc = _call_xphm(_make_xphm_params(222))
+
     elif is_precessing:
         # Precessing waveform: theta = [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
         m1_kg = theta[0] * lal.MSUN_SI
@@ -366,6 +420,7 @@ def get_lal_waveform(
             None,
             approximant,
         )
+
     else:
         # Non-precessing waveform: theta = [m1, m2, s1z, s2z, (l1, l2), dist, tc, phic, inc]
         if is_tidal:
