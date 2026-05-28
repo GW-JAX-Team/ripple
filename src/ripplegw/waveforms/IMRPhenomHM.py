@@ -17,7 +17,6 @@ from .IMRPhenomD import Phase as IMRPhenomD_Phase
 from .IMRPhenomD import IMRPhenDAmplitude_NoCut
 from .IMRPhenomD import get_IIb_raw_phase
 from .IMRPhenomPv2_utils import FinalSpin0815
-from .IMRPhenomXPHM import XLALSimIMRPhenomXUtilsHztoMf
 
 
 # Phase shift due to leading order complex amplitude
@@ -178,7 +177,7 @@ def XLALSimIMRPhenomHMGethlmModes(
 
     # line 1288
     # Might be unused since we use ripple IMRPhenomD, which uses f[Hz]
-    freqs_geom = XLALSimIMRPhenomXUtilsHztoMf(freqs, pHM["Mtot"])
+    freqs_geom = freqs * pHM["Mtot"] * MTSUN
 
     # Pre-compute mode-independent PhenomD quantities once (used by phase, amplitude, t0)
     theta = jnp.array([pHM["m1"], pHM["m2"], pHM["chi1z"], pHM["chi2z"]])
@@ -312,7 +311,7 @@ def init_PhenomHM_Storage(
     p["deltaF"] = deltaF
     p["freqs"] = freqs
     p["f_ref"] = f_ref
-    p["Mf_ref"] = XLALSimIMRPhenomXUtilsHztoMf(f_ref, p["Mtot"])
+    p["Mf_ref"] = f_ref * p["Mtot"] * MTSUN
 
     p["chip"] = XLALSimPhenomUtilsChiP(
         p["m1"], p["m2"], p["chi1x"], p["chi1y"], p["chi2x"], p["chi2y"]
