@@ -65,7 +65,7 @@ def generate_xphm(
     reference_frequency,
 ):
     """Generate IMRPhenomXPHM plus and cross polarizations."""
-    Mf = XLALSimIMRPhenomXUtilsHztoMf(frequency_array, mass_1 + mass_2)
+    Mf = pPrec.XLALSimIMRPhenomXUtilsHztoMf(frequency_array, mass_1 + mass_2)
 
     Mtot = mass_1 + mass_2
 
@@ -842,18 +842,3 @@ def IMRPhenomXWignerdCoefficients_cosbeta(cos_beta):
     sin_beta_half = jnp.sqrt(jnp.abs(1.0 - cos_beta) / 2.0)  # sin(beta/2)
 
     return cos_beta_half, sin_beta_half
-
-
-def XLALSimIMRPhenomXUtilsHztoMf(fHz: Float, Mtot_Msun: Float) -> Float:
-    """
-    Convert frequency from Hz to geometric units (Mf).
-
-    Args:
-        fHz (Float): Frequency in Hz.
-        Mtot_Msun (Float): Total mass in solar masses.
-
-    Returns:
-        Float: Geometric frequency Mf.
-    """
-    # Mtot in seconds = Mtot_Msun * MTSUN
-    return fHz * Mtot_Msun * MTSUN
