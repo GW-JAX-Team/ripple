@@ -299,7 +299,9 @@ class TestTaylorF2:
         output = model(edge_freq_grid, bns_tidal_dict)
         assert_approx_fd_valid(output, edge_freq_grid)
 
-    def test_basic_lambda_tildes(self, model_tildes, test_freq_grid, bns_tidal_tilde_dict):
+    def test_basic_lambda_tildes(
+        self, model_tildes, test_freq_grid, bns_tidal_tilde_dict
+    ):
         assert_approx_fd_valid(
             model_tildes(test_freq_grid, bns_tidal_tilde_dict), test_freq_grid
         )
@@ -397,7 +399,9 @@ class TestIMRPhenomD_NRTidalv2:
         output = model(edge_freq_grid, bns_tidal_dict)
         assert_approx_fd_valid(output, edge_freq_grid)
 
-    def test_basic_lambda_tildes(self, model_tildes, test_freq_grid, bns_tidal_tilde_dict):
+    def test_basic_lambda_tildes(
+        self, model_tildes, test_freq_grid, bns_tidal_tilde_dict
+    ):
         assert_approx_fd_valid(
             model_tildes(test_freq_grid, bns_tidal_tilde_dict), test_freq_grid
         )
@@ -581,7 +585,9 @@ class TestIMRPhenomXAS_NRTidalv3:
         output = model(edge_freq_grid, bns_tidal_dict)
         assert_approx_fd_valid(output, edge_freq_grid)
 
-    def test_basic_lambda_tildes(self, model_tildes, test_freq_grid, bns_tidal_tilde_dict):
+    def test_basic_lambda_tildes(
+        self, model_tildes, test_freq_grid, bns_tidal_tilde_dict
+    ):
         assert_approx_fd_valid(
             model_tildes(test_freq_grid, bns_tidal_tilde_dict), test_freq_grid
         )
