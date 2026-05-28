@@ -1377,17 +1377,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#ripplegw.waveforms.IMRPhenomXPHM.XLALSimIMRPhenomXUtilsHztoMf" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        XLALSimIMRPhenomXUtilsHztoMf
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#ripplegw.waveforms.IMRPhenomXPHM.apply_polarization_rotation" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1778,17 +1767,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#ripplegw.waveforms.IMRPhenomXPHM.XLALSimIMRPhenomXUtilsHztoMf" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        XLALSimIMRPhenomXUtilsHztoMf
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#ripplegw.waveforms.IMRPhenomXPHM.apply_polarization_rotation" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1947,14 +1925,6 @@
               <td>
                 <div class="doc-md-description">
                   <p>Compute cos(beta/2) and sin(beta/2) from cos(beta).</p>
-                </div>
-              </td>
-            </tr>
-            <tr class="doc-section-item">
-              <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;XLALSimIMRPhenomXUtilsHztoMf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fHz&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Float&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Mtot_Msun&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Float&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Float&lt;/span&gt;&lt;/code&gt;" href="./#ripplegw.waveforms.IMRPhenomXPHM.XLALSimIMRPhenomXUtilsHztoMf">XLALSimIMRPhenomXUtilsHztoMf</a></code></td>
-              <td>
-                <div class="doc-md-description">
-                  <p>Convert frequency from Hz to geometric units (Mf).</p>
                 </div>
               </td>
             </tr>
@@ -2477,94 +2447,6 @@
             <td>
               <div class="doc-md-description">
                 <p>tuple[float or array, float or array]: (cos(beta/2), sin(beta/2)), both always non-negative.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h3 id="ripplegw.waveforms.IMRPhenomXPHM.XLALSimIMRPhenomXUtilsHztoMf" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">XLALSimIMRPhenomXUtilsHztoMf</span><span class="p">(</span><span class="n">fHz</span><span class="p">:</span> <span class="n">Float</span><span class="p">,</span> <span class="n">Mtot_Msun</span><span class="p">:</span> <span class="n">Float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span></code>
-
-<a href="#ripplegw.waveforms.IMRPhenomXPHM.XLALSimIMRPhenomXUtilsHztoMf" class="headerlink" title="Permanent link">¤</a></h3>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Convert frequency from Hz to geometric units (Mf).</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>fHz</code>
-            </td>
-            <td>
-                  <code><span title="jaxtyping.Float">Float</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Frequency in Hz.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>Mtot_Msun</code>
-            </td>
-            <td>
-                  <code><span title="jaxtyping.Float">Float</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Total mass in solar masses.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-<th>Name</th>          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-<td><code>Float</code></td>            <td>
-                  <code><span title="jaxtyping.Float">Float</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Geometric frequency Mf.</p>
               </div>
             </td>
           </tr>
