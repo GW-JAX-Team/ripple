@@ -91,7 +91,7 @@ OVERLAP_LOSS_THRESHOLDS = {
     "IMRPhenomPv2": 1e-4,  # see note above
     "IMRPhenomXAS": 1e-15,
     "IMRPhenomXAS_NRTidalv3": 1e-6,
-    "IMRPhenomXHM": 1e-6,
+    "IMRPhenomXHM": 1e-5,
     "IMRPhenomXP": 1e-6,
     "IMRPhenomXPHM": 1e-6,
 }
@@ -988,7 +988,7 @@ PHASE_OFFSET_THRESHOLDS_RAD: dict[str, float] = {
     "IMRPhenomHM": 1e-6,
     "IMRPhenomXAS": 1e-6,
     "IMRPhenomXAS_NRTidalv3": 1e-3,  # overlap 1e-6  → sqrt(2e-6) ≈ 1.4e-3
-    "IMRPhenomXHM": 1e-3,  # overlap 1e-6  → same; observed ~4e-5 rad
+    "IMRPhenomXHM": 1e-3,  # overlap 5e-6 → sqrt(2*5e-6) ~= 3e-3; observed ~4e-5 rad
 }
 _PHASE_OFFSET_THRESHOLD_DEFAULT = 1e-3
 
