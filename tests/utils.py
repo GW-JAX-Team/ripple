@@ -556,6 +556,22 @@ def compute_overlap(
     return h1_h2.real / jnp.sqrt(h1_sq * h2_sq)
 
 
+def compute_inner_product_phase(
+    h1: jnp.ndarray, h2: jnp.ndarray, psd: jnp.ndarray, frequencies: jnp.ndarray
+) -> float:
+    """Return the phase angle of the noise-weighted inner product ⟨h1|h2⟩.
+
+    For correctly phased waveforms this should be ≈ 0 rad. A constant global
+    phase offset φ (e.g. a spurious +π in phifRef) produces arg(⟨h1|h2⟩) = φ
+    regardless of tc or amplitude scaling.
+
+    Note: the overlap test is insensitive to this — |⟨h1|h2⟩|² is identical
+    for any e^{iφ} h1. This function is the complementary check.
+    """
+    h1_h2 = _noise_weighted_inner_product_complex(h1, h2, psd, frequencies)
+    return jnp.angle(h1_h2)
+
+
 def compute_overlap_loss(
     h1: jnp.ndarray, h2: jnp.ndarray, psd: jnp.ndarray, frequencies: jnp.ndarray
 ) -> float:
