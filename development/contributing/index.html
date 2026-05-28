@@ -732,6 +732,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Do you intend to add a new feature or change an existing one?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-new-waveform" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Adding a new waveform
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1128,6 +1145,33 @@
     
   
   IMRPhenomD_utils
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/ripplegw/waveforms/IMRPhenomHM/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  IMRPhenomHM
 
     
   </span>
@@ -1623,6 +1667,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Do you intend to add a new feature or change an existing one?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-new-waveform" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Adding a new waveform
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1655,32 +1716,56 @@
 
 
 <h1 id="contributing">Contributing<a class="headerlink" href="#contributing" title="Permanent link">¤</a></h1>
-<p>Contributions of any kind are welcome and appreciated. See the guidelines below.</p>
+<p>Contributions of any kind are welcome and appreciated.
+See the guidelines below.</p>
 <h2 id="expectations">Expectations<a class="headerlink" href="#expectations" title="Permanent link">¤</a></h2>
 <p>ripple is developed and maintained by the GW JAX Team and community contributors.
 While we try to be responsive, we don’t always get to every issue immediately.
 If it has been more than a week or two, feel free to ping the maintainers on the issue.</p>
 <h2 id="did-you-find-a-bug">Did you find a bug?<a class="headerlink" href="#did-you-find-a-bug" title="Permanent link">¤</a></h2>
-<p><strong>Ensure the bug was not already reported</strong> by searching on GitHub under
-<a href="https://github.com/GW-JAX-Team/ripple/issues">Issues</a>. If you’re unable to find an
-open issue addressing the problem, <a href="https://github.com/GW-JAX-Team/ripple/issues/new">open a new one</a>.
-Be sure to include a <strong>title and clear description</strong>, as much relevant information as possible,
-and the simplest possible <strong>code sample</strong> demonstrating the expected behaviour that is not occurring.</p>
+<p><strong>Ensure the bug was not already reported</strong> by searching on GitHub under <a href="https://github.com/GW-JAX-Team/ripple/issues">Issues</a>.
+If you’re unable to find an open issue addressing the problem, <a href="https://github.com/GW-JAX-Team/ripple/issues/new">open a new one</a>.
+Be sure to include a <strong>title and clear description</strong>, as much relevant information as possible, and the simplest possible <strong>code sample</strong> demonstrating the expected behaviour that is not occurring.</p>
 <h2 id="did-you-write-a-patch-that-fixes-a-bug">Did you write a patch that fixes a bug?<a class="headerlink" href="#did-you-write-a-patch-that-fixes-a-bug" title="Permanent link">¤</a></h2>
-<p>Open a new GitHub pull request with the patch. Ensure the PR description clearly
-describes the problem and solution. Include the relevant issue number if applicable.</p>
+<p>Open a new GitHub pull request with the patch.
+Ensure the PR description clearly describes the problem and solution.
+Include the relevant issue number if applicable.</p>
 <h2 id="do-you-intend-to-add-a-new-feature-or-change-an-existing-one">Do you intend to add a new feature or change an existing one?<a class="headerlink" href="#do-you-intend-to-add-a-new-feature-or-change-an-existing-one" title="Permanent link">¤</a></h2>
-<p>Open a new GitHub pull request with the feature or change. Please follow these principles:</p>
+<p>Open a new GitHub pull request with the feature or change.
+Please follow these principles:</p>
 <ol>
 <li>New features should be able to take advantage of <code>jax.jit</code> wherever possible.</li>
 <li>Modular implementation is preferred.</li>
 <li>If a waveform is ported from an existing implementation, it should match the original to machine precision. If that is not achievable, a clear explanation of the discrepancy must be provided. New waveforms implemented directly in ripple are not subject to this requirement.</li>
 </ol>
 <p>If you are unsure whether a feature fits, open an issue first to discuss it with the maintainers.</p>
+<h3 id="adding-a-new-waveform">Adding a new waveform<a class="headerlink" href="#adding-a-new-waveform" title="Permanent link">¤</a></h3>
+<p>When adding a new waveform approximant <code>NewWaveform</code>, you need to update several files.
+The canonical ordering for all waveform lists is the same as in <code>waveform_preset</code> in <code>interfaces.py</code> — insert your waveform in that position everywhere.</p>
+<p><strong>In ripple (this repository):</strong></p>
+<ul>
+<li><code>src/ripplegw/waveforms/NewWaveform.py</code> — implement the waveform and expose a <code>gen_NewWaveform(frequency_array, ...)</code> function.</li>
+<li><code>src/ripplegw/interfaces.py</code> — add an import of <code>gen_NewWaveform</code>, define a <code>NewWaveform(Waveform)</code> class with <code>parameter_names</code>, <code>__call__</code>, and <code>__repr__</code>, and add it to the <code>waveform_preset</code> dict at the bottom.</li>
+<li><code>src/ripplegw/__init__.py</code> — add <code>NewWaveform</code> to both the <code>from .interfaces import (...)</code> block and <code>__all__</code>.</li>
+<li><code>README.md</code> and <code>docs/index.md</code> — add <code>NewWaveform</code> to the list of supported approximants.</li>
+<li><code>src/ripplegw/benchmarks/timings/timing.py</code> — add <code>"NewWaveform"</code> to the models list.</li>
+<li><code>timings/submit_condor.sh</code> and <code>timings/submit_slurm.sh</code> — add <code>"NewWaveform"</code> to the <code>MODELS</code> array.</li>
+<li><code>tests/integration/test_waveforms.py</code> — add a <code>TestNewWaveform</code> class with at least <code>test_basic</code>, <code>test_jit</code>, <code>test_repr</code>, and <code>test_in_waveform_preset</code> tests. See existing classes for the pattern.</li>
+<li><code>tests/cross_validation/test_lal_overlap.py</code> <em>(if a LAL reference implementation exists)</em> — add an entry to <code>OVERLAP_LOSS_THRESHOLDS</code> and a <code>pytest.param</code> to the parametrize list.</li>
+<li><code>tests/utils.py</code> <em>(if a LAL reference implementation exists)</em> — add an <code>elif waveform_name == "NewWaveform":</code> branch in <code>get_jitted_waveform</code> and a corresponding branch in the LAL waveform generation helper.</li>
+</ul>
+<p><strong>In <a href="https://github.com/GW-JAX-Team/jim">Jim</a> (the inference framework):</strong></p>
+<p>Jim wraps ripple waveforms under <code>Ripple</code>-prefixed aliases.
+Once your ripple PR is merged (or during development against a local ripple install), open a separate pull request in the Jim repository with the following changes:</p>
+<ul>
+<li><code>src/jimgw/core/single_event/waveform.py</code> — add <code>NewWaveform</code> to the <code>from ripplegw import (...)</code> block and add <code>RippleNewWaveform = NewWaveform</code> plus an entry in <code>__all__</code>.</li>
+<li><code>src/jimgw/cli/_waveform.py</code> — import <code>RippleNewWaveform</code> and add <code>"NewWaveform": RippleNewWaveform</code> to <code>_REGISTRY</code>.</li>
+<li><code>src/jimgw/cli/_config.py</code> — add <code>"NewWaveform"</code> to the <code>Approximant</code> <code>Literal</code> type so the CLI accepts it.</li>
+</ul>
 <h2 id="do-you-intend-to-add-an-example-or-tutorial">Do you intend to add an example or tutorial?<a class="headerlink" href="#do-you-intend-to-add-an-example-or-tutorial" title="Permanent link">¤</a></h2>
-<p>Open a new GitHub pull request with the example or tutorial. The example should
-be self-contained and keep imports from other packages to a minimum. Leave
-case-specific analysis details out.</p>
+<p>Open a new GitHub pull request with the example or tutorial.
+The example should be self-contained and keep imports from other packages to a minimum.
+Leave case-specific analysis details out.</p>
 
 
 
