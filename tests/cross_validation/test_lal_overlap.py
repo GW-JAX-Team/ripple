@@ -987,8 +987,8 @@ PHASE_OFFSET_THRESHOLDS_RAD: dict[str, float] = {
     "IMRPhenomD_NRTidalv2": 1e-6,
     "IMRPhenomHM": 1e-6,
     "IMRPhenomXAS": 1e-6,
-    "IMRPhenomXAS_NRTidalv3": 1e-3,   # overlap 1e-6  → sqrt(2e-6) ≈ 1.4e-3
-    "IMRPhenomXHM": 1e-3,             # overlap 1e-6  → same; observed ~4e-5 rad
+    "IMRPhenomXAS_NRTidalv3": 1e-3,  # overlap 1e-6  → sqrt(2e-6) ≈ 1.4e-3
+    "IMRPhenomXHM": 1e-3,  # overlap 1e-6  → same; observed ~4e-5 rad
 }
 _PHASE_OFFSET_THRESHOLD_DEFAULT = 1e-3
 
@@ -1075,7 +1075,9 @@ def test_waveform_phase_convention(waveform_name, freq_params, psd_data):
     phase_hc = float(compute_inner_product_phase(hc_r, hc_l, psd_interp, fs))
     max_phase_offset = max(abs(phase_hp), abs(phase_hc))
 
-    threshold = PHASE_OFFSET_THRESHOLDS_RAD.get(waveform_name, _PHASE_OFFSET_THRESHOLD_DEFAULT)
+    threshold = PHASE_OFFSET_THRESHOLDS_RAD.get(
+        waveform_name, _PHASE_OFFSET_THRESHOLD_DEFAULT
+    )
 
     assert max_phase_offset < threshold, (
         f"{waveform_name}: max phase offset {max_phase_offset:.4f} rad exceeds "
