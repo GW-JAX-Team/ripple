@@ -968,18 +968,18 @@ def test_waveform_overlap(
 # Scope and limitations:
 #   - Only non-precessing waveforms: for precessing waveforms the global phase
 #     is entangled with spin azimuthal angles and requires a separate analysis.
-#   - Only h₊ is tested: for aligned-spin waveforms h× = −i cosι / antenna · h₊
-#     so both carry the same phase information; testing one is sufficient.
+#   - Both hp and hc are tested: for aligned-spin waveforms hc = i*cos(iota)/antenna * hp,
+#     so both carry the same phase information; either would suffice.
 #   - Does NOT catch h_lm mode sign/phase bugs where the polarisation formula
-#     compensates (e.g. the original XAS issue #9: h₀ = −h₂₂_LAL but
-#     h₊ = h₀ × antenna = −h₂₂_LAL × antenna = h₊_LAL, so h₊ was always
+#     compensates (e.g. the original XAS issue #9: h0 = -h22_LAL but
+#     hp = h0 * antenna = -h22_LAL * antenna = hp_LAL, so hp was always
 #     correct).  Mode convention tests belong in tests/integration/.
 #
 # Per-waveform thresholds: set to sqrt(2 * overlap_loss_threshold), which is
 # the largest constant phase offset consistent with passing the overlap test.
-# A constant phase offset φ gives overlap_loss ≈ 1 − cos φ ≈ φ²/2, so
+# A constant phase offset phi gives overlap_loss ~= 1 - cos(phi) ~= phi^2/2, so
 # phase_threshold = sqrt(2 * overlap_threshold) makes the two tests
-# self-consistent. Machine-precision waveforms use 1e-6 rad (√(2×1e-15) ≈
+# self-consistent. Machine-precision waveforms use 1e-6 rad (sqrt(2*1e-15) ~=
 # 4e-8 rad with generous margin). Waveforms not listed use the default.
 PHASE_OFFSET_THRESHOLDS_RAD: dict[str, float] = {
     "TaylorF2": 1e-6,

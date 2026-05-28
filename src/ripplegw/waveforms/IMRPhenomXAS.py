@@ -1516,7 +1516,7 @@ def gen_IMRPhenomXAS_hphc(f: Array, params: Array, f_ref: float):
     iota = params[7]
     h22 = gen_IMRPhenomXAS(f, params, f_ref)
 
-    # h+ = -h22 · (1+cos²ι)/2  (LAL sign convention: h+ = −h_lm · antenna)
+    # h+ = -h22 * (1+cos^2 iota)/2  (LAL sign convention: h+ = -h_lm * antenna)
     hp = -h22 * (1 / 2 * (1 + jnp.cos(iota) ** 2))
     hc = 1j * h22 * jnp.cos(iota)
 
