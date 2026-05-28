@@ -6614,7 +6614,7 @@ def XLALSimIMRPhenomXHMGethlmModes(
     """
     Generate all requested higher modes in geometric units.
 
-    Entry point called from IMRPhenomXPHM.py to replace XLALSimIMRPhenomHMGethlmModes.
+    Entry point called from IMRPhenomXPHM.py for the XPHM higher modes.
 
     Args:
       freqs_geom:   frequency array in geometric units (M_total * f)
