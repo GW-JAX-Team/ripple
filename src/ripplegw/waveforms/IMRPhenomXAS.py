@@ -1516,7 +1516,11 @@ def gen_IMRPhenomXAS_hphc(f: Array, params: Array, f_ref: float):
     iota = params[7]
     h22 = gen_IMRPhenomXAS(f, params, f_ref)
 
-    # h+ = -h22 * (1+cos^2 iota)/2  (LAL sign convention: h+ = -h_lm * antenna)
+    # -1 prefactor in hp (and the corresponding sign in hc) comes from
+    # Ylmfactor = e^(i*PI) in Y_{-2}^{22}, which LAL evaluates at phi=PI/2
+    # after generating the h22 mode:
+    #   hp = pfac  * Ylmfactor * h22 = -(1+cos^2 iota)/2 * h22
+    #   hc = -i    * cfac * Ylmfactor * h22 = i * cos(iota) * h22
     hp = -h22 * (1 / 2 * (1 + jnp.cos(iota) ** 2))
     hc = 1j * h22 * jnp.cos(iota)
 
