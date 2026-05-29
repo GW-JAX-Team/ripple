@@ -2358,7 +2358,12 @@ def _compute_32_hlm(
     phases_fd = jnp.where(phases_fd > 0.0, phases_fd - 2.0 * PI, phases_fd)
     phi0RD = phases_fd[1]
     dphi0RD = 0.5 / fstep * (phases_fd[2] - phases_fd[0])
-    d2phi0RD = (phases_fd[2] - 2.0 * phases_fd[1] + phases_fd[0]) / fstep**2
+    # d2phi0RD via JAX autodiff: the second FD is numerically unstable due to
+    # catastrophic cancellation (numerator ~3e-10 of numbers ~5), losing ~10
+    # significant digits and causing CPU vs GPU to diverge by ~220 units.
+    # jax.grad^2 computes the same quantity analytically, reproducibly across
+    # all backends (CPU LAPACK and GPU CUBLAS give identical results).
+    d2phi0RD = jax.grad(jax.grad(lambda Mf: jnp.angle(s2s(Mf))))(fcutRD)
 
     # Override collocpt 4 with dphi0RD (first deriv at fcutRD) when eta > etaEMR
     freq4 = jnp.where(eta > etaEMR, fcutRD, all_freqs[4])
