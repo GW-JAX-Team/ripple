@@ -67,22 +67,7 @@ BBH_BOUNDS = {
 }
 
 # Per-waveform overlap loss thresholds.
-# These represent expected float64 agreement between the ripple and LAL
-# implementations; simpler/more-analytical waveforms achieve near-machine
-# precision while complex ones accumulate more rounding error.
-#
-# IMRPhenomPv2 NOTE: the 1e-4 threshold is intentionally loose and does NOT
-# reflect a deficiency in ripple's implementation. The overlap loss is entirely
-# due to a pure time shift (amplitude agreement is perfect to <1e-9). The shift
-# arises because LAL computes the coalescence-time correction t0 via a 10-point
-# natural cubic spline over [0.8*f_RD, 1.2*f_RD] (GSL gsl_interp_cspline,
-# LALSimIMRPhenomP.c lines 1060-1151), whereas ripple uses exact JAX autodiff.
-# The coarse 10-point grid (~9-12 Hz spacing) underresolves the Lorentzian
-# arctan feature in the merger-ringdown phase (characteristic width ~f_damp
-# ≈ 22 Hz), introducing a derivative error of 5-12 μs depending on the
-# system. Ripple's exact derivative is the more accurate result. Worst-case
-# overlap loss reaches ~1.3e-5 for high-mass-ratio, high-spin systems; the
-# 1e-4 threshold gives comfortable headroom.
+# See docs/dev/lal_agreement.md for the documented cause of each non-machine-precision threshold.
 OVERLAP_LOSS_THRESHOLDS = {
     "TaylorF2": 1e-15,
     "IMRPhenomD": 1e-12,
