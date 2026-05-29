@@ -1451,11 +1451,9 @@ def _gen_IMRPhenomXAS(
         jax.grad(Phase)((fMs_RD - fMs_damp) / M_s, theta_intrinsic, phase_coeffs) / M_s
     )
     linb = linb - dphi22Ref - 2.0 * PI * (500.0 + psi4tostrain)
-    # The addition π shift comes from Y22
     phifRef = (
         -(Phase(f_ref, theta_intrinsic, phase_coeffs) + linb * (f_ref * M_s) + lina)
         + PI / 4.0
-        + PI
     )
     ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] + 2 * theta_extrinsic[2]
     Psi = Psi + (linb * fM_s) + lina + phifRef - 2 * PI + ext_phase_contrib
@@ -1480,7 +1478,7 @@ def gen_IMRPhenomXAS(f: Array, params: Array, f_ref: float):
     phic: Phase of coalesence
 
     Returns:
-      h0 (array): Complex gravitational wave strain
+      h22 (array): Complex h_{2,2} gravitational wave mode
     """
     # Lets make this easier by starting in Mchirp and eta space
     m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
@@ -1489,10 +1487,10 @@ def gen_IMRPhenomXAS(f: Array, params: Array, f_ref: float):
     phase_coeffs = IMRPhenomX_utils.PhenomX_phase_coeff_table
     amp_coeffs = IMRPhenomX_utils.PhenomX_amp_coeff_table
 
-    h0 = _gen_IMRPhenomXAS(
+    h22 = _gen_IMRPhenomXAS(
         f, theta_intrinsic, theta_extrinsic, phase_coeffs, amp_coeffs, f_ref
     )
-    return h0
+    return h22
 
 
 def gen_IMRPhenomXAS_hphc(f: Array, params: Array, f_ref: float):
@@ -1516,9 +1514,14 @@ def gen_IMRPhenomXAS_hphc(f: Array, params: Array, f_ref: float):
       hc (array): Strain of the cross polarization
     """
     iota = params[7]
-    h0 = gen_IMRPhenomXAS(f, params, f_ref)
+    h22 = gen_IMRPhenomXAS(f, params, f_ref)
 
-    hp = h0 * (1 / 2 * (1 + jnp.cos(iota) ** 2))
-    hc = -1j * h0 * jnp.cos(iota)
+    # -1 prefactor in hp (and the corresponding sign in hc) comes from
+    # Ylmfactor = e^(i*PI) in Y_{-2}^{22}, which LAL evaluates at phi=PI/2
+    # after generating the h22 mode:
+    #   hp = pfac  * Ylmfactor * h22 = -(1+cos^2 iota)/2 * h22
+    #   hc = -i    * cfac * Ylmfactor * h22 = i * cos(iota) * h22
+    hp = -h22 * (1 / 2 * (1 + jnp.cos(iota) ** 2))
+    hc = 1j * h22 * jnp.cos(iota)
 
     return hp, hc

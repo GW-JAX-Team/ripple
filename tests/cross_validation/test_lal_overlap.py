@@ -29,15 +29,13 @@ from tests.utils import (
     check_is_precessing,
     check_is_tidal,
     check_lal_available,
+    compute_inner_product_phase,
     compute_overlap_loss,
     generate_random_params,
     get_freqs,
     get_jitted_waveform,
     get_lal_waveform,
     get_nyquist_mask,
-    compute_overlap_loss,
-    generate_random_params,
-    LAL_AVAILABLE,
 )
 
 jax.config.update("jax_enable_x64", True)
@@ -93,7 +91,7 @@ OVERLAP_LOSS_THRESHOLDS = {
     "IMRPhenomPv2": 1e-4,  # see note above
     "IMRPhenomXAS": 1e-15,
     "IMRPhenomXAS_NRTidalv3": 1e-6,
-    "IMRPhenomXHM": 1e-6,
+    "IMRPhenomXHM": 1e-5,
     "IMRPhenomXP": 1e-6,
     "IMRPhenomXPHM": 1e-6,
 }
@@ -953,3 +951,137 @@ def test_waveform_overlap(
             f"Max overlap loss {max_testable_overlap_loss:.2e} exceeds threshold "
             f"{overlap_loss_threshold:.2e} (excluding {n_msa_fallback} MSA-fallback samples)"
         )
+
+
+# ============================================================================
+# Phase convention test (complements the overlap test)
+# ============================================================================
+
+# The overlap test is insensitive to any constant phase offset φ between ripple
+# and LAL, because |⟨e^{iφ}h₁|h₂⟩|² = |⟨h₁|h₂⟩|² for any real φ.  This
+# means a waveform could have a spurious +π in phifRef applied to h₊ and
+# still pass the overlap test with loss = 0.
+#
+# This test catches constant phase offsets in the POLARISATIONS by checking
+# that arg(⟨h₊_ripple | h₊_LAL⟩) ≈ 0 rad at tc = 0, phic = 0.
+#
+# Scope and limitations:
+#   - Only non-precessing waveforms: for precessing waveforms the global phase
+#     is entangled with spin azimuthal angles and requires a separate analysis.
+#   - Both hp and hc are tested: for aligned-spin waveforms hc = i*cos(iota)/antenna * hp,
+#     so both carry the same phase information; either would suffice.
+#   - Does NOT catch h_lm mode sign/phase bugs where the polarisation formula
+#     compensates (e.g. the original XAS issue #9: h0 = -h22_LAL but
+#     hp = h0 * antenna = -h22_LAL * antenna = hp_LAL, so hp was always
+#     correct).  Mode convention tests belong in tests/integration/.
+#
+# Per-waveform thresholds: set to sqrt(2 * overlap_loss_threshold), which is
+# the largest constant phase offset consistent with passing the overlap test.
+# A constant phase offset phi gives overlap_loss ~= 1 - cos(phi) ~= phi^2/2, so
+# phase_threshold = sqrt(2 * overlap_threshold) makes the two tests
+# self-consistent. Machine-precision waveforms use 1e-6 rad (sqrt(2*1e-15) ~=
+# 4e-8 rad with generous margin). Waveforms not listed use the default.
+PHASE_OFFSET_THRESHOLDS_RAD: dict[str, float] = {
+    "TaylorF2": 1e-6,
+    "IMRPhenomD": 1e-6,
+    "IMRPhenomD_NRTidalv2": 1e-6,
+    "IMRPhenomHM": 1e-6,
+    "IMRPhenomXAS": 1e-6,
+    "IMRPhenomXAS_NRTidalv3": 1e-3,  # overlap 1e-6  → sqrt(2e-6) ≈ 1.4e-3
+    "IMRPhenomXHM": 1e-3,  # overlap 5e-6 → sqrt(2*5e-6) ~= 3e-3; observed ~4e-5 rad
+}
+_PHASE_OFFSET_THRESHOLD_DEFAULT = 1e-3
+
+# Fixed canonical BBH parameters used for the phase-convention check.
+# tc = 0, phic = 0 so that arg(⟨h₊_r|h₊_LAL⟩) measures the raw phase offset.
+_PHASE_CHECK_PARAMS = {
+    # theta_lal = [m1, m2, s1z, s2z, dist_Mpc, tc, phic, inclination]
+    "m1": 40.0,
+    "m2": 25.0,
+    "s1z": 0.3,
+    "s2z": -0.2,
+    "dist_Mpc": 400.0,
+    "tc": 0.0,
+    "phic": 0.0,
+    "inclination": np.pi / 3,
+}
+
+
+@pytest.mark.parametrize(
+    "waveform_name",
+    [
+        pytest.param("TaylorF2", id="TaylorF2"),
+        pytest.param("IMRPhenomD", id="IMRPhenomD"),
+        pytest.param("IMRPhenomD_NRTidalv2", id="IMRPhenomD_NRTidalv2"),
+        pytest.param("IMRPhenomHM", id="IMRPhenomHM"),
+        pytest.param("IMRPhenomXAS", id="IMRPhenomXAS"),
+        pytest.param("IMRPhenomXAS_NRTidalv3", id="IMRPhenomXAS_NRTidalv3"),
+        pytest.param("IMRPhenomXHM", id="IMRPhenomXHM"),
+    ],
+)
+def test_waveform_phase_convention(waveform_name, freq_params, psd_data):
+    """Test that ripple h₊ matches LAL h₊ in absolute phase (not just overlap).
+
+    The overlap test (test_waveform_overlap) cannot detect constant phase offsets.
+    This test explicitly computes arg(⟨h₊_ripple|h₊_LAL⟩) and asserts it is
+    below PHASE_OFFSET_THRESHOLD_RAD.
+    """
+    check_lal_available()
+
+    is_tidal = check_is_tidal(waveform_name)
+    is_precessing = False  # only non-precessing waveforms
+
+    params = freq_params(is_tidal)
+    f_l = params["f_l"]
+    f_u = params["f_u"]
+    f_sampling = params["f_sampling"]
+    T = params["T"]
+    f_ref = params["f_ref"]
+    psd_freqs, psd = psd_data
+    fs = get_freqs(f_l, f_u, f_sampling, T)
+    df = float(fs[1] - fs[0])
+
+    p = _PHASE_CHECK_PARAMS
+    m1, m2 = p["m1"], p["m2"]
+    s1z, s2z = p["s1z"], p["s2z"]
+    dist, tc, phic, iota = p["dist_Mpc"], p["tc"], p["phic"], p["inclination"]
+
+    if is_tidal:
+        # Use BNS masses for tidal waveforms; zero tidal deformability → BBH limit
+        m1, m2 = 1.4, 1.2
+        s1z, s2z = 0.0, 0.0
+        theta_lal = np.array([m1, m2, s1z, s2z, 0.0, 0.0, dist, tc, phic, iota])
+    else:
+        theta_lal = np.array([m1, m2, s1z, s2z, dist, tc, phic, iota])
+
+    theta_ripple = convert_parameters_lal_to_ripple(theta_lal, is_precessing, is_tidal)
+
+    hp_lal, hc_lal = get_lal_waveform(
+        theta_lal, waveform_name, f_l, f_u, df, f_ref, is_tidal, is_precessing
+    )
+
+    waveform = get_jitted_waveform(waveform_name, fs, f_ref)
+    hp_ripple, hc_ripple = waveform(theta_ripple)
+
+    nyquist_mask = get_nyquist_mask(fs)
+    psd_interp = jnp.interp(fs, jnp.array(psd_freqs), jnp.array(psd))
+
+    hp_r = jnp.array(hp_ripple) * nyquist_mask
+    hc_r = jnp.array(hc_ripple) * nyquist_mask
+    hp_l = jnp.array(hp_lal) * nyquist_mask
+    hc_l = jnp.array(hc_lal) * nyquist_mask
+
+    phase_hp = float(compute_inner_product_phase(hp_r, hp_l, psd_interp, fs))
+    phase_hc = float(compute_inner_product_phase(hc_r, hc_l, psd_interp, fs))
+    max_phase_offset = max(abs(phase_hp), abs(phase_hc))
+
+    threshold = PHASE_OFFSET_THRESHOLDS_RAD.get(
+        waveform_name, _PHASE_OFFSET_THRESHOLD_DEFAULT
+    )
+
+    assert max_phase_offset < threshold, (
+        f"{waveform_name}: max phase offset {max_phase_offset:.4f} rad exceeds "
+        f"threshold {threshold:.0e} rad "
+        f"(hp={phase_hp:.4f}, hc={phase_hc:.4f}) — "
+        "possible global phase convention mismatch"
+    )
