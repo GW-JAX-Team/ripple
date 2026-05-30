@@ -527,9 +527,11 @@ def IMRPhenDAmplitude(
     Amp_IIb = get_IIb_Amp(f * M_s, theta, coeffs, f_RD, f_damp)
 
     # And now we can combine them by multiplying by a set of heaviside functions
-    fcut_above = lambda f: fM_CUT / M_s
-    fcut_below = lambda f: f[jnp.abs(f - (fM_CUT / M_s)).argmin() - 1]
-    fcut_true = jax.lax.cond((fM_CUT / M_s) > f[-1], fcut_above, fcut_below, f)
+    # fcut_true is the last grid point strictly below fM_CUT/M_s (= floor of the cutoff).
+    # Using floor(x/df)*df avoids array ops (argmin/searchsorted) while matching LAL's
+    # grid-snapped cutoff exactly.  When fM_CUT/M_s > f[-1] the large value naturally
+    # leaves heaviside = 1 for every in-band frequency, so no lax.cond is needed.
+    fcut_true = jnp.floor(fM_CUT / M_s / (f[1] - f[0])) * (f[1] - f[0])
     Amp = (
         Amp_Ins * jnp.heaviside(f3 - f, 0.5)
         + jnp.heaviside(f - f3, 0.5) * Amp_IIa * jnp.heaviside(f4 - f, 0.5)
@@ -630,10 +632,7 @@ def _gen_IMRPhenomD(
     Psi -= t0 * ((f * M_s) - Mf_ref) + Psi_ref
     ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] - 2 * theta_extrinsic[2]
     Psi += ext_phase_contrib
-    fcut_above = lambda f: fM_CUT / M_s
-    fcut_below = lambda f: f[jnp.abs(f - (fM_CUT / M_s)).argmin() - 1]
-    fcut_true = jax.lax.cond((fM_CUT / M_s) > f[-1], fcut_above, fcut_below, f)
-    # fcut_true = f[jnp.abs(f - (fM_CUT / M_s)).argmin() - 1]
+    fcut_true = jnp.floor(fM_CUT / M_s / (f[1] - f[0])) * (f[1] - f[0])
     Psi = Psi * jnp.heaviside(fcut_true - f, 0.0) + 2.0 * PI * jnp.heaviside(
         f - fcut_true, 1.0
     )

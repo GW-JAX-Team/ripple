@@ -70,7 +70,7 @@ BBH_BOUNDS = {
 # See docs/dev/lal_agreement.md for the documented cause of each non-machine-precision threshold.
 OVERLAP_LOSS_THRESHOLDS = {
     "TaylorF2": 1e-15,
-    "IMRPhenomD": 1e-12,
+    "IMRPhenomD": 1e-15,
     "IMRPhenomD_NRTidalv2": 1e-15,
     "IMRPhenomHM": 1e-15,
     "IMRPhenomPv2": 1e-4,  # see note above
