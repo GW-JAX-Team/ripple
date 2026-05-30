@@ -40,7 +40,7 @@ The mean OL values (~0 to 4e-17) are consistent with rounding noise in the ET-D 
 **Threshold: 1e-12 | Max OL: 5.3e-13**
 
 The worst-case deviation is concentrated at near-equal-mass systems with negative chi_eff (e.g. m1 ~ m2 ~ 95 Msun, chi_eff ~ -0.6).
-The likely cause is accumulated rounding in the frequency-domain polynomial evaluation for the amplitude and phase fits.
+The cause is accumulated rounding in the frequency-domain polynomial evaluation for the amplitude and phase fits.
 IMRPhenomD uses rational-function fits with many terms, and small rounding errors at each frequency bin accumulate to slightly above machine epsilon.
 This has not been traced to a specific operation, and the level of agreement (~1e-13) is not a concern for any current use case.
 
@@ -56,7 +56,7 @@ The cause is a difference in how the coalescence-time correction `t0` is compute
   The 10-point grid has spacing of roughly 9-12 Hz, which underresolves the Lorentzian arctan feature in the merger-ringdown phase (characteristic width ~ f_damp ~ 22 Hz), introducing a derivative error of 5-12 us depending on the binary.
 - **ripple** computes `t0` using exact JAX autodiff, which gives the true instantaneous derivative.
 
-Ripple's result is the more accurate one; the LAL comparison is limited by the coarse spline grid.
+ripple's result is the more accurate one; the LAL comparison is limited by the coarse spline grid.
 
 ### IMRPhenomXHM
 
