@@ -9,9 +9,9 @@ A lower OL indicates better agreement.
 
 | Waveform | Threshold | Mean OL | Max OL | Status |
 |---|---|---|---|---|
-| TaylorF2 | 1e-15 | — | — | machine precision |
-| IMRPhenomD | 1e-12 | 4.3e-14 | 5.3e-13 | known cause |
-| IMRPhenomD_NRTidalv2 | 1e-15 | — | — | machine precision |
+| TaylorF2 | 1e-15 | 6.34e-17 | 3.69e-16 | machine precision |
+| IMRPhenomD | 1e-15 | 5.95e-17 | 3.55e-16 | machine precision |
+| IMRPhenomD_NRTidalv2 | 1e-15 | 6.57e-17 | 3.21e-16 | machine precision |
 | IMRPhenomHM | 1e-15 | 3.7e-17 | 3.2e-16 | machine precision |
 | IMRPhenomPv2 | 1e-4 | 8.8e-7 | 3.7e-5 | known cause (LAL-side) |
 | IMRPhenomXAS | 1e-15 | 3.5e-17 | 3.3e-16 | machine precision |
@@ -26,23 +26,14 @@ A lower OL indicates better agreement.
 
 ## Waveforms at machine precision
 
-### TaylorF2, IMRPhenomD_NRTidalv2, IMRPhenomHM, IMRPhenomXAS
+### TaylorF2, IMRPhenomD, IMRPhenomD_NRTidalv2, IMRPhenomHM, IMRPhenomXAS
 
 These waveforms agree with LAL to the limit of float64 arithmetic.
-The mean OL values (~0 to 4e-17) are consistent with rounding noise in the ET-D noise-weighted inner product.
+The mean OL values (~0 to 6e-17) are consistent with rounding noise in the ET-D noise-weighted inner product.
 
 ---
 
 ## Waveforms with a known cause
-
-### IMRPhenomD
-
-**Threshold: 1e-12 | Max OL: 5.3e-13**
-
-The worst-case deviation is concentrated at near-equal-mass systems with negative chi_eff (e.g. m1 ~ m2 ~ 95 Msun, chi_eff ~ -0.6).
-The cause is accumulated rounding in the frequency-domain polynomial evaluation for the amplitude and phase fits.
-IMRPhenomD uses rational-function fits with many terms, and small rounding errors at each frequency bin accumulate to slightly above machine epsilon.
-This has not been traced to a specific operation, and the level of agreement (~1e-13) is not a concern for any current use case.
 
 ### IMRPhenomPv2
 
@@ -57,6 +48,15 @@ The cause is a difference in how the coalescence-time correction `t0` is compute
 - **ripple** computes `t0` using exact JAX autodiff, which gives the true instantaneous derivative.
 
 ripple's result is the more accurate one; the LAL comparison is limited by the coarse spline grid.
+
+The amplitude agrees to better than 5.5e-10 across all tested samples.
+After removing the linear phase ramp, the residual is < 1e-10 rad.
+The worst-case Δt0 is ~14 µs (worst case: m1=95.1, m2=16.5 M☉).
+
+Two further properties of this waveform pair are worth noting:
+
+- **Continuity at sx = 0**: Both ripple and LAL are continuous as in-plane spin → 0. The phase jump between sx=0 and sx=1e-6 is < 1e-7 rad in both implementations.
+- **PhenomPv2 vs PhenomD at zero in-plane spin**: Setting sx=sy=0 in PhenomPv2 does not recover PhenomD. This is expected: `gen_IMRPhenomPv2` internally swaps m1 ↔ m2 to follow the LAL convention (m1 < m2), which re-assigns chi1/chi2 to the opposite mass component. The asymmetric PN phase terms then differ from PhenomD's assignment. Both LAL and ripple exhibit this behaviour identically; it is a convention difference, not a bug.
 
 ### IMRPhenomXHM
 
