@@ -1524,10 +1524,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#taylorf2-imrphenomd_nrtidalv2-imrphenomhm-imrphenomxas" class="md-nav__link">
+  <a href="#taylorf2-imrphenomd-imrphenomd_nrtidalv2-imrphenomhm-imrphenomxas" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        TaylorF2, IMRPhenomD_NRTidalv2, IMRPhenomHM, IMRPhenomXAS
+        TaylorF2, IMRPhenomD, IMRPhenomD_NRTidalv2, IMRPhenomHM, IMRPhenomXAS
       </span>
     </span>
   </a>
@@ -1550,17 +1550,6 @@
   
     <nav class="md-nav" aria-label="Waveforms with a known cause">
       <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#imrphenomd" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        IMRPhenomD
-      </span>
-    </span>
-  </a>
-  
-</li>
         
           <li class="md-nav__item">
   <a href="#imrphenompv2" class="md-nav__link">
@@ -1687,22 +1676,22 @@ A lower OL indicates better agreement.</p>
 <tr>
 <td>TaylorF2</td>
 <td>1e-15</td>
-<td>—</td>
-<td>—</td>
+<td>6.34e-17</td>
+<td>3.69e-16</td>
 <td>machine precision</td>
 </tr>
 <tr>
 <td>IMRPhenomD</td>
-<td>1e-12</td>
-<td>4.3e-14</td>
-<td>5.3e-13</td>
-<td>known cause</td>
+<td>1e-15</td>
+<td>5.95e-17</td>
+<td>3.55e-16</td>
+<td>machine precision</td>
 </tr>
 <tr>
 <td>IMRPhenomD_NRTidalv2</td>
 <td>1e-15</td>
-<td>—</td>
-<td>—</td>
+<td>6.57e-17</td>
+<td>3.21e-16</td>
 <td>machine precision</td>
 </tr>
 <tr>
@@ -1759,17 +1748,11 @@ A lower OL indicates better agreement.</p>
 <p>"Machine precision" means OL values are consistent with floating-point rounding (a few times eps_machine, typically 1e-15 to 1e-16).</p>
 <hr />
 <h2 id="waveforms-at-machine-precision">Waveforms at machine precision<a class="headerlink" href="#waveforms-at-machine-precision" title="Permanent link">¤</a></h2>
-<h3 id="taylorf2-imrphenomd_nrtidalv2-imrphenomhm-imrphenomxas">TaylorF2, IMRPhenomD_NRTidalv2, IMRPhenomHM, IMRPhenomXAS<a class="headerlink" href="#taylorf2-imrphenomd_nrtidalv2-imrphenomhm-imrphenomxas" title="Permanent link">¤</a></h3>
+<h3 id="taylorf2-imrphenomd-imrphenomd_nrtidalv2-imrphenomhm-imrphenomxas">TaylorF2, IMRPhenomD, IMRPhenomD_NRTidalv2, IMRPhenomHM, IMRPhenomXAS<a class="headerlink" href="#taylorf2-imrphenomd-imrphenomd_nrtidalv2-imrphenomhm-imrphenomxas" title="Permanent link">¤</a></h3>
 <p>These waveforms agree with LAL to the limit of float64 arithmetic.
-The mean OL values (~0 to 4e-17) are consistent with rounding noise in the ET-D noise-weighted inner product.</p>
+The mean OL values (~0 to 6e-17) are consistent with rounding noise in the ET-D noise-weighted inner product.</p>
 <hr />
 <h2 id="waveforms-with-a-known-cause">Waveforms with a known cause<a class="headerlink" href="#waveforms-with-a-known-cause" title="Permanent link">¤</a></h2>
-<h3 id="imrphenomd">IMRPhenomD<a class="headerlink" href="#imrphenomd" title="Permanent link">¤</a></h3>
-<p><strong>Threshold: 1e-12 | Max OL: 5.3e-13</strong></p>
-<p>The worst-case deviation is concentrated at near-equal-mass systems with negative chi_eff (e.g. m1 ~ m2 ~ 95 Msun, chi_eff ~ -0.6).
-The cause is accumulated rounding in the frequency-domain polynomial evaluation for the amplitude and phase fits.
-IMRPhenomD uses rational-function fits with many terms, and small rounding errors at each frequency bin accumulate to slightly above machine epsilon.
-This has not been traced to a specific operation, and the level of agreement (~1e-13) is not a concern for any current use case.</p>
 <h3 id="imrphenompv2">IMRPhenomPv2<a class="headerlink" href="#imrphenompv2" title="Permanent link">¤</a></h3>
 <p><strong>Threshold: 1e-4 | Max OL: 3.7e-5</strong></p>
 <p>This large threshold does <strong>not</strong> reflect a deficiency in ripple's implementation.
@@ -1781,6 +1764,14 @@ The cause is a difference in how the coalescence-time correction <code>t0</code>
 <li><strong>ripple</strong> computes <code>t0</code> using exact JAX autodiff, which gives the true instantaneous derivative.</li>
 </ul>
 <p>ripple's result is the more accurate one; the LAL comparison is limited by the coarse spline grid.</p>
+<p>The amplitude agrees to better than 5.5e-10 across all tested samples.
+After removing the linear phase ramp, the residual is &lt; 1e-10 rad.
+The worst-case Δt0 is ~14 µs (worst case: m1=95.1, m2=16.5 M☉).</p>
+<p>Two further properties of this waveform pair are worth noting:</p>
+<ul>
+<li><strong>Continuity at sx = 0</strong>: Both ripple and LAL are continuous as in-plane spin → 0. The phase jump between sx=0 and sx=1e-6 is &lt; 1e-7 rad in both implementations.</li>
+<li><strong>PhenomPv2 vs PhenomD at zero in-plane spin</strong>: Setting sx=sy=0 in PhenomPv2 does not recover PhenomD. This is expected: <code>gen_IMRPhenomPv2</code> internally swaps m1 ↔ m2 to follow the LAL convention (m1 &lt; m2), which re-assigns chi1/chi2 to the opposite mass component. The asymmetric PN phase terms then differ from PhenomD's assignment. Both LAL and ripple exhibit this behaviour identically; it is a convention difference, not a bug.</li>
+</ul>
 <h3 id="imrphenomxhm">IMRPhenomXHM<a class="headerlink" href="#imrphenomxhm" title="Permanent link">¤</a></h3>
 <p><strong>Threshold: 1e-6 | Max OL: 6.5e-7</strong></p>
 <p>The deviation is confined almost entirely to a single corner of parameter space: extreme mass ratio (q ~ 0.07), near-extremal primary spin (chi1 ~ 0.98), and hence a near-extremal final spin (a_f ~ 0.98).
