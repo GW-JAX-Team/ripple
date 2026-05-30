@@ -174,7 +174,7 @@ def convert_parameters_lal_to_ripple(
     # Convert parameters to ripple format
     if is_precessing:
         # Precessing: theta_lal = [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist, tc, phic, inc]
-        # Ripple precessing waveforms (IMRPhenomPv2, IMRPhenomXPHM) expect:
+        # ripple precessing waveforms (IMRPhenomPv2, IMRPhenomXPHM) expect:
         #   [Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, tc, phiRef, incl]
         m1 = theta_lal[0]
         m2 = theta_lal[1]
@@ -252,7 +252,7 @@ def compute_ripple_lal_overlap_loss(
     Args:
         hphc_lal: (hp, hc) from LALSuite.
         hphc_ripple: (hp, hc) from ripple.
-        fs: Ripple frequency array.
+        fs: ripple frequency array.
         f_l: Lower frequency.
         f_u: Upper frequency.
         df: Frequency spacing.

@@ -488,7 +488,7 @@ def get_nyquist_mask(frequencies: jnp.ndarray, n_bins: int = 2) -> jnp.ndarray:
 
     LAL's behavior at the Nyquist frequency boundary is inconsistent - it sometimes
     zeros 1 bin, sometimes 2 bins depending on the waveform parameters. To ensure
-    a fair comparison, we apply the same mask to both LAL and Ripple waveforms.
+    a fair comparison, we apply the same mask to both LAL and ripple waveforms.
 
     Args:
         frequencies: Frequency array.
