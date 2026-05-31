@@ -6,6 +6,19 @@ from ..constants import MTSUN
 
 from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
 
+# Pre-compute constants for O(1) QNM table lookup on the uniform linspace grid.
+_QNM_N = len(QNMData_a)          # 500 000
+_QNM_A_MIN = float(QNMData_a[0]) # -1.0
+_QNM_A_MAX = float(QNMData_a[-1]) # 1.0
+_QNM_SCALE = (_QNM_N - 1) / (_QNM_A_MAX - _QNM_A_MIN)
+
+
+def _qnm_interp(x, table):
+    """Linear interp on the uniform QNMData_a grid in O(1) index arithmetic."""
+    t = (x - _QNM_A_MIN) * _QNM_SCALE
+    i = jnp.clip(jnp.floor(t).astype(jnp.int32), 0, _QNM_N - 2)
+    return table[i] + (t - i) * (table[i + 1] - table[i])
+
 
 def EradRational0815_s(eta, s):
     eta2 = eta * eta
@@ -75,8 +88,8 @@ def get_fRD_fdamp(m1, m2, chi1, chi2):
     a = FinalSpin0815_s(eta_s, S)
     Erad = EradRational0815(eta_s, chi1, chi2)
 
-    fRD = jnp.interp(a, QNMData_a, QNMData_fRD) / (1.0 - Erad)
-    fdamp = jnp.interp(a, QNMData_a, QNMData_fdamp) / (1.0 - Erad)
+    fRD = _qnm_interp(a, QNMData_fRD) / (1.0 - Erad)
+    fdamp = _qnm_interp(a, QNMData_fdamp) / (1.0 - Erad)
 
     return fRD / M_s, fdamp / M_s
 
