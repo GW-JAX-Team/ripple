@@ -84,7 +84,7 @@ def PhenomPCoreTwistUp(
 
     cexp_i_alpha = jnp.exp(1j * alpha)
     cexp_2i_alpha = cexp_i_alpha * cexp_i_alpha
-    cexp_mi_alpha = jnp.conj(cexp_i_alpha)      # exp(-i*alpha) = conj(exp(i*alpha))
+    cexp_mi_alpha = jnp.conj(cexp_i_alpha)  # exp(-i*alpha) = conj(exp(i*alpha))
     cexp_m2i_alpha = cexp_mi_alpha * cexp_mi_alpha
     T2m = (
         cexp_2i_alpha * cBetah4 * Y2mA[0]

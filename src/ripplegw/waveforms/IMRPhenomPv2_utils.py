@@ -8,7 +8,7 @@ from .IMRPhenomD_utils import (
     _qnm_interp,
 )
 from jaxtyping import Array, Float
-from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
+from .IMRPhenomD_QNMdata import QNMData_fRD, QNMData_fdamp
 
 MAX_TOL_ATAN = 1.0e-15
 
