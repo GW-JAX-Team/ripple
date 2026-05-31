@@ -5,6 +5,7 @@ from ..constants import MTSUN
 from .IMRPhenomD_utils import (
     EradRational0815,
     FinalSpin0815_s,
+    _qnm_interp,
 )
 from jaxtyping import Array, Float
 from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
@@ -374,8 +375,8 @@ def phP_get_fRD_fdamp(m1, m2, chi1_l, chi2_l, chip):
     M_s = m1_s + m2_s
     eta_s = m1_s * m2_s / (M_s**2.0)
     Erad = EradRational0815(eta_s, chi1_l, chi2_l)
-    fRD = jnp.interp(finspin, QNMData_a, QNMData_fRD) / (1.0 - Erad)
-    fdamp = jnp.interp(finspin, QNMData_a, QNMData_fdamp) / (1.0 - Erad)
+    fRD = _qnm_interp(finspin, QNMData_fRD) / (1.0 - Erad)
+    fdamp = _qnm_interp(finspin, QNMData_fdamp) / (1.0 - Erad)
 
     return fRD / M_s, fdamp / M_s
 
