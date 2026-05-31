@@ -7,9 +7,9 @@ from ..constants import MTSUN
 from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
 
 # Pre-compute constants for O(1) QNM table lookup on the uniform linspace grid.
-_QNM_N = len(QNMData_a)          # 500 000
-_QNM_A_MIN = float(QNMData_a[0]) # -1.0
-_QNM_A_MAX = float(QNMData_a[-1]) # 1.0
+_QNM_N = len(QNMData_a)  # 500 000
+_QNM_A_MIN = float(QNMData_a[0])  # -1.0
+_QNM_A_MAX = float(QNMData_a[-1])  # 1.0
 _QNM_SCALE = (_QNM_N - 1) / (_QNM_A_MAX - _QNM_A_MIN)
 
 
