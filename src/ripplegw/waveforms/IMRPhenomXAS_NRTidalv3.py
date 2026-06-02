@@ -12,6 +12,7 @@ from .IMRPhenomD_NRTidalv2 import (
 )  # Same between v2 and v3
 from .NRTidalv3_utils import (
     _get_merger_frequency,
+    _get_phenomx_spin_coefficients,
     phenomx_tidal_phase,
     phenomx_tidal_phase_derivative,
     get_tidal_phase,
@@ -58,6 +59,7 @@ def _gen_IMRPhenomXAS_NRTidalv3(
     m1, m2, _, _, lambda1, lambda2 = theta_intrinsic
     M_s = (m1 + m2) * MTSUN
     Xa = m1 / (m1 + m2)
+    Xb = m2 / (m1 + m2)
     x = PI * f * M_s
     x_23 = x ** (2.0 / 3.0)
     f_Ms = f * M_s
@@ -87,12 +89,12 @@ def _gen_IMRPhenomXAS_NRTidalv3(
         )
         A_P = jnp.ones_like(f)
     else:
-        P_P = general_planck_taper(f, 1.15 * f_merger, 1.35 * f_merger)
+        P_P = general_planck_taper(f_Ms, 1.15 * f_merger * M_s, 1.35 * f_merger * M_s)
         P_P_fref = general_planck_taper(
             f_ref * M_s, 1.15 * f_merger * M_s, 1.35 * f_merger * M_s
         )
         dphiT = phenomx_tidal_phase_derivative(theta_intrinsic, f_final * M_s)
-        A_P = get_planck_taper(f, f_merger)
+        A_P = get_planck_taper(f_Ms, f_merger * M_s)
 
     bbh_phase_coeffs = IMRPhenomX_utils.PhenomX_phase_coeff_table
 
@@ -137,14 +139,24 @@ def _gen_IMRPhenomXAS_NRTidalv3(
         NRTidalv3_phase * (1 - P_P)
         + get_tidal_phase_PN(x, Xa, lambda1, lambda2, PN_coeffs) * P_P
     )
-    psi_QM = get_qm_phase_correction(f_Ms, theta_intrinsic)
-    psi_SS = get_spin_phase_correction(x_23, theta_intrinsic)
+
+    c2pn, c3pn, c3p5pn = _get_phenomx_spin_coefficients(theta_intrinsic)
+
+    pfaN = 3.0 / (128.0 * Xa * Xb)
+    psi_SS = (
+        pfaN * c2pn / ((PI * f_Ms) ** (1.0 / 3.0))
+        + pfaN * c3pn * ((PI * f_Ms) ** (1.0 / 3.0))
+        + pfaN * c3p5pn * ((PI * f_Ms) ** (2.0 / 3.0))
+    )
+
+    # psi_QM = get_qm_phase_correction(f_Ms, theta_intrinsic)
+    # psi_SS = get_spin_phase_correction(x_23, theta_intrinsic)
 
     # Reconstruct waveform with NRTidal terms included: h(f) = [A(f) + A_tidal(f)] * Exp{I [phi(f) - phi_tidal(f)]} * window(f)
     h0 = (
         A_P
         * (bbh_amp + A_T)
-        * jnp.exp(1.0j * ((bbh_psi + phase_shift) - (psi_T + psi_QM + psi_SS)))
+        * jnp.exp(1.0j * ((bbh_psi + phase_shift) - (psi_T + psi_SS)))
     )
 
     return h0

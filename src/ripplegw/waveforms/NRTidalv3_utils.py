@@ -139,10 +139,10 @@ def fullTidalPhaseCorrection(
         NRTidalv3_phase * (1 - P_P)
         + get_tidal_phase_PN(x, Xa, lambda1, lambda2, PN_coeffs) * P_P
     )
-    psi_QM = get_qm_phase_correction(Mf, theta_intrinsic)
+    # psi_QM = get_qm_phase_correction(Mf, theta_intrinsic)
     psi_SS = get_spin_phase_correction(x_23, theta_intrinsic)
 
-    return psi_T + psi_QM + psi_SS
+    return psi_T + psi_SS
 
 
 def _get_phenomx_spin_coefficients(theta_intrinsic: Array):
