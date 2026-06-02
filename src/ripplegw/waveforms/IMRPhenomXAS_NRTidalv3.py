@@ -23,7 +23,6 @@ from .NRTidalv3_utils import (
     fullTidalPhaseCorrection,
     changePhase_if_min,
 )
-from .IMRPhenomD_NRTidalv2 import get_qm_phase_correction, get_spin_phase_correction
 from . import IMRPhenomX_utils
 from .IMRPhenomXAS import Amp, Phase, PhaseDerivative
 

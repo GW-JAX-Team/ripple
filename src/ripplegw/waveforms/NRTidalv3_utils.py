@@ -5,7 +5,6 @@ from ..constants import MTSUN, PI, TWO_PI
 from jaxtyping import Array, Float
 from .IMRPhenom_tidal_utils import get_kappa, get_quadparam_octparam
 from .IMRPhenomD_NRTidalv2 import (
-    get_qm_phase_correction,
     get_spin_phase_correction,
 )
 from .TaylorF2 import (
