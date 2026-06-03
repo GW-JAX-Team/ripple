@@ -316,11 +316,11 @@ def freq_params(request):
         f_u = 4096.0 if is_tidal else 2048.0
         f_sampling = 2 * f_u
         return {
-            "f_l": 20.0,
+            "f_l": 5.0,
             "f_u": f_u,
             "f_sampling": f_sampling,
             "T": T,
-            "f_ref": 20.0,
+            "f_ref": 5.0,
         }
 
     return get
