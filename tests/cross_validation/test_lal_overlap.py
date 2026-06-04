@@ -320,7 +320,7 @@ def freq_params(request):
             "f_u": f_u,
             "f_sampling": f_sampling,
             "T": T,
-            "f_ref": 20.0,
+            "f_ref": 5.0,
         }
 
     return get
