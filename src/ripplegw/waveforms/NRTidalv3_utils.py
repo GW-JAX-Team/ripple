@@ -4,10 +4,6 @@ import jax.numpy as jnp
 from ..constants import MTSUN, PI, TWO_PI
 from jaxtyping import Array, Float
 from .IMRPhenom_tidal_utils import get_kappa, get_quadparam_octparam
-from .IMRPhenomD_NRTidalv2 import (
-    get_qm_phase_correction,
-    get_spin_phase_correction,
-)
 from .TaylorF2 import (
     get_4PNQM2SCoeff,
     get_4PNQM2SOCoeff,
@@ -129,7 +125,17 @@ def fullTidalPhaseCorrection(
     m1, m2, _, _, lambda1, lambda2 = theta_intrinsic
     Xa = m1 / (m1 + m2)
     x = PI * Mf
-    x_23 = x ** (2.0 / 3.0)
+    # x_23 = x ** (2.0 / 3.0)
+
+    Xb = m2 / (m1 + m2)
+    c2pn, c3pn, c3p5pn = _get_phenomx_spin_coefficients(theta_intrinsic)
+
+    pfaN = 3.0 / (128.0 * Xa * Xb)
+    psi_SS = (
+        pfaN * c2pn / ((PI * Mf) ** (1.0 / 3.0))
+        + pfaN * c3pn * ((PI * Mf) ** (1.0 / 3.0))
+        + pfaN * c3p5pn * ((PI * Mf) ** (2.0 / 3.0))
+    )
 
     PN_coeffs = get_tidalphasePN_coeffs(theta_intrinsic)
     NRTidalv3_coeffs = get_NRTidalv3_coefficients(theta_intrinsic, PN_coeffs)
@@ -139,10 +145,10 @@ def fullTidalPhaseCorrection(
         NRTidalv3_phase * (1 - P_P)
         + get_tidal_phase_PN(x, Xa, lambda1, lambda2, PN_coeffs) * P_P
     )
-    psi_QM = get_qm_phase_correction(Mf, theta_intrinsic)
-    psi_SS = get_spin_phase_correction(x_23, theta_intrinsic)
+    # psi_QM = get_qm_phase_correction(Mf, theta_intrinsic)
+    # psi_SS = get_spin_phase_correction(x_23, theta_intrinsic)
 
-    return psi_T + psi_QM + psi_SS
+    return psi_T + psi_SS
 
 
 def _get_phenomx_spin_coefficients(theta_intrinsic: Array):

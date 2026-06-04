@@ -7,13 +7,11 @@ from jaxtyping import Array
 from ..conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from .IMRPhenom_tidal_utils import get_kappa
 from .IMRPhenomD_NRTidalv2 import (
-    get_planck_taper,
     get_tidal_amplitude,
 )  # Same between v2 and v3
 from .NRTidalv3_utils import (
     _get_merger_frequency,
-    phenomx_tidal_phase,
-    phenomx_tidal_phase_derivative,
+    _get_phenomx_spin_coefficients,
     get_tidal_phase,
     get_NRTidalv3_coefficients,
     get_tidalphasePN_coeffs,
@@ -22,9 +20,8 @@ from .NRTidalv3_utils import (
     fullTidalPhaseCorrection,
     changePhase_if_min,
 )
-from .IMRPhenomD_NRTidalv2 import get_qm_phase_correction, get_spin_phase_correction
 from . import IMRPhenomX_utils
-from .IMRPhenomXAS import Amp, Phase
+from .IMRPhenomXAS import Amp, Phase, PhaseDerivative
 
 
 def _gen_IMRPhenomXAS_NRTidalv3(
@@ -58,6 +55,7 @@ def _gen_IMRPhenomXAS_NRTidalv3(
     m1, m2, _, _, lambda1, lambda2 = theta_intrinsic
     M_s = (m1 + m2) * MTSUN
     Xa = m1 / (m1 + m2)
+    Xb = m2 / (m1 + m2)
     x = PI * f * M_s
     x_23 = x ** (2.0 / 3.0)
     f_Ms = f * M_s
@@ -87,25 +85,27 @@ def _gen_IMRPhenomXAS_NRTidalv3(
         )
         A_P = jnp.ones_like(f)
     else:
-        P_P = general_planck_taper(f, 1.15 * f_merger, 1.35 * f_merger)
+        P_P = general_planck_taper(f_Ms, 1.15 * f_merger * M_s, 1.35 * f_merger * M_s)
         P_P_fref = general_planck_taper(
             f_ref * M_s, 1.15 * f_merger * M_s, 1.35 * f_merger * M_s
         )
-        dphiT = phenomx_tidal_phase_derivative(theta_intrinsic, f_final * M_s)
-        A_P = get_planck_taper(f, f_merger)
+        dphiT = jax.grad(
+            lambda fMs: fullTidalPhaseCorrection(
+                fMs,
+                theta_intrinsic,
+                general_planck_taper(fMs, 1.15 * f_merger * M_s, 1.35 * f_merger * M_s),
+            )
+        )(f_final * M_s)
+        A_P = 1 - general_planck_taper(f_Ms, f_merger * M_s, 1.2 * f_merger * M_s)
 
     bbh_phase_coeffs = IMRPhenomX_utils.PhenomX_phase_coeff_table
 
-    phiTfRef = jax.lax.cond(
-        no_taper,
-        lambda _: fullTidalPhaseCorrection(f_ref * M_s, theta_intrinsic, P_P_fref),
-        lambda _: phenomx_tidal_phase(theta_intrinsic, f_ref * M_s),
-        operand=None,
+    phiTfRef = fullTidalPhaseCorrection(  # This is part of the tidal correction to the phase alignment and takes into account spin-tidal interactions
+        f_ref * M_s, theta_intrinsic, P_P_fref
     )
-    dphiXAS = (
-        Phase(f_final, theta_intrinsic[:4], bbh_phase_coeffs)
-        - Phase(f_final - df, theta_intrinsic[:4], bbh_phase_coeffs)
-    ) / (df * M_s)
+
+    # dphiXAS = jax.grad(Phase, argnums=0)(f_final, theta_intrinsic[:4], bbh_phase_coeffs) / M_s
+    dphiXAS = PhaseDerivative(f_final, theta_intrinsic[:4], bbh_phase_coeffs) / M_s
     linb = dphiT - dphiXAS
     ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] + 2 * theta_extrinsic[2]
     phase_shift = (
@@ -122,15 +122,12 @@ def _gen_IMRPhenomXAS_NRTidalv3(
     NRTidalv3_coeffs = get_NRTidalv3_coefficients(theta_intrinsic, PN_coeffs)
     NRTidalv3_phase = get_tidal_phase(x, NRTidalv3_coeffs, PN_coeffs)
 
-    # Check for local minimum
+    # Check for local minimum post-merger (Sec. IV G of arXiv:2311.07456).
     fHzmrgcheck = 0.9 * f_merger
     increasing = jnp.concatenate(
         [jnp.array([False]), NRTidalv3_phase[1:] >= NRTidalv3_phase[:-1]]
     )
     valid = (f >= fHzmrgcheck) & increasing
-
-    # If local minimum found: set NRTidalv3 phase to this value afterwards
-    # See discussion in Sec. IV G of arXiv:2311.07456
     x_lax = (f, NRTidalv3_phase, valid)
     NRTidalv3_phase = jax.lax.cond(
         jnp.any(valid), lambda arr: changePhase_if_min(*arr), lambda arr: arr[1], x_lax
@@ -140,14 +137,21 @@ def _gen_IMRPhenomXAS_NRTidalv3(
         NRTidalv3_phase * (1 - P_P)
         + get_tidal_phase_PN(x, Xa, lambda1, lambda2, PN_coeffs) * P_P
     )
-    psi_QM = get_qm_phase_correction(f_Ms, theta_intrinsic)
-    psi_SS = get_spin_phase_correction(x_23, theta_intrinsic)
+
+    c2pn, c3pn, c3p5pn = _get_phenomx_spin_coefficients(theta_intrinsic)
+
+    pfaN = 3.0 / (128.0 * Xa * Xb)
+    psi_SS = (
+        pfaN * c2pn / ((PI * f_Ms) ** (1.0 / 3.0))
+        + pfaN * c3pn * ((PI * f_Ms) ** (1.0 / 3.0))
+        + pfaN * c3p5pn * ((PI * f_Ms) ** (2.0 / 3.0))
+    )
 
     # Reconstruct waveform with NRTidal terms included: h(f) = [A(f) + A_tidal(f)] * Exp{I [phi(f) - phi_tidal(f)]} * window(f)
     h0 = (
         A_P
         * (bbh_amp + A_T)
-        * jnp.exp(1.0j * ((bbh_psi + phase_shift) - (psi_T + psi_QM + psi_SS)))
+        * jnp.exp(1.0j * ((bbh_psi + phase_shift) - (psi_T + psi_SS)))
     )
 
     return h0
