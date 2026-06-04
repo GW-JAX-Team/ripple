@@ -789,7 +789,7 @@ class IMRPhenomXPHM(Waveform):
         return {"p": hp, "c": hc}
 
     def __repr__(self):
-        return f"IMRPhenomHM(f_ref={self.f_ref})"
+        return f"IMRPhenomXPHM(f_ref={self.f_ref})"
 
 
 class SineGaussian(Waveform):
