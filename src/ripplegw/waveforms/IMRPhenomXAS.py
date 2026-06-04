@@ -817,7 +817,7 @@ def Phase(
 
 
 def PhaseDerivative(
-    f: float,
+    f: Array,
     theta: Array,
     phase_coeffs: Array,
     chip: float = 0.0,
