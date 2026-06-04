@@ -223,7 +223,7 @@ def twistup(
 
     # Fused call: compute J0, thetaJN, kappa, and zeta_polarization in one pass
     # (avoids recomputing J0/thetaJ_Sf/phiJ_Sf twice).
-    theta_JN, Nz_Jf, Nx_Jf, phiJ_Sf, kappa, zeta_polarisations = (
+    theta_JN, _Nz_Jf, _Nx_Jf, phiJ_Sf, kappa, zeta_polarisations = (
         pPrec.compute_thetaJN_kappa_and_zeta(
             mass_1_fraction,
             mass_2_fraction,
@@ -400,8 +400,6 @@ class BetaPowers:
             sBetah7=sBetah7,
             sBetah8=sBetah8,
         )
-
-        return None
 
 
 def twist_22(cexp_i_alpha, theta_JN, beta_powers):

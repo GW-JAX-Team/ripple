@@ -82,7 +82,7 @@ def gen_IMRPhenomXP_hphc(f, theta, f_ref):
     )
 
     # Fused call: compute J0, thetaJN, kappa, and zeta_polarization in one pass.
-    theta_JN, Nz_Jf, Nx_Jf, phiJ_Sf, kappa, zeta_polarisations = (
+    theta_JN, _Nz_Jf, _Nx_Jf, phiJ_Sf, kappa, zeta_polarisations = (
         pPrec.compute_thetaJN_kappa_and_zeta(
             mass_1_fraction,
             mass_2_fraction,

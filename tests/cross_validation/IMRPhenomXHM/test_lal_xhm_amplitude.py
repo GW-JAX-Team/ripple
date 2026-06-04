@@ -87,7 +87,7 @@ def _ripple_amp_only(freqs_hz, ell, m, params=FIDUCIAL_PARAMS):
 
 
 @pytest.mark.parametrize(
-    "ell,m", NON_22_MODES, ids=[f"{l}{m}" for l, m in NON_22_MODES]
+    "ell,m", NON_22_MODES, ids=[f"{ell}{m}" for ell, m in NON_22_MODES]
 )
 def test_per_mode_amplitude_per_region(ell, m):
     """Bisect amplitude error across inspiral/intermediate/ringdown."""
