@@ -13,7 +13,6 @@ from .waveforms.IMRPhenomXAS_NRTidalv3 import gen_IMRPhenomXAS_NRTidalv3_hphc
 from .waveforms.IMRPhenomXHM import gen_IMRPhenomXHM_hphc
 from .waveforms.IMRPhenomXP import gen_IMRPhenomXP_hphc
 from .waveforms.IMRPhenomXPHM import generate_xphm
-from .waveforms.IMRPhenomHM import gen_IMRPhenomHM
 from .waveforms.SineGaussian import gen_SineGaussian_hphc
 from .conversions import Mc_eta_to_ms
 
