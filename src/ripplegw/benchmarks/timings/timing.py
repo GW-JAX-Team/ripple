@@ -397,7 +397,7 @@ def main():
     )
 
     parser.add_argument(
-        "--f-min", type=float, default=20.0, help="Minimum frequency in Hz"
+        "--f-min", type=float, default=5.0, help="Minimum frequency in Hz"
     )
 
     parser.add_argument(
