@@ -48,14 +48,14 @@ cross-validation = [
     "lalsuite",
 ]
 doc = [
-    "jupytext",
+    "nbconvert",
     "mkdocstrings[python]",
     "pymdown-extensions",
     "zensical",
 ]
 
 [project.scripts]
-ripple_time = "ripplegw.benchmarks.timings.timing:main"
+ripple-benchmark = "ripplegw.benchmarks.timings.timing:main"
 
 [project.urls]
 Homepage = "https://github.com/GW-JAX-Team/ripple"

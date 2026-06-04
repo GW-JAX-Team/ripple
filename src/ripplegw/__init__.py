@@ -6,12 +6,15 @@ except PackageNotFoundError:
     __version__ = "unknown"
 
 from .interfaces import (
-    IMRPhenomD,
-    IMRPhenomPv2,
     TaylorF2,
+    IMRPhenomD,
     IMRPhenomD_NRTidalv2,
+    IMRPhenomHM,
+    IMRPhenomPv2,
     IMRPhenomXAS,
     IMRPhenomXAS_NRTidalv3,
+    IMRPhenomXHM,
+    IMRPhenomXP,
     IMRPhenomXPHM,
     SineGaussian,
     waveform_preset,
@@ -19,12 +22,15 @@ from .interfaces import (
 
 __all__ = [
     "__version__",
-    "IMRPhenomD",
-    "IMRPhenomPv2",
     "TaylorF2",
+    "IMRPhenomD",
     "IMRPhenomD_NRTidalv2",
+    "IMRPhenomHM",
+    "IMRPhenomPv2",
     "IMRPhenomXAS",
     "IMRPhenomXAS_NRTidalv3",
+    "IMRPhenomXHM",
+    "IMRPhenomXP",
     "IMRPhenomXPHM",
     "SineGaussian",
     "waveform_preset",

@@ -78,22 +78,13 @@ def PhenomPCoreTwistUp(
     sBetah3 = sBetah2 * sBetah
     sBetah4 = sBetah3 * sBetah
 
-    # d2 = jnp.array(
-    #     [
-    #         sBetah4,
-    #         2 * cBetah * sBetah3,
-    #         jnp.sqrt(6) * sBetah2 * cBetah2,
-    #         2 * cBetah3 * sBetah,
-    #         cBetah4,
-    #     ]
-    # )
     Y2mA = jnp.array(Y2m)  # need to pass Y2m in a 5-component list
     hp_sum = 0
     hc_sum = 0
 
     cexp_i_alpha = jnp.exp(1j * alpha)
     cexp_2i_alpha = cexp_i_alpha * cexp_i_alpha
-    cexp_mi_alpha = 1.0 / cexp_i_alpha
+    cexp_mi_alpha = jnp.conj(cexp_i_alpha)  # exp(-i*alpha) = conj(exp(i*alpha))
     cexp_m2i_alpha = cexp_mi_alpha * cexp_mi_alpha
     T2m = (
         cexp_2i_alpha * cBetah4 * Y2mA[0]
@@ -246,11 +237,11 @@ def gen_IMRPhenomPv2(
     #     f, m2, m1, chi2_l, chi1_l, chip, phiRef, M, dist_mpc
     # )
     t0 = jax.grad(phi_IIb)(f_RD) / (2 * jnp.pi)
-    phase_corr = jnp.cos(2 * jnp.pi * fs * (t0)) - 1j * jnp.sin(2 * jnp.pi * fs * (t0))
     M_s = (m1 + m2) * MTSUN
-    phase_corr_tc = jnp.exp(-1j * fs * M_s * tc)
-    hp *= phase_corr * phase_corr_tc
-    hc *= phase_corr * phase_corr_tc
+    # Fuse t0 time-shift and tc time-shift into a single complex exponential per bin.
+    phase_corr = jnp.exp(-1j * fs * (2 * jnp.pi * t0 + M_s * tc))
+    hp *= phase_corr
+    hc *= phase_corr
 
     # final touches to hp and hc, stolen from Scott
     c2z = jnp.cos(2 * zeta_polariz)

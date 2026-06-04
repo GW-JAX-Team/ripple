@@ -9,12 +9,22 @@ from jaxtyping import Array, Float
 from typing import Optional
 from ..conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from .IMRPhenom_tidal_utils import get_quadparam_octparam, get_kappa
-from .IMRPhenomD import Phase, Amp, get_IIb_raw_phase
+from .IMRPhenomD import (
+    Amp,
+    get_IIa_raw_phase,
+    get_IIb_raw_phase,
+    get_inspiral_phase,
+)
 from .IMRPhenomD_utils import (
     get_coeffs,
     get_transition_frequencies,
 )
 from .IMRPhenomD_QNMdata import fM_CUT
+from .TaylorF2 import (
+    get_4PNQM2SCoeff,
+    get_4PNQM2SOCoeff,
+    get_6PNQM2SCoeff,
+)
 
 #################
 ### AMPLITUDE ###
@@ -204,14 +214,18 @@ def get_tidal_phase(x: Array, theta: Array, kappa: float) -> Array:
 
 def get_spin_phase_correction(x: Array, theta: Array) -> Array:
     """
-    Get the higher order spin corrections, as detailed in Section III C of the NRTidalv2 paper.
+    Get the higher order spin corrections (3.5PN only).
+
+    LAL's IMRPhenomD_NRTidalv2 uses XLALSimInspiralGetHOSpinTerms which only
+    computes the 3.5PN spin-squared and spin-cubed terms. The 2PN and 3PN terms
+    described in the NRTidalv2 paper are NOT included in LAL's implementation.
 
     Args:
         x (Array): Angular frequency, in particular, x = (pi M f)^(2/3)
         theta (Array): Intrinsic parameters (mass1, mass2, chi1, chi2, lambda1, lambda2)
 
     Returns:
-        Array: Higher order spin corrections to the phase
+        Array: Higher order spin corrections to the phase (3.5PN only).
     """
 
     # Compute auxiliary quantities
@@ -240,24 +254,7 @@ def get_spin_phase_correction(x: Array, theta: Array) -> Array:
     octparam1 -= 1
     octparam2 -= 1
 
-    # Get phase contributions
-    SS_2 = -50.0 * quadparam1 * chi1_sq * X1sq - 50.0 * quadparam2 * chi2_sq * X2sq
-
-    SS_3 = (
-        5.0
-        / 84.0
-        * (9407.0 + 8218.0 * X1 - 2016.0 * X1sq)
-        * quadparam1
-        * X1sq
-        * chi1_sq
-        + 5.0
-        / 84.0
-        * (9407.0 + 8218.0 * X2 - 2016.0 * X2sq)
-        * quadparam2
-        * X2sq
-        * chi2_sq
-    )
-
+    # 3.5PN spin-squared and spin-cubed terms (matching LAL's XLALSimInspiralGetHOSpinTerms)
     SS_3p5 = (
         -400.0 * PI * quadparam1 * chi1_sq * X1sq
         - 400.0 * PI * quadparam2 * chi2_sq * X2sq
@@ -278,11 +275,108 @@ def get_spin_phase_correction(x: Array, theta: Array) -> Array:
     )
 
     prefac = 3.0 / (128.0 * eta)
-    psi_SS = prefac * (
-        SS_2 * x ** (-1.0 / 2.0) + SS_3 * x ** (1.0 / 2.0) + (SS_3p5 + SSS_3p5) * x
-    )
+    # Only 3.5PN term, matching LAL's implementation
+    psi_SS = prefac * (SS_3p5 + SSS_3p5) * x
 
     return psi_SS
+
+
+def get_qm_phase_correction(
+    fM_s: Array | Float,
+    theta: Array,
+) -> Array:
+    """
+    Return the residual quadrupole-monopole phase correction hidden inside
+    LAL's IMRPhenomD baseline when it is called in NRTidalv2 mode.
+
+    LAL passes dQuadMon{1,2} into TaylorF2AlignedPhasing while constructing the
+    IMRPhenomD inspiral phase. This shifts the 2PN and 3PN spin-squared pieces
+    of the BBH baseline before the usual phase-reference alignment is applied.
+    """
+
+    m1, m2, chi1, chi2, lambda1, lambda2 = theta
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
+    M_s = m1_s + m2_s
+    eta = m1_s * m2_s / (M_s**2.0)
+
+    X1 = m1_s / M_s
+    X2 = m2_s / M_s
+    quadparam1, _ = get_quadparam_octparam(lambda1)
+    quadparam2, _ = get_quadparam_octparam(lambda2)
+    dquadmon1 = quadparam1 - 1.0
+    dquadmon2 = quadparam2 - 1.0
+
+    delta_phi4 = (
+        get_4PNQM2SOCoeff(X1) + get_4PNQM2SCoeff(X1)
+    ) * dquadmon1 * chi1 * chi1 + (
+        get_4PNQM2SOCoeff(X2) + get_4PNQM2SCoeff(X2)
+    ) * dquadmon2 * chi2 * chi2
+    delta_phi6 = (
+        get_6PNQM2SCoeff(X1) * dquadmon1 * chi1 * chi1
+        + get_6PNQM2SCoeff(X2) * dquadmon2 * chi2 * chi2
+    )
+
+    v = (PI * fM_s) ** (1.0 / 3.0)
+    prefac = 3.0 / (128.0 * eta)
+    return prefac * (delta_phi4 / v + delta_phi6 * v)
+
+
+def Phase_with_qm_correction(
+    f: Array,
+    theta_bbh: Array,
+    theta_intrinsic: Array,
+    coeffs: Array,
+    transition_freqs: tuple[Float, Float, Float, Float, Float, Float],
+) -> Array:
+    """
+    Compute the IMRPhenomD BBH phase with the hidden NRTidalv2 quadrupole
+    correction included before the region-I/IIa matching.
+    """
+
+    m1, m2, _, _ = theta_bbh
+    M_s = (m1 + m2) * MTSUN
+    f1, f2, _, _, f_RD, f_damp = transition_freqs
+
+    def inspiral_phase(fM_s: Array | Float) -> Array:
+        return get_inspiral_phase(fM_s, theta_bbh, coeffs) + get_qm_phase_correction(
+            fM_s, theta_intrinsic
+        )
+
+    phi_Ins = inspiral_phase(f * M_s)
+
+    phi_Ins_f1, dphi_Ins_f1 = jax.value_and_grad(inspiral_phase)(f1 * M_s)
+    phi_IIa_f1, dphi_IIa_f1 = jax.value_and_grad(get_IIa_raw_phase)(
+        f1 * M_s, theta_bbh, coeffs
+    )
+
+    beta1_correction = dphi_Ins_f1 - dphi_IIa_f1
+    beta0 = phi_Ins_f1 - beta1_correction * (f1 * M_s) - phi_IIa_f1
+
+    phi_IIa_func = lambda fM_s: (
+        get_IIa_raw_phase(fM_s, theta_bbh, coeffs) + beta1_correction * fM_s
+    )
+    phi_IIa = phi_IIa_func(f * M_s) + beta0
+
+    phi_IIa_f2, dphi_IIa_f2 = jax.value_and_grad(phi_IIa_func)(f2 * M_s)
+    phi_IIb_f2, dphi_IIb_f2 = jax.value_and_grad(get_IIb_raw_phase)(
+        f2 * M_s, theta_bbh, coeffs, f_RD, f_damp
+    )
+
+    a1_correction = dphi_IIa_f2 - dphi_IIb_f2
+    a0 = phi_IIa_f2 + beta0 - a1_correction * (f2 * M_s) - phi_IIb_f2
+
+    phi_IIb = (
+        get_IIb_raw_phase(f * M_s, theta_bbh, coeffs, f_RD, f_damp)
+        + a0
+        + a1_correction * (f * M_s)
+    )
+
+    return (
+        phi_Ins * jnp.heaviside(f1 - f, 0.5)
+        + jnp.heaviside(f - f1, 0.5) * phi_IIa * jnp.heaviside(f2 - f, 0.5)
+        + phi_IIb * jnp.heaviside(f - f2, 0.5)
+    )
 
 
 def _get_merger_frequency(theta: Array, kappa: Optional[Float] = None) -> Float:
@@ -363,7 +457,7 @@ def _gen_IMRPhenomD_NRTidalv2(
     # Compute kappa
     kappa = get_kappa(theta=theta_intrinsic)
 
-    # Compute amplitudes
+    # Compute tidal amplitude and merger frequency
     A_T = get_tidal_amplitude(x, theta_intrinsic, kappa, distance=theta_extrinsic[0])
     f_merger = _get_merger_frequency(theta_intrinsic, kappa)
 
@@ -378,6 +472,13 @@ def _gen_IMRPhenomD_NRTidalv2(
     psi_SS = get_spin_phase_correction(x, theta_intrinsic)
 
     # Assemble everything
+    # LAL's IMRPhenomD (when called with NRTidalv2_V) adds tidal amplitude as:
+    #   amp0 * (amp + 2*sqrt(PI/5)*ampT) * exp(-i*phi)
+    # where ampT is the dimensionless tidal amplitude from XLALSimNRTunedTidesFDTidalAmplitudeFrequencySeries.
+    # Our get_tidal_amplitude already includes the amp0 * 2*sqrt(PI/5) factor,
+    # so we add A_T directly to bbh_amp.
+    # Then the Planck taper and tidal phase corrections are applied multiplicatively.
+    # See LALSimIMRPhenomD.c lines 428-452 and LALSimIMRPhenomD_NRTidal.c.
     h0 = A_P * (bbh_amp + A_T) * jnp.exp(1.0j * -(bbh_psi + psi_T + psi_SS))
 
     return h0
@@ -438,15 +539,21 @@ def gen_IMRPhenomD_NRTidalv2(
     )
 
     # Call the amplitude and phase now
-    Psi = Phase(f, bbh_theta_intrinsic, coeffs, transition_freqs)
-    Psi_ref = Phase(f_ref, bbh_theta_intrinsic, coeffs, transition_freqs)
+    Psi = Phase_with_qm_correction(
+        f, bbh_theta_intrinsic, theta_intrinsic, coeffs, transition_freqs
+    )
+    Psi_ref = Phase_with_qm_correction(
+        jnp.array([f_ref]),
+        bbh_theta_intrinsic,
+        theta_intrinsic,
+        coeffs,
+        transition_freqs,
+    )[0]
     Mf_ref = f_ref * M_s
     Psi -= t0 * ((f * M_s) - Mf_ref) + Psi_ref
     ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] - 2 * theta_extrinsic[2]
     Psi += ext_phase_contrib
-    fcut_above = lambda f: fM_CUT / M_s
-    fcut_below = lambda f: f[jnp.abs(f - (fM_CUT / M_s)).argmin() - 1]
-    fcut_true = jax.lax.cond((fM_CUT / M_s) > f[-1], fcut_above, fcut_below, f)
+    fcut_true = jnp.floor(fM_CUT / M_s / (f[1] - f[0])) * (f[1] - f[0])
     Psi = Psi * jnp.heaviside(fcut_true - f, 0.0) + 2.0 * PI * jnp.heaviside(
         f - fcut_true, 1.0
     )

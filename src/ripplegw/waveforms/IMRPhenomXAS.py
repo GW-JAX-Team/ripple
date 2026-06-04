@@ -25,7 +25,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, phase_coeffs: Array) -> Array:
     eta = m1_s * m2_s / (M_s**2.0)
     eta2 = eta * eta
     eta3 = eta2 * eta
-    delta = jnp.sqrt(1.0 - 4.0 * eta)
+    delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
 
     mm1 = 0.5 * (1.0 + delta)
     mm2 = 0.5 * (1.0 - delta)
@@ -306,41 +306,54 @@ def get_inspiral_phase(fM_s: Array, theta: Array, phase_coeffs: Array) -> Array:
     sigma3 = (-5.0 / 5.0) * coeffs_Ins[2]
     sigma4 = (-5.0 / 6.0) * coeffs_Ins[3]
 
+    f13 = fM_s ** (1.0 / 3.0)
+    f23 = f13 * f13
+    f43 = fM_s * f13
+    f53 = fM_s * f23
+    f2 = fM_s * fM_s
+    f73 = f2 * f13
+    f83 = f2 * f23
+    f3 = f2 * fM_s
+    f103 = f3 * f13
+    f113 = f3 * f23
+    log_f = jnp.log(fM_s)
+
     phi_TF2 = (
         phi0
-        + phi1 * (fM_s ** (1.0 / 3.0))
-        + phi2 * (fM_s ** (2.0 / 3.0))
+        + phi1 * f13
+        + phi2 * f23
         + phi3 * fM_s
-        + phi4 * (fM_s ** (4.0 / 3.0))
-        + phi5 * (fM_s ** (5.0 / 3.0))
-        + phi5L * (fM_s ** (5.0 / 3.0)) * jnp.log(fM_s)
-        + phi6 * (fM_s**2.0)
-        + phi6L * (fM_s**2.0) * jnp.log(fM_s)
-        + phi7 * (fM_s ** (7.0 / 3.0))
-        + phi8 * (fM_s ** (8.0 / 3.0))
-        + phi8L * (fM_s ** (8.0 / 3.0)) * jnp.log(fM_s)
+        + phi4 * f43
+        + phi5 * f53
+        + phi5L * f53 * log_f
+        + phi6 * f2
+        + phi6L * f2 * log_f
+        + phi7 * f73
+        + phi8 * f83
+        + phi8L * f83 * log_f
     )
 
-    phi_Ins = phi_TF2 + (
-        sigma1 * (fM_s ** (8.0 / 3.0))
-        + sigma2 * (fM_s**3.0)
-        + sigma3 * (fM_s ** (10.0 / 3.0))
-        + sigma4 * (fM_s ** (11.0 / 3.0))
-    )
+    phi_Ins = phi_TF2 + (sigma1 * f83 + sigma2 * f3 + sigma3 * f103 + sigma4 * f113)
 
     phiN = -(3.0 * PI ** (-5.0 / 3.0)) / 128.0
-    return phi_Ins * phiN * (fM_s ** -(5.0 / 3.0))
+    return phi_Ins * phiN / f53
 
 
 def get_intermediate_raw_phase(
-    fM_s: Array, theta: Array, phase_coeffs: Array, dPhaseIN, dPhaseRD, cL
+    fM_s: Array,
+    theta: Array,
+    phase_coeffs: Array,
+    dPhaseIN,
+    dPhaseRD,
+    cL,
+    chip: float = 0.0,
 ) -> Array:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
-    delta = jnp.sqrt(1.0 - 4.0 * eta)
+    delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
 
     mm1 = 0.5 * (1.0 + delta)
     mm2 = 0.5 * (1.0 - delta)
@@ -348,7 +361,7 @@ def get_intermediate_raw_phase(
     chia = chi1 - chi2
 
     fMs_RD, fMs_damp, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(
-        m1, m2, chi1, chi2
+        m1, m2, chi1, chi2, chip=chip
     )
 
     gpoints5 = jnp.array(
@@ -545,14 +558,14 @@ def get_intermediate_raw_phase(
 
 
 def get_mergerringdown_raw_phase(
-    fM_s: Array, theta: Array, phase_coeffs: Array
+    fM_s: Array, theta: Array, phase_coeffs: Array, chip: float = 0.0
 ) -> tuple[Array, tuple[Array, Array]]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
-    delta = jnp.sqrt(1.0 - 4.0 * eta)
+    delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
     mm1 = 0.5 * (1.0 + delta)
     mm2 = 0.5 * (1.0 - delta)
     # chi_eff = mm1 * chi1 + mm2 * chi2
@@ -560,7 +573,9 @@ def get_mergerringdown_raw_phase(
     chia = chi1 - chi2
     StotR = (mm1**2 * chi1 + mm2**2 * chi2) / (mm1**2 + mm2**2)
 
-    fMs_RD, fMs_damp, _, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
+    fMs_RD, fMs_damp, _, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(
+        m1, m2, chi1, chi2, chip=chip
+    )
     fMs_IMmatch = 0.6 * (0.5 * fMs_RD + fMs_ISCO)
     fMs_PhaseRDMin = fMs_IMmatch
     fMs_PhaseRDMax = fMs_RD + 1.25 * fMs_damp
@@ -718,7 +733,10 @@ def get_mergerringdown_raw_phase(
 
 
 def Phase(
-    f: Float[Array, " n_freq"] | float, theta: Array, phase_coeffs: Array
+    f: Float[Array, " n_freq"] | float,
+    theta: Array,
+    phase_coeffs: Array,
+    chip: float = 0.0,
 ) -> Array:
     """
     Computes the phase of the PhenomD waveform following 1508.07253.
@@ -734,7 +752,9 @@ def Phase(
     eta = m1_s * m2_s / (M_s**2.0)
 
     fM_s = f * M_s
-    fMs_RD, _, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
+    fMs_RD, _, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(
+        m1, m2, chi1, chi2, chip=chip
+    )
     fMs_IMmatch = 0.6 * (0.5 * fMs_RD + fMs_ISCO)
     fMs_INmatch = fMs_MECO
     deltafMs = (fMs_IMmatch - fMs_INmatch) * 0.03
@@ -744,7 +764,7 @@ def Phase(
     # Calculate the inspiral and raw merger phase (required for the intemediate phase)
     phi_Ins = get_inspiral_phase(fM_s, theta, phase_coeffs)
     phi_MRD, (cL, CV_phase_RD0) = get_mergerringdown_raw_phase(
-        fM_s, theta, phase_coeffs
+        fM_s, theta, phase_coeffs, chip
     )
 
     # Get matching points
@@ -755,20 +775,21 @@ def Phase(
         f1_Ms, theta, phase_coeffs
     )
     phi_MRD_match_f2, dphi_MRD_match_f2 = jax.value_and_grad(
-        get_mergerringdown_raw_phase, has_aux=True
-    )(f2_Ms, theta, phase_coeffs)
-    phi_MRD_match_f2, _ = get_mergerringdown_raw_phase(f2_Ms, theta, phase_coeffs)
+        lambda f_: get_mergerringdown_raw_phase(f_, theta, phase_coeffs, chip),
+        has_aux=True,
+    )(f2_Ms)
+    phi_MRD_match_f2, _ = get_mergerringdown_raw_phase(f2_Ms, theta, phase_coeffs, chip)
 
     # Now find the intermediate phase
     phi_Int_match_f1, dphi_Int_match_f1 = jax.value_and_grad(
         get_intermediate_raw_phase
-    )(f1_Ms, theta, phase_coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL)
+    )(f1_Ms, theta, phase_coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL, chip)
     alpha1 = dphi_Ins_match_f1 - dphi_Int_match_f1
     alpha0 = phi_Ins_match_f1 - phi_Int_match_f1 - alpha1 * f1_Ms
 
     phi_Int_func = lambda fM_s_: (
         get_intermediate_raw_phase(
-            fM_s_, theta, phase_coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL
+            fM_s_, theta, phase_coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL, chip
         )
         + alpha1 * fM_s_
         + alpha0
@@ -795,6 +816,83 @@ def Phase(
     return phase
 
 
+def PhaseDerivative(
+    f: Array,
+    theta: Array,
+    phase_coeffs: Array,
+    chip: float = 0.0,
+) -> Array:
+    """
+    Compute d Phase / d f for IMRPhenomXAS using the same piecewise construction
+    as Phase(), but without differentiating through the final Heaviside assembly.
+    """
+
+    m1, m2, chi1, chi2 = theta
+    m1_s = m1 * MTSUN
+    m2_s = m2 * MTSUN
+    M_s = m1_s + m2_s
+    eta = m1_s * m2_s / (M_s**2.0)
+
+    fM_s = f * M_s
+    fMs_RD, _, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(
+        m1, m2, chi1, chi2, chip
+    )
+    fMs_IMmatch = 0.6 * (0.5 * fMs_RD + fMs_ISCO)
+    fMs_INmatch = fMs_MECO
+    deltafMs = (fMs_IMmatch - fMs_INmatch) * 0.03
+    f1_Ms = fMs_INmatch - 1.0 * deltafMs
+    f2_Ms = fMs_IMmatch + 0.5 * deltafMs
+
+    phi_Ins_match_f1, dphi_Ins_match_f1 = jax.value_and_grad(get_inspiral_phase)(
+        f1_Ms, theta, phase_coeffs
+    )
+    _phi_MRD_match_f2, dphi_MRD_match_f2 = jax.value_and_grad(
+        get_mergerringdown_raw_phase, has_aux=True
+    )(f2_Ms, theta, phase_coeffs, chip)
+    _phi_MRD_match_f2, (cL, CV_phase_RD0) = get_mergerringdown_raw_phase(
+        f2_Ms, theta, phase_coeffs, chip
+    )
+
+    phi_Int_match_f1, dphi_Int_match_f1 = jax.value_and_grad(
+        get_intermediate_raw_phase
+    )(f1_Ms, theta, phase_coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL, chip)
+    alpha1 = dphi_Ins_match_f1 - dphi_Int_match_f1
+    alpha0 = phi_Ins_match_f1 - phi_Int_match_f1 - alpha1 * f1_Ms
+
+    phi_Int_func = lambda fM_s_: (
+        get_intermediate_raw_phase(
+            fM_s_, theta, phase_coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL, chip
+        )
+        + alpha1 * fM_s_
+        + alpha0
+    )
+
+    _phi_Int_match_f2, dphi_Int_match_f2 = jax.value_and_grad(phi_Int_func)(f2_Ms)
+    beta1 = dphi_Int_match_f2 - dphi_MRD_match_f2
+
+    dphi_Ins = jax.grad(get_inspiral_phase)(fM_s, theta, phase_coeffs)
+    dphi_Int = jax.grad(phi_Int_func)(fM_s)
+    dphi_MRD = (
+        jax.grad(
+            lambda x: get_mergerringdown_raw_phase(x, theta, phase_coeffs, chip)[0]
+        )(fM_s)
+        + beta1
+    )
+
+    dphase_dMf = jax.lax.cond(
+        fM_s < f1_Ms,
+        lambda _: dphi_Ins / eta,
+        lambda _: jax.lax.cond(
+            fM_s < f2_Ms,
+            lambda __: dphi_Int / eta,
+            lambda __: dphi_MRD / eta,
+            operand=None,
+        ),
+        operand=None,
+    )
+    return dphase_dMf * M_s
+
+
 def get_Amp0(fM_s: Array, eta: Float) -> Array:
     Amp0 = (
         (2.0 / 3.0 * eta) ** (1.0 / 2.0) * (fM_s) ** (-7.0 / 6.0) * PI ** (-1.0 / 6.0)
@@ -802,14 +900,16 @@ def get_Amp0(fM_s: Array, eta: Float) -> Array:
     return Amp0
 
 
-def get_inspiral_Amp(fM_s: Array, theta: Array, amp_coeffs: Array) -> Array:
+def get_inspiral_Amp(
+    fM_s: Array, theta: Array, amp_coeffs: Array, chip: float = 0.0
+) -> Array:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
     eta2 = eta * eta
-    delta = jnp.sqrt(1.0 - 4.0 * eta)
+    delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
 
     mm1 = 0.5 * (1.0 + delta)
     mm2 = 0.5 * (1.0 - delta)
@@ -1008,7 +1108,7 @@ def get_inspiral_Amp(fM_s: Array, theta: Array, amp_coeffs: Array) -> Array:
 
 
 def get_intermediate_Amp(
-    fM_s: Array, theta: Array, amp_coeffs: Array, fMs_AmpRDMin
+    fM_s: Array, theta: Array, amp_coeffs: Array, fMs_AmpRDMin, chip: float = 0.0
 ) -> Array:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
@@ -1016,7 +1116,7 @@ def get_intermediate_Amp(
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
     # eta2 = eta * eta
-    delta = jnp.sqrt(1.0 - 4.0 * eta)
+    delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
 
     mm1 = 0.5 * (1.0 + delta)
     mm2 = 0.5 * (1.0 - delta)
@@ -1033,9 +1133,9 @@ def get_intermediate_Amp(
     # This needs to come from outside
     FMs4 = fMs_AmpRDMin
 
-    inspFMs1, d1 = jax.value_and_grad(get_inspiral_Amp)(FMs1, theta, amp_coeffs)
+    inspFMs1, d1 = jax.value_and_grad(get_inspiral_Amp)(FMs1, theta, amp_coeffs, chip)
     rdFMs4, d4 = jax.value_and_grad(get_mergerringdown_Amp, has_aux=True)(
-        FMs4, theta, amp_coeffs
+        FMs4, theta, amp_coeffs, chip
     )
     rdFMs4 = rdFMs4[0]
 
@@ -1201,23 +1301,24 @@ def get_intermediate_Amp(
 
 
 def get_mergerringdown_Amp(
-    fM_s: Array,
+    fM_s: float | Array,
     theta: Array,
     amp_coeffs: Array,
+    chip: float = 0.0,
 ) -> tuple[Array, Array]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
-    delta = jnp.sqrt(1.0 - 4.0 * eta)
+    delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
 
     mm1 = 0.5 * (1.0 + delta)
     mm2 = 0.5 * (1.0 - delta)
     StotR = (mm1**2 * chi1 + mm2**2 * chi2) / (mm1**2 + mm2**2)
     chia = chi1 - chi2
 
-    fMs_RD, fMs_damp, _, _ = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
+    fMs_RD, fMs_damp, _, _ = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2, chip)
 
     gamma2 = (
         IMRPhenomX_utils.Amp_Nospin_CV(amp_coeffs[4, 0:amp_eqspin_indx], eta)
@@ -1279,7 +1380,9 @@ def get_mergerringdown_Amp(
     return Amp_RD, fMs_AmpRDMin
 
 
-def Amp(f: Array, theta: Array, amp_coeffs: Array, D: Float = 1.0) -> Array:
+def Amp(
+    f: Array, theta: Array, amp_coeffs: Array, D: Float = 1.0, chip: float = 0.0
+) -> Array:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -1297,9 +1400,9 @@ def Amp(f: Array, theta: Array, amp_coeffs: Array, D: Float = 1.0) -> Array:
     # Below
     Overallamp = amp0 * ampNorm
 
-    Amp_Ins = get_inspiral_Amp(fM_s, theta, amp_coeffs)
-    Amp_RD, fMs_AmpRDMin = get_mergerringdown_Amp(fM_s, theta, amp_coeffs)
-    Amp_Int = get_intermediate_Amp(fM_s, theta, amp_coeffs, fMs_AmpRDMin)
+    Amp_Ins = get_inspiral_Amp(fM_s, theta, amp_coeffs, chip)
+    Amp_RD, fMs_AmpRDMin = get_mergerringdown_Amp(fM_s, theta, amp_coeffs, chip)
+    Amp_Int = get_intermediate_Amp(fM_s, theta, amp_coeffs, fMs_AmpRDMin, chip)
 
     Amp = (
         Amp_Ins * jnp.heaviside(fMs_AmpMatchIN - fM_s, 0.5)
@@ -1328,7 +1431,7 @@ def _gen_IMRPhenomXAS(
 
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
-    delta = jnp.sqrt(1.0 - 4.0 * eta)
+    delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
     mm1 = 0.5 * (1.0 + delta)
     mm2 = 0.5 * (1.0 - delta)
 
@@ -1348,11 +1451,9 @@ def _gen_IMRPhenomXAS(
         jax.grad(Phase)((fMs_RD - fMs_damp) / M_s, theta_intrinsic, phase_coeffs) / M_s
     )
     linb = linb - dphi22Ref - 2.0 * PI * (500.0 + psi4tostrain)
-    # The addition π shift comes from Y22
     phifRef = (
         -(Phase(f_ref, theta_intrinsic, phase_coeffs) + linb * (f_ref * M_s) + lina)
         + PI / 4.0
-        + PI
     )
     ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] + 2 * theta_extrinsic[2]
     Psi = Psi + (linb * fM_s) + lina + phifRef - 2 * PI + ext_phase_contrib
@@ -1377,7 +1478,7 @@ def gen_IMRPhenomXAS(f: Array, params: Array, f_ref: float):
     phic: Phase of coalesence
 
     Returns:
-      h0 (array): Complex gravitational wave strain
+      h22 (array): Complex h_{2,2} gravitational wave mode
     """
     # Lets make this easier by starting in Mchirp and eta space
     m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
@@ -1386,10 +1487,10 @@ def gen_IMRPhenomXAS(f: Array, params: Array, f_ref: float):
     phase_coeffs = IMRPhenomX_utils.PhenomX_phase_coeff_table
     amp_coeffs = IMRPhenomX_utils.PhenomX_amp_coeff_table
 
-    h0 = _gen_IMRPhenomXAS(
+    h22 = _gen_IMRPhenomXAS(
         f, theta_intrinsic, theta_extrinsic, phase_coeffs, amp_coeffs, f_ref
     )
-    return h0
+    return h22
 
 
 def gen_IMRPhenomXAS_hphc(f: Array, params: Array, f_ref: float):
@@ -1413,9 +1514,14 @@ def gen_IMRPhenomXAS_hphc(f: Array, params: Array, f_ref: float):
       hc (array): Strain of the cross polarization
     """
     iota = params[7]
-    h0 = gen_IMRPhenomXAS(f, params, f_ref)
+    h22 = gen_IMRPhenomXAS(f, params, f_ref)
 
-    hp = h0 * (1 / 2 * (1 + jnp.cos(iota) ** 2))
-    hc = -1j * h0 * jnp.cos(iota)
+    # -1 prefactor in hp (and the corresponding sign in hc) comes from
+    # Ylmfactor = e^(i*PI) in Y_{-2}^{22}, which LAL evaluates at phi=PI/2
+    # after generating the h22 mode:
+    #   hp = pfac  * Ylmfactor * h22 = -(1+cos^2 iota)/2 * h22
+    #   hc = -i    * cfac * Ylmfactor * h22 = i * cos(iota) * h22
+    hp = -h22 * (1 / 2 * (1 + jnp.cos(iota) ** 2))
+    hc = 1j * h22 * jnp.cos(iota)
 
     return hp, hc

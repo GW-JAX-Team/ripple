@@ -14,7 +14,7 @@ N_RUNS="50"
 mkdir -p "${OUTDIR}"
 
 PRECISIONS=("float32" "float64")
-MODELS=("TaylorF2" "IMRPhenomD" "IMRPhenomXAS" "IMRPhenomPv2" "IMRPhenomXPHM" "IMRPhenomD_NRTidalv2" "IMRPhenomXAS_NRTidalv3")
+MODELS=("TaylorF2" "IMRPhenomD" "IMRPhenomD_NRTidalv2" "IMRPhenomHM" "IMRPhenomPv2" "IMRPhenomXAS" "IMRPhenomXAS_NRTidalv3" "IMRPhenomXHM" "IMRPhenomXP" "IMRPhenomXPHM")
 
 TIMING_SUB="${OUTDIR}/timing.sub"
 POSTPROCESS_SUB="${OUTDIR}/postprocess.sub"
@@ -25,7 +25,7 @@ DAG_FILE="${OUTDIR}/ripple_timings.dag"
 # Adjust the requirements line to match your cluster's GPU ClassAd attribute.
 cat > "${TIMING_SUB}" << EOF
 executable = ${UV}
-arguments  = run --extra cuda ripple_time \$(MODEL) --device gpu --n-waveforms ${N_WAVEFORMS} --n-runs ${N_RUNS} --precision \$(PRECISION)
+arguments  = run --extra cuda ripple-benchmark \$(MODEL) --device gpu --n-waveforms ${N_WAVEFORMS} --n-runs ${N_RUNS} --precision \$(PRECISION)
 initialdir = ${REPO_DIR}
 output     = ${OUTDIR}/\$(MODEL)_\$(PRECISION)-\$(ClusterId).\$(ProcId).out
 error      = ${OUTDIR}/\$(MODEL)_\$(PRECISION)-\$(ClusterId).\$(ProcId).err

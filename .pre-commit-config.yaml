@@ -4,13 +4,13 @@ ci:
 
 repos:
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.10.8
+    rev: 0.11.19
     hooks:
       - id: uv-lock
         args: ["--upgrade"]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.4
+    rev: v0.15.16
     hooks:
       - id: ruff-check
         args: ["--fix"]
@@ -19,8 +19,8 @@ repos:
         files: src/
   
   - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.408
+    rev: v1.1.410
     hooks:
     - id: pyright
       files: src/
-      additional_dependencies: [jax, jaxtyping, typing_extensions, numpy]
+      additional_dependencies: ["jax>=0.8.2", "jaxtyping>=0.3.3", numpy, typing_extensions]

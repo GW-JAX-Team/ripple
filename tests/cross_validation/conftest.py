@@ -1,7 +1,7 @@
 """Cross-validation test configuration and session summary.
 
-This conftest collects per-waveform mismatch statistics from all
-test_waveform_mismatch runs and prints a formatted summary at the end of the
+This conftest collects per-waveform overlap loss statistics from all
+test_waveform_overlap runs and prints a formatted summary at the end of the
 session, including hardware information and pass/fail status per waveform.
 """
 
@@ -177,21 +177,26 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     terminalreporter.write_sep("=", "")
 
     # ---- persist metadata to disk ----------------------------------------
-    # Mirror the run-tag subdirectory scheme used by the test (n{N}_T{T}).
-    n_samples_opt = config.getoption("--n-samples", default=10)
-    T_opt = config.getoption("--T", default=None)
-    if T_opt is None:
-        T_str = "Tdefault"
-    else:
-        T_str = f"T{int(T_opt)}" if T_opt == int(T_opt) else f"T{T_opt}"
-    run_tag = f"n{n_samples_opt}_{T_str}"
-    results_dir = Path(__file__).parent / "results" / run_tag
-    results_dir.mkdir(parents=True, exist_ok=True)
-    metadata = {
-        "hardware": hw,
-        "waveforms": results,
-    }
-    metadata_file = results_dir / "metadata.json"
-    with open(metadata_file, "w") as f:
-        json.dump(metadata, f, indent=2)
-    terminalreporter.write_line(f"Metadata saved to: {metadata_file}")
+    # Group results by (n_samples, T) to match the run-tag directories used by
+    # the test (n{N}_T{T}).  Each group gets its own metadata.json so the file
+    # always lands in the same directory as the per-waveform CSV files.
+    from itertools import groupby
+
+    def _run_tag(r):
+        T = r["T"]
+        T_str = f"T{int(T)}" if T == int(T) else f"T{T}"
+        return f"n{r['n_samples']}_{T_str}"
+
+    sorted_results = sorted(results, key=_run_tag)
+    for tag, group in groupby(sorted_results, key=_run_tag):
+        group_results = list(group)
+        results_dir = Path(__file__).parent / "results" / tag
+        results_dir.mkdir(parents=True, exist_ok=True)
+        metadata = {
+            "hardware": hw,
+            "waveforms": group_results,
+        }
+        metadata_file = results_dir / "metadata.json"
+        with open(metadata_file, "w") as f:
+            json.dump(metadata, f, indent=2)
+        terminalreporter.write_line(f"Metadata saved to: {metadata_file}")

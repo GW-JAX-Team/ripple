@@ -4,7 +4,10 @@ This module provides fixtures for common test setup, including default
 frequency grid parameters.
 """
 
+import jax
 import pytest
+
+jax.config.update("jax_enable_x64", True)
 
 from tests.utils import get_freqs
 

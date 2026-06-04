@@ -527,9 +527,11 @@ def IMRPhenDAmplitude(
     Amp_IIb = get_IIb_Amp(f * M_s, theta, coeffs, f_RD, f_damp)
 
     # And now we can combine them by multiplying by a set of heaviside functions
-    fcut_above = lambda f: fM_CUT / M_s
-    fcut_below = lambda f: f[jnp.abs(f - (fM_CUT / M_s)).argmin() - 1]
-    fcut_true = jax.lax.cond((fM_CUT / M_s) > f[-1], fcut_above, fcut_below, f)
+    # fcut_true is the last grid point strictly below fM_CUT/M_s (= floor of the cutoff).
+    # Using floor(x/df)*df avoids array ops (argmin/searchsorted) while matching LAL's
+    # grid-snapped cutoff exactly.  When fM_CUT/M_s > f[-1] the large value naturally
+    # leaves heaviside = 1 for every in-band frequency, so no lax.cond is needed.
+    fcut_true = jnp.floor(fM_CUT / M_s / (f[1] - f[0])) * (f[1] - f[0])
     Amp = (
         Amp_Ins * jnp.heaviside(f3 - f, 0.5)
         + jnp.heaviside(f - f3, 0.5) * Amp_IIa * jnp.heaviside(f4 - f, 0.5)
@@ -630,10 +632,7 @@ def _gen_IMRPhenomD(
     Psi -= t0 * ((f * M_s) - Mf_ref) + Psi_ref
     ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] - 2 * theta_extrinsic[2]
     Psi += ext_phase_contrib
-    fcut_above = lambda f: fM_CUT / M_s
-    fcut_below = lambda f: f[jnp.abs(f - (fM_CUT / M_s)).argmin() - 1]
-    fcut_true = jax.lax.cond((fM_CUT / M_s) > f[-1], fcut_above, fcut_below, f)
-    # fcut_true = f[jnp.abs(f - (fM_CUT / M_s)).argmin() - 1]
+    fcut_true = jnp.floor(fM_CUT / M_s / (f[1] - f[0])) * (f[1] - f[0])
     Psi = Psi * jnp.heaviside(fcut_true - f, 0.0) + 2.0 * PI * jnp.heaviside(
         f - fcut_true, 1.0
     )
@@ -701,65 +700,3 @@ def gen_IMRPhenomD_hphc(
     hc = -1j * h0 * jnp.cos(iota)
 
     return hp, hc
-
-
-####################################################################################################
-######################################## HIGHER-ORDER MODES ########################################
-####################################################################################################
-
-# def PhiMRDAnsatzInt(
-#         f: float,
-#         coeffs: Array,
-#         fRD_22: float,
-#         fDM_22: float,
-#         Rholm: float,
-#         Taulm: float
-# ):
-#     """
-#     See eq. 9 of https://arxiv.org/abs/1708.00404
-#     """
-#     return (
-#         - coeffs[15]/f +
-#         (4.0/3.0) * (coeffs[16] * (f ** (3.0/4.0))) +
-#         coeffs[14] * f +
-#         coeffs[17] * Rholm * jnp.arctan((f - coeffs[18] * fRD_22)/(Rholm * fDM_22 * Taulm))
-#     )
-
-# def HM_mapped_PhenomD_Phase(
-#         Mf: float | Array,
-#         theta: Array,
-#         coeffs: Array,
-#         MfInsJoin: float,
-#         MfMRDJoin: float,
-#         Rholm: float,
-#         Taulm: float
-# ):
-#     """
-#     This is a weird implementation of IMRPhenDPhase from LALSimIMRPhenomD_internals.c (line 1257)
-#     using functions from both LAL and ripple. NOTE: this might be a problem
-#     """
-
-#     # Inspiral: ripple, get_inspiral_phase
-#     # Intermediate: ripple, get_IIa_raw_phase
-#     # MRD: LAL, PhiMRDAnsatzInt
-
-#     m1, m2, chi1, chi2 = theta
-#     M = m1 + m2
-#     eta = m1 * m2 / (M**2.0)
-
-#     return jnp.where(
-#         Mf < MfInsJoin,
-#         get_inspiral_phase(Mf, theta, coeffs) * eta, # Inspiral
-#         jnp.where(
-#             Mf < MfMRDJoin,
-#             get_IIa_raw_phase(Mf, theta, coeffs) * eta,
-#             PhiMRDAnsatzInt(
-#                 Mf,
-#                 coeffs,
-#                 get_fRD(theta)[0],
-#                 get_fDamp(theta)[0],
-#                 Rholm,
-#                 Taulm
-#             )
-#         )
-#     )

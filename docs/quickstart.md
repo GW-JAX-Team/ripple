@@ -31,8 +31,7 @@ hp = polarizations["p"]
 hc = polarizations["c"]
 ```
 
-All waveform models share the same interface, so switching models only
-requires changing one line:
+All waveform models share the same interface, so switching models only requires changing one line:
 
 ```python
 waveform = ripplegw.IMRPhenomXAS(f_ref=20.0)   # same params dict
@@ -43,8 +42,7 @@ See `ripplegw.waveform_preset` for the full list of available models.
 
 ## GPU and Gradient Support
 
-ripple waveforms are pure JAX functions, so they work out of the box with
-`jax.jit`, `jax.grad`, and `jax.vmap`:
+ripple waveforms are pure JAX functions, so they work out of the box with `jax.jit`, `jax.grad`, and `jax.vmap`:
 
 ```python
 import jax
@@ -60,5 +58,5 @@ def log_likelihood(M_c):
 grad_Mc = jax.grad(log_likelihood)(params["M_c"])
 ```
 
-GPU execution requires no code changes — JAX will automatically use the GPU
-if one is available. See the [Installation](installation.md) page for GPU setup.
+GPU execution requires no code changes — JAX will automatically use the GPU if one is available.
+See the [Installation](installation.md) page for GPU setup.

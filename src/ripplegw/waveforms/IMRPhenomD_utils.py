@@ -6,6 +6,19 @@ from ..constants import MTSUN
 
 from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
 
+# Pre-compute constants for O(1) QNM table lookup on the uniform linspace grid.
+_QNM_N = len(QNMData_a)  # 500 000
+_QNM_A_MIN = float(QNMData_a[0])  # -1.0
+_QNM_A_MAX = float(QNMData_a[-1])  # 1.0
+_QNM_SCALE = (_QNM_N - 1) / (_QNM_A_MAX - _QNM_A_MIN)
+
+
+def _qnm_interp(x, table):
+    """Linear interp on the uniform QNMData_a grid in O(1) index arithmetic."""
+    t = (x - _QNM_A_MIN) * _QNM_SCALE
+    i = jnp.clip(jnp.floor(t).astype(jnp.int32), 0, _QNM_N - 2)
+    return table[i] + (t - i) * (table[i + 1] - table[i])
+
 
 def EradRational0815_s(eta, s):
     eta2 = eta * eta
@@ -72,30 +85,11 @@ def get_fRD_fdamp(m1, m2, chi1, chi2):
     M_s = m1_s + m2_s
     eta_s = m1_s * m2_s / (M_s**2.0)
     S = (chi1 * m1_s**2 + chi2 * m2_s**2) / (M_s**2.0)
-    # eta2 = eta_s * eta_s
-    # eta3 = eta2 * eta_s
-    # S2 = S * S
-    # S3 = S2 * S
-
-    # a = eta_s * (
-    #     3.4641016151377544
-    #     - 4.399247300629289 * eta_s
-    #     + 9.397292189321194 * eta2
-    #     - 13.180949901606242 * eta3
-    #     + S
-    #     * (
-    #         (1.0 / eta_s - 0.0850917821418767 - 5.837029316602263 * eta_s)
-    #         + (0.1014665242971878 - 2.0967746996832157 * eta_s) * S
-    #         + (-1.3546806617824356 + 4.108962025369336 * eta_s) * S2
-    #         + (-0.8676969352555539 + 2.064046835273906 * eta_s) * S3
-    #     )
-    # )
-
     a = FinalSpin0815_s(eta_s, S)
     Erad = EradRational0815(eta_s, chi1, chi2)
 
-    fRD = jnp.interp(a, QNMData_a, QNMData_fRD) / (1.0 - Erad)
-    fdamp = jnp.interp(a, QNMData_a, QNMData_fdamp) / (1.0 - Erad)
+    fRD = _qnm_interp(a, QNMData_fRD) / (1.0 - Erad)
+    fdamp = _qnm_interp(a, QNMData_fdamp) / (1.0 - Erad)
 
     return fRD / M_s, fdamp / M_s
 
