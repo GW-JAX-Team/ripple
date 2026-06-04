@@ -2,19 +2,16 @@
 
 import jax
 import jax.numpy as jnp
-from ..constants import MPC, MTSUN, PI
+from ..constants import MTSUN, PI
 from jaxtyping import Array
 from ..conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from .IMRPhenom_tidal_utils import get_kappa
 from .IMRPhenomD_NRTidalv2 import (
-    get_planck_taper,
     get_tidal_amplitude,
 )  # Same between v2 and v3
 from .NRTidalv3_utils import (
     _get_merger_frequency,
     _get_phenomx_spin_coefficients,
-    phenomx_tidal_phase,
-    phenomx_tidal_phase_derivative,
     get_tidal_phase,
     get_NRTidalv3_coefficients,
     get_tidalphasePN_coeffs,
@@ -23,7 +20,6 @@ from .NRTidalv3_utils import (
     fullTidalPhaseCorrection,
     changePhase_if_min,
 )
-from .IMRPhenomD_NRTidalv2 import get_qm_phase_correction, get_spin_phase_correction, get_amp0_lal
 from . import IMRPhenomX_utils
 from .IMRPhenomXAS import Amp, Phase, PhaseDerivative
 
