@@ -355,7 +355,6 @@ def main():
             "IMRPhenomXHM",
             "IMRPhenomXP",
             "IMRPhenomXPHM",
-            "IMRPhenomHM",
         ],
         help="Waveform approximant to time",
     )
