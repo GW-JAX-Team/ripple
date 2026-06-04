@@ -2,7 +2,7 @@
 
 import jax
 import jax.numpy as jnp
-from ..constants import MTSUN, PI
+from ..constants import MPC, MTSUN, PI
 from jaxtyping import Array
 from ..conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from .IMRPhenom_tidal_utils import get_kappa
@@ -23,6 +23,7 @@ from .NRTidalv3_utils import (
     fullTidalPhaseCorrection,
     changePhase_if_min,
 )
+from .IMRPhenomD_NRTidalv2 import get_qm_phase_correction, get_spin_phase_correction, get_amp0_lal
 from . import IMRPhenomX_utils
 from .IMRPhenomXAS import Amp, Phase, PhaseDerivative
 
@@ -68,6 +69,9 @@ def _gen_IMRPhenomXAS_NRTidalv3(
 
     # Compute amplitudes
     A_T = get_tidal_amplitude(x_23, theta_intrinsic, kappa, distance=theta_extrinsic[0])
+    # get_tidal_amplitude also adds in the prefactor below, which we should get rid of
+    # amp0 = get_amp0_lal(M_s / MTSUN, distance=theta_extrinsic[0] * MPC) * 2 * jnp.sqrt(PI / 5)
+    # A_T /= amp0
     f_merger = _get_merger_frequency(theta_intrinsic)
 
     # Tidal phase offset #
@@ -92,17 +96,34 @@ def _gen_IMRPhenomXAS_NRTidalv3(
         P_P_fref = general_planck_taper(
             f_ref * M_s, 1.15 * f_merger * M_s, 1.35 * f_merger * M_s
         )
-        dphiT = phenomx_tidal_phase_derivative(theta_intrinsic, f_final * M_s)
-        A_P = get_planck_taper(f_Ms, f_merger * M_s)
+        # Use JAX autodiff instead of the manually coded derivative to guarantee
+        # exact consistency with phenomx_tidal_phase (used for phiTfRef below).
+        # dphiT = jax.grad(phenomx_tidal_phase, argnums=1)(
+        #     theta_intrinsic, f_final * M_s
+        # )
+        dphiT = jax.grad(
+            lambda fMs: fullTidalPhaseCorrection(
+                fMs,
+                theta_intrinsic,
+                general_planck_taper(fMs, 1.15 * f_merger * M_s, 1.35 * f_merger * M_s),
+            )
+        )(f_final * M_s)
+        A_P = 1 - general_planck_taper(f_Ms, f_merger * M_s, 1.2 * f_merger * M_s)
+        # A_P = get_planck_taper(f_Ms, f_merger * M_s)
 
     bbh_phase_coeffs = IMRPhenomX_utils.PhenomX_phase_coeff_table
 
-    phiTfRef = jax.lax.cond(
-        no_taper,
-        lambda _: fullTidalPhaseCorrection(f_ref * M_s, theta_intrinsic, P_P_fref),
-        lambda _: phenomx_tidal_phase(theta_intrinsic, f_ref * M_s),
-        operand=None,
+    # phiTfRef = jax.lax.cond(
+    #     no_taper,
+    #     lambda _: fullTidalPhaseCorrection(f_ref * M_s, theta_intrinsic, P_P_fref),
+    #     lambda _: phenomx_tidal_phase(theta_intrinsic, f_ref * M_s),
+    #     operand=None,
+    # )
+    phiTfRef = fullTidalPhaseCorrection(  # This is part of the tidal correction to the phase alignment
+        f_ref * M_s, theta_intrinsic, P_P_fref
     )
+
+    # dphiXAS = jax.grad(Phase, argnums=0)(f_final, theta_intrinsic[:4], bbh_phase_coeffs) / M_s
     dphiXAS = PhaseDerivative(f_final, theta_intrinsic[:4], bbh_phase_coeffs) / M_s
     linb = dphiT - dphiXAS
     ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] + 2 * theta_extrinsic[2]
@@ -120,15 +141,15 @@ def _gen_IMRPhenomXAS_NRTidalv3(
     NRTidalv3_coeffs = get_NRTidalv3_coefficients(theta_intrinsic, PN_coeffs)
     NRTidalv3_phase = get_tidal_phase(x, NRTidalv3_coeffs, PN_coeffs)
 
-    # Check for local minimum
+    # Check for local minimum post-merger (Sec. IV G of arXiv:2311.07456).
+    # Skip when the tidal phase is uniformly zero (e.g. lambda=0) to avoid
+    # a spurious cond branch that triggers on any frequency above 0.9*f_merger.
     fHzmrgcheck = 0.9 * f_merger
+    # phase_is_nonzero = jnp.any(NRTidalv3_phase != 0.0)
     increasing = jnp.concatenate(
         [jnp.array([False]), NRTidalv3_phase[1:] >= NRTidalv3_phase[:-1]]
     )
     valid = (f >= fHzmrgcheck) & increasing
-
-    # If local minimum found: set NRTidalv3 phase to this value afterwards
-    # See discussion in Sec. IV G of arXiv:2311.07456
     x_lax = (f, NRTidalv3_phase, valid)
     NRTidalv3_phase = jax.lax.cond(
         jnp.any(valid), lambda arr: changePhase_if_min(*arr), lambda arr: arr[1], x_lax
