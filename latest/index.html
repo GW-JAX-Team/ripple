@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="./assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.36">
+      <meta name="generator" content="zensical-0.0.44">
     
     
       
@@ -34,7 +34,7 @@
       
         
       
-      <link rel="stylesheet" href="./assets/stylesheets/modern/main.1e981d71.min.css">
+      <link rel="stylesheet" href="./assets/stylesheets/modern/main.fba56155.min.css">
       
         
           
@@ -58,7 +58,7 @@
       
     
     
-    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,a=__md_scope)=>JSON.parse(t.getItem(a.pathname+"."+e)),__md_set=(e,t,a=localStorage,_=__md_scope)=>{try{a.setItem(_.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    <script>__md_scope=new URL(".",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
     
       
 
@@ -255,6 +255,9 @@
   
   
     
+      
+    
+    
     
       <li class="md-tabs__item">
         <a href="./tutorials/" class="md-tabs__link">
@@ -306,6 +309,9 @@
   
   
     
+      
+    
+    
     
       
   
@@ -313,12 +319,15 @@
   
   
     
+      
+    
+    
     
       <li class="md-tabs__item">
         <a href="./api/ripplegw/constants/" class="md-tabs__link">
           
   
-  API
+  Reference
 
         </a>
       </li>
@@ -397,8 +406,7 @@
   <span class="md-ellipsis">
     
   
-    Home
-  
+  Home
 
     
   </span>
@@ -415,8 +423,7 @@
   <span class="md-ellipsis">
     
   
-    Home
-  
+  Home
 
     
   </span>
@@ -485,8 +492,7 @@
   <span class="md-ellipsis">
     
   
-    Installation
-  
+  Installation
 
     
   </span>
@@ -512,8 +518,7 @@
   <span class="md-ellipsis">
     
   
-    Quick Start
-  
+  Quick Start
 
     
   </span>
@@ -553,8 +558,7 @@
   <span class="md-ellipsis">
     
   
-    Tutorials
-  
+  Tutorials
 
     
   </span>
@@ -569,8 +573,7 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-    Tutorials
-  
+  Tutorials
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
@@ -589,8 +592,7 @@
   <span class="md-ellipsis">
     
   
-    Tutorials
-  
+  Tutorials
 
     
   </span>
@@ -617,8 +619,34 @@
   <span class="md-ellipsis">
     
   
-    Generating Waveforms
+  Generating Waveforms
+
+    
+  </span>
   
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./tutorials/benchmarking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Benchmarking
 
     
   </span>
@@ -652,8 +680,7 @@
   <span class="md-ellipsis">
     
   
-    FAQ
-  
+  FAQ
 
     
   </span>
@@ -679,8 +706,7 @@
   <span class="md-ellipsis">
     
   
-    Contributing
-  
+  Contributing
 
     
   </span>
@@ -720,8 +746,7 @@
   <span class="md-ellipsis">
     
   
-    API
-  
+  Reference
 
     
   </span>
@@ -736,8 +761,7 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-    API
-  
+  Reference
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
@@ -770,8 +794,7 @@
   <span class="md-ellipsis">
     
   
-    ripplegw
-  
+  ripplegw
 
     
   </span>
@@ -786,8 +809,7 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-    ripplegw
-  
+  ripplegw
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
@@ -806,8 +828,7 @@
   <span class="md-ellipsis">
     
   
-    constants
-  
+  constants
 
     
   </span>
@@ -834,8 +855,7 @@
   <span class="md-ellipsis">
     
   
-    conversions
-  
+  conversions
 
     
   </span>
@@ -862,8 +882,7 @@
   <span class="md-ellipsis">
     
   
-    interfaces
-  
+  interfaces
 
     
   </span>
@@ -904,8 +923,7 @@
   <span class="md-ellipsis">
     
   
-    waveforms
-  
+  waveforms
 
     
   </span>
@@ -920,8 +938,7 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-    waveforms
-  
+  waveforms
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
@@ -933,267 +950,14 @@
   
   
     <li class="md-nav__item">
-      <a href="./api/ripplegw/waveforms/IMRPhenomD/" class="md-nav__link">
+      <a href="./api/ripplegw/waveforms/elliptic_integrals/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    IMRPhenomD
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="./api/ripplegw/waveforms/IMRPhenomD_NRTidalv2/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    IMRPhenomD_NRTidalv2
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="./api/ripplegw/waveforms/IMRPhenomD_QNMdata/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    IMRPhenomD_QNMdata
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="./api/ripplegw/waveforms/IMRPhenomD_utils/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    IMRPhenomD_utils
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="./api/ripplegw/waveforms/IMRPhenomPv2/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    IMRPhenomPv2
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="./api/ripplegw/waveforms/IMRPhenomPv2_utils/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    IMRPhenomPv2_utils
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="./api/ripplegw/waveforms/IMRPhenomXAS/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    IMRPhenomXAS
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="./api/ripplegw/waveforms/IMRPhenomXAS_NRTidalv3/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    IMRPhenomXAS_NRTidalv3
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="./api/ripplegw/waveforms/IMRPhenomXPHM/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    IMRPhenomXPHM
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="./api/ripplegw/waveforms/IMRPhenomX_utils/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    IMRPhenomX_utils
-  
+  elliptic_integrals
 
     
   </span>
@@ -1220,8 +984,7 @@
   <span class="md-ellipsis">
     
   
-    IMRPhenom_tidal_utils
-  
+  IMRPhenom_tidal_utils
 
     
   </span>
@@ -1241,15 +1004,14 @@
   
   
     <li class="md-nav__item">
-      <a href="./api/ripplegw/waveforms/LALSimIMRPhenomX_precession/" class="md-nav__link">
+      <a href="./api/ripplegw/waveforms/IMRPhenomD/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    LALSimIMRPhenomX_precession
-  
+  IMRPhenomD
 
     
   </span>
@@ -1269,15 +1031,14 @@
   
   
     <li class="md-nav__item">
-      <a href="./api/ripplegw/waveforms/NRTidalv3_utils/" class="md-nav__link">
+      <a href="./api/ripplegw/waveforms/IMRPhenomD_NRTidalv2/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    NRTidalv3_utils
-  
+  IMRPhenomD_NRTidalv2
 
     
   </span>
@@ -1297,15 +1058,14 @@
   
   
     <li class="md-nav__item">
-      <a href="./api/ripplegw/waveforms/SineGaussian/" class="md-nav__link">
+      <a href="./api/ripplegw/waveforms/IMRPhenomD_QNMdata/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    SineGaussian
-  
+  IMRPhenomD_QNMdata
 
     
   </span>
@@ -1325,15 +1085,14 @@
   
   
     <li class="md-nav__item">
-      <a href="./api/ripplegw/waveforms/TaylorF2/" class="md-nav__link">
+      <a href="./api/ripplegw/waveforms/IMRPhenomD_utils/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    TaylorF2
-  
+  IMRPhenomD_utils
 
     
   </span>
@@ -1353,15 +1112,230 @@
   
   
     <li class="md-nav__item">
-      <a href="./api/ripplegw/waveforms/elliptic_integrals/" class="md-nav__link">
+      <a href="./api/ripplegw/waveforms/IMRPhenomHM/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    elliptic_integrals
+  IMRPhenomHM
+
+    
+  </span>
   
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./api/ripplegw/waveforms/IMRPhenomPv2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  IMRPhenomPv2
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./api/ripplegw/waveforms/IMRPhenomPv2_utils/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  IMRPhenomPv2_utils
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./api/ripplegw/waveforms/IMRPhenomX_utils/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  IMRPhenomX_utils
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./api/ripplegw/waveforms/IMRPhenomXAS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  IMRPhenomXAS
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./api/ripplegw/waveforms/IMRPhenomXAS_NRTidalv3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  IMRPhenomXAS_NRTidalv3
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./api/ripplegw/waveforms/IMRPhenomXHM/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  IMRPhenomXHM
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./api/ripplegw/waveforms/IMRPhenomXP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  IMRPhenomXP
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./api/ripplegw/waveforms/IMRPhenomXPHM/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  IMRPhenomXPHM
 
     
   </span>
@@ -1388,8 +1362,88 @@
   <span class="md-ellipsis">
     
   
-    initialize_MSA_system
+  initialize_MSA_system
+
+    
+  </span>
   
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./api/ripplegw/waveforms/LALSimIMRPhenomX_precession/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  LALSimIMRPhenomX_precession
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./api/ripplegw/waveforms/NRTidalv3_utils/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  NRTidalv3_utils
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./api/ripplegw/waveforms/SineGaussian/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  SineGaussian
 
     
   </span>
@@ -1416,8 +1470,34 @@
   <span class="md-ellipsis">
     
   
-    spherical_harmonics
+  spherical_harmonics
+
+    
+  </span>
   
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./api/ripplegw/waveforms/TaylorF2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  TaylorF2
 
     
   </span>
@@ -1535,16 +1615,18 @@
 
 <h1 id="ripple">ripple 🌊<a class="headerlink" href="#ripple" title="Permanent link">¤</a></h1>
 <h2 id="a-jax-based-package-for-differentiable-gravitational-wave-waveform-generation">A JAX-based package for differentiable gravitational-wave waveform generation<a class="headerlink" href="#a-jax-based-package-for-differentiable-gravitational-wave-waveform-generation" title="Permanent link">¤</a></h2>
-<p><a href="https://github.com/GW-JAX-Team/ripple/blob/main/LICENSE"><img alt="license" src="https://img.shields.io/badge/License-MIT-blue" /></a> <a href="https://coveralls.io/github/GW-JAX-Team/ripple?branch=main"><img alt="coverage" src="https://img.shields.io/coveralls/github/GW-JAX-Team/ripple/main" /></a> <a href="https://results.pre-commit.ci/latest/github/GW-JAX-Team/ripple/main"><img alt="pre-commit.ci status" src="https://results.pre-commit.ci/badge/github/GW-JAX-Team/ripple/main.svg" /></a></p>
 <p>ripple is a JAX-based package for differentiable gravitational-wave waveform generation. By implementing waveform models as differentiable JAX functions, ripple enables gradient-based inference and runs natively on GPU, making it well-suited for use within modern probabilistic inference pipelines such as <a href="https://github.com/GW-JAX-Team/jim">Jim</a>.</p>
 <p><strong>Supported waveforms:</strong></p>
 <ul>
 <li>TaylorF2</li>
 <li>IMRPhenomD</li>
 <li>IMRPhenomD_NRTidalv2</li>
+<li>IMRPhenomHM</li>
+<li>IMRPhenomPv2</li>
 <li>IMRPhenomXAS</li>
 <li>IMRPhenomXAS_NRTidalv3</li>
-<li>IMRPhenomPv2</li>
+<li>IMRPhenomXHM</li>
+<li>IMRPhenomXP (MSA)</li>
 <li>IMRPhenomXPHM (MSA)</li>
 </ul>
 <div class="admonition warning">
@@ -1618,7 +1700,7 @@
       <script id="__config" type="application/json">{"annotate":null,"base":".","features":["navigation.instant","navigation.tabs","navigation.top","toc.follow","header.autohide"],"search":"./assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"default":"stable","provider":"mike"}}</script>
     
     
-      <script src="./assets/javascripts/bundle.dbc0afdc.min.js"></script>
+      <script src="./assets/javascripts/bundle.6e5f0216.min.js"></script>
       
         <script src="./javascripts/mathjax.js"></script>
       
