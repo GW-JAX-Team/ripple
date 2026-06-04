@@ -16,6 +16,9 @@
         <loc>https://gw-jax-team.github.io/ripple/stable/tutorials/generating_waveforms/</loc>
       </url>
       <url>
+        <loc>https://gw-jax-team.github.io/ripple/stable/tutorials/benchmarking/</loc>
+      </url>
+      <url>
         <loc>https://gw-jax-team.github.io/ripple/stable/FAQ/</loc>
       </url>
       <url>
@@ -31,6 +34,12 @@
         <loc>https://gw-jax-team.github.io/ripple/stable/api/ripplegw/interfaces/</loc>
       </url>
       <url>
+        <loc>https://gw-jax-team.github.io/ripple/stable/api/ripplegw/waveforms/elliptic_integrals/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/stable/api/ripplegw/waveforms/IMRPhenom_tidal_utils/</loc>
+      </url>
+      <url>
         <loc>https://gw-jax-team.github.io/ripple/stable/api/ripplegw/waveforms/IMRPhenomD/</loc>
       </url>
       <url>
@@ -43,10 +52,16 @@
         <loc>https://gw-jax-team.github.io/ripple/stable/api/ripplegw/waveforms/IMRPhenomD_utils/</loc>
       </url>
       <url>
+        <loc>https://gw-jax-team.github.io/ripple/stable/api/ripplegw/waveforms/IMRPhenomHM/</loc>
+      </url>
+      <url>
         <loc>https://gw-jax-team.github.io/ripple/stable/api/ripplegw/waveforms/IMRPhenomPv2/</loc>
       </url>
       <url>
         <loc>https://gw-jax-team.github.io/ripple/stable/api/ripplegw/waveforms/IMRPhenomPv2_utils/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/stable/api/ripplegw/waveforms/IMRPhenomX_utils/</loc>
       </url>
       <url>
         <loc>https://gw-jax-team.github.io/ripple/stable/api/ripplegw/waveforms/IMRPhenomXAS/</loc>
@@ -55,13 +70,16 @@
         <loc>https://gw-jax-team.github.io/ripple/stable/api/ripplegw/waveforms/IMRPhenomXAS_NRTidalv3/</loc>
       </url>
       <url>
+        <loc>https://gw-jax-team.github.io/ripple/stable/api/ripplegw/waveforms/IMRPhenomXHM/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/stable/api/ripplegw/waveforms/IMRPhenomXP/</loc>
+      </url>
+      <url>
         <loc>https://gw-jax-team.github.io/ripple/stable/api/ripplegw/waveforms/IMRPhenomXPHM/</loc>
       </url>
       <url>
-        <loc>https://gw-jax-team.github.io/ripple/stable/api/ripplegw/waveforms/IMRPhenomX_utils/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/stable/api/ripplegw/waveforms/IMRPhenom_tidal_utils/</loc>
+        <loc>https://gw-jax-team.github.io/ripple/stable/api/ripplegw/waveforms/initialize_MSA_system/</loc>
       </url>
       <url>
         <loc>https://gw-jax-team.github.io/ripple/stable/api/ripplegw/waveforms/LALSimIMRPhenomX_precession/</loc>
@@ -73,15 +91,9 @@
         <loc>https://gw-jax-team.github.io/ripple/stable/api/ripplegw/waveforms/SineGaussian/</loc>
       </url>
       <url>
-        <loc>https://gw-jax-team.github.io/ripple/stable/api/ripplegw/waveforms/TaylorF2/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/stable/api/ripplegw/waveforms/elliptic_integrals/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/stable/api/ripplegw/waveforms/initialize_MSA_system/</loc>
-      </url>
-      <url>
         <loc>https://gw-jax-team.github.io/ripple/stable/api/ripplegw/waveforms/spherical_harmonics/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/stable/api/ripplegw/waveforms/TaylorF2/</loc>
       </url>
 </urlset>
