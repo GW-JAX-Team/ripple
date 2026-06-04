@@ -75,7 +75,7 @@ OVERLAP_LOSS_THRESHOLDS = {
     "IMRPhenomHM": 1e-15,
     "IMRPhenomPv2": 1e-4,  # see note above
     "IMRPhenomXAS": 1e-15,
-    "IMRPhenomXAS_NRTidalv3": 1e-6,
+    "IMRPhenomXAS_NRTidalv3": 1e-12,
     "IMRPhenomXHM": 1e-6,
     "IMRPhenomXP": 1e-6,
     "IMRPhenomXPHM": 1e-6,
