@@ -13,10 +13,11 @@ The 22-mode reuses ripple's existing IMRPhenomXAS.py (Phase + Amp functions).
 """
 
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Any
 import jax
 import jax.numpy as jnp
 from jax import Array
+from jaxtyping import Float, Complex
 
 from .IMRPhenomXAS import (
     get_inspiral_phase,
@@ -270,7 +271,7 @@ def build_pWF22(
     msa_SAv2: float | Array | None = None,
     msa_S1L_pav: float | Array | None = None,
     msa_S2L_pav: float | Array | None = None,
-) -> dict:
+) -> dict[str, Any]:
     """
     Build the 22-mode waveform parameter dict needed by XHM functions.
 
@@ -481,7 +482,9 @@ _QNM_FDAMP = [
 ]
 
 
-def xhm_set_waveform_variables(ell: int, emm: int, pWF22: dict) -> XHMWaveformStruct:
+def xhm_set_waveform_variables(
+    ell: int, emm: int, pWF22: dict[str, Any]
+) -> XHMWaveformStruct:
     """
     Compute per-mode struct from the 22-mode waveform parameters.
 
@@ -567,7 +570,7 @@ def XLALSimIMRPhenomXLinb(eta: float, STotR: float, dchi: float, delta: float) -
     return noSpin + eqSpin + uneqSpin
 
 
-def XLALSimIMRPhenomXPsi4ToStrain(eta: float, STotR: float, dchi: float) -> Array:
+def XLALSimIMRPhenomXPsi4ToStrain(eta: float, STotR: float, dchi: float) -> Float:
     """
     Psi4-to-strain conversion factor for the time-shift.
 
@@ -602,7 +605,7 @@ def XLALSimIMRPhenomXPsi4ToStrain(eta: float, STotR: float, dchi: float) -> Arra
     return noSpin + eqSpin + uneqSpin
 
 
-def IMRPhenomX_TimeShift_22(pWF22: dict) -> float:
+def IMRPhenomX_TimeShift_22(pWF22: dict[str, Any]) -> float:
     """
     Global time shift for the 22 mode that aligns the waveform peak near t=0.
 
@@ -696,7 +699,7 @@ def _xhm_inter_phase_colloc_pts(
     delta: float,
     chi1L: float,
     chi2L: float,
-) -> Array:
+) -> Float[Array, "6"]:
     """
     6 intermediate phase collocation point derivative values (p1..p6).
 
@@ -1474,7 +1477,7 @@ def _xhm_rd_phase_spheroidal_deriv(
 
 def _xhm_rd_phase_32_collocpts(
     eta: float, STotR: float, dchi: float, delta: float, chi1L: float, chi2L: float
-) -> Array:
+) -> Float[Array, "4"]:
     """4 ringdown phase collocpt derivative values for the 32 mode (version 122019).
     Source: IMRPhenomXHM_RD_Phase_32_p1..p4 in LALSimIMRPhenomXHM_ringdown.c.
     """
@@ -1669,7 +1672,7 @@ def _xhm_rd_phase_32_collocpts(
 
 def _xhm_rd_phase_32_spheroidal_time_shift(
     eta: float, STotR: float, dchi: float, delta: float
-) -> Array:
+) -> Float:
     """Time shift fit for 32-mode spheroidal phase (version 122019).
     Source: IMRPhenomXHM_RD_Phase_32_SpheroidalTimeShift, LALSimIMRPhenomXHM_ringdown.c.
     """
@@ -1727,7 +1730,7 @@ def _xhm_rd_phase_32_spheroidal_time_shift(
 
 def _xhm_rd_phase_32_spheroidal_phase_shift(
     eta: float, STotR: float, dchi: float, delta: float, chi1L: float, chi2L: float
-) -> Array:
+) -> Float:
     """Phase shift fit for 32-mode spheroidal phase (version 122019).
     Source: IMRPhenomXHM_RD_Phase_32_SpheroidalPhaseShift, LALSimIMRPhenomXHM_ringdown.c.
     """
@@ -1799,7 +1802,7 @@ def _xhm_rd_phase_32_spheroidal_phase_shift(
     return noSpin + eqSpin + uneqSpin
 
 
-def _xhm_qnm_mu_l3m2(afinal: float) -> tuple:
+def _xhm_qnm_mu_l3m2(afinal: float) -> tuple[complex, complex]:
     """QNM mixing coefficients mu322 and mu323 for the 32 spheroidal mode.
     Returns (mu322, mu323) as complex numbers (with the minus sign from LAL).
     Source: evaluate_QNMfit_{re,im}_l3m2lp{2,3} in LALSimIMRPhenomXHM_qnm.c;
@@ -1884,13 +1887,13 @@ def _xhm_qnm_mu_l3m2(afinal: float) -> tuple:
 
 def _xhm_get_spheroidal_coeffs(
     pWFHM: "XHMWaveformStruct",
-    pWF22: dict,
+    pWF22: dict[str, Any],
     alambda32: float,
     lambda32: float,
     sigma32: float,
     t0: float,
     phifRef: float,
-) -> tuple:
+) -> tuple[Float, Float, Float, Float, Float]:
     """Compute spheroidal RD phase coefficients for the 32 mode (version 122019).
     Port of GetSpheroidalCoefficients in LALSimIMRPhenomXHM_internals.c.
     Returns (alpha0_S, alphaL_S, alpha2_S, alpha4_S, phi0_S).
@@ -1980,16 +1983,16 @@ def _xhm_s2s_complex(
     phi0_S: float,
     mu322: complex,
     mu323: complex,
-    theta: Array,
-    phase_coeffs: Array,
+    theta: Float[Array, "4"],
+    phase_coeffs: Float[Array, "13 49"],
     M_s: float,
     t0: float,
     phifRef: float,
-    amp_coeffs_22: Array,
+    amp_coeffs_22: Float[Array, "7 42"],
     ampNorm: float,
     fRDAux32: float,
     fAmpRDfalloff32: float,
-    rdaux_poly_c: Array,
+    rdaux_poly_c: Float[Array, "4"],
     rdaux_falloff_amp: float,
     rdaux_falloff_slope: float | Array,
     chip: float = 0.0,
@@ -2032,13 +2035,13 @@ def _xhm_s2s_complex(
 
 
 def _compute_32_hlm(
-    freqs_geom: Array,
+    freqs_geom: Float[Array, " n_freq"],
     pWFHM: "XHMWaveformStruct",
-    pWF22: dict,
+    pWF22: dict[str, Any],
     t0: float,
     phifRef: float,
-    phi0: float | Array,
-) -> Array:
+    phi0: Float,
+) -> Complex[Array, " n_freq"]:
     """Evaluate complex h_{3,2}(f) with spheroidal mode mixing (version 122019).
 
     Three-region piecewise:
@@ -2169,7 +2172,7 @@ def _compute_32_hlm(
 
     # Exponential falloff for f >= fAmpRDfalloff32
     rdaux_falloff_amp32 = _amplm_lor(fAmpRDfalloff32)
-    rdaux_falloff_slope32 = jnp.where(
+    rdaux_falloff_slope32: Float = jnp.where(
         rdaux_falloff_amp32 > 0,
         -jax.grad(_amplm_lor)(fAmpRDfalloff32) / rdaux_falloff_amp32,
         0.0,
@@ -2480,23 +2483,25 @@ def _compute_32_hlm(
     def phase_rd(Mf):
         return jnp.angle(s2s(Mf)) + C1RD * Mf + CRD + deltaphiLM
 
-    def amp_ins(Mf):
+    def amp_ins(Mf) -> Float:
         v = _xhm_insp_rescaled(Mf, PNgf, pn_coeffs, rho1, rho2, rho3, fIN)
         return ampNorm * Mf ** (-7.0 / 6.0) * v
 
-    def amp_inter(Mf):
+    def amp_inter(Mf) -> Float:
         c = inter_c_32
         poly = sum(c[j] * Mf**j for j in range(nC_32))
         return Mf ** (-7.0 / 6.0) * poly
 
-    def amp_rd(Mf):
+    def amp_rd(Mf) -> Float:
         return jnp.abs(s2s(Mf))
 
     def hlm_at(Mf):
-        amp = jnp.where(
-            Mf < fIN, amp_ins(Mf), jnp.where(Mf < fIM, amp_inter(Mf), amp_rd(Mf))
+        amp: Float = jnp.where(
+            Mf < fIN,
+            amp_ins(Mf),
+            jnp.where(Mf < fIM, amp_inter(Mf), amp_rd(Mf)),
         )
-        ph = jnp.where(
+        ph: Float = jnp.where(
             Mf < fMatchIN,
             phase_ins(Mf),
             jnp.where(Mf < fMatchIM, phase_inter(Mf), phase_rd(Mf)),
@@ -2550,7 +2555,7 @@ class XHMPhaseCoefficients:
 
 
 def xhm_get_phase_coefficients(
-    pWFHM: XHMWaveformStruct, pWF22: dict, t0: float
+    pWFHM: XHMWaveformStruct, pWF22: dict[str, Any], t0: float
 ) -> XHMPhaseCoefficients:
     """
     Solve for all phase coefficients of one higher mode (non-32).
@@ -2828,12 +2833,12 @@ def xhm_get_phase_coefficients(
 
 
 def xhm_phase_noModeMixing(
-    Mf: Array,
+    Mf: Float[Array, " n_freq"],
     pPhase: XHMPhaseCoefficients,
     pWFHM: XHMWaveformStruct,
-    pWF22: dict,
+    pWF22: dict[str, Any],
     t0: float,
-) -> Array:
+) -> Float[Array, " n_freq"]:
     """
     Evaluate the (l,m) mode phase at frequencies Mf (no mode mixing: 21, 33, 44).
 
@@ -2894,7 +2899,7 @@ def xhm_phase_noModeMixing(
     )
 
     # Three-region switch
-    phi = jnp.where(
+    phi: Float = jnp.where(
         Mf < fMatchIN, phi_ins, jnp.where(Mf < fMatchIM, phi_inter, phi_ring)
     )
 
@@ -2917,7 +2922,7 @@ _AMP_PREFACTORS = [
 
 def _xhm_pn_amp_coeffs(
     modeTag: int, eta: float, delta: float, chi1L: float, chi2L: float
-) -> tuple:
+) -> tuple[complex, complex, complex, complex, complex, complex, complex]:
     """
     Complex PN polynomial coefficients (pnInit..pnSixTh) for inspiral amplitude.
 
@@ -3156,7 +3161,10 @@ def _xhm_pn_amp_coeffs(
     return (pnInit, pnOneTh, pnTwoTh, pnThreeTh, pnFourTh, pnFiveTh, pnSixTh)
 
 
-def _xhm_pn_poly(f: float | Array, pn_coeffs: tuple) -> Array:
+def _xhm_pn_poly(
+    f: float | Array,
+    pn_coeffs: tuple[complex, complex, complex, complex, complex, complex, complex],
+) -> Array:
     """Evaluate complex PN polynomial at frequency f."""
     c0, c1, c2, c3, c4, c5, c6 = pn_coeffs
     return (
@@ -3173,7 +3181,7 @@ def _xhm_pn_poly(f: float | Array, pn_coeffs: tuple) -> Array:
 def _xhm_insp_rescaled(
     f: float | Array,
     PNgf: float | Array,
-    pn_coeffs: tuple,
+    pn_coeffs: tuple[complex, complex, complex, complex, complex, complex, complex],
     rho1: float | Array,
     rho2: float | Array,
     rho3: float | Array,
@@ -3211,7 +3219,7 @@ def _xhm_rd_rescaled_v1(
 
 def _xhm_insp_amp_colloc_pts(
     modeTag: int, eta: float, chiPN: float, dchi_half: float, delta: float
-) -> tuple:
+) -> tuple[Float, Float, Float]:
     """122022 inspiral amplitude collocation-point fits (iv1, iv2, iv3)."""
     S = chiPN
     eta1 = eta
@@ -3996,7 +4004,7 @@ def _xhm_insp_amp_colloc_pts(
 
 def _xhm_inter_amp_colloc_pts(
     modeTag: int, eta: float, STotR: float, dchi_half: float, delta: float, chiPN: float
-) -> tuple:
+) -> tuple[Float, Float, Float, Float]:
     """122022 intermediate amplitude collocation-point fits (int1..int4)."""
     eta1 = eta
     eta2 = eta1 * eta1
@@ -5006,7 +5014,7 @@ def _xhm_inter_amp_colloc_pts(
 
 def _xhm_rd_amp_fit_coeffs(
     modeTag: int, eta: float, STotR: float, dchi_half: float, delta: float, chiPN: float
-) -> tuple:
+) -> tuple[Float, Float, Float]:
     """122022 ringdown fit coefficients (alambda, lambda, sigma)."""
     eta1 = eta
     eta2 = eta1 * eta1
@@ -5302,7 +5310,7 @@ def _xhm_rd_amp_fit_coeffs(
 
 def _xhm_rd_amp_colloc_pts(
     modeTag: int, eta: float, STotR: float, dchi_half: float, delta: float, chiPN: float
-) -> tuple:
+) -> tuple[Float, Float, Float]:
     """122022 ringdown amplitude collocation-point fits (rdcp1, rdcp2, rdcp3)."""
     eta1 = eta
     eta2 = eta1 * eta1
@@ -6041,7 +6049,7 @@ def _xhm_rd_amp_colloc_pts(
 
 def _xhm_rd_amp_rdaux_pts(
     eta: float, STotR: float, dchi_half: float, delta: float, chiPN: float
-) -> tuple:
+) -> tuple[Float, Float]:
     """122022 32-mode RDAux collocation-point fits (rdaux1, rdaux2)."""
     eta1 = eta
     eta2 = eta1 * eta1
@@ -6150,7 +6158,7 @@ def _xhm_rd_amp_rdaux_pts(
     return rdaux1, rdaux2
 
 
-def _xhm_fAmpMatchIN(pWFHM: "XHMWaveformStruct", pWF22: dict) -> Array:
+def _xhm_fAmpMatchIN(pWFHM: "XHMWaveformStruct", pWF22: dict[str, Any]) -> Array:
     """Inspiral-to-intermediate cutoff frequency (version 122022)."""
     eta = pWF22["eta"]
     chi1 = pWF22["chi1L"]
@@ -6179,10 +6187,10 @@ def _xhm_fAmpMatchIN(pWFHM: "XHMWaveformStruct", pWF22: dict) -> Array:
     sharpness = 0.004
     funcs = 0.5 + 0.5 * jnp.tanh((eta - transition_eta) / sharpness)
     fcut_emr = funcs * fMECO + (1.0 - funcs) * fcutEMR
-    return jnp.where(eta > eta_q20, fMECO, fcut_emr)
+    return jnp.where(eta > eta_q20, fMECO, fcut_emr)  # type: ignore[return-value]
 
 
-def _xhm_fAmpMatchIM(pWFHM: "XHMWaveformStruct", pWF22: dict) -> float:
+def _xhm_fAmpMatchIM(pWFHM: "XHMWaveformStruct", pWF22: dict[str, Any]) -> float:
     """Intermediate-to-ringdown cutoff frequency (version 122022)."""
     fRING = pWFHM.fRING
     fDAMP = pWFHM.fDAMP
@@ -6227,7 +6235,7 @@ class XHMAmpCoefficients:
 
 
 def xhm_get_amp_coefficients(
-    pWFHM: "XHMWaveformStruct", pWF22: dict
+    pWFHM: "XHMWaveformStruct", pWF22: dict[str, Any]
 ) -> XHMAmpCoefficients:
     """
     Compute all amplitude coefficients for one higher mode.
@@ -6392,9 +6400,9 @@ def xhm_get_amp_coefficients(
     A_fall = _rd_amp22(ffall)
     dA_fall = jax.grad(_rd_amp22)(ffall)
     rd_falloff_amp = A_fall
-    rd_falloff_slope = jnp.where(A_fall > 0, -dA_fall / A_fall, 0.0)
+    rd_falloff_slope: Float = jnp.where(A_fall > 0, -dA_fall / A_fall, 0.0)
 
-    def _rd_amp22_full(f):
+    def _rd_amp22_full(f) -> Float:
         """RD amplitude including falloff region."""
         lorentz = _rd_amp22(f)
         falloff = rd_falloff_amp * jnp.exp(-rd_falloff_slope * (f - ffall))
@@ -6440,8 +6448,8 @@ def xhm_get_amp_coefficients(
     d_rdF_IM = jax.grad(rd_strain)(fIM)
 
     _EPS = 1e-30
-    inspF_IN_s = jnp.where(jnp.abs(inspF_IN) < 1e-15, 1e-15, inspF_IN)
-    rdF_IM_s = jnp.where(jnp.abs(rdF_IM) < 1e-15, 1e-15, rdF_IM)
+    inspF_IN_s: Float = jnp.where(jnp.abs(inspF_IN) < 1e-15, 1e-15, inspF_IN)
+    rdF_IM_s: Float = jnp.where(jnp.abs(rdF_IM) < 1e-15, 1e-15, rdF_IM)
 
     # Build and solve linear system for intermediate polynomial coefficients c_j
     # such that A_inter(f) = f^(-7/6) * sum_j c_j * f^j
@@ -6495,8 +6503,8 @@ def xhm_get_amp_coefficients(
 
 
 def xhm_amp_noModeMixing(
-    Mf: Array, pAmp: XHMAmpCoefficients, pWFHM: "XHMWaveformStruct"
-) -> Array:
+    Mf: Float[Array, " n_freq"], pAmp: XHMAmpCoefficients, pWFHM: "XHMWaveformStruct"
+) -> Float[Array, " n_freq"]:
     """
     Evaluate the (l,m) mode amplitude at frequencies Mf (no mode mixing).
 
@@ -6551,7 +6559,7 @@ def xhm_amp_noModeMixing(
     dfd_f = pAmp.fDAMP * pAmp.ring_sigma
     rd_slope = pAmp.ring_lambda / dfd_f + 2.0 * dfr_f / (dfr_f**2 + dfd_f**2)
 
-    def rd_amp(f):
+    def rd_amp(f) -> Float:
         lorentz = _lorentz(f)
         falloff = A_fall * jnp.exp(-rd_slope * (f - ffall))
         # 122022 version 2 (RDRescaleFactor=0): the Lorentzian is already in
@@ -6563,7 +6571,9 @@ def xhm_amp_noModeMixing(
     amp_m = jax.vmap(inter_amp)(Mf)
     amp_r = jax.vmap(rd_amp)(Mf)
 
-    result = jnp.where(Mf < fIN, amp_i, jnp.where(Mf < fIM, amp_m, amp_r))
+    result: Float[Array, " n_freq"] = jnp.where(
+        Mf < fIN, amp_i, jnp.where(Mf < fIM, amp_m, amp_r)
+    )  # type: ignore[assignment]
     return result
 
 
@@ -6573,14 +6583,14 @@ def xhm_amp_noModeMixing(
 
 
 def XLALSimIMRPhenomXHMEvaluateOnehlmMode(
-    freqs_geom: Array,
+    freqs_geom: Float[Array, " n_freq"],
     pWFHM: XHMWaveformStruct,
     pPhase: XHMPhaseCoefficients,
     pAmp: XHMAmpCoefficients,
-    pWF22: dict,
+    pWF22: dict[str, Any],
     t0: float,
-    phi0: float | Array,
-) -> Array:
+    phi0: float | Float,
+) -> Complex[Array, " n_freq"]:
     """
     Evaluate complex hlm for one mode at all frequencies.
 
@@ -6611,11 +6621,11 @@ def XLALSimIMRPhenomXHMEvaluateOnehlmMode(
 
 
 def XLALSimIMRPhenomXHMGethlmModes(
-    freqs_geom: Array,
-    pWF22: dict,
-    phi0: float | Array,
+    freqs_geom: Float[Array, " n_freq"],
+    pWF22: dict[str, Any],
+    phi0: float | Float,
     ell_mm_pairs: list,
-) -> dict:
+) -> dict[tuple[int, int], Complex[Array, " n_freq"]]:
     """
     Generate all requested higher modes in geometric units.
 
@@ -6704,10 +6714,10 @@ def XLALSimIMRPhenomXHMGethlmModes(
 
 
 def gen_IMRPhenomXHM_hphc(
-    freqs: Array,
-    theta: Array,
+    freqs: Float[Array, " n_freq"],
+    theta: Float[Array, "8"],
     f_ref: float,
-) -> Tuple[Array, Array]:
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     Generate IMRPhenomXHM hp, hc polarizations for an aligned-spin binary.
 

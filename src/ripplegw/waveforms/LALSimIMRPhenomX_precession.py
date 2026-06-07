@@ -1,6 +1,6 @@
 import dataclasses
 import jax.numpy as jnp
-from jaxtyping import Float
+from jaxtyping import Array, Float
 from ..constants import MTSUN
 import jax
 
@@ -125,18 +125,18 @@ def compute_vangles(
 
 
 def compute_thetaJN_kappa_and_zeta(
-    mass_1,
-    mass_2,
-    chi1x,
-    chi1y,
-    chi1z,
-    chi2x,
-    chi2y,
-    chi2z,
-    LRef,
-    phiRef_In,
-    inclination,
-):
+    mass_1: Float,
+    mass_2: Float,
+    chi1x: Float,
+    chi1y: Float,
+    chi1z: Float,
+    chi2x: Float,
+    chi2y: Float,
+    chi2z: Float,
+    LRef: Float,
+    phiRef_In: Float,
+    inclination: Float,
+) -> tuple[Float, Float, Float, Float, Float, Float]:
     """Compute thetaJN, Nz_Jf, Nx_Jf, phiJ_Sf, kappa, and zeta_polarization.
 
     Fuses compute_thetaJN_and_kappa with compute_zeta_polarization so that the
@@ -448,8 +448,13 @@ def Get_alphaepsilon_atfref_pflag_true(
 
 
 def flag_222_223_twoPN_non_spinning_orbitan_angular_momentum(
-    eta, eta2, chi1L, chi2L, delta, power_of_lalpi_2
-):
+    eta: Float,
+    eta2: Float,
+    chi1L: Float,
+    chi2L: Float,
+    delta: Float,
+    power_of_lalpi_2: Float,
+) -> Float[Array, "10"]:
     L0 = 1.0
     L1 = 0.0
     L2 = 3.0 / 2.0 + eta / 6.0
@@ -545,17 +550,17 @@ class MSAPrecessionSetup:
 
 
 def compute_msa_precession_setup(
-    mass_1,
-    mass_2,
-    chi1x,
-    chi1y,
-    chi1z,
-    chi2x,
-    chi2y,
-    chi2z,
-    reference_frequency,
-    kappa,
-    phiJ_Sf,
+    mass_1: Float,
+    mass_2: Float,
+    chi1x: Float,
+    chi1y: Float,
+    chi1z: Float,
+    chi2x: Float,
+    chi2y: Float,
+    chi2z: Float,
+    reference_frequency: float,
+    kappa: Float,
+    phiJ_Sf: Float,
 ) -> MSAPrecessionSetup:
     """Compute MSA precession constants invariant to emm and Mf.
 
@@ -695,7 +700,9 @@ def compute_msa_precession_setup(
     )
 
 
-def compute_evolved_spin_given_setup(Mf, emm, setup: MSAPrecessionSetup):
+def compute_evolved_spin_given_setup(
+    Mf: Float[Array, " n_freq"], emm: int | Array, setup: MSAPrecessionSetup
+) -> tuple[Float[Array, " n_freq"], Float[Array, " n_freq"], Float[Array, " n_freq"]]:
     """Compute precession angles for mode emm using pre-computed MSA setup.
 
     This is the emm-dependent part of compute_evolved_spin_using_msa.

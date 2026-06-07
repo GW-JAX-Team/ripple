@@ -3,7 +3,7 @@ import jax
 import jax.numpy as jnp
 from ..constants import EULERGAMMA, MTSUN, MPC, C, PI
 from . import IMRPhenomX_utils
-from jaxtyping import Array, Float
+from jaxtyping import Array, Float, Complex
 
 from ..conversions import Mc_eta_to_ms
 
@@ -14,7 +14,11 @@ amp_eqspin_indx = 8
 amp_uneqspin_indx = 36
 
 
-def get_inspiral_phase(fM_s: Array, theta: Array, phase_coeffs: Array) -> Array:
+def get_inspiral_phase(
+    fM_s: Float[Array, " n_freq"],
+    theta: Float[Array, "4"],
+    phase_coeffs: Float[Array, "13 49"],
+) -> Float[Array, " n_freq"]:
     """
     Calculate the inspiral phase for the IMRPhenomD waveform.
     """
@@ -340,14 +344,14 @@ def get_inspiral_phase(fM_s: Array, theta: Array, phase_coeffs: Array) -> Array:
 
 
 def get_intermediate_raw_phase(
-    fM_s: Array,
-    theta: Array,
-    phase_coeffs: Array,
-    dPhaseIN,
-    dPhaseRD,
-    cL,
+    fM_s: Float[Array, " n_freq"],
+    theta: Float[Array, "4"],
+    phase_coeffs: Float[Array, "13 49"],
+    dPhaseIN: Float,
+    dPhaseRD: Float,
+    cL: Float,
     chip: float = 0.0,
-) -> Array:
+) -> Float[Array, " n_freq"]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -558,8 +562,11 @@ def get_intermediate_raw_phase(
 
 
 def get_mergerringdown_raw_phase(
-    fM_s: Array, theta: Array, phase_coeffs: Array, chip: float = 0.0
-) -> tuple[Array, tuple[Array, Array]]:
+    fM_s: Float[Array, " n_freq"],
+    theta: Float[Array, "4"],
+    phase_coeffs: Float[Array, "13 49"],
+    chip: float = 0.0,
+) -> tuple[Float[Array, " n_freq"], tuple[Float, Float]]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -734,10 +741,10 @@ def get_mergerringdown_raw_phase(
 
 def Phase(
     f: Float[Array, " n_freq"] | float,
-    theta: Array,
-    phase_coeffs: Array,
+    theta: Float[Array, "4"],
+    phase_coeffs: Float[Array, "13 49"],
     chip: float = 0.0,
-) -> Array:
+) -> Float[Array, " n_freq"]:
     """
     Computes the phase of the PhenomD waveform following 1508.07253.
     Sets time and phase of coealence to be zero.
@@ -817,11 +824,11 @@ def Phase(
 
 
 def PhaseDerivative(
-    f: Array,
-    theta: Array,
-    phase_coeffs: Array,
+    f: Float[Array, " n_freq"],
+    theta: Float[Array, "4"],
+    phase_coeffs: Float[Array, "13 49"],
     chip: float = 0.0,
-) -> Array:
+) -> Float[Array, " n_freq"]:
     """
     Compute d Phase / d f for IMRPhenomXAS using the same piecewise construction
     as Phase(), but without differentiating through the final Heaviside assembly.
@@ -893,7 +900,7 @@ def PhaseDerivative(
     return dphase_dMf * M_s
 
 
-def get_Amp0(fM_s: Array, eta: Float) -> Array:
+def get_Amp0(fM_s: Float[Array, " n_freq"], eta: Float) -> Float[Array, " n_freq"]:
     Amp0 = (
         (2.0 / 3.0 * eta) ** (1.0 / 2.0) * (fM_s) ** (-7.0 / 6.0) * PI ** (-1.0 / 6.0)
     )
@@ -901,8 +908,11 @@ def get_Amp0(fM_s: Array, eta: Float) -> Array:
 
 
 def get_inspiral_Amp(
-    fM_s: Array, theta: Array, amp_coeffs: Array, chip: float = 0.0
-) -> Array:
+    fM_s: Float[Array, " n_freq"],
+    theta: Float[Array, "4"],
+    amp_coeffs: Float[Array, "7 42"],
+    chip: float = 0.0,
+) -> Float[Array, " n_freq"]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -1108,8 +1118,12 @@ def get_inspiral_Amp(
 
 
 def get_intermediate_Amp(
-    fM_s: Array, theta: Array, amp_coeffs: Array, fMs_AmpRDMin, chip: float = 0.0
-) -> Array:
+    fM_s: Float[Array, " n_freq"],
+    theta: Float[Array, "4"],
+    amp_coeffs: Float[Array, "7 42"],
+    fMs_AmpRDMin: Float,
+    chip: float = 0.0,
+) -> Float[Array, " n_freq"]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -1301,11 +1315,11 @@ def get_intermediate_Amp(
 
 
 def get_mergerringdown_Amp(
-    fM_s: float | Array,
-    theta: Array,
-    amp_coeffs: Array,
+    fM_s: Float[Array, " n_freq"] | Float,
+    theta: Float[Array, "4"],
+    amp_coeffs: Float[Array, "7 42"],
     chip: float = 0.0,
-) -> tuple[Array, Array]:
+) -> tuple[Float[Array, " n_freq"], Float]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -1381,8 +1395,12 @@ def get_mergerringdown_Amp(
 
 
 def Amp(
-    f: Array, theta: Array, amp_coeffs: Array, D: Float = 1.0, chip: float = 0.0
-) -> Array:
+    f: Float[Array, " n_freq"],
+    theta: Float[Array, "4"],
+    amp_coeffs: Float[Array, "7 42"],
+    D: Float = 1.0,
+    chip: float = 0.0,
+) -> Float[Array, " n_freq"]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -1418,13 +1436,13 @@ def Amp(
 
 
 def _gen_IMRPhenomXAS(
-    f: Array,
-    theta_intrinsic: Array,
-    theta_extrinsic: Array,
-    phase_coeffs: Array,
-    amp_coeffs: Array,
+    f: Float[Array, " n_freq"],
+    theta_intrinsic: Float[Array, "4"],
+    theta_extrinsic: Float[Array, "3"],
+    phase_coeffs: Float[Array, "13 49"],
+    amp_coeffs: Float[Array, "7 42"],
     f_ref: float,
-):
+) -> Complex[Array, " n_freq"]:
     m1, m2, chi1, chi2 = theta_intrinsic
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -1463,7 +1481,9 @@ def _gen_IMRPhenomXAS(
     return h0
 
 
-def gen_IMRPhenomXAS(f: Array, params: Array, f_ref: float):
+def gen_IMRPhenomXAS(
+    f: Float[Array, " n_freq"], params: Float[Array, "7"], f_ref: float
+) -> Complex[Array, " n_freq"]:
     """
     Generate PhenomXAS frequency domain waveform following 2001.11412.
     Note that this waveform also assumes that object one is the more massive.
@@ -1493,7 +1513,9 @@ def gen_IMRPhenomXAS(f: Array, params: Array, f_ref: float):
     return h22
 
 
-def gen_IMRPhenomXAS_hphc(f: Array, params: Array, f_ref: float):
+def gen_IMRPhenomXAS_hphc(
+    f: Float[Array, " n_freq"], params: Float[Array, "8"], f_ref: float
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     Generate PhenomXAS frequency domain waveform following 2001.11412.
     vars array contains both intrinsic and extrinsic variables

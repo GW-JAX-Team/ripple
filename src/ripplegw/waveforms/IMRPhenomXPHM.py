@@ -1,7 +1,7 @@
 import jax
 import jax.numpy as jnp
+from jaxtyping import Array, Float, Complex
 from ..constants import MTSUN, MRSUN, MPC
-from jaxtyping import Float
 from .spherical_harmonics import (
     compute_sminus2_l2,
     compute_sminus2_l3,
@@ -13,7 +13,9 @@ from .initialize_MSA_system import IMRPhenomX_Initialize_MSA_System
 from .IMRPhenomXHM import XLALSimIMRPhenomXHMGethlmModes, build_pWF22
 
 
-def compute_chip(m1, m2, chi1x, chi1y, chi2x, chi2y):
+def compute_chip(
+    m1: Float, m2: Float, chi1x: Float, chi1y: Float, chi2x: Float, chi2y: Float
+) -> Float:
     """
     Effective precession spin parameter chi_p.
 
@@ -29,7 +31,9 @@ def compute_chip(m1, m2, chi1x, chi1y, chi2x, chi2y):
     return jnp.maximum(A1 * chi1_perp * m1**2, A2 * chi2_perp * m2**2) / (A1 * m1**2)
 
 
-def compute_chiTot_perp(m1, m2, chi1x, chi1y, chi2x, chi2y):
+def compute_chiTot_perp(
+    m1: Float, m2: Float, chi1x: Float, chi1y: Float, chi2x: Float, chi2y: Float
+) -> Float:
     """
     Total perpendicular spin parameter for afinal_prec (LAL PhenomXPFinalSpinMod=4, the default).
 
@@ -50,20 +54,20 @@ def compute_chiTot_perp(m1, m2, chi1x, chi1y, chi2x, chi2y):
 
 
 def generate_xphm(
-    mass_1,
-    mass_2,
-    chi1x,
-    chi1y,
-    chi1z,
-    chi2x,
-    chi2y,
-    chi2z,
-    distance,  # in Mpc
-    inclination,
-    phi0,
-    frequency_array,
-    reference_frequency,
-):
+    mass_1: Float,
+    mass_2: Float,
+    chi1x: Float,
+    chi1y: Float,
+    chi1z: Float,
+    chi2x: Float,
+    chi2y: Float,
+    chi2z: Float,
+    distance: Float,
+    inclination: Float,
+    phi0: Float,
+    frequency_array: Float[Array, " n_freq"],
+    reference_frequency: float,
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """Generate IMRPhenomXPHM plus and cross polarizations."""
     Mf = pPrec.XLALSimIMRPhenomXUtilsHztoMf(frequency_array, mass_1 + mass_2)
 
@@ -138,20 +142,20 @@ def generate_xphm(
 
 
 def twistup(
-    Mf,
-    mass_1,
-    mass_2,
-    chi1x,
-    chi1y,
-    chi1z,
-    chi2x,
-    chi2y,
-    chi2z,
-    phiRef_In,
-    inclination,
-    reference_frequency,
-    hlm,
-):
+    Mf: Float[Array, " n_freq"],
+    mass_1: Float,
+    mass_2: Float,
+    chi1x: Float,
+    chi1y: Float,
+    chi1z: Float,
+    chi2x: Float,
+    chi2y: Float,
+    chi2z: Float,
+    phiRef_In: Float,
+    inclination: Float,
+    reference_frequency: float,
+    hlm: Complex[Array, "n_modes n_freq"],
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     Rotate the co-precessing frame hlm modes into the inertial (J-frame) polarisations hp, hc.
     Implementation follows the lalsimulation function IMRPhenomXPHMTwistUps.
@@ -402,7 +406,9 @@ class BetaPowers:
         )
 
 
-def twist_22(cexp_i_alpha, theta_JN, beta_powers):
+def twist_22(
+    cexp_i_alpha: Complex[Array, " n_freq"], theta_JN: Float, beta_powers: BetaPowers
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     Compute the twisting contributions for l=2, m'=2 mode.
 
@@ -471,7 +477,9 @@ def twist_22(cexp_i_alpha, theta_JN, beta_powers):
     return hp_sum, hc_sum
 
 
-def twist_21(cexp_i_alpha, theta_JN, beta_powers):
+def twist_21(
+    cexp_i_alpha: Complex[Array, " n_freq"], theta_JN: Float, beta_powers: BetaPowers
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     Compute the twisting contributions for l=2, m'=1 mode.
 
@@ -542,7 +550,9 @@ def twist_21(cexp_i_alpha, theta_JN, beta_powers):
     return hp_sum, hc_sum
 
 
-def twist_33(cexp_i_alpha, theta_JN, beta_powers):
+def twist_33(
+    cexp_i_alpha: Complex[Array, " n_freq"], theta_JN: Float, beta_powers: BetaPowers
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     Compute the twisting contributions for l=3, m'=3 mode.
 
@@ -621,7 +631,9 @@ def twist_33(cexp_i_alpha, theta_JN, beta_powers):
     return hp_sum, hc_sum
 
 
-def twist_32(cexp_i_alpha, theta_JN, beta_powers):
+def twist_32(
+    cexp_i_alpha: Complex[Array, " n_freq"], theta_JN: Float, beta_powers: BetaPowers
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     Compute the twisting contributions for l=3, m'=2 mode.
 
@@ -711,7 +723,9 @@ def twist_32(cexp_i_alpha, theta_JN, beta_powers):
     return hp_sum, hc_sum
 
 
-def twist_44(cexp_i_alpha, theta_JN, beta_powers):
+def twist_44(
+    cexp_i_alpha: Complex[Array, " n_freq"], theta_JN: Float, beta_powers: BetaPowers
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     Compute the twisting contributions for l=4, m'=4 mode.
 
@@ -801,7 +815,9 @@ def twist_44(cexp_i_alpha, theta_JN, beta_powers):
     return hp_sum, hc_sum
 
 
-def apply_polarization_rotation(zeta_polarization, _hp, _hc):
+def apply_polarization_rotation(
+    zeta_polarization: Float, _hp, _hc
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """Apply polarization rotation to waveform components.
 
     Args:
@@ -821,7 +837,9 @@ def apply_polarization_rotation(zeta_polarization, _hp, _hc):
     return hp, hc
 
 
-def IMRPhenomXWignerdCoefficients_cosbeta(cos_beta):
+def IMRPhenomXWignerdCoefficients_cosbeta(
+    cos_beta: Float[Array, " n_freq"],
+) -> tuple[Float[Array, " n_freq"], Float[Array, " n_freq"]]:
     """
     Compute cos(beta/2) and sin(beta/2) from cos(beta).
 

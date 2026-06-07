@@ -1,7 +1,8 @@
 import jax.numpy as jnp
+from jaxtyping import Array, Float
 
 
-def compute_sminus2_l2(theta, m):
+def compute_sminus2_l2(theta: Float, m: int | Array) -> Float:
     """
     Spin -2 weighted spherical harmonic for l=2, phi=0.
     theta: float or array
@@ -32,7 +33,7 @@ def compute_sminus2_l2(theta, m):
     return harmonics
 
 
-def compute_sminus2_l3(theta, m):
+def compute_sminus2_l3(theta: Float, m: int | Array) -> Float:
     """
     Spin -2 weighted spherical harmonic for l=3, phi=0.
     theta: scalar or array
@@ -94,7 +95,7 @@ def compute_sminus2_l3(theta, m):
     return harmonics
 
 
-def compute_sminus2_l4(theta, m):
+def compute_sminus2_l4(theta: Float, m: int | Array) -> Float:
     """
     Spin -2 weighted spherical harmonic for l=4, phi=0.
     theta: scalar or array
