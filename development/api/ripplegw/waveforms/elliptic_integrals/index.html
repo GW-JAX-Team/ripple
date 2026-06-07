@@ -1679,7 +1679,7 @@ specifically the incomplete elliptic integral of the first kind (F).</p>
               </td>
             </tr>
             <tr class="doc-section-item">
-              <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;gsl_sf_elljac_e&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;u&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Float&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Float&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;max_iter&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;16&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;" href="./#ripplegw.waveforms.elliptic_integrals.gsl_sf_elljac_e">gsl_sf_elljac_e</a></code></td>
+              <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;gsl_sf_elljac_e&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;u&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Float&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Float&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;max_iter&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;16&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;tuple&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Float&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Float&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Float&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;/code&gt;" href="./#ripplegw.waveforms.elliptic_integrals.gsl_sf_elljac_e">gsl_sf_elljac_e</a></code></td>
               <td>
                 <div class="doc-md-description">
                   <p>Compute the Jacobian elliptic functions sn(u|m), cn(u|m), dn(u|m).</p>
@@ -1831,7 +1831,7 @@ F(phi, k) = integral_0^phi dt / sqrt(1 - k^2 sin^2(t))</p>
 
 
 <h3 id="ripplegw.waveforms.elliptic_integrals.gsl_sf_elljac_e" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">gsl_sf_elljac_e</span><span class="p">(</span><span class="n">u</span><span class="p">:</span> <span class="n">Float</span><span class="p">,</span> <span class="n">m</span><span class="p">:</span> <span class="n">Float</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">gsl_sf_elljac_e</span><span class="p">(</span><span class="n">u</span><span class="p">:</span> <span class="n">Float</span><span class="p">,</span> <span class="n">m</span><span class="p">:</span> <span class="n">Float</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Float</span><span class="p">,</span> <span class="n">Float</span><span class="p">,</span> <span class="n">Float</span><span class="p">]</span></code>
 
 <a href="#ripplegw.waveforms.elliptic_integrals.gsl_sf_elljac_e" class="headerlink" title="Permanent link">¤</a></h3>
 
@@ -1929,6 +1929,7 @@ dn(u|m) = sqrt(1 - k^2 sin^2(phi))</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
+                  <code><span title="tuple">tuple</span>[<span title="jaxtyping.Float">Float</span>, <span title="jaxtyping.Float">Float</span>, <span title="jaxtyping.Float">Float</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
