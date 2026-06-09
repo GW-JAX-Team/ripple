@@ -70,7 +70,7 @@ def check_is_tidal(waveform_name: str) -> bool:
     Raises:
         ValueError: If the waveform is not supported.
     """
-    bns_waveforms = ["IMRPhenomD_NRTidalv2", "TaylorF2", "IMRPhenomXAS_NRTidalv3"]
+    bns_waveforms = ["IMRPhenomD_NRTidalv2", "TaylorF2", "IMRPhenomXAS_NRTidalv3", "IMRPhenomXP_NRTidalv3"]
     bbh_waveforms = [
         "IMRPhenomD",
         "IMRPhenomHM",
@@ -100,7 +100,7 @@ def check_is_precessing(waveform_name: str) -> bool:
     Returns:
         True if the waveform includes precession, False otherwise.
     """
-    precessing_waveforms = ["IMRPhenomPv2", "IMRPhenomXP", "IMRPhenomXPHM"]
+    precessing_waveforms = ["IMRPhenomPv2", "IMRPhenomXP", "IMRPhenomXPHM", "IMRPhenomXP_NRTidalv3"]
     return waveform_name in precessing_waveforms
 
 
@@ -220,6 +220,15 @@ def get_jitted_waveform(waveform_name: str, fs: jnp.ndarray, f_ref: float):
             # theta = [Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, tc, phic, inclination]
             hp, hc = gen_IMRPhenomXP_hphc(fs, theta, f_ref)
             return hp, hc
+    
+    elif waveform_name == "IMRPhenomXP_NRTidalv3":
+        from ripplegw.waveforms.IMRPhenomXP_NRTidalv3 import gen_IMRPhenomXP_NRTidalv3_hphc
+
+        @jax.jit
+        def waveform(theta):
+            # theta = [Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, lambda_tilde, delta_lambda, dist_mpc, tc, phic, inclination]
+            hp, hc = gen_IMRPhenomXP_NRTidalv3_hphc(fs, theta, f_ref)
+            return hp, hc
 
     elif waveform_name == "IMRPhenomXPHM":
         from ripplegw.waveforms.IMRPhenomXPHM import generate_xphm
@@ -316,6 +325,48 @@ def get_lal_waveform(
         inclination = theta[11]
         lalparams = lal.CreateDict()
         lalsim.SimInspiralWaveformParamsInsertPhenomXPrecVersion(lalparams, 222)
+        hp, hc = lalsim.SimInspiralChooseFDWaveform(
+            m1_kg,
+            m2_kg,
+            s1x,
+            s1y,
+            s1z_val,
+            s2x,
+            s2y,
+            s2z_val,
+            distance,
+            inclination,
+            phi_ref,
+            0,
+            0,
+            0,
+            df,
+            f_l,
+            f_u,
+            f_ref,
+            lalparams,
+            approximant,
+        )
+    elif waveform_name == "IMRPhenomXP_NRTidalv3":
+        # XP requires PrecVersion=222 set explicitly: same MSA prescription as 223
+        # but raises on MSA init failure (instead of silently falling back to NNLO).
+        m1_kg = theta[0] * lal.MSUN_SI
+        m2_kg = theta[1] * lal.MSUN_SI
+        s1x, s1y, s1z_val = theta[2], theta[3], theta[4]
+        s2x, s2y, s2z_val = theta[5], theta[6], theta[7]
+        l1, l2 = theta[8], theta[9]
+        distance = theta[10] * 1e6 * lal.PC_SI
+        phi_ref = theta[12]
+        inclination = theta[13]
+        lalparams = lal.CreateDict()
+        lalsim.SimInspiralWaveformParamsInsertPhenomXPrecVersion(lalparams, 222)
+
+        lalsim.SimInspiralWaveformParamsInsertTidalLambda1(lalparams, l1)
+        lalsim.SimInspiralWaveformParamsInsertTidalLambda2(lalparams, l2)
+        quad1 = lalsim.SimUniversalRelationQuadMonVSlambda2Tidal(l1)
+        quad2 = lalsim.SimUniversalRelationQuadMonVSlambda2Tidal(l2)
+        lalsim.SimInspiralWaveformParamsInsertdQuadMon1(lalparams, quad1 - 1)
+        lalsim.SimInspiralWaveformParamsInsertdQuadMon2(lalparams, quad2 - 1)
         hp, hc = lalsim.SimInspiralChooseFDWaveform(
             m1_kg,
             m2_kg,
@@ -655,7 +706,11 @@ def generate_random_params(
     phi_ref = np.random.uniform(0, 2 * PI, n)
 
     # Build parameter array
-    if is_precessing:
+    if is_precessing and is_tidal:
+        theta = np.array(
+            [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, l1, l2, dist_mpc, tc, phi_ref, inclination]
+        ).T
+    elif is_precessing:
         theta = np.array(
             [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, tc, phi_ref, inclination]
         ).T
@@ -679,8 +734,15 @@ def generate_random_params(
         # Precessing: swap masses and all spin components
         booleans = theta[:, 0] < theta[:, 1]
         booleans = np.repeat(booleans[:, np.newaxis], theta.shape[1], axis=1)
-        theta = np.where(
-            booleans, theta[:, [1, 0, 5, 6, 7, 2, 3, 4, 8, 9, 10, 11]], theta
+        if is_tidal:
+            theta = np.where(
+            booleans,
+            theta[:, [1, 0, 5, 6, 7, 2, 3, 4, 9, 8, 10, 11, 12, 13]],
+            theta,
         )
+        else:
+            theta = np.where(
+                booleans, theta[:, [1, 0, 5, 6, 7, 2, 3, 4, 8, 9, 10, 11]], theta
+            )
 
     return theta

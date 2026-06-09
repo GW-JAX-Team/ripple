@@ -24,6 +24,149 @@ from . import IMRPhenomX_utils
 from .IMRPhenomXAS import Amp, Phase, PhaseDerivative
 
 
+def IMRPhenomXAS_NRTidalv3_Phase(
+    f: Array,
+    f_ref: float,
+    theta_intrinsic: Array,
+    theta_extrinsic: Array,
+    no_taper: bool = False,
+    chip: float = 0.0,
+) -> Array:
+    """
+    Currently a helper function for XP_NRTidalv3. We could use this later for XAS too
+    """
+    m1, m2, _, _, lambda1, lambda2 = theta_intrinsic
+    M_s = (m1 + m2) * MTSUN
+    Xa = m1 / (m1 + m2)
+    Xb = m2 / (m1 + m2)
+    x = PI * f * M_s
+    f_Ms = f * M_s
+
+    f_merger = _get_merger_frequency(theta_intrinsic)
+
+    # Tidal phase offset #
+    df = jax.lax.cond(
+        f.shape[0] > 1,
+        lambda _: f[1] - f[0],
+        lambda _: jnp.asarray(0.0, dtype=f.dtype),
+        operand=None,
+    )
+    f_final = f[-1] + df
+    f_final = jax.lax.select(f_merger < f_final, f_merger, f_final)
+
+    if no_taper:
+        P_P = jnp.ones_like(f)
+        P_P_fref = jnp.asarray(1.0)
+        dphiT = jax.grad(fullTidalPhaseCorrection)(
+            f_final * M_s, theta_intrinsic, jnp.asarray(1.0)
+        )
+    else:
+        P_P = general_planck_taper(f_Ms, 1.15 * f_merger * M_s, 1.35 * f_merger * M_s)
+        P_P_fref = general_planck_taper(
+            f_ref * M_s, 1.15 * f_merger * M_s, 1.35 * f_merger * M_s
+        )
+        dphiT = jax.grad(
+            lambda fMs: fullTidalPhaseCorrection(
+                fMs,
+                theta_intrinsic,
+                general_planck_taper(fMs, 1.15 * f_merger * M_s, 1.35 * f_merger * M_s),
+            )
+        )(f_final * M_s)
+
+    bbh_phase_coeffs = IMRPhenomX_utils.PhenomX_phase_coeff_table
+
+    phiTfRef = fullTidalPhaseCorrection(  # This is part of the tidal correction to the phase alignment and takes into account spin-tidal interactions
+        f_ref * M_s, theta_intrinsic, P_P_fref
+    )
+
+    phi_XAS = Phase(f, theta_intrinsic[:4], bbh_phase_coeffs, chip)
+    # dphiXAS = jax.grad(Phase, argnums=0)(f_final, theta_intrinsic[:4], bbh_phase_coeffs) / M_s
+    dphiXAS = PhaseDerivative(f_final, theta_intrinsic[:4], bbh_phase_coeffs, chip) / M_s
+    linb = dphiT - dphiXAS
+    ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] + 2 * theta_extrinsic[2]
+    phase_shift = (
+        linb * (f_Ms - f_ref * M_s)
+        - Phase(f_ref, theta_intrinsic[:4], bbh_phase_coeffs, chip)
+        + phiTfRef
+        + PI / 4.0
+        + ext_phase_contrib
+    )
+
+    # Get tidal phase and spin corrections for BNS
+    PN_coeffs = get_tidalphasePN_coeffs(theta_intrinsic)
+    NRTidalv3_coeffs = get_NRTidalv3_coefficients(theta_intrinsic, PN_coeffs)
+    NRTidalv3_phase = get_tidal_phase(x, NRTidalv3_coeffs, PN_coeffs)
+
+    # Check for local minimum post-merger (Sec. IV G of arXiv:2311.07456).
+    fHzmrgcheck = 0.9 * f_merger
+    increasing = jnp.concatenate(
+        [jnp.array([False]), NRTidalv3_phase[1:] >= NRTidalv3_phase[:-1]]
+    )
+    valid = (f >= fHzmrgcheck) & increasing
+    x_lax = (f, NRTidalv3_phase, valid)
+    NRTidalv3_phase = jax.lax.cond(
+        jnp.any(valid), lambda arr: changePhase_if_min(*arr), lambda arr: arr[1], x_lax
+    )
+
+    psi_T = (
+        NRTidalv3_phase * (1 - P_P)
+        + get_tidal_phase_PN(x, Xa, lambda1, lambda2, PN_coeffs) * P_P
+    )
+
+    c2pn, c3pn, c3p5pn = _get_phenomx_spin_coefficients(theta_intrinsic)
+
+    pfaN = 3.0 / (128.0 * Xa * Xb)
+    psi_SS = (
+        pfaN * c2pn / ((PI * f_Ms) ** (1.0 / 3.0))
+        + pfaN * c3pn * ((PI * f_Ms) ** (1.0 / 3.0))
+        + pfaN * c3p5pn * ((PI * f_Ms) ** (2.0 / 3.0))
+    )
+
+    return phi_XAS + phase_shift - (psi_T + psi_SS)
+
+
+def IMRPhenomXAS_NRTidalv3_Amp(
+    f: Array,
+    theta_intrinsic: Array,
+    theta_extrinsic: Array,
+    no_taper: bool = False,
+    chip: float = 0.0,
+) -> Array:
+    """
+    TODO
+    """
+
+    m1, m2, _, _, lambda1, lambda2 = theta_intrinsic
+    M_s = (m1 + m2) * MTSUN
+    Xa = m1 / (m1 + m2)
+    Xb = m2 / (m1 + m2)
+    x = PI * f * M_s
+    x_23 = x ** (2.0 / 3.0)
+    f_Ms = f * M_s
+
+    # Compute kappa
+    kappa = get_kappa(theta=theta_intrinsic)
+
+    # Compute amplitudes
+    A_T = get_tidal_amplitude(x_23, theta_intrinsic, kappa, distance=theta_extrinsic[0])
+    f_merger = _get_merger_frequency(theta_intrinsic)
+
+    XAS_amplitude = Amp(
+        f,
+        theta_intrinsic[:4],
+        IMRPhenomX_utils.PhenomX_amp_coeff_table,
+        theta_extrinsic[0],
+        chip=chip
+    )
+
+    if no_taper:
+        A_P = jnp.ones_like(f)
+    else:
+        A_P = 1 - general_planck_taper(f_Ms, f_merger * M_s, 1.2 * f_merger * M_s)
+
+    return A_P * (XAS_amplitude + A_T)
+
+
 def _gen_IMRPhenomXAS_NRTidalv3(
     f: Array,
     f_ref: float,
@@ -113,7 +256,6 @@ def _gen_IMRPhenomXAS_NRTidalv3(
         - Phase(f_ref, theta_intrinsic[:4], bbh_phase_coeffs)
         + phiTfRef
         + PI / 4.0
-        - PI
         + ext_phase_contrib
     )
 
@@ -261,7 +403,12 @@ def gen_IMRPhenomXAS_NRTidalv3_hphc(
         f, params[:-1], f_ref, use_lambda_tildes=use_lambda_tildes, no_taper=no_taper
     )
 
-    hp = h0 * (1 / 2 * (1 + jnp.cos(iota) ** 2))
-    hc = -1j * h0 * jnp.cos(iota)
+    # -1 prefactor in hp (and the corresponding sign in hc) comes from
+    # Ylmfactor = e^(i*PI) in Y_{-2}^{22}, which LAL evaluates at phi=PI/2
+    # after generating the h22 mode:
+    #   hp = pfac  * Ylmfactor * h22 = -(1+cos^2 iota)/2 * h22
+    #   hc = -i    * cfac * Ylmfactor * h22 = i * cos(iota) * h22
+    hp = -h0 * (1 / 2 * (1 + jnp.cos(iota) ** 2))
+    hc = 1j * h0 * jnp.cos(iota)
 
     return hp, hc

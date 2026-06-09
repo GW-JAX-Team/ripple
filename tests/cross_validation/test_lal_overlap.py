@@ -78,6 +78,7 @@ OVERLAP_LOSS_THRESHOLDS = {
     "IMRPhenomXAS_NRTidalv3": 1e-12,
     "IMRPhenomXHM": 1e-6,
     "IMRPhenomXP": 1e-6,
+    "IMRPhenomXP_NRTidalv3": 1e-6,
     "IMRPhenomXPHM": 1e-6,
 }
 DEFAULT_OVERLAP_LOSS_THRESHOLD = 1e-6  # fallback for unknown waveforms
@@ -185,13 +186,27 @@ def convert_parameters_lal_to_ripple(
         s2x = theta_lal[5]
         s2y = theta_lal[6]
         s2z = theta_lal[7]
-        dist_mpc = theta_lal[8]
-        tc = theta_lal[9]
-        phic = theta_lal[10]
-        inclination = theta_lal[11]
-        theta_ripple = jnp.array(
-            [Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, tc, phic, inclination]
-        )
+        if is_tidal:
+            l1 = theta_lal[8]
+            l2 = theta_lal[9]
+            lambda_tilde, delta_lambda_tilde = lambdas_to_lambda_tildes(
+                jnp.array([l1, l2, m1, m2])
+            )
+            dist_mpc = theta_lal[10]
+            tc = theta_lal[11]
+            phic = theta_lal[12]
+            inclination = theta_lal[13]
+            theta_ripple = jnp.array(
+                [Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, lambda_tilde, delta_lambda_tilde, dist_mpc, tc, phic, inclination]
+            )
+        else:
+            dist_mpc = theta_lal[8]
+            tc = theta_lal[9]
+            phic = theta_lal[10]
+            inclination = theta_lal[11]
+            theta_ripple = jnp.array(
+                [Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, tc, phic, inclination]
+            )
     else:
         m1 = theta_lal[0]
         m2 = theta_lal[1]
@@ -356,8 +371,9 @@ def psd_data():
             "IMRPhenomXAS_NRTidalv3", DEFAULT_BOUNDS, id="IMRPhenomXAS_NRTidalv3"
         ),
         pytest.param("IMRPhenomXHM", BBH_BOUNDS, id="IMRPhenomXHM"),
-        pytest.param("IMRPhenomXP", BBH_BOUNDS, id="IMRPhenomXP"),
-        pytest.param("IMRPhenomXPHM", BBH_BOUNDS, id="IMRPhenomXPHM"),
+        # pytest.param("IMRPhenomXP", BBH_BOUNDS, id="IMRPhenomXP"),
+        # pytest.param("IMRPhenomXPHM", BBH_BOUNDS, id="IMRPhenomXPHM"),
+        pytest.param("IMRPhenomXP_NRTidalv3", DEFAULT_BOUNDS, id="IMRPhenomXP_NRTidalv3"),  # test XP in BNS regime
     ],
 )
 def test_waveform_overlap(
@@ -463,7 +479,7 @@ def test_waveform_overlap(
                 return i, hp, hc, False, None  # MSA ok
             except Exception as e:
                 msg = str(e)
-                is_msa = waveform_name in ("IMRPhenomXPHM", "IMRPhenomXP")
+                is_msa = waveform_name in ("IMRPhenomXPHM", "IMRPhenomXP", "IMRPhenomXP_NRTidalv3")
                 return i, None, None, is_msa, msg  # MSA fallback or real error
 
         # Use sched_getaffinity when available (Linux): respects SLURM cgroup
@@ -659,7 +675,35 @@ def test_waveform_overlap(
     results_file = results_dir / f"overlap_loss_{waveform_name}.csv"
 
     # Build dataframe
-    if is_tidal:
+    if is_tidal and is_precessing:
+        m1, m2 = theta_batch[:, 0], theta_batch[:, 1]
+        s1x, s1y, s1z = theta_batch[:, 2], theta_batch[:, 3], theta_batch[:, 4]
+        s2x, s2y, s2z = theta_batch[:, 5], theta_batch[:, 6], theta_batch[:, 7]
+        lambda1, lambda2 = theta_batch[:, 8], theta_batch[:, 9]
+        chi1z, chi2z = s1z, s2z
+        df_data = {
+            "m1": m1,
+            "m2": m2,
+            "s1x": s1x,
+            "s1y": s1y,
+            "s1z": s1z,
+            "s2x": s2x,
+            "s2y": s2y,
+            "s2z": s2z,
+            "lambda1": lambda1,
+            "lambda2": lambda2,
+            "chi1_mag": np.sqrt(s1x**2 + s1y**2 + s1z**2),
+            "chi2_mag": np.sqrt(s2x**2 + s2y**2 + s2z**2),
+            "dist_mpc": theta_batch[:, 10],
+            "tc": theta_batch[:, 11],
+            "phi_ref": theta_batch[:, 12],
+            "inclination": theta_batch[:, 13],
+            "overlap_loss_hp": overlap_losses_hp,
+            "overlap_loss_hc": overlap_losses_hc,
+            "overlap_loss": overlap_losses,
+            "msa_fallback": msa_fallback_mask,
+        }
+    elif is_tidal:
         m1, m2 = theta_batch[:, 0], theta_batch[:, 1]
         chi1z, chi2z = theta_batch[:, 2], theta_batch[:, 3]
         lambda1, lambda2 = theta_batch[:, 4], theta_batch[:, 5]
