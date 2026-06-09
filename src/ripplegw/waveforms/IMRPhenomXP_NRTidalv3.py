@@ -2,20 +2,20 @@
 
 import jax
 import jax.numpy as jnp
-from ..constants import MPC, MTSUN, PI, C
+from ..constants import MTSUN, PI
 from jaxtyping import Array
 from ..conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
-from .IMRPhenomD_NRTidalv2 import get_qm_phase_correction, get_spin_phase_correction
-from . import IMRPhenomX_utils
-from .IMRPhenomXAS_NRTidalv3 import IMRPhenomXAS_NRTidalv3_Amp, IMRPhenomXAS_NRTidalv3_Phase
+from .IMRPhenomXAS_NRTidalv3 import (
+    IMRPhenomXAS_NRTidalv3_Amp,
+    IMRPhenomXAS_NRTidalv3_Phase,
+)
 
-from .IMRPhenomXAS_NRTidalv3 import gen_IMRPhenomXAS_NRTidalv3
 
 from . import LALSimIMRPhenomX_precession as pPrec
 from .initialize_MSA_system import IMRPhenomX_Initialize_MSA_System
 
 
-from .IMRPhenomXHM import IMRPhenomX_TimeShift_22, XLALSimIMRPhenomXHMGethlmModes, build_pWF22
+from .IMRPhenomXHM import build_pWF22
 from .IMRPhenomXPHM import (
     IMRPhenomXWignerdCoefficients_cosbeta,
     twist_22,
@@ -25,20 +25,21 @@ from .IMRPhenomXPHM import (
 
 
 def gen_IMRPhenomXP_NRTidalv3_hphc(
-        f: Array,
-        theta: Array,
-        f_ref: float,
-        use_lambda_tildes: bool = True,
-        no_taper: bool = False
+    f: Array,
+    theta: Array,
+    f_ref: float,
+    use_lambda_tildes: bool = True,
+    no_taper: bool = False,
 ):
     return gen_IMRPhenomXP_NRTidalv3(f, theta, f_ref, use_lambda_tildes, no_taper)
 
+
 def gen_IMRPhenomXP_NRTidalv3(
-        f: Array,
-        theta: Array,
-        f_ref: float,
-        use_lambda_tildes: bool = True,
-        no_taper: bool = False
+    f: Array,
+    theta: Array,
+    f_ref: float,
+    use_lambda_tildes: bool = True,
+    no_taper: bool = False,
 ):
     """
     TODO write docstring
@@ -52,9 +53,9 @@ def gen_IMRPhenomXP_NRTidalv3(
 
     l1, l2 = jax.lax.cond(
         use_lambda_tildes,
-        lambda _: lambda_tildes_to_lambdas(jnp.array([l1, l2, m1, m2 ])),
+        lambda _: lambda_tildes_to_lambdas(jnp.array([l1, l2, m1, m2])),
         lambda _: (l1, l2),
-        operand=None
+        operand=None,
     )
 
     theta_intrinsic_XAS = jnp.array([m1, m2, s1z, s2z, l1, l2])
@@ -142,7 +143,7 @@ def gen_IMRPhenomXP_NRTidalv3(
         msa_S2L_pav=_msa_init[33],
     )
     Mf = (m1 + m2) * f * MTSUN
-    
+
     chip = pWF22_prec.get("chip", 0.0)
 
     # Co-precessing frame: phic must be 0 here. In LAL's XP convention the
@@ -151,19 +152,10 @@ def gen_IMRPhenomXP_NRTidalv3(
     # in the phase would double-count it, producing a 2*phic offset vs LAL.
     theta_extrinsic_coprec = jnp.array([D, tc, 0.0, iota])
     phase_22 = IMRPhenomXAS_NRTidalv3_Phase(
-        f,
-        f_ref,
-        theta_intrinsic_XAS,
-        theta_extrinsic_coprec,
-        no_taper,
-        chip
+        f, f_ref, theta_intrinsic_XAS, theta_extrinsic_coprec, no_taper, chip
     )
     amp_22 = IMRPhenomXAS_NRTidalv3_Amp(
-        f,
-        theta_intrinsic_XAS,
-        theta_extrinsic,
-        no_taper,
-        chip
+        f, theta_intrinsic_XAS, theta_extrinsic, no_taper, chip
     )
 
     h0_coprec = amp_22 * jnp.exp(1j * phase_22)

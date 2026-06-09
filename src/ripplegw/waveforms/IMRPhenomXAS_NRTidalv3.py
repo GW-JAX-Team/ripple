@@ -81,7 +81,9 @@ def IMRPhenomXAS_NRTidalv3_Phase(
 
     phi_XAS = Phase(f, theta_intrinsic[:4], bbh_phase_coeffs, chip)
     # dphiXAS = jax.grad(Phase, argnums=0)(f_final, theta_intrinsic[:4], bbh_phase_coeffs) / M_s
-    dphiXAS = PhaseDerivative(f_final, theta_intrinsic[:4], bbh_phase_coeffs, chip) / M_s
+    dphiXAS = (
+        PhaseDerivative(f_final, theta_intrinsic[:4], bbh_phase_coeffs, chip) / M_s
+    )
     linb = dphiT - dphiXAS
     ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] + 2 * theta_extrinsic[2]
     phase_shift = (
@@ -156,7 +158,7 @@ def IMRPhenomXAS_NRTidalv3_Amp(
         theta_intrinsic[:4],
         IMRPhenomX_utils.PhenomX_amp_coeff_table,
         theta_extrinsic[0],
-        chip=chip
+        chip=chip,
     )
 
     if no_taper:
