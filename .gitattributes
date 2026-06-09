@@ -1,3 +1,4 @@
 docs/** linguist-vendored
 notebooks/** linguist-vendored
 tests/** linguist-vendored
+uv.lock linguist-generated
