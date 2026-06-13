@@ -62,8 +62,10 @@ jobs:
           if [[ "${{ github.event_name }}" != "release" ]]; then
             uv pip install git+https://github.com/GW-JAX-Team/JaxNRSur.git@main
           fi
-      - name: Run pre-commit
-        run: uv run pre-commit run --all-files
+      - name: Run pre-commit (excluding pyright)
+        run: SKIP=pyright uv run pre-commit run --all-files
+      - name: Run pyright
+        run: uv run --no-sync pyright src/
 
   publish:
     needs: [test, pre-commit]
