@@ -27,6 +27,8 @@ from ripplegw import (
     IMRPhenomXHM,
     IMRPhenomXP,
     IMRPhenomXPHM,
+    NRHybSur3dq8,
+    NRSur7dq4,
     SineGaussian,
     waveform_preset,
 )
@@ -115,6 +117,40 @@ def bns_tidal_tilde_dict():
 
 
 @pytest.fixture(scope="module")
+def nrhybsur3dq8_dict():
+    """Dict params for NRHybSur3dq8 approximant class."""
+    Mc, eta = ms_to_Mc_eta(jnp.array([36.0, 24.0]))
+    return {
+        "M_c": float(Mc),
+        "eta": float(eta),
+        "s1_z": 0.3,
+        "s2_z": -0.2,
+        "d_L": 400.0,
+        "phase_c": 0.0,
+        "iota": 1.0,
+    }
+
+
+@pytest.fixture(scope="module")
+def nrsur7dq4_dict():
+    """Dict params for NRSur7dq4 approximant class."""
+    Mc, eta = ms_to_Mc_eta(jnp.array([40.0, 20.0]))
+    return {
+        "M_c": float(Mc),
+        "eta": float(eta),
+        "s1_x": 0.1,
+        "s1_y": 0.0,
+        "s1_z": 0.2,
+        "s2_x": 0.0,
+        "s2_y": 0.0,
+        "s2_z": 0.1,
+        "d_L": 400.0,
+        "phase_c": 0.0,
+        "iota": 1.0,
+    }
+
+
+@pytest.fixture(scope="module")
 def sinegaussian_dict():
     """Dict params for SineGaussian approximant class."""
     return {"Q": 10.0, "f_0": 100.0, "hrss": 1e-21, "phase": 0.5, "e": 0.3}
@@ -169,6 +205,12 @@ def edge_freq_grid():
 def edge_time_grid():
     """Small time grid for SineGaussian edge-case tests."""
     return jnp.linspace(-0.5, 0.5, 512)
+
+
+@pytest.fixture(scope="module")
+def nrsur_time_grid():
+    """2-second time grid at 4096 Hz for NR surrogate tests."""
+    return jnp.linspace(-2.0, 0.0, 2 * 4096)
 
 
 # ============================================================================
@@ -800,6 +842,42 @@ class TestSineGaussian:
         assert_approx_td_valid(model(edge_time_grid, params), edge_time_grid)
 
 
+class TestNRHybSur3dq8:
+    @pytest.fixture(scope="class")
+    def model(self):
+        """NRHybSur3dq8 wrapper; shared across all tests in this class."""
+        return NRHybSur3dq8(f_lower=20.0)
+
+    def test_basic(self, model, nrsur_time_grid, nrhybsur3dq8_dict):
+        output = model(nrsur_time_grid, nrhybsur3dq8_dict)
+        assert_approx_td_valid(output, nrsur_time_grid)
+
+    def test_repr(self, model):
+        assert repr(model) == "NRHybSur3dq8(f_lower=20.0)"
+
+    def test_in_waveform_preset(self):
+        assert "NRHybSur3dq8" in waveform_preset
+        assert waveform_preset["NRHybSur3dq8"] is NRHybSur3dq8
+
+
+class TestNRSur7dq4:
+    @pytest.fixture(scope="class")
+    def model(self):
+        """NRSur7dq4 wrapper; shared across all tests in this class."""
+        return NRSur7dq4(f_lower=20.0)
+
+    def test_basic(self, model, nrsur_time_grid, nrsur7dq4_dict):
+        output = model(nrsur_time_grid, nrsur7dq4_dict)
+        assert_approx_td_valid(output, nrsur_time_grid)
+
+    def test_repr(self, model):
+        assert repr(model) == "NRSur7dq4(f_lower=20.0)"
+
+    def test_in_waveform_preset(self):
+        assert "NRSur7dq4" in waveform_preset
+        assert waveform_preset["NRSur7dq4"] is NRSur7dq4
+
+
 class TestWaveformPreset:
     def test_all_keys_present(self):
         expected = {
@@ -813,11 +891,19 @@ class TestWaveformPreset:
             "IMRPhenomXHM",
             "IMRPhenomXP",
             "IMRPhenomXPHM",
+            "NRHybSur3dq8",
+            "NRSur7dq4",
             "SineGaussian",
         }
         assert expected == set(waveform_preset.keys())
 
     def test_all_instantiable(self):
+        # NR surrogates load model data at init; covered by TestNRSur7dq4 /
+        # TestNRHybSur3dq8 — skip instantiation here to avoid double loading.
+        _nr_surrogate_names = {"NRHybSur3dq8", "NRSur7dq4"}
         for name, cls in waveform_preset.items():
+            if name in _nr_surrogate_names:
+                assert cls is not None
+                continue
             instance = cls() if name == "SineGaussian" else cls(f_ref=20.0)
             assert callable(instance), f"{name} instance is not callable"

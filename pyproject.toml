@@ -24,6 +24,7 @@ classifiers = [
 dependencies = [
     "jax>=0.8.2",
     "jaxtyping>=0.3.3",
+    "JAXNRSur",
 ]
 
 [project.optional-dependencies]

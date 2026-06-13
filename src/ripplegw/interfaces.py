@@ -3,6 +3,10 @@ from abc import ABC, abstractmethod
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
+from jaxnrsur import JAXNRSur as _JAXNRSur
+from jaxnrsur.NRSur7dq4 import NRSur7dq4Model as _NRSur7dq4Model
+from jaxnrsur.NRHybSur3dq8 import NRHybSur3dq8Model as _NRHybSur3dq8Model
+
 from .waveforms.TaylorF2 import gen_TaylorF2_hphc
 from .waveforms.IMRPhenomD import gen_IMRPhenomD_hphc
 from .waveforms.IMRPhenomD_NRTidalv2 import gen_IMRPhenomD_NRTidalv2_hphc
@@ -44,16 +48,16 @@ class Waveform(ABC):
 
     @abstractmethod
     def __call__(
-        self, axis: Float[Array, " n_freq"], params: dict[str, Float]
-    ) -> dict[str, Float[Array, " n_freq"]]:
+        self, axis: Float[Array, " n_sample"], params: dict[str, Float]
+    ) -> dict[str, Float[Array, " n_sample"]]:
         """Evaluate the waveform.
 
         Args:
-            axis (Float[Array, " n_freq"]): Frequency (or time) grid.
+            axis (Float[Array, " n_sample"]): Frequency or time grid.
             params (dict[str, Float]): Source parameter dictionary.
 
         Returns:
-            dict[str, Float[Array, " n_freq"]]: Dictionary with keys ``"p"``
+            dict[str, Float[Array, " n_sample"]]: Dictionary with keys ``"p"``
                 (plus polarization) and ``"c"`` (cross polarization).
         """
         raise NotImplementedError("Waveform.__call__ must be implemented by subclasses")
@@ -792,6 +796,116 @@ class IMRPhenomXPHM(Waveform):
         return f"IMRPhenomXPHM(f_ref={self.f_ref})"
 
 
+class NRHybSur3dq8(Waveform):
+    """Time-domain aligned-spin NR hybrid surrogate (mass ratio q ≤ 8)."""
+
+    def __init__(self, f_lower: float = 0.0) -> None:
+        self.f_lower = f_lower
+        self._wrapper = _JAXNRSur(_NRHybSur3dq8Model())
+
+    @property
+    def parameter_names(self) -> tuple[str, ...]:
+        return ("M_c", "eta", "s1_z", "s2_z", "d_L", "phase_c", "iota")
+
+    def __call__(
+        self, t: Float[Array, " n_time"], params: dict[str, Float]
+    ) -> dict[str, Float[Array, " n_time"]]:
+        """Evaluate NRHybSur3dq8.
+
+        Args:
+            t (Float[Array, " n_time"]): Time grid in seconds.
+            params (dict[str, Float]): Source parameters. Keys: ``M_c``
+                (chirp mass, solar masses), ``eta`` (symmetric mass ratio),
+                ``s1_z`` and ``s2_z`` (dimensionless aligned-spin components,
+                |χ| ≤ 0.8), ``d_L`` (luminosity distance, Mpc), ``phase_c``
+                (reference orbital phase), ``iota`` (inclination angle).
+
+        Returns:
+            dict[str, Float[Array, " n_time"]]: Plus (``"p"``) and cross
+                (``"c"``) polarizations in SI units.
+        """
+        m1, m2 = Mc_eta_to_ms(jnp.array([params["M_c"], params["eta"]]))
+        p = jnp.array(
+            [
+                m1 + m2,
+                params["d_L"],
+                params["iota"],
+                params["phase_c"],
+                m1 / m2,
+                params["s1_z"],
+                params["s2_z"],
+            ]
+        )
+        hp, hc = self._wrapper.get_waveform_td(t, p, f_lower=self.f_lower)
+        return {"p": hp, "c": hc}
+
+    def __repr__(self) -> str:
+        return f"NRHybSur3dq8(f_lower={self.f_lower})"
+
+
+class NRSur7dq4(Waveform):
+    """Time-domain precessing NR surrogate (mass ratio q ≤ 4, modes up to l=4)."""
+
+    def __init__(self, f_lower: float = 0.0) -> None:
+        self.f_lower = f_lower
+        self._wrapper = _JAXNRSur(_NRSur7dq4Model())
+
+    @property
+    def parameter_names(self) -> tuple[str, ...]:
+        return (
+            "M_c",
+            "eta",
+            "s1_x",
+            "s1_y",
+            "s1_z",
+            "s2_x",
+            "s2_y",
+            "s2_z",
+            "d_L",
+            "phase_c",
+            "iota",
+        )
+
+    def __call__(
+        self, t: Float[Array, " n_time"], params: dict[str, Float]
+    ) -> dict[str, Float[Array, " n_time"]]:
+        """Evaluate NRSur7dq4.
+
+        Args:
+            t (Float[Array, " n_time"]): Time grid in seconds.
+            params (dict[str, Float]): Source parameters. Keys: ``M_c``
+                (chirp mass, solar masses), ``eta`` (symmetric mass ratio),
+                ``s1_x/y/z`` and ``s2_x/y/z`` (dimensionless spin components),
+                ``d_L`` (luminosity distance, Mpc), ``phase_c`` (reference
+                orbital phase), ``iota`` (inclination angle).
+
+        Returns:
+            dict[str, Float[Array, " n_time"]]: Plus (``"p"``) and cross
+                (``"c"``) polarizations in SI units.
+        """
+        m1, m2 = Mc_eta_to_ms(jnp.array([params["M_c"], params["eta"]]))
+        p = jnp.array(
+            [
+                m1 + m2,
+                params["d_L"],
+                params["iota"],
+                params["phase_c"],
+                m1 / m2,
+                params["s1_x"],
+                params["s1_y"],
+                params["s1_z"],
+                params["s2_x"],
+                params["s2_y"],
+                params["s2_z"],
+            ]
+        )
+        hp, hc = self._wrapper.get_waveform_td(t, p, f_lower=self.f_lower)
+        return {"p": hp, "c": hc}
+
+    def __repr__(self) -> str:
+        return f"NRSur7dq4(f_lower={self.f_lower})"
+
+
 class SineGaussian(Waveform):
     """Sine-Gaussian time-domain burst waveform."""
 
@@ -848,5 +962,7 @@ waveform_preset: dict[str, type[Waveform]] = {
     "IMRPhenomXHM": IMRPhenomXHM,
     "IMRPhenomXP": IMRPhenomXP,
     "IMRPhenomXPHM": IMRPhenomXPHM,
+    "NRHybSur3dq8": NRHybSur3dq8,
+    "NRSur7dq4": NRSur7dq4,
     "SineGaussian": SineGaussian,
 }
