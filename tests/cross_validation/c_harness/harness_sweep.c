@@ -80,6 +80,7 @@ int main(int argc, char **argv) {
 
   UINT4 n_samples = (UINT4)ceil(FS * DURATION);
   FILE *of = fopen(argv[4], "wb");
+  if (!of) { fprintf(stderr, "cannot open %s for writing\n", argv[4]); return 9; }
   fwrite(&n_sets, sizeof(UINT4), 1, of);
   fwrite(&n_samples, sizeof(UINT4), 1, of);
 
