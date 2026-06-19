@@ -137,13 +137,15 @@ def read_ephemeris_file(path: str) -> Ephemeris:
     acc = data[:, 7:10]
 
     gps0 = float(gps[0])
-    # Sanity check on uniform spacing (LAL enforces this strictly).
+    # Sanity check on uniform spacing across ALL entries (LAL enforces this
+    # strictly); the barycentering index lookup assumes a constant dt.
     if n_entries > 1:
-        measured_dt = float(gps[1] - gps[0])
-        if not np.isclose(measured_dt, dt, rtol=0, atol=1e-6):
+        diffs = np.diff(gps)
+        if not np.allclose(diffs, dt, rtol=0, atol=1e-6):
+            bad = int(np.argmax(np.abs(diffs - dt)))
             raise ValueError(
-                f"Ephemeris file '{path}': header dt={dt} disagrees with "
-                f"measured spacing {measured_dt}"
+                f"Ephemeris file '{path}': non-uniform GPS spacing; header dt={dt} "
+                f"but entry {bad}->{bad + 1} has spacing {float(diffs[bad])}"
             )
 
     return Ephemeris(
