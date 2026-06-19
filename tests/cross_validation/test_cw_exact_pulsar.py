@@ -59,6 +59,11 @@ def _overlap_loss(h1, h2) -> float:
     return max((a * b - c * c) / (denom * (denom + c)), 0.0)
 
 
+def _log10_str(loss: float) -> str:
+    """log10(loss) formatted, or 'N/A' for an exactly-zero (clamped) loss."""
+    return f"{math.log10(loss):.2f}" if loss > 0.0 else "N/A (0)"
+
+
 def _find_ephemeris():
     """Locate Earth and Sun ephemeris files (both must exist), or (None, None).
 
@@ -171,9 +176,9 @@ def test_exact_pulsar_matches_lal_reference():
     h_ripple = f_plus * np.asarray(hp) + f_cross * np.asarray(hc)
 
     loss = _overlap_loss(h_ripple, h_lal)
-    print(f"\nexact pulsar: overlap loss = {loss:.2e} (log10 = {math.log10(loss):.2f})")
+    print(f"\nexact pulsar: overlap loss = {loss:.2e} (log10 = {_log10_str(loss)})")
     # ~log10 -12.5 in practice; the floor is LAL's float64 GPS-time arithmetic.
-    assert loss < 1e-10, f"overlap loss {loss:.2e} (log10={math.log10(loss):.2f})"
+    assert loss < 1e-10, f"overlap loss {loss:.2e} (log10={_log10_str(loss)})"
 
 
 def test_barycenter_matches_lal_to_microsecond():
@@ -276,8 +281,8 @@ def test_full_pulsar_matches_lal_barycenter_reference():
     )
     h_mine = f_plus * np.asarray(hp) + f_cross * np.asarray(hc)
     loss = _overlap_loss(h_mine, h_ref)
-    print(f"\nfull pulsar: overlap loss = {loss:.2e} (log10 = {math.log10(loss):.2f})")
-    assert loss < 1e-10, f"overlap loss {loss:.2e} (log10={math.log10(loss):.2f})"
+    print(f"\nfull pulsar: overlap loss = {loss:.2e} (log10 = {_log10_str(loss)})")
+    assert loss < 1e-10, f"overlap loss {loss:.2e} (log10={_log10_str(loss)})"
 
 
 def test_binary_source_phase_matches_lal_spinorbit():
@@ -321,5 +326,5 @@ def test_binary_source_phase_matches_lal_spinorbit():
     # At f0=1000 LAL solves Kepler tightly, so this reaches the float floor
     # (~log10 -15); at lower f0 LAL's dxMax = 0.01/(f0·P) tolerance dominates.
     loss = _overlap_loss(np.cos(phi_mine), np.cos(phi_lal))
-    print(f"\nbinary phase: overlap loss = {loss:.2e} (log10 = {math.log10(loss):.2f})")
-    assert loss < 1e-12, f"overlap loss {loss:.2e} (log10={math.log10(loss):.2f})"
+    print(f"\nbinary phase: overlap loss = {loss:.2e} (log10 = {_log10_str(loss)})")
+    assert loss < 1e-12, f"overlap loss {loss:.2e} (log10={_log10_str(loss)})"
