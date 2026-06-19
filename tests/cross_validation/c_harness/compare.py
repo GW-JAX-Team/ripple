@@ -51,6 +51,11 @@ def _overlap_loss(h1, h2) -> float:
     return max((a * b - c * c) / (denom * (denom + c)), 0.0)
 
 
+def _log10_str(loss: float) -> str:
+    """log10(loss) formatted, or 'N/A' for an exactly-zero (clamped) loss."""
+    return f"{math.log10(loss):.2f}" if loss > 0.0 else "N/A (0)"
+
+
 def _load(path):
     with open(path, "rb") as f:
         (n,) = struct.unpack("I", f.read(4))
@@ -93,7 +98,7 @@ def main(earth, sun, out_exact, out_gen0, out_genhet):
     h_me = fp * np.array(hp) + fc * np.array(hc)
     loss = _overlap_loss(h_me, h_c)
     print(f"EXACT       vs compiled XLALSimulateExactPulsarSignal: "
-          f"overlap loss = {loss:.2e}  log10 = {math.log10(loss):.2f}  (n={n})")
+          f"overlap loss = {loss:.2e}  log10 = {_log10_str(loss)}  (n={n})")
 
     # ---- GENERATE: standard ComputeDetAMResponse antenna ----
     for fh, fname in [(0.0, out_gen0), (12.0, out_genhet)]:
@@ -114,7 +119,7 @@ def main(earth, sun, out_exact, out_gen0, out_genhet):
         h_me = fp * np.array(hp) + fc * np.array(hc)
         loss = _overlap_loss(h_me, h_c)
         print(f"GENERATE fHet={fh:4.1f} vs compiled XLALGeneratePulsarSignal:  "
-              f"overlap loss = {loss:.2e}  log10 = {math.log10(loss):.2f}  (n={n})")
+              f"overlap loss = {loss:.2e}  log10 = {_log10_str(loss)}  (n={n})")
 
 
 if __name__ == "__main__":
