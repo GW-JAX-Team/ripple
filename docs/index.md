@@ -8,6 +8,14 @@ By implementing waveform models as differentiable JAX functions, ripple enables 
 **Supported waveforms:** a range of frequency- and time-domain compact-binary and burst models, covering aligned-spin, precessing, and tidal physics.
 See the [Waveform Catalogue](guides/catalogue.md) for the full, always-up-to-date list with each model's parameters and capabilities.
 
+**Continuous-wave (pulsar) signals** (`ripplegw.cw`):
+
+- `ExactPulsarSignal` — exact geometric reference (isolated pulsar)
+- `PulsarSignal` — full barycentering (Einstein/Shapiro) + heterodyne (isolated)
+- `BinaryPulsarSignal` — pulsar in a binary orbit
+
+The continuous-wave models require a JPL ephemeris file (e.g. `earth00-40-DE405.dat.gz`); see the [FAQ](FAQ.md).
+
 !!! warning
     ripple has not yet reached v1.0.0 and the API may change.
     Use at your own risk.
