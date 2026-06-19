@@ -27,6 +27,7 @@ import csv
 import math
 import struct
 import subprocess
+from pathlib import Path
 
 import matplotlib
 
@@ -126,17 +127,28 @@ def compute(earth, sun, n_exact=200, n_generate=100, n_binary=100):
         c2, s2 = math.cos(2 * psi), math.sin(2 * psi)
         return a * c2 + b * s2, b * c2 - a * s2  # F+, Fx (sinZeta=1 for H1)
 
+    # Locate the compiled harness (a build artifact): prefer one in the current
+    # directory, else next to this script. Use absolute paths throughout so the
+    # script is not tied to a particular working directory; the temp CSV/bin go
+    # alongside the chosen harness binary.
+    here = Path(__file__).resolve().parent
+    candidates = [Path.cwd() / "harness_sweep", here / "harness_sweep"]
+    harness = next((c for c in candidates if c.exists()), candidates[0])
+    work = harness.parent
+    csv_path = work / "sweep_params.csv"
+    bin_path = work / "sweep_out.bin"
+
     # write CSV for the C harness and run it
-    with open("sweep_params.csv", "w") as f:
+    with open(csv_path, "w") as f:
         for r in sets:
             f.write(" ".join(f"{r[k]:.17g}" if k != "mode" else f"{r['mode']}"
                              for k in ["mode", "alpha", "delta", "f0", "f1", "f2",
                                        "phi0", "psi", "aplus", "across", "asini",
                                        "ecc", "period", "argp", "tp", "fhet"]) + "\n")
     print("running compiled-LAL sweep harness ...", flush=True)
-    subprocess.run(["./harness_sweep", earth, sun, "sweep_params.csv",
-                    "sweep_out.bin"], check=True)
-    with open("sweep_out.bin", "rb") as f:
+    subprocess.run([str(harness), earth, sun, str(csv_path), str(bin_path)],
+                   check=True)
+    with open(bin_path, "rb") as f:
         n_sets, n_samp = struct.unpack("II", f.read(8))
         assert n_sets == len(sets) and n_samp == N
         lal_h = np.frombuffer(f.read(4 * n_sets * n_samp), dtype=np.float32)
