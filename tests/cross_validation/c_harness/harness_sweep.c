@@ -93,6 +93,10 @@ int main(int argc, char **argv) {
                &asini, &ecc, &per, &argp, &tp, &fhet) != 16) {
       fprintf(stderr, "bad line: %s", line); return 6;
     }
+    if (mode != 0 && mode != 1) {
+      fprintf(stderr, "invalid mode %d (expected 0=exact or 1=generate): %s", mode, line);
+      return 6;
+    }
     PulsarSignalParams p; memset(&p, 0, sizeof(p));
     p.pulsar.refTime.gpsSeconds = 0;
     p.pulsar.position.longitude = al; p.pulsar.position.latitude = de;
