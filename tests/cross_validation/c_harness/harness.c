@@ -130,14 +130,17 @@ static void fill_common(PulsarSignalParams *p, const EphemerisData *edat) {
 
 static void dump(const char *path, const REAL4TimeSeries *ts) {
   FILE *f = fopen(path, "wb");
+  if (!f) { fprintf(stderr, "cannot open %s for writing\n", path); exit(9); }
   UINT4 n = ts->data->length;
-  fwrite(&n, sizeof(UINT4), 1, f);
-  fwrite(&ts->epoch.gpsSeconds, sizeof(INT4), 1, f);
-  fwrite(&ts->epoch.gpsNanoSeconds, sizeof(INT4), 1, f);
-  fwrite(&ts->deltaT, sizeof(REAL8), 1, f);
-  fwrite(&ts->f0, sizeof(REAL8), 1, f);
-  fwrite(ts->data->data, sizeof(REAL4), n, f);
-  fclose(f);
+  int ok = 1;
+  ok &= fwrite(&n, sizeof(UINT4), 1, f) == 1;
+  ok &= fwrite(&ts->epoch.gpsSeconds, sizeof(INT4), 1, f) == 1;
+  ok &= fwrite(&ts->epoch.gpsNanoSeconds, sizeof(INT4), 1, f) == 1;
+  ok &= fwrite(&ts->deltaT, sizeof(REAL8), 1, f) == 1;
+  ok &= fwrite(&ts->f0, sizeof(REAL8), 1, f) == 1;
+  ok &= fwrite(ts->data->data, sizeof(REAL4), n, f) == n;
+  if (fclose(f) != 0) ok = 0;  /* flush errors surface here */
+  if (!ok) { fprintf(stderr, "write failed for %s\n", path); exit(10); }
   fprintf(stderr, "  wrote %s: n=%u epoch=%d.%09d deltaT=%g f0=%g\n",
           path, n, ts->epoch.gpsSeconds, ts->epoch.gpsNanoSeconds, ts->deltaT, ts->f0);
 }
