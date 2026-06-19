@@ -119,6 +119,7 @@ static void fill_common(PulsarSignalParams *p, const EphemerisData *edat) {
   p->pulsar.psi = PSI; p->pulsar.aPlus = APLUS; p->pulsar.aCross = ACROSS;
   p->pulsar.phi0 = PHI0; p->pulsar.f0 = F0;
   REAL8Vector *sd = XLALCreateREAL8Vector(2);
+  if (!sd) { fprintf(stderr, "XLALCreateREAL8Vector failed\n"); exit(9); }
   sd->data[0] = F1; sd->data[1] = F2;
   p->pulsar.spindown = sd;
   p->site = &lalCachedDetectors[LHODIFF];
