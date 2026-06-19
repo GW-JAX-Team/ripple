@@ -112,8 +112,12 @@ int main(int argc, char **argv) {
     p.duration = DURATION; p.samplingRate = FS; p.fHeterodyne = fhet;
     if (asini > 0.0) {
       p.orbit.asini = asini; p.orbit.ecc = ecc; p.orbit.period = per;
-      p.orbit.argp = argp; p.orbit.tp.gpsSeconds = (INT4)tp;
-      p.orbit.tp.gpsNanoSeconds = (INT4)round((tp - (INT4)tp) * 1e9);
+      p.orbit.argp = argp;
+      INT4 tp_sec = (INT4)tp;
+      INT4 tp_ns = (INT4)round((tp - tp_sec) * 1e9);
+      if (tp_ns >= 1000000000) { tp_ns -= 1000000000; tp_sec += 1; }  /* carry */
+      p.orbit.tp.gpsSeconds = tp_sec;
+      p.orbit.tp.gpsNanoSeconds = tp_ns;
     }
     if (mode == 1) { p.sourceDeltaT = 1.0; p.dtDelayBy2 = 5; p.dtPolBy2 = 5; }
 
