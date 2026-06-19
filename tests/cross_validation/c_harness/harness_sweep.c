@@ -103,7 +103,9 @@ int main(int argc, char **argv) {
     p.pulsar.position.system = COORDINATESYSTEM_EQUATORIAL;
     p.pulsar.psi = psi; p.pulsar.aPlus = ap; p.pulsar.aCross = ac;
     p.pulsar.phi0 = phi0; p.pulsar.f0 = f0;
-    REAL8Vector *sd = XLALCreateREAL8Vector(2); sd->data[0] = f1; sd->data[1] = f2;
+    REAL8Vector *sd = XLALCreateREAL8Vector(2);
+    if (!sd) { fprintf(stderr, "XLALCreateREAL8Vector failed at set %u\n", done); return 10; }
+    sd->data[0] = f1; sd->data[1] = f2;
     p.pulsar.spindown = sd;
     p.site = h1; p.ephemerides = edat;
     p.startTimeGPS.gpsSeconds = START_GPS;
