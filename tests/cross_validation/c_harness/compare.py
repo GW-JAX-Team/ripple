@@ -118,4 +118,11 @@ def main(earth, sun, out_exact, out_gen0, out_genhet):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) != 6:
+        print(
+            "usage: python compare.py <earth> <sun> <out_exact> <out_gen0> "
+            "<out_genhet>",
+            file=sys.stderr,
+        )
+        sys.exit(2)
     main(*sys.argv[1:6])
