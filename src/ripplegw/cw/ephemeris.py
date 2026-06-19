@@ -117,6 +117,11 @@ def read_ephemeris_file(path: str) -> Ephemeris:
     # Header: gpsYr dt nEntries (gpsYr is not needed for interpolation)
     dt = float(tokens[1])
     n_entries = int(float(tokens[2]))
+    if n_entries <= 0:
+        raise ValueError(
+            f"Ephemeris file '{path}': header declares non-positive entry count "
+            f"n_entries={n_entries}"
+        )
     body = tokens[3:]
 
     if len(body) != 10 * n_entries:
