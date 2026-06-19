@@ -271,7 +271,11 @@ def emission_delay(
         earth.se[:, 2] * sin_d
         + (earth.se[:, 0] * cos_a + earth.se[:, 1] * sin_a) * cos_d
     )
-    b = jnp.sqrt(earth.rse * earth.rse - se_dot_n * se_dot_n)
+    # radicand is the squared impact distance (>= 0 in exact arithmetic);
+    # clamp to guard against tiny negative values from float rounding (NaN in
+    # both the forward value and the gradient) when the source is near the
+    # Earth-Sun line.
+    b = jnp.sqrt(jnp.maximum(earth.rse * earth.rse - se_dot_n * se_dot_n, 0.0))
     shapiro_through = 9.852e-6 * jnp.log(
         _AU_OVER_C / (se_dot_n + jnp.sqrt(_RSUN_SEC * _RSUN_SEC + se_dot_n * se_dot_n))
     ) + 19.704e-6 * (1.0 - b / _RSUN_SEC)
