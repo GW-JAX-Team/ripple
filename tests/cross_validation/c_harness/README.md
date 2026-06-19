@@ -57,7 +57,7 @@ The figure of merit is the **overlap loss** (mismatch) `1 − ⟨h₁|h₂⟩/�
 between the reconstructed strain and the compiled-LAL strain — the same metric
 (and numerically-stable form) used by `test_lal_overlap.py`, reported as `log10`.
 
-```
+```text
 EXACT       vs compiled XLALSimulateExactPulsarSignal: overlap loss = 3.4e-13  log10 = -12.46
 GENERATE fHet= 0.0 vs compiled XLALGeneratePulsarSignal:  overlap loss = 9.9e-13  log10 = -12.00
 GENERATE fHet=12.0 vs compiled XLALGeneratePulsarSignal:  overlap loss = 9.9e-13  log10 = -12.00
