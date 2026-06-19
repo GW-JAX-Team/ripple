@@ -60,25 +60,32 @@ def _overlap_loss(h1, h2) -> float:
 
 
 def _find_ephemeris():
-    """Locate an Earth (and optional Sun) ephemeris file, or return (None, None)."""
+    """Locate Earth and Sun ephemeris files (both must exist), or (None, None).
+
+    ``lalpulsar.InitBarycenter`` requires both files, so we only return a pair
+    when both are present (otherwise the tests skip rather than hard-fail).
+    """
     earth = os.environ.get("RIPPLE_EARTH_EPHEMERIS")
-    sun = os.environ.get("RIPPLE_SUN_EPHEMERIS")
     if earth and os.path.exists(earth):
-        return earth, sun
+        # Use RIPPLE_SUN_EPHEMERIS if given, else guess the Sun file next to it.
+        sun = os.environ.get("RIPPLE_SUN_EPHEMERIS") or earth.replace("earth", "sun")
+        if os.path.exists(sun):
+            return earth, sun
     candidates = [
         "earth00-40-DE405.dat.gz",
         "/usr/share/lalpulsar/earth00-40-DE405.dat.gz",
     ]
     for c in candidates:
-        if os.path.exists(c):
-            s = c.replace("earth", "sun")
-            return c, (s if os.path.exists(s) else None)
+        s = c.replace("earth", "sun")
+        if os.path.exists(c) and os.path.exists(s):
+            return c, s
     return None, None
 
 
 EARTH_FILE, SUN_FILE = _find_ephemeris()
 pytestmark = pytest.mark.skipif(
-    EARTH_FILE is None, reason="no LALPulsar Earth ephemeris file found"
+    EARTH_FILE is None or SUN_FILE is None,
+    reason="LALPulsar Earth and Sun ephemeris files required",
 )
 
 
