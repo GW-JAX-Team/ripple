@@ -75,9 +75,10 @@ computes the phase directly per sample and matches the per-sample
 `harness_sweep.c` runs the compiled functions over many parameter sets read from
 a CSV; `make_figs.py` draws random parameters (isolated exact / isolated
 generate / binary), drives the harness, reconstructs the ripple strain, and
-plots `log10` overlap loss vs sky position and frequency. Output PNGs are in
-`figures/`. `run_macmini.sh` is the macOS (Apple-Silicon) build+run recipe used
-to generate them.
+plots `log10` overlap loss vs sky position and frequency. Output PNGs are
+written to the current directory (or `--outdir`); the committed reference copies
+live in `figures/`. `run_macmini.sh` is the macOS (Apple-Silicon) build+run
+recipe used to generate them.
 
 Key point for the PR: the overlap loss is bounded by **LAL's own reference
 precision**, not ripple's:
