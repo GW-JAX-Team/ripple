@@ -46,17 +46,3 @@ See [Working with Waveforms](guides/waveforms.md) for the full interface and `ri
 It isn't exposed.
 Every built-in model fixes the time of coalescence internally and only exposes `phase_c` (coalescence phase) and `iota` (inclination) as extrinsic parameters — see [Parameters and Conventions](guides/parameters.md).
 If your use case needs to vary `t_c`, you currently need to apply the standard linear-in-frequency phase shift ($e^{2\pi i f\,\delta t_c}$) yourself on the returned strain.
-
-## Continuous-wave signals: ephemeris files
-
-The continuous-wave models in `ripplegw.cw` (`ExactPulsarSignal`, `PulsarSignal`, `BinaryPulsarSignal`) need a JPL solar-system ephemeris to barycenter the signal.
-You pass the path to a standard LALPulsar ephemeris file, e.g. `earth00-40-DE405.dat.gz` (and `sun00-40-DE405.dat.gz` for the full and binary models, which include the Shapiro delay).
-ripple parses these files itself — it does not import `lal`/`lalpulsar` at runtime.
-
-The `pip` `lalsuite` wheel does **not** bundle the ephemeris files.
-Obtain them from an installed LALSuite (`$LALPULSAR_DATADIR`) or the [LALSuite repository](https://git.ligo.org/lscsoft/lalsuite/-/tree/master/lalpulsar/lib), and make sure your observation span lies within the file's coverage (the standard `earth00-40-*`/`sun00-40-*` files cover GPS years 2000–2040).
-
-Two practical notes:
-
-- The call axis is **time in seconds relative to `start_gps`** (not absolute GPS), which preserves float64 precision; absolute sample times are reconstructed internally as integer second + fraction.
-- Sample times outside the ephemeris span are clamped rather than raising, so keep your time grid within the file's coverage.

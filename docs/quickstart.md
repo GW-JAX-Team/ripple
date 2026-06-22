@@ -47,22 +47,24 @@ ripplegw.list_waveforms(domain="FD")     # filter by metadata
 ripplegw.get_waveform_metadata("IMRPhenomD")
 ```
 
-## Continuous-wave (pulsar) signals
+## Continuous-wave (pulsar) waveforms
 
-ripple also generates continuous-wave (CW) signals from spinning neutron stars,
-ported from LALPulsar. These share the `{"p", "c"}` return convention, but the
-axis is **time** (seconds relative to a GPS start epoch), and the detector,
-ephemeris, and start time are fixed at construction. A JPL ephemeris file is
-required (see the [FAQ](FAQ.md)):
+ripple also generates continuous-wave (CW) waveforms from spinning neutron stars, ported from LALPulsar.
+These share the `{"p", "c"}` return convention, but the axis is **time** (seconds relative to a GPS start epoch), and the detector, ephemeris, and start time are fixed at construction.
+A JPL ephemeris file is required (see the [Installation](installation.md#continuous-wave-ephemeris-files) page):
 
 ```python
 import jax.numpy as jnp
-from ripplegw.cw import PulsarSignal
+import ripplegw
 
 # Detector, ephemerides, observation start (GPS), and number of spindowns
-waveform = PulsarSignal(
-    "H1", "earth00-40-DE405.dat.gz", "sun00-40-DE405.dat.gz",
-    start_gps=1_000_000_000, n_spindowns=1,
+waveform = ripplegw.waveform(
+    "PulsarSignal",
+    detector="H1",
+    earth_ephemeris_file="earth00-40-DE405.dat.gz",
+    sun_ephemeris_file="sun00-40-DE405.dat.gz",
+    start_gps=1_000_000_000,
+    n_spindowns=1,
 )
 
 t = jnp.arange(0, 1800, 1 / 16)   # seconds since start_gps
@@ -75,9 +77,8 @@ params = {
 polarizations = waveform(t, params)   # {"p": h+, "c": hx}
 ```
 
-Use `ExactPulsarSignal` for the exact geometric reference (isolated, Earth
-ephemeris only) or `BinaryPulsarSignal` to add orbital modulation. Like the CBC
-waveforms, all three are `jit`/`grad`/`vmap`-compatible.
+Use `ExactPulsarSignal` for the exact geometric reference (isolated, Earth ephemeris only) or `BinaryPulsarSignal` to add orbital modulation.
+Like the compact-binary-coalescence waveforms, all three are `jit`/`grad`/`vmap`-compatible.
 
 ## GPU and Gradient Support
 

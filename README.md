@@ -14,16 +14,9 @@ By implementing waveform models as differentiable JAX functions, ripple enables 
 - IMRPhenomXPHM — precessing spins with higher-order modes
 - IMRPhenomXAS_NRTidalv3 — tidal corrections for binary neutron star mergers
 - SineGaussian — time-domain burst waveform
+- PulsarSignal — continuous-wave signal from a spinning neutron star
 
 See the [Waveform Catalogue](https://gw-jax-team.github.io/ripple/stable/guides/catalogue/) for the full list of supported models.
-
-**Continuous-wave (pulsar) signals** (`ripplegw.cw`):
-
-- `ExactPulsarSignal` — exact geometric reference (isolated pulsar)
-- `PulsarSignal` — full barycentering (Einstein/Shapiro) + heterodyne (isolated)
-- `BinaryPulsarSignal` — pulsar in a binary orbit
-
-The continuous-wave models need a JPL ephemeris file (e.g. `earth00-40-DE405.dat.gz`); see the [docs](https://gw-jax-team.github.io/ripple/).
 
 For a quick introduction, see the [Quick Start guide](https://gw-jax-team.github.io/ripple/stable/quickstart/).
 
