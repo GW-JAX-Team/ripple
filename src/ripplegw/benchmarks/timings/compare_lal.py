@@ -12,7 +12,7 @@ import json
 import logging
 import math
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -66,36 +66,64 @@ def _label_bars(ax, bars, fmt=".3g", offset_factor=1.15):
                 bar.get_x() + bar.get_width() / 2.0,
                 h * offset_factor,
                 f"{h:{fmt}}",
-                ha="center", va="bottom", fontsize=8,
+                ha="center",
+                va="bottom",
+                fontsize=8,
             )
 
 
 def _bar_data(organized, waveforms, key, std_key):
     ripple = [organized[w].get("ripple", {}).get(key, float("nan")) for w in waveforms]
     lal = [organized[w].get("lal", {}).get(key, float("nan")) for w in waveforms]
-    ripple_std = [organized[w].get("ripple", {}).get(std_key, 0.0) or 0.0 for w in waveforms]
+    ripple_std = [
+        organized[w].get("ripple", {}).get(std_key, 0.0) or 0.0 for w in waveforms
+    ]
     lal_std = [organized[w].get("lal", {}).get(std_key, 0.0) or 0.0 for w in waveforms]
     return ripple, lal, ripple_std, lal_std
 
 
-def create_time_per_waveform_plot(organized, output_path, ripple_device, ripple_n, lal_n):
+def create_time_per_waveform_plot(
+    organized, output_path, ripple_device, ripple_n, lal_n
+):
     waveforms = sorted(organized)
     ripple, lal, ripple_std, lal_std = _bar_data(
-        organized, waveforms,
-        "time_per_waveform_ms", "time_per_waveform_std_ms",
+        organized,
+        waveforms,
+        "time_per_waveform_ms",
+        "time_per_waveform_std_ms",
     )
     x = np.arange(len(waveforms))
     width = 0.35
     fig, ax = plt.subplots(figsize=(13, 6))
-    b1 = ax.bar(x - width / 2, ripple, width, yerr=ripple_std, capsize=4,
-                label=f"ripple float64 ({ripple_device} GPU, N={ripple_n})",
-                color="#3498db", alpha=0.85, error_kw=dict(ecolor="black", lw=1.5))
-    b2 = ax.bar(x + width / 2, lal, width, yerr=lal_std, capsize=4,
-                label=f"LAL float64 (CPU, N={lal_n})",
-                color="#2ecc71", alpha=0.85, error_kw=dict(ecolor="black", lw=1.5))
+    b1 = ax.bar(
+        x - width / 2,
+        ripple,
+        width,
+        yerr=ripple_std,
+        capsize=4,
+        label=f"ripple float64 ({ripple_device} GPU, N={ripple_n})",
+        color="#3498db",
+        alpha=0.85,
+        error_kw=dict(ecolor="black", lw=1.5),
+    )
+    b2 = ax.bar(
+        x + width / 2,
+        lal,
+        width,
+        yerr=lal_std,
+        capsize=4,
+        label=f"LAL float64 (CPU, N={lal_n})",
+        color="#2ecc71",
+        alpha=0.85,
+        error_kw=dict(ecolor="black", lw=1.5),
+    )
     ax.set_yscale("log")
     ax.set_ylabel("Time per waveform (ms)", fontsize=12, fontweight="bold")
-    ax.set_title("Waveform evaluation time: ripple (GPU) vs LAL (CPU)", fontsize=14, fontweight="bold")
+    ax.set_title(
+        "Waveform evaluation time: ripple (GPU) vs LAL (CPU)",
+        fontsize=14,
+        fontweight="bold",
+    )
     ax.set_xticks(x)
     ax.set_xticklabels(waveforms, rotation=45, ha="right")
     ax.legend(fontsize=11)
@@ -111,21 +139,41 @@ def create_time_per_waveform_plot(organized, output_path, ripple_device, ripple_
 def create_throughput_plot(organized, output_path, ripple_device, ripple_n, lal_n):
     waveforms = sorted(organized)
     ripple, lal, ripple_std, lal_std = _bar_data(
-        organized, waveforms,
-        "waveforms_per_second", "waveforms_per_second_std",
+        organized,
+        waveforms,
+        "waveforms_per_second",
+        "waveforms_per_second_std",
     )
     x = np.arange(len(waveforms))
     width = 0.35
     fig, ax = plt.subplots(figsize=(13, 6))
-    b1 = ax.bar(x - width / 2, ripple, width, yerr=ripple_std, capsize=4,
-                label=f"ripple float64 ({ripple_device} GPU, N={ripple_n})",
-                color="#3498db", alpha=0.85, error_kw=dict(ecolor="black", lw=1.5))
-    b2 = ax.bar(x + width / 2, lal, width, yerr=lal_std, capsize=4,
-                label=f"LAL float64 (CPU, N={lal_n})",
-                color="#2ecc71", alpha=0.85, error_kw=dict(ecolor="black", lw=1.5))
+    b1 = ax.bar(
+        x - width / 2,
+        ripple,
+        width,
+        yerr=ripple_std,
+        capsize=4,
+        label=f"ripple float64 ({ripple_device} GPU, N={ripple_n})",
+        color="#3498db",
+        alpha=0.85,
+        error_kw=dict(ecolor="black", lw=1.5),
+    )
+    b2 = ax.bar(
+        x + width / 2,
+        lal,
+        width,
+        yerr=lal_std,
+        capsize=4,
+        label=f"LAL float64 (CPU, N={lal_n})",
+        color="#2ecc71",
+        alpha=0.85,
+        error_kw=dict(ecolor="black", lw=1.5),
+    )
     ax.set_yscale("log")
     ax.set_ylabel("Waveforms per second", fontsize=12, fontweight="bold")
-    ax.set_title("Waveform throughput: ripple (GPU) vs LAL (CPU)", fontsize=14, fontweight="bold")
+    ax.set_title(
+        "Waveform throughput: ripple (GPU) vs LAL (CPU)", fontsize=14, fontweight="bold"
+    )
     ax.set_xticks(x)
     ax.set_xticklabels(waveforms, rotation=45, ha="right")
     ax.legend(fontsize=11)
@@ -156,7 +204,8 @@ def create_speedup_plot(organized, output_path, ripple_device):
     ax.set_ylabel("Speedup (LAL / ripple)", fontsize=12, fontweight="bold")
     ax.set_title(
         f"ripple ({ripple_device} GPU, float64) speedup over LAL (CPU, float64)",
-        fontsize=14, fontweight="bold",
+        fontsize=14,
+        fontweight="bold",
     )
     ax.set_xticks(x)
     ax.set_xticklabels(waveforms, rotation=45, ha="right")
@@ -168,7 +217,10 @@ def create_speedup_plot(organized, output_path, ripple_device):
                 bar.get_x() + bar.get_width() / 2.0,
                 s * 1.2,
                 f"{s:.0f}×",
-                ha="center", va="bottom", fontsize=9, fontweight="bold",
+                ha="center",
+                va="bottom",
+                fontsize=9,
+                fontweight="bold",
             )
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches="tight")
@@ -212,22 +264,31 @@ def run_compare(
         return
 
     create_time_per_waveform_plot(
-        organized, output_dir / f"compare_time_{ripple_device}.png",
-        ripple_device, ripple_n, lal_n,
+        organized,
+        output_dir / f"compare_time_{ripple_device}.png",
+        ripple_device,
+        ripple_n,
+        lal_n,
     )
     create_throughput_plot(
-        organized, output_dir / f"compare_throughput_{ripple_device}.png",
-        ripple_device, ripple_n, lal_n,
+        organized,
+        output_dir / f"compare_throughput_{ripple_device}.png",
+        ripple_device,
+        ripple_n,
+        lal_n,
     )
     create_speedup_plot(
-        organized, output_dir / f"compare_speedup_{ripple_device}.png",
+        organized,
+        output_dir / f"compare_speedup_{ripple_device}.png",
         ripple_device,
     )
     logger.info("Done.")
 
 
 def main() -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
+    )
     parser = argparse.ArgumentParser(
         description="Compare ripple (GPU) vs LAL (CPU) waveform timing",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,

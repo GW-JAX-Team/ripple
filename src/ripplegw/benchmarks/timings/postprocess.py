@@ -11,7 +11,7 @@ import json
 import logging
 import math
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -72,13 +72,20 @@ def create_time_per_waveform_plot(
 
     x = np.arange(len(waveforms))
     fig, ax = plt.subplots(figsize=(13, 6))
-    bars = ax.bar(x, times, yerr=stds, capsize=4,
-                  color="#3498db", alpha=0.85,
-                  error_kw=dict(ecolor="black", lw=1.5))
+    bars = ax.bar(
+        x,
+        times,
+        yerr=stds,
+        capsize=4,
+        color="#3498db",
+        alpha=0.85,
+        error_kw=dict(ecolor="black", lw=1.5),
+    )
     ax.set_ylabel("Time per waveform (ms)", fontsize=12, fontweight="bold")
     ax.set_title(
         f"Waveform evaluation time (ripple, float64)\nN = {n_waveforms}, device = {device_name}",
-        fontsize=14, fontweight="bold",
+        fontsize=14,
+        fontweight="bold",
     )
     ax.set_xticks(x)
     ax.set_xticklabels(waveforms, rotation=45, ha="right")
@@ -91,7 +98,9 @@ def create_time_per_waveform_plot(
                 bar.get_x() + bar.get_width() / 2.0,
                 h + std,
                 f"{h:.3f}",
-                ha="center", va="bottom", fontsize=9,
+                ha="center",
+                va="bottom",
+                fontsize=9,
             )
 
     plt.tight_layout()
@@ -113,17 +122,26 @@ def create_throughput_plot(
 
     waveforms = sorted(organized)
     wps = [organized[w].get("waveforms_per_second", float("nan")) for w in waveforms]
-    wps_stds = [organized[w].get("waveforms_per_second_std", 0.0) or 0.0 for w in waveforms]
+    wps_stds = [
+        organized[w].get("waveforms_per_second_std", 0.0) or 0.0 for w in waveforms
+    ]
 
     x = np.arange(len(waveforms))
     fig, ax = plt.subplots(figsize=(13, 6))
-    bars = ax.bar(x, wps, yerr=wps_stds, capsize=4,
-                  color="#3498db", alpha=0.85,
-                  error_kw=dict(ecolor="black", lw=1.5))
+    bars = ax.bar(
+        x,
+        wps,
+        yerr=wps_stds,
+        capsize=4,
+        color="#3498db",
+        alpha=0.85,
+        error_kw=dict(ecolor="black", lw=1.5),
+    )
     ax.set_ylabel("Waveforms per second", fontsize=12, fontweight="bold")
     ax.set_title(
         f"Waveform throughput (ripple, float64)\nN = {n_waveforms}, device = {device_name}",
-        fontsize=14, fontweight="bold",
+        fontsize=14,
+        fontweight="bold",
     )
     ax.set_xticks(x)
     ax.set_xticklabels(waveforms, rotation=45, ha="right")
@@ -136,7 +154,9 @@ def create_throughput_plot(
                 bar.get_x() + bar.get_width() / 2.0,
                 h + std,
                 f"{h:.0f}",
-                ha="center", va="bottom", fontsize=9,
+                ha="center",
+                va="bottom",
+                fontsize=9,
             )
 
     plt.tight_layout()
@@ -164,26 +184,36 @@ def run_postprocess(
     device_name = first.get("device_name", "Unknown")
     n_waveforms = first.get("n_waveforms", 0)
 
-    logger.info("Device: %s  N=%d  Waveforms: %s",
-                device_name, n_waveforms, ", ".join(sorted(organized)))
+    logger.info(
+        "Device: %s  N=%d  Waveforms: %s",
+        device_name,
+        n_waveforms,
+        ", ".join(sorted(organized)),
+    )
 
     if not HAS_MATPLOTLIB:
         logger.warning("matplotlib not available, skipping plots.")
         return
 
     create_time_per_waveform_plot(
-        organized, output_dir / f"time_per_waveform_{device_name}.png",
-        device_name, n_waveforms,
+        organized,
+        output_dir / f"time_per_waveform_{device_name}.png",
+        device_name,
+        n_waveforms,
     )
     create_throughput_plot(
-        organized, output_dir / f"throughput_{device_name}.png",
-        device_name, n_waveforms,
+        organized,
+        output_dir / f"throughput_{device_name}.png",
+        device_name,
+        n_waveforms,
     )
     logger.info("Postprocessing complete.")
 
 
 def main() -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
+    )
     parser = argparse.ArgumentParser(
         description="Postprocess ripple waveform timing results",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,

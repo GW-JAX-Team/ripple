@@ -152,8 +152,12 @@ def generate_precessing_bns_parameters(n_waveforms, seed=42):
     theta_jn = uniform(keys[13], 0, jnp.pi)
 
     keys2 = jax.random.split(jax.random.PRNGKey(seed + 1), 2)
-    phase = jax.random.uniform(keys2[0], shape=(n_waveforms,), minval=0, maxval=2 * jnp.pi)
-    geocent_time = jax.random.uniform(keys2[1], shape=(n_waveforms,), minval=0, maxval=1)
+    phase = jax.random.uniform(
+        keys2[0], shape=(n_waveforms,), minval=0, maxval=2 * jnp.pi
+    )
+    geocent_time = jax.random.uniform(
+        keys2[1], shape=(n_waveforms,), minval=0, maxval=1
+    )
 
     return {
         "mass_1": mass_1,

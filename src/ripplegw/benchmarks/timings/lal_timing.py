@@ -82,8 +82,22 @@ def _call_lal_single(theta, waveform_name, f_l, f_u, f_ref, df):
         lalsim.SimInspiralWaveformParamsInsertPhenomXPrecVersion(p, 222)
 
         hp, hc = lalsim.SimIMRPhenomXPHM(
-            m1_kg, m2_kg, s1x, s1y, s1z, s2x, s2y, s2z,
-            distance, inclination, phi_ref, f_l, f_u, df, f_ref, p,
+            m1_kg,
+            m2_kg,
+            s1x,
+            s1y,
+            s1z,
+            s2x,
+            s2y,
+            s2z,
+            distance,
+            inclination,
+            phi_ref,
+            f_l,
+            f_u,
+            df,
+            f_ref,
+            p,
         )
 
     elif waveform_name in ("IMRPhenomXP", "IMRPhenomXP_NRTidalv3"):
@@ -111,9 +125,26 @@ def _call_lal_single(theta, waveform_name, f_l, f_u, f_ref, df):
             inclination = theta[11]
 
         hp, hc = lalsim.SimInspiralChooseFDWaveform(
-            m1_kg, m2_kg, s1x, s1y, s1z_val, s2x, s2y, s2z_val,
-            distance, inclination, phi_ref, 0, 0, 0,
-            df, f_l, f_u, f_ref, p, approximant,
+            m1_kg,
+            m2_kg,
+            s1x,
+            s1y,
+            s1z_val,
+            s2x,
+            s2y,
+            s2z_val,
+            distance,
+            inclination,
+            phi_ref,
+            0,
+            0,
+            0,
+            df,
+            f_l,
+            f_u,
+            f_ref,
+            p,
+            approximant,
         )
 
     elif waveform_name in ("IMRPhenomPv2",):
@@ -126,15 +157,34 @@ def _call_lal_single(theta, waveform_name, f_l, f_u, f_ref, df):
         phi_ref = theta[10]
         inclination = theta[11]
         hp, hc = lalsim.SimInspiralChooseFDWaveform(
-            m1_kg, m2_kg, s1x, s1y, s1z, s2x, s2y, s2z,
-            distance, inclination, phi_ref, 0, 0, 0,
-            df, f_l, f_u, f_ref, None, approximant,
+            m1_kg,
+            m2_kg,
+            s1x,
+            s1y,
+            s1z,
+            s2x,
+            s2y,
+            s2z,
+            distance,
+            inclination,
+            phi_ref,
+            0,
+            0,
+            0,
+            df,
+            f_l,
+            f_u,
+            f_ref,
+            None,
+            approximant,
         )
 
     else:
         # Non-precessing: theta = [m1, m2, s1z, s2z, (l1, l2,) dist, tc, phic, inc]
         is_tidal = waveform_name in (
-            "TaylorF2", "IMRPhenomD_NRTidalv2", "IMRPhenomXAS_NRTidalv3"
+            "TaylorF2",
+            "IMRPhenomD_NRTidalv2",
+            "IMRPhenomXAS_NRTidalv3",
         )
         m1_kg = theta[0] * lal.MSUN_SI
         m2_kg = theta[1] * lal.MSUN_SI
@@ -160,9 +210,26 @@ def _call_lal_single(theta, waveform_name, f_l, f_u, f_ref, df):
             laldict = None
 
         hp, hc = lalsim.SimInspiralChooseFDWaveform(
-            m1_kg, m2_kg, 0.0, 0.0, s1z, 0.0, 0.0, s2z,
-            distance, inclination, phi_ref, 0, 0, 0,
-            df, f_l, f_u, f_ref, laldict, approximant,
+            m1_kg,
+            m2_kg,
+            0.0,
+            0.0,
+            s1z,
+            0.0,
+            0.0,
+            s2z,
+            distance,
+            inclination,
+            phi_ref,
+            0,
+            0,
+            0,
+            df,
+            f_l,
+            f_u,
+            f_ref,
+            laldict,
+            approximant,
         )
 
     freqs_lal = np.arange(len(hp.data.data)) * df
@@ -171,51 +238,75 @@ def _call_lal_single(theta, waveform_name, f_l, f_u, f_ref, df):
 
 
 def _build_theta_aligned(params, i):
-    return np.array([
-        float(params["mass_1"][i]), float(params["mass_2"][i]),
-        float(params["a_1"][i]), float(params["a_2"][i]),
-        float(params["luminosity_distance"][i]),
-        float(params["geocent_time"][i]),
-        float(params["phase"][i]),
-        float(params["theta_jn"][i]),
-    ])
+    return np.array(
+        [
+            float(params["mass_1"][i]),
+            float(params["mass_2"][i]),
+            float(params["a_1"][i]),
+            float(params["a_2"][i]),
+            float(params["luminosity_distance"][i]),
+            float(params["geocent_time"][i]),
+            float(params["phase"][i]),
+            float(params["theta_jn"][i]),
+        ]
+    )
 
 
 def _build_theta_tidal(params, i):
-    return np.array([
-        float(params["mass_1"][i]), float(params["mass_2"][i]),
-        float(params["a_1"][i]), float(params["a_2"][i]),
-        float(params["lambda_1"][i]), float(params["lambda_2"][i]),
-        float(params["luminosity_distance"][i]),
-        float(params["geocent_time"][i]),
-        float(params["phase"][i]),
-        float(params["theta_jn"][i]),
-    ])
+    return np.array(
+        [
+            float(params["mass_1"][i]),
+            float(params["mass_2"][i]),
+            float(params["a_1"][i]),
+            float(params["a_2"][i]),
+            float(params["lambda_1"][i]),
+            float(params["lambda_2"][i]),
+            float(params["luminosity_distance"][i]),
+            float(params["geocent_time"][i]),
+            float(params["phase"][i]),
+            float(params["theta_jn"][i]),
+        ]
+    )
 
 
 def _build_theta_precessing(params, i):
-    return np.array([
-        float(params["mass_1"][i]), float(params["mass_2"][i]),
-        float(params["spin_1x"][i]), float(params["spin_1y"][i]), float(params["spin_1z"][i]),
-        float(params["spin_2x"][i]), float(params["spin_2y"][i]), float(params["spin_2z"][i]),
-        float(params["luminosity_distance"][i]),
-        float(params["geocent_time"][i]),
-        float(params["phase"][i]),
-        float(params["theta_jn"][i]),
-    ])
+    return np.array(
+        [
+            float(params["mass_1"][i]),
+            float(params["mass_2"][i]),
+            float(params["spin_1x"][i]),
+            float(params["spin_1y"][i]),
+            float(params["spin_1z"][i]),
+            float(params["spin_2x"][i]),
+            float(params["spin_2y"][i]),
+            float(params["spin_2z"][i]),
+            float(params["luminosity_distance"][i]),
+            float(params["geocent_time"][i]),
+            float(params["phase"][i]),
+            float(params["theta_jn"][i]),
+        ]
+    )
 
 
 def _build_theta_precessing_tidal(params, i):
-    return np.array([
-        float(params["mass_1"][i]), float(params["mass_2"][i]),
-        float(params["spin_1x"][i]), float(params["spin_1y"][i]), float(params["spin_1z"][i]),
-        float(params["spin_2x"][i]), float(params["spin_2y"][i]), float(params["spin_2z"][i]),
-        float(params["lambda_1"][i]), float(params["lambda_2"][i]),
-        float(params["luminosity_distance"][i]),
-        float(params["geocent_time"][i]),
-        float(params["phase"][i]),
-        float(params["theta_jn"][i]),
-    ])
+    return np.array(
+        [
+            float(params["mass_1"][i]),
+            float(params["mass_2"][i]),
+            float(params["spin_1x"][i]),
+            float(params["spin_1y"][i]),
+            float(params["spin_1z"][i]),
+            float(params["spin_2x"][i]),
+            float(params["spin_2y"][i]),
+            float(params["spin_2z"][i]),
+            float(params["lambda_1"][i]),
+            float(params["lambda_2"][i]),
+            float(params["luminosity_distance"][i]),
+            float(params["geocent_time"][i]),
+            float(params["phase"][i]),
+            float(params["theta_jn"][i]),
+        ]
+    )
 
 
 def time_lal_waveform(waveform_name, params, waveform_type, config):
@@ -251,7 +342,12 @@ def time_lal_waveform(waveform_name, params, waveform_type, config):
             _call_lal_single(theta, waveform_name, f_l, f_u, f_ref, df)
         t = time.time() - start
         exec_times.append(t)
-        logger.info("  Run %d: %.6f s  (%.3f ms/waveform)", run_idx + 1, t, t / n_waveforms * 1000)
+        logger.info(
+            "  Run %d: %.6f s  (%.3f ms/waveform)",
+            run_idx + 1,
+            t,
+            t / n_waveforms * 1000,
+        )
 
     return exec_times
 
@@ -299,7 +395,9 @@ def run_timing(args):
 
     logger.info("Generated %d parameter sets", args.n_waveforms)
     logger.info("\n%s", "=" * 60)
-    logger.info("Timed runs (%d repetitions, %d waveforms each)", args.n_runs, args.n_waveforms)
+    logger.info(
+        "Timed runs (%d repetitions, %d waveforms each)", args.n_runs, args.n_waveforms
+    )
     logger.info("=" * 60)
 
     exec_times = time_lal_waveform(args.waveform, params, waveform_type, config)
@@ -322,7 +420,9 @@ def run_timing(args):
     logger.info("  Std  execution time: %.6f s", std_exec)
     logger.info("  Min  execution time: %.6f s", min_exec)
     logger.info("  Max  execution time: %.6f s", max_exec)
-    logger.info("Mean time per waveform: %.3f ms  (+/- %.3f ms)", mean_tpw_ms, std_tpw_ms)
+    logger.info(
+        "Mean time per waveform: %.3f ms  (+/- %.3f ms)", mean_tpw_ms, std_tpw_ms
+    )
     logger.info("Mean waveforms per second: %.1f  (+/- %.1f)", mean_wps, std_wps)
     logger.info("=" * 60)
 
