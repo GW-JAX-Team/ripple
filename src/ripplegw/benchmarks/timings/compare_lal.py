@@ -26,9 +26,8 @@ except ImportError:
     np: Any = None
     HAS_MATPLOTLIB = False
 
-_TIMINGS_DIR = Path(__file__).parent.parent.parent.parent.parent / "timings"
-DEFAULT_RESULTS_DIR = _TIMINGS_DIR / "outdir"
-DEFAULT_OUTPUT_DIR = _TIMINGS_DIR / "figures"
+DEFAULT_RESULTS_DIR = Path.cwd() / "timings" / "outdir"
+DEFAULT_OUTPUT_DIR = Path.cwd() / "timings" / "figures"
 
 
 def load_results(results_dir: Path) -> List[Dict]:
