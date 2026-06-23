@@ -13,14 +13,14 @@ _QNM_A_MAX = float(QNMData_a[-1])  # 1.0
 _QNM_SCALE = (_QNM_N - 1) / (_QNM_A_MAX - _QNM_A_MIN)
 
 
-def _qnm_interp(x, table):
+def _qnm_interp(x: Float, table: Float[Array, " n_qnm"]) -> Float:
     """Linear interp on the uniform QNMData_a grid in O(1) index arithmetic."""
     t = (x - _QNM_A_MIN) * _QNM_SCALE
     i = jnp.clip(jnp.floor(t).astype(jnp.int32), 0, _QNM_N - 2)
     return table[i] + (t - i) * (table[i + 1] - table[i])
 
 
-def EradRational0815_s(eta, s):
+def EradRational0815_s(eta: Float, s: Float) -> Float:
     eta2 = eta * eta
     eta3 = eta2 * eta
     eta4 = eta3 * eta
@@ -48,7 +48,7 @@ def EradRational0815_s(eta, s):
     )
 
 
-def EradRational0815(eta, chi1, chi2):
+def EradRational0815(eta: Float, chi1: Float, chi2: Float) -> Float:
     Seta = jnp.sqrt(jnp.abs(1.0 - 4.0 * eta))
     m1 = 0.5 * (1.0 + Seta)
     m2 = 0.5 * (1.0 - Seta)
@@ -59,7 +59,7 @@ def EradRational0815(eta, chi1, chi2):
     return EradRational0815_s(eta, s)
 
 
-def FinalSpin0815_s(eta, S):
+def FinalSpin0815_s(eta: Float, S: Float) -> Float:
     eta2 = eta * eta
     eta3 = eta2 * eta
     S2 = S * S
@@ -79,7 +79,9 @@ def FinalSpin0815_s(eta, S):
     )
 
 
-def get_fRD_fdamp(m1, m2, chi1, chi2):
+def get_fRD_fdamp(
+    m1: Float, m2: Float, chi1: Float, chi2: Float
+) -> tuple[Float, Float]:
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
@@ -223,7 +225,16 @@ def get_coeffs(theta: Float[Array, "4"]) -> Float[Array, "19"]:
     return coeff
 
 
-def get_delta0(f1, f2, f3, v1, v2, v3, d1, d3):
+def get_delta0(
+    f1: Float,
+    f2: Float,
+    f3: Float,
+    v1: Float,
+    v2: Float,
+    v3: Float,
+    d1: Float,
+    d3: Float,
+) -> Float:
     return (
         -(d3 * f1**2 * (f1 - f2) ** 2 * f2 * (f1 - f3) * (f2 - f3) * f3)
         + d1 * f1 * (f1 - f2) * f2 * (f1 - f3) * (f2 - f3) ** 2 * f3**2
@@ -243,7 +254,16 @@ def get_delta0(f1, f2, f3, v1, v2, v3, d1, d3):
     ) / ((f1 - f2) ** 2 * (f1 - f3) ** 3 * (f2 - f3) ** 2)
 
 
-def get_delta1(f1, f2, f3, v1, v2, v3, d1, d3):
+def get_delta1(
+    f1: Float,
+    f2: Float,
+    f3: Float,
+    v1: Float,
+    v2: Float,
+    v3: Float,
+    d1: Float,
+    d3: Float,
+) -> Float:
     return (
         d3 * f1 * (f1 - f3) * (f2 - f3) * (2 * f2 * f3 + f1 * (f2 + f3))
         - (
@@ -275,7 +295,16 @@ def get_delta1(f1, f2, f3, v1, v2, v3, d1, d3):
     ) / ((f1 - f3) ** 3 * (f2 - f3) ** 2)
 
 
-def get_delta2(f1, f2, f3, v1, v2, v3, d1, d3):
+def get_delta2(
+    f1: Float,
+    f2: Float,
+    f3: Float,
+    v1: Float,
+    v2: Float,
+    v3: Float,
+    d1: Float,
+    d3: Float,
+) -> Float:
     return (
         d1
         * (f1 - f2)
@@ -313,7 +342,16 @@ def get_delta2(f1, f2, f3, v1, v2, v3, d1, d3):
     ) / ((f1 - f2) ** 2 * (f1 - f3) ** 3 * (f2 - f3) ** 2)
 
 
-def get_delta3(f1, f2, f3, v1, v2, v3, d1, d3):
+def get_delta3(
+    f1: Float,
+    f2: Float,
+    f3: Float,
+    v1: Float,
+    v2: Float,
+    v3: Float,
+    d1: Float,
+    d3: Float,
+) -> Float:
     return (
         (d3 * (f1 - f3) * (2 * f1 + f2 + f3)) / (f2 - f3)
         - (d1 * (f1 - f3) * (f1 + f2 + 2 * f3)) / (f1 - f2)
@@ -336,7 +374,16 @@ def get_delta3(f1, f2, f3, v1, v2, v3, d1, d3):
     ) / (f1 - f3) ** 3
 
 
-def get_delta4(f1, f2, f3, v1, v2, v3, d1, d3):
+def get_delta4(
+    f1: Float,
+    f2: Float,
+    f3: Float,
+    v1: Float,
+    v2: Float,
+    v3: Float,
+    d1: Float,
+    d3: Float,
+) -> Float:
     return (
         -(d3 * (f1 - f2) ** 2 * (f1 - f3) * (f2 - f3))
         + d1 * (f1 - f2) * (f1 - f3) * (f2 - f3) ** 2

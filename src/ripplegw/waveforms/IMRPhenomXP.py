@@ -1,5 +1,6 @@
 import jax
 import jax.numpy as jnp
+from jaxtyping import Array, Float, Complex
 from ..constants import PI, MTSUN, MRSUN, MPC
 from ..conversions import Mc_eta_to_ms
 from . import LALSimIMRPhenomX_precession as pPrec
@@ -17,7 +18,11 @@ from .IMRPhenomXPHM import (
 jax.config.update("jax_enable_x64", True)
 
 
-def gen_IMRPhenomXP_hphc(f, theta, f_ref):
+def gen_IMRPhenomXP_hphc(
+    f: Float[Array, " n_freq"],
+    theta: Float[Array, "12"],
+    f_ref: float,
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     Generate PhenomXP frequency domain waveform.
     vars array contains both intrinsic and extrinsic variables
@@ -82,7 +87,7 @@ def gen_IMRPhenomXP_hphc(f, theta, f_ref):
     )
 
     # Fused call: compute J0, thetaJN, kappa, and zeta_polarization in one pass.
-    theta_JN, Nz_Jf, Nx_Jf, phiJ_Sf, kappa, zeta_polarisations = (
+    theta_JN, _Nz_Jf, _Nx_Jf, phiJ_Sf, kappa, zeta_polarisations = (
         pPrec.compute_thetaJN_kappa_and_zeta(
             mass_1_fraction,
             mass_2_fraction,

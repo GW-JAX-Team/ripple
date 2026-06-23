@@ -7,26 +7,26 @@ from .IMRPhenomD_utils import (
     FinalSpin0815_s,
     _qnm_interp,
 )
-from jaxtyping import Array, Float
+from jaxtyping import Array, Float, Complex
 from .IMRPhenomD_QNMdata import QNMData_fRD, QNMData_fdamp
 
 MAX_TOL_ATAN = 1.0e-15
 
 
 # helper functions for LALtoPhenomP:
-def ROTATEZ(angle, x, y, z):
+def ROTATEZ(angle: Float, x: Float, y: Float, z: Float) -> tuple[Float, Float, Float]:
     tmp_x = x * jnp.cos(angle) - y * jnp.sin(angle)
     tmp_y = x * jnp.sin(angle) + y * jnp.cos(angle)
     return tmp_x, tmp_y, z
 
 
-def ROTATEY(angle, x, y, z):
+def ROTATEY(angle: Float, x: Float, y: Float, z: Float) -> tuple[Float, Float, Float]:
     tmp_x = x * jnp.cos(angle) + z * jnp.sin(angle)
     tmp_z = -x * jnp.sin(angle) + z * jnp.cos(angle)
     return tmp_x, y, tmp_z
 
 
-def FinalSpin0815(eta, chi1, chi2):
+def FinalSpin0815(eta: Float, chi1: Float, chi2: Float) -> Float:
     Seta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
     m1 = 0.5 * (1.0 + Seta)
     m2 = 0.5 * (1.0 - Seta)
@@ -171,7 +171,7 @@ def convert_spins(
     return chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz
 
 
-def SpinWeightedY(theta, phi, s, l, m):  # noqa: E741
+def SpinWeightedY(theta: Float, phi: Float, s: int, l: int, m: int) -> Complex:  # noqa: E741
     "copied from SphericalHarmonics.c in LAL"
     fac: Float = jnp.zeros_like(theta)
     if s == -2:
@@ -221,7 +221,9 @@ def L2PNR(v: float, eta: float) -> float:
     ) / x**0.5
 
 
-def WignerdCoefficients(v: float, SL: float, eta: float, Sp: float):
+def WignerdCoefficients(
+    v: Float, SL: Float, eta: Float, Sp: Float
+) -> tuple[Float, Float]:
     # We define the shorthand s := Sp / (L + SL)
     L = L2PNR(v, eta)
     s = Sp / (L + SL)
@@ -233,7 +235,7 @@ def WignerdCoefficients(v: float, SL: float, eta: float, Sp: float):
     return cos_beta_half, sin_beta_half
 
 
-def ComputeNNLOanglecoeffs(q, chil, chip):
+def ComputeNNLOanglecoeffs(q: Float, chil: Float, chip: Float) -> dict[str, Float]:
     m2 = q / (1.0 + q)
     m1 = 1.0 / (1.0 + q)
     dm = m1 - m2
@@ -353,7 +355,9 @@ def ComputeNNLOanglecoeffs(q, chil, chip):
     return angcoeffs
 
 
-def FinalSpin_inplane(m1, m2, chi1_l, chi2_l, chip):
+def FinalSpin_inplane(
+    m1: Float, m2: Float, chi1_l: Float, chi2_l: Float, chip: Float
+) -> Float:
     M = m1 + m2
     eta = m1 * m2 / (M * M)
     # Here I assume m1 > m2, the convention used in phenomD
@@ -367,7 +371,9 @@ def FinalSpin_inplane(m1, m2, chi1_l, chi2_l, chip):
     return af
 
 
-def phP_get_fRD_fdamp(m1, m2, chi1_l, chi2_l, chip):
+def phP_get_fRD_fdamp(
+    m1: Float, m2: Float, chi1_l: Float, chi2_l: Float, chip: Float
+) -> tuple[Float, Float]:
     # m1 > m2 should hold here
     finspin = FinalSpin_inplane(m1, m2, chi1_l, chi2_l, chip)
     m1_s = m1 * MTSUN
@@ -382,7 +388,7 @@ def phP_get_fRD_fdamp(m1, m2, chi1_l, chi2_l, chip):
 
 
 def phP_get_transition_frequencies(
-    theta: Array,
+    theta: Float[Array, "4"],
     gamma2: Float,
     gamma3: Float,
     chip: Float,

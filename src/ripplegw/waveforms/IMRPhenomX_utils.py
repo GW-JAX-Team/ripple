@@ -1,5 +1,5 @@
 import jax.numpy as jnp
-from jaxtyping import Array
+from jaxtyping import Array, Float
 
 from ..constants import MTSUN, PI
 
@@ -298,7 +298,7 @@ def get_cutoff_fMs(m1, m2, chi1, chi2, chip: float | Array = 0.0, a_prec_overrid
     return fRD, fdamp, fMECO, fISCO
 
 
-def calc_phaseatpeak(eta, S, chia, delta):
+def calc_phaseatpeak(eta: Float, S: Float, chia: Float, delta: Float) -> Float:
     lina = 0.0
 
     linb = (
@@ -367,7 +367,7 @@ def calc_phaseatpeak(eta, S, chia, delta):
     return lina, linb, psi4tostrain
 
 
-def nospin_CV(NoSpin_coeffs, eta):
+def nospin_CV(NoSpin_coeffs: Float[Array, " n_coeffs"], eta: Float) -> Float:
     eta2 = eta * eta
     eta3 = eta2 * eta
     eta4 = eta3 * eta
@@ -387,7 +387,7 @@ def nospin_CV(NoSpin_coeffs, eta):
     )
 
 
-def Eqspin_CV(EqSpin_coeffs, eta, S):
+def Eqspin_CV(EqSpin_coeffs: Float[Array, " n_coeffs"], eta: Float, S: Float) -> Float:
     eta2 = eta * eta
     eta3 = eta2 * eta
     eta4 = eta3 * eta
@@ -442,7 +442,9 @@ def Eqspin_CV(EqSpin_coeffs, eta, S):
     return numerator / denominator
 
 
-def Uneqspin_CV(EqSpin_coeffs, eta, S, chia):
+def Uneqspin_CV(
+    EqSpin_coeffs: Float[Array, " n_coeffs"], eta: Float, S: Float, chia: Float
+) -> Float:
     chia2 = chia * chia
     delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
     eta2 = eta * eta
@@ -468,7 +470,7 @@ def Uneqspin_CV(EqSpin_coeffs, eta, S, chia):
     )
 
 
-def Amp_Nospin_CV(NoSpin_coeffs, eta):
+def Amp_Nospin_CV(NoSpin_coeffs: Float[Array, " n_coeffs"], eta: Float) -> Float:
     numerator = (
         NoSpin_coeffs[0]
         + NoSpin_coeffs[1] * eta
@@ -480,7 +482,9 @@ def Amp_Nospin_CV(NoSpin_coeffs, eta):
     return numerator / denominator
 
 
-def Amp_Eqspin_CV(EqSpin_coeffs, eta, S):
+def Amp_Eqspin_CV(
+    EqSpin_coeffs: Float[Array, " n_coeffs"], eta: Float, S: Float
+) -> Float:
     numeratorS0 = (
         EqSpin_coeffs[0]
         + EqSpin_coeffs[1] * eta
@@ -533,7 +537,9 @@ def Amp_Eqspin_CV(EqSpin_coeffs, eta, S):
     ) / denominator
 
 
-def Amp_Uneqspin_CV(UneqSpin_coeffs, eta, S, chia):
+def Amp_Uneqspin_CV(
+    UneqSpin_coeffs: Float[Array, " n_coeffs"], eta: Float, S: Float, chia: Float
+) -> Float:
     delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
     return (
         chia

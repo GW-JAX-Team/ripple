@@ -78,7 +78,9 @@ def ellint_F(phi: Float, k: Float, n_points: int = 1000) -> Float:
     return result
 
 
-def gsl_sf_elljac_e(u: Float, m: Float, max_iter: int = 16):
+def gsl_sf_elljac_e(
+    u: Float, m: Float, max_iter: int = 16
+) -> tuple[Float, Float, Float]:
     """
     Compute the Jacobian elliptic functions sn(u|m), cn(u|m), dn(u|m).
 

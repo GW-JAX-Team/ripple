@@ -8,18 +8,18 @@ from .elliptic_integrals import gsl_sf_elljac_e
 
 # /** This function initializes all the core variables required for the MSA system. This will be called first. */
 def IMRPhenomX_Initialize_MSA_System(
-    mass_1,
-    mass_2,
-    chi1x,
-    chi1y,
-    chi1z,
-    chi2x,
-    chi2y,
-    chi2z,
-    reference_frequency,
-    pflag=223,
-    expansion_order=5,
-):
+    mass_1: Float,
+    mass_2: Float,
+    chi1x: Float,
+    chi1y: Float,
+    chi1z: Float,
+    chi2x: Float,
+    chi2y: Float,
+    chi2z: Float,
+    reference_frequency: float,
+    pflag: int = 223,
+    expansion_order: int = 5,
+) -> Array:
     """
     First initialize the system of variables needed for Chatziioannou et al, PRD, 88, 063011, (2013), arXiv:1307.4418:
 

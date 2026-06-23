@@ -1,5 +1,5 @@
 [project]
-name = "ripplegw"
+name = "rippleGW"
 dynamic = ["version"]
 description = "A JAX-based package for differentiable gravitational-wave waveform generation"
 readme = "README.md"
@@ -17,6 +17,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",
 ]
 
@@ -73,7 +74,7 @@ build-backend = "hatchling.build"
 
 [tool.hatch.version]
 source = "vcs"
-fallback-version = "0.1.0"
+fallback-version = "0.2.0"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

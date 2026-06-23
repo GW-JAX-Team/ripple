@@ -7,7 +7,7 @@ import jax.numpy as jnp
 from jaxtyping import Array, Float
 
 
-def universal_relation(coeffs: Float[Array, "5"], x: Float):
+def universal_relation(coeffs: Float[Array, "5"], x: Float) -> Float:
     """
     Applies the general formula of a universal relationship, which is a quartic polynomial.
 
@@ -132,7 +132,7 @@ def _get_quadparam_octparam_high(lambda_: Float) -> tuple[Float, Float]:
     return quadparam, octparam
 
 
-def get_kappa(theta: Array) -> Float:
+def get_kappa(theta: Float[Array, "6"]) -> Float:
     """
     Computes the tidal deformability parameter kappa according to equation (8) of the NRTidalv2 paper.
 

@@ -12,7 +12,7 @@ from .IMRPhenomD_utils import (
 
 from .IMRPhenomD_QNMdata import fM_CUT
 from ..constants import EULERGAMMA, MTSUN, MPC, C, PI
-from jaxtyping import Array, Float
+from jaxtyping import Array, Float, Complex
 from ..conversions import Mc_eta_to_ms
 
 
@@ -617,7 +617,7 @@ def _gen_IMRPhenomD(
     theta_extrinsic: Float[Array, "3"],
     coeffs: Float[Array, "19"],
     f_ref: float,
-):
+) -> Complex[Array, " n_freq"]:
     M_s = (theta_intrinsic[0] + theta_intrinsic[1]) * MTSUN
 
     # Shift phase so that peak amplitude matches t = 0
@@ -643,7 +643,9 @@ def _gen_IMRPhenomD(
     return h0
 
 
-def gen_IMRPhenomD(f: Float[Array, " n_freq"], params: Float[Array, "7"], f_ref: float):
+def gen_IMRPhenomD(
+    f: Float[Array, " n_freq"], params: Float[Array, "7"], f_ref: float
+) -> Complex[Array, " n_freq"]:
     """
     Generate PhenomD frequency domain waveform following 1508.07253.
     vars array contains both intrinsic and extrinsic variables
@@ -673,7 +675,7 @@ def gen_IMRPhenomD(f: Float[Array, " n_freq"], params: Float[Array, "7"], f_ref:
 
 def gen_IMRPhenomD_hphc(
     f: Float[Array, " n_freq"], params: Float[Array, "8"], f_ref: float
-):
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     Generate PhenomD frequency domain waveform following 1508.07253.
     vars array contains both intrinsic and extrinsic variables

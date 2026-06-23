@@ -7,7 +7,7 @@ from .IMRPhenomD import Phase as PhDPhase
 from .IMRPhenomD import Amp as PhDAmp
 from .IMRPhenomD_utils import get_coeffs
 
-from jaxtyping import Array
+from jaxtyping import Array, Float, Complex
 from .IMRPhenomPv2_utils import (
     WignerdCoefficients,
     convert_spins,
@@ -18,20 +18,18 @@ from .IMRPhenomPv2_utils import (
 
 
 def PhenomPCoreTwistUp(
-    fHz,
-    hPhenom,
-    # phase,
-    # Amp,
-    eta,
-    chi1_l,
-    chi2_l,
-    chip,
-    M,
-    angcoeffs,
-    Y2m,
-    alphaoffset,
-    epsilonoffset,
-):
+    fHz: Float[Array, " n_freq"],
+    hPhenom: Complex[Array, " n_freq"],
+    eta: Float,
+    chi1_l: Float,
+    chi2_l: Float,
+    chip: Float,
+    M: Float,
+    angcoeffs: dict[str, Float],
+    Y2m: list,
+    alphaoffset: Float,
+    epsilonoffset: Float,
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     assert angcoeffs is not None
     assert Y2m is not None
 
@@ -136,10 +134,10 @@ def PhenomPOneFrequency(
 
 
 def gen_IMRPhenomPv2(
-    fs: Array,
-    theta: Array,
+    fs: Float[Array, " n_freq"],
+    theta: Float[Array, "12"],
     f_ref: float,
-):
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     Thetas are waveform parameters.
     m1 must be larger than m2.
@@ -251,7 +249,9 @@ def gen_IMRPhenomPv2(
     return final_hp, final_hc
 
 
-def gen_IMRPhenomPv2_hphc(f: Array, params: Array, f_ref: float):
+def gen_IMRPhenomPv2_hphc(
+    f: Float[Array, " n_freq"], params: Float[Array, "12"], f_ref: float
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     wrapper around gen_Pph but the first two parameters are Mc and eta
     instead of m1 and m2
