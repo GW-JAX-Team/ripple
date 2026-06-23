@@ -18,6 +18,7 @@ A lower OL indicates better agreement.
 | IMRPhenomXAS_NRTidalv3 | 1e-6 | — | — | under investigation |
 | IMRPhenomXHM | 1e-6 | 3.6e-9 | 6.5e-7 | known cause |
 | IMRPhenomXP | 1e-6 | 1.20e-10 | 7.91e-08 | known cause |
+| IMRPhenomXP_NRTidalv3 | 2e-6 | — | 1.38e-6 | known cause |
 | IMRPhenomXPHM | 1e-6 | 2.44e-09 | 9.97e-08 | known cause |
 
 "Machine precision" means OL values are consistent with floating-point rounding (a few times eps_machine, typically 1e-15 to 1e-16).
@@ -68,15 +69,27 @@ The (3,2) intermediate phase is determined by a 6×6 linear system, one of whose
 
 The max OL is dominated by a single parameter combination (m1=19.75, m2=9.10 M☉, chip≈0.032, incl≈77°) where the MSA precession correction has a near-singularity in the sensitive band.
 
-In `IMRPhenomX_Return_phiz_of_v_MSA_precav_correction_LAL`, the correction formula contains `1/sqrt(d0+d2+d4)`, which diverges when `d0+d2+d4 = 0`. This zero-crossing corresponds to the angular momentum resonance `J = L − Smi`. At f ≈ 115 Hz for this system, `J = L − Smi` to 11 significant figures, making `d0+d2+d4 ≈ −4×10⁻¹⁶` with 8 orders of catastrophic cancellation in the sum. GPU/CPU float64 differences (from different FMA patterns in the spin-evolution coefficient computation) then cause a ~3 mrad discrepancy in the precession angle at that bin, which is amplified ~14× in hc vs hp for inclination ≈ 77°.
+In `IMRPhenomX_Return_phiz_of_v_MSA_precav_correction_LAL`, the correction formula contains `1/sqrt(d0+d2+d4)`, which diverges when `d0+d2+d4 = 0`. This zero-crossing corresponds to the angular momentum critical point `J = L − Smi`. At f ≈ 115 Hz for this system, `J = L − Smi` to 11 significant figures, making `d0+d2+d4 ≈ −4×10⁻¹⁶` with 8 orders of catastrophic cancellation in the sum. GPU/CPU float64 differences (from different FMA patterns in the spin-evolution coefficient computation) then cause a ~3 mrad discrepancy in the precession angle at that bin, which is amplified ~14× in hc vs hp for inclination ≈ 77°.
 
-This is a fundamental float64 limitation: both ripple and LAL use the same formula, and the error arises from irreducible GPU/CPU rounding differences near the resonance.
+This is a fundamental float64 limitation: both ripple and LAL use the same formula, and the error arises from irreducible GPU/CPU rounding differences near the critical point.
+
+### IMRPhenomXP_NRTidalv3
+
+**Threshold: 2e-6 | Max OL: 1.38e-6 (n=100, T=32 s, f\_ref=5 Hz)**
+
+The dominant failure is a single near-edge-on BNS sample (m1=2.32, m2=0.94 M☉, chi2_perp≈0.008, iota≈97°).
+
+The mechanism is identical to IMRPhenomXP: in `computeMScorrections` / `IMRPhenomX_Return_phiz_of_v_MSA_precav_correction_LAL` the correction formula involves `1/sqrt(d0+d2+d4)`, where `d0+d2+d4` parameterises the distance from the angular momentum critical point `J = L − Smi`. When this quantity is very small, catastrophic cancellation in float64 arithmetic makes the result sensitive to FMA rounding differences between GPU (ripple/JAX) and CPU (LAL/C). These differences cause a ~mrad discrepancy in the initial precession-angle correction which then propagates as a constant offset in alpha(f).
+
+The additional factor specific to this BNS sample is the **near-edge-on geometry** (iota≈97°): `hc ∝ sin(2α) ≈ 0` throughout the low-frequency inspiral (where alpha is small for a nearly-aligned spin), so the small alpha error is amplified ~(hp/hc)² ≈ 16× in hc relative to hp.
+
+The 2e-6 threshold (vs 1e-6 for XP) reflects the BNS spin range chi ∈ [−0.05, 0.05]: with tiny in-plane spins, Smi ≈ 0 and `J ≈ L − Smi` is more easily satisfied, raising the probability of sampling near the angular momentum critical point compared to the BBH spin range.
 
 ### IMRPhenomXPHM
 
 **Threshold: 1e-6 | Max OL: 9.97e-8**
 
-The worst case is the same system as XP (same MSA resonance mechanism). Beyond that, the next worst cases have high aligned spin (|chi1| ~ 0.94–0.98), where the (3,2) mode contributes a small additional error (see XHM section), diluted ~50–100× by the other four modes.
+The worst case is the same system as XP (same MSA near-singularity mechanism). Beyond that, the next worst cases have high aligned spin (|chi1| ~ 0.94–0.98), where the (3,2) mode contributes a small additional error (see XHM section), diluted ~50–100× by the other four modes.
 
 ---
 
