@@ -145,6 +145,9 @@ def gen_IMRPhenomXP_NRTidalv3(
     Mf = (m1 + m2) * f * MTSUN
 
     chip = pWF22_prec.get("chip", 0.0)
+    # Use afinal_prec directly for fRING/fDAMP to avoid the chip roundtrip losing
+    # information when afinal_prec < a_aln (clamped chip=0 case, common at low chi_p).
+    a_prec_override = pWF22_prec.get("afinal", None)
 
     # Co-precessing frame: phic must be 0 here. In LAL's XP convention the
     # co-precessing mode uses phi0=0 (phase zeroed at f_ref); phic enters only
@@ -152,10 +155,21 @@ def gen_IMRPhenomXP_NRTidalv3(
     # in the phase would double-count it, producing a 2*phic offset vs LAL.
     theta_extrinsic_coprec = jnp.array([D, tc, 0.0, iota])
     phase_22 = IMRPhenomXAS_NRTidalv3_Phase(
-        f, f_ref, theta_intrinsic_XAS, theta_extrinsic_coprec, no_taper, chip
+        f,
+        f_ref,
+        theta_intrinsic_XAS,
+        theta_extrinsic_coprec,
+        no_taper,
+        chip,
+        a_prec_override=a_prec_override,
     )
     amp_22 = IMRPhenomXAS_NRTidalv3_Amp(
-        f, theta_intrinsic_XAS, theta_extrinsic, no_taper, chip
+        f,
+        theta_intrinsic_XAS,
+        theta_extrinsic,
+        no_taper,
+        chip,
+        a_prec_override=a_prec_override,
     )
 
     h0_coprec = amp_22 * jnp.exp(1j * phase_22)

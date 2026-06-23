@@ -31,6 +31,7 @@ def IMRPhenomXAS_NRTidalv3_Phase(
     theta_extrinsic: Array,
     no_taper: bool = False,
     chip: float = 0.0,
+    a_prec_override=None,
 ) -> Array:
     """
     Currently a helper function for XP_NRTidalv3. We could use this later for XAS too
@@ -79,16 +80,14 @@ def IMRPhenomXAS_NRTidalv3_Phase(
         f_ref * M_s, theta_intrinsic, P_P_fref
     )
 
-    phi_XAS = Phase(f, theta_intrinsic[:4], bbh_phase_coeffs, chip)
+    phi_XAS = Phase(f, theta_intrinsic[:4], bbh_phase_coeffs, chip, a_prec_override)
     # dphiXAS = jax.grad(Phase, argnums=0)(f_final, theta_intrinsic[:4], bbh_phase_coeffs) / M_s
-    dphiXAS = (
-        PhaseDerivative(f_final, theta_intrinsic[:4], bbh_phase_coeffs, chip) / M_s
-    )
+    dphiXAS = PhaseDerivative(f_final, theta_intrinsic[:4], bbh_phase_coeffs, chip, a_prec_override) / M_s
     linb = dphiT - dphiXAS
     ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] + 2 * theta_extrinsic[2]
     phase_shift = (
         linb * (f_Ms - f_ref * M_s)
-        - Phase(f_ref, theta_intrinsic[:4], bbh_phase_coeffs, chip)
+        - Phase(f_ref, theta_intrinsic[:4], bbh_phase_coeffs, chip, a_prec_override)
         + phiTfRef
         + PI / 4.0
         + ext_phase_contrib
@@ -133,6 +132,7 @@ def IMRPhenomXAS_NRTidalv3_Amp(
     theta_extrinsic: Array,
     no_taper: bool = False,
     chip: float = 0.0,
+    a_prec_override=None,
 ) -> Array:
     """
     TODO
@@ -159,6 +159,7 @@ def IMRPhenomXAS_NRTidalv3_Amp(
         IMRPhenomX_utils.PhenomX_amp_coeff_table,
         theta_extrinsic[0],
         chip=chip,
+        a_prec_override=a_prec_override,
     )
 
     if no_taper:

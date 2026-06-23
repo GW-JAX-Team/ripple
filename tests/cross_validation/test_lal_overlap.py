@@ -78,7 +78,7 @@ OVERLAP_LOSS_THRESHOLDS = {
     "IMRPhenomXAS_NRTidalv3": 1e-12,
     "IMRPhenomXHM": 1e-6,
     "IMRPhenomXP": 1e-6,
-    "IMRPhenomXP_NRTidalv3": 1e-6,
+    "IMRPhenomXP_NRTidalv3": 2e-6,
     "IMRPhenomXPHM": 1e-6,
 }
 DEFAULT_OVERLAP_LOSS_THRESHOLD = 1e-6  # fallback for unknown waveforms

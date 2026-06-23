@@ -7,7 +7,7 @@ from ..constants import MTSUN, PI
 fM_CUT = 0.3
 
 
-def get_cutoff_fMs(m1, m2, chi1, chi2, chip: float | Array = 0.0):
+def get_cutoff_fMs(m1, m2, chi1, chi2, chip: float | Array = 0.0, a_prec_override=None):
     # This function returns a variety of frequencies needed for computing IMRPhenomXAS
     # In particular, we have fRD, fdamp, fMECO, FISCO
     # chip: effective precession spin parameter. When non-zero, fRD/fdamp are computed
@@ -144,8 +144,13 @@ def get_cutoff_fMs(m1, m2, chi1, chi2, chip: float | Array = 0.0):
 
     # Precessing final spin (= a when chip=0): LAL sets pWF->afinal = afinal_prec,
     # so fRD/fdamp use a_prec. fISCO keeps using the aligned-spin a.
-    Sperp_prec = chip * mm1 * mm1  # chip * (m1/M)^2
-    a_prec = jnp.copysign(1.0, a) * jnp.sqrt(Sperp_prec**2 + a**2)
+    # a_prec_override bypasses the chip roundtrip when afinal_prec < a_aln (clamped chip=0
+    # would otherwise give a_prec = a_aln instead of the MSA-derived afinal_prec).
+    if a_prec_override is None:
+        Sperp_prec = chip * mm1 * mm1  # chip * (m1/M)^2
+        a_prec = jnp.copysign(1.0, a) * jnp.sqrt(Sperp_prec**2 + a**2)
+    else:
+        a_prec = a_prec_override
 
     a2 = a_prec * a_prec
     a3 = a2 * a_prec
