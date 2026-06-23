@@ -37,6 +37,7 @@ def _require_lal():
 
 # ── parameter generation (numpy, no JAX) ────────────────────────────────────
 
+
 def _generate_bbh_parameters(n, seed=42):
     rng = np.random.default_rng(seed)
     mass_1 = rng.uniform(10, 100, n)
@@ -48,10 +49,16 @@ def _generate_bbh_parameters(n, seed=42):
     v2 = rng.uniform(-1, 1, (n, 3))
     v2 /= np.linalg.norm(v2, axis=1, keepdims=True)
     return {
-        "mass_1": mass_1, "mass_2": mass_2,
-        "a_1": a_1, "a_2": a_2,
-        "spin_1x": a_1 * v1[:, 0], "spin_1y": a_1 * v1[:, 1], "spin_1z": a_1 * v1[:, 2],
-        "spin_2x": a_2 * v2[:, 0], "spin_2y": a_2 * v2[:, 1], "spin_2z": a_2 * v2[:, 2],
+        "mass_1": mass_1,
+        "mass_2": mass_2,
+        "a_1": a_1,
+        "a_2": a_2,
+        "spin_1x": a_1 * v1[:, 0],
+        "spin_1y": a_1 * v1[:, 1],
+        "spin_1z": a_1 * v1[:, 2],
+        "spin_2x": a_2 * v2[:, 0],
+        "spin_2y": a_2 * v2[:, 1],
+        "spin_2z": a_2 * v2[:, 2],
         "luminosity_distance": rng.uniform(100, 2000, n),
         "theta_jn": rng.uniform(0, np.pi, n),
         "phase": rng.uniform(0, 2 * np.pi, n),
@@ -64,7 +71,8 @@ def _generate_bns_parameters(n, seed=42):
     mass_1 = rng.uniform(1.2, 3.0, n)
     mass_2 = rng.uniform(0.5, 1.0, n) * mass_1
     return {
-        "mass_1": mass_1, "mass_2": mass_2,
+        "mass_1": mass_1,
+        "mass_2": mass_2,
         "a_1": rng.uniform(-0.4, 0.4, n),
         "a_2": rng.uniform(-0.4, 0.4, n),
         "lambda_1": rng.uniform(0, 5000, n),
@@ -87,10 +95,16 @@ def _generate_precessing_bns_parameters(n, seed=42):
     v2 = rng.uniform(-1, 1, (n, 3))
     v2 /= np.linalg.norm(v2, axis=1, keepdims=True)
     return {
-        "mass_1": mass_1, "mass_2": mass_2,
-        "a_1": a_1, "a_2": a_2,
-        "spin_1x": a_1 * v1[:, 0], "spin_1y": a_1 * v1[:, 1], "spin_1z": a_1 * v1[:, 2],
-        "spin_2x": a_2 * v2[:, 0], "spin_2y": a_2 * v2[:, 1], "spin_2z": a_2 * v2[:, 2],
+        "mass_1": mass_1,
+        "mass_2": mass_2,
+        "a_1": a_1,
+        "a_2": a_2,
+        "spin_1x": a_1 * v1[:, 0],
+        "spin_1y": a_1 * v1[:, 1],
+        "spin_1z": a_1 * v1[:, 2],
+        "spin_2x": a_2 * v2[:, 0],
+        "spin_2y": a_2 * v2[:, 1],
+        "spin_2z": a_2 * v2[:, 2],
         "lambda_1": rng.uniform(0, 5000, n),
         "lambda_2": rng.uniform(0, 5000, n),
         "luminosity_distance": rng.uniform(100, 2000, n),
@@ -119,33 +133,73 @@ def _get_git_hash():
 
 # ── theta array builders ─────────────────────────────────────────────────────
 
+
 def _theta_aligned(p, i):
-    return [p["mass_1"][i], p["mass_2"][i], p["a_1"][i], p["a_2"][i],
-            p["luminosity_distance"][i], p["geocent_time"][i], p["phase"][i], p["theta_jn"][i]]
+    return [
+        p["mass_1"][i],
+        p["mass_2"][i],
+        p["a_1"][i],
+        p["a_2"][i],
+        p["luminosity_distance"][i],
+        p["geocent_time"][i],
+        p["phase"][i],
+        p["theta_jn"][i],
+    ]
 
 
 def _theta_tidal(p, i):
-    return [p["mass_1"][i], p["mass_2"][i], p["a_1"][i], p["a_2"][i],
-            p["lambda_1"][i], p["lambda_2"][i],
-            p["luminosity_distance"][i], p["geocent_time"][i], p["phase"][i], p["theta_jn"][i]]
+    return [
+        p["mass_1"][i],
+        p["mass_2"][i],
+        p["a_1"][i],
+        p["a_2"][i],
+        p["lambda_1"][i],
+        p["lambda_2"][i],
+        p["luminosity_distance"][i],
+        p["geocent_time"][i],
+        p["phase"][i],
+        p["theta_jn"][i],
+    ]
 
 
 def _theta_precessing(p, i):
-    return [p["mass_1"][i], p["mass_2"][i],
-            p["spin_1x"][i], p["spin_1y"][i], p["spin_1z"][i],
-            p["spin_2x"][i], p["spin_2y"][i], p["spin_2z"][i],
-            p["luminosity_distance"][i], p["geocent_time"][i], p["phase"][i], p["theta_jn"][i]]
+    return [
+        p["mass_1"][i],
+        p["mass_2"][i],
+        p["spin_1x"][i],
+        p["spin_1y"][i],
+        p["spin_1z"][i],
+        p["spin_2x"][i],
+        p["spin_2y"][i],
+        p["spin_2z"][i],
+        p["luminosity_distance"][i],
+        p["geocent_time"][i],
+        p["phase"][i],
+        p["theta_jn"][i],
+    ]
 
 
 def _theta_precessing_tidal(p, i):
-    return [p["mass_1"][i], p["mass_2"][i],
-            p["spin_1x"][i], p["spin_1y"][i], p["spin_1z"][i],
-            p["spin_2x"][i], p["spin_2y"][i], p["spin_2z"][i],
-            p["lambda_1"][i], p["lambda_2"][i],
-            p["luminosity_distance"][i], p["geocent_time"][i], p["phase"][i], p["theta_jn"][i]]
+    return [
+        p["mass_1"][i],
+        p["mass_2"][i],
+        p["spin_1x"][i],
+        p["spin_1y"][i],
+        p["spin_1z"][i],
+        p["spin_2x"][i],
+        p["spin_2y"][i],
+        p["spin_2z"][i],
+        p["lambda_1"][i],
+        p["lambda_2"][i],
+        p["luminosity_distance"][i],
+        p["geocent_time"][i],
+        p["phase"][i],
+        p["theta_jn"][i],
+    ]
 
 
 # ── LAL call ─────────────────────────────────────────────────────────────────
+
 
 def _call_lal_single(theta, waveform_name, f_l, f_u, f_ref, df):
     """Generate a single waveform with LALSuite and return (hp, hc) arrays."""
@@ -155,7 +209,11 @@ def _call_lal_single(theta, waveform_name, f_l, f_u, f_ref, df):
         m1_kg, m2_kg = theta[0] * lal.MSUN_SI, theta[1] * lal.MSUN_SI
         s1x, s1y, s1z = theta[2], theta[3], theta[4]
         s2x, s2y, s2z = theta[5], theta[6], theta[7]
-        distance, phi_ref, inclination = theta[8] * 1e6 * lal.PC_SI, theta[10], theta[11]
+        distance, phi_ref, inclination = (
+            theta[8] * 1e6 * lal.PC_SI,
+            theta[10],
+            theta[11],
+        )
         p = lal.CreateDict()
         MA = lalsim.SimInspiralCreateModeArray()
         for el, em in [(2, 1), (2, 2), (3, 2), (3, 3), (4, 4)]:
@@ -192,26 +250,57 @@ def _call_lal_single(theta, waveform_name, f_l, f_u, f_ref, df):
         lalsim.SimInspiralWaveformParamsInsertPhenomXPrecVersion(p, 222)
         if waveform_name == "IMRPhenomXP_NRTidalv3":
             l1, l2 = theta[8], theta[9]
-            distance, phi_ref, inclination = theta[10] * 1e6 * lal.PC_SI, theta[12], theta[13]
+            distance, phi_ref, inclination = (
+                theta[10] * 1e6 * lal.PC_SI,
+                theta[12],
+                theta[13],
+            )
             lalsim.SimInspiralWaveformParamsInsertTidalLambda1(p, l1)
             lalsim.SimInspiralWaveformParamsInsertTidalLambda2(p, l2)
             lalsim.SimInspiralWaveformParamsInsertdQuadMon1(
-                p, lalsim.SimUniversalRelationQuadMonVSlambda2Tidal(l1) - 1)
+                p, lalsim.SimUniversalRelationQuadMonVSlambda2Tidal(l1) - 1
+            )
             lalsim.SimInspiralWaveformParamsInsertdQuadMon2(
-                p, lalsim.SimUniversalRelationQuadMonVSlambda2Tidal(l2) - 1)
+                p, lalsim.SimUniversalRelationQuadMonVSlambda2Tidal(l2) - 1
+            )
         else:
-            distance, phi_ref, inclination = theta[8] * 1e6 * lal.PC_SI, theta[10], theta[11]
+            distance, phi_ref, inclination = (
+                theta[8] * 1e6 * lal.PC_SI,
+                theta[10],
+                theta[11],
+            )
         hp, hc = lalsim.SimInspiralChooseFDWaveform(
-            m1_kg, m2_kg, s1x, s1y, s1z, s2x, s2y, s2z,
-            distance, inclination, phi_ref, 0, 0, 0,
-            df, f_l, f_u, f_ref, p, approximant,
+            m1_kg,
+            m2_kg,
+            s1x,
+            s1y,
+            s1z,
+            s2x,
+            s2y,
+            s2z,
+            distance,
+            inclination,
+            phi_ref,
+            0,
+            0,
+            0,
+            df,
+            f_l,
+            f_u,
+            f_ref,
+            p,
+            approximant,
         )
 
     elif waveform_name == "IMRPhenomPv2":
         m1_kg, m2_kg = theta[0] * lal.MSUN_SI, theta[1] * lal.MSUN_SI
         s1x, s1y, s1z = theta[2], theta[3], theta[4]
         s2x, s2y, s2z = theta[5], theta[6], theta[7]
-        distance, phi_ref, inclination = theta[8] * 1e6 * lal.PC_SI, theta[10], theta[11]
+        distance, phi_ref, inclination = (
+            theta[8] * 1e6 * lal.PC_SI,
+            theta[10],
+            theta[11],
+        )
         hp, hc = lalsim.SimInspiralChooseFDWaveform(
             m1_kg,
             m2_kg,
@@ -236,21 +325,35 @@ def _call_lal_single(theta, waveform_name, f_l, f_u, f_ref, df):
         )
 
     else:
-        is_tidal = waveform_name in ("TaylorF2", "IMRPhenomD_NRTidalv2", "IMRPhenomXAS_NRTidalv3")
+        is_tidal = waveform_name in (
+            "TaylorF2",
+            "IMRPhenomD_NRTidalv2",
+            "IMRPhenomXAS_NRTidalv3",
+        )
         m1_kg, m2_kg = theta[0] * lal.MSUN_SI, theta[1] * lal.MSUN_SI
         s1z, s2z = theta[2], theta[3]
         if is_tidal:
             l1, l2 = theta[4], theta[5]
-            distance, phi_ref, inclination = theta[6] * 1e6 * lal.PC_SI, theta[8], theta[9]
+            distance, phi_ref, inclination = (
+                theta[6] * 1e6 * lal.PC_SI,
+                theta[8],
+                theta[9],
+            )
             laldict = lal.CreateDict()
             lalsim.SimInspiralWaveformParamsInsertTidalLambda1(laldict, l1)
             lalsim.SimInspiralWaveformParamsInsertTidalLambda2(laldict, l2)
             lalsim.SimInspiralWaveformParamsInsertdQuadMon1(
-                laldict, lalsim.SimUniversalRelationQuadMonVSlambda2Tidal(l1) - 1)
+                laldict, lalsim.SimUniversalRelationQuadMonVSlambda2Tidal(l1) - 1
+            )
             lalsim.SimInspiralWaveformParamsInsertdQuadMon2(
-                laldict, lalsim.SimUniversalRelationQuadMonVSlambda2Tidal(l2) - 1)
+                laldict, lalsim.SimUniversalRelationQuadMonVSlambda2Tidal(l2) - 1
+            )
         else:
-            distance, phi_ref, inclination = theta[4] * 1e6 * lal.PC_SI, theta[6], theta[7]
+            distance, phi_ref, inclination = (
+                theta[4] * 1e6 * lal.PC_SI,
+                theta[6],
+                theta[7],
+            )
             laldict = None
         hp, hc = lalsim.SimInspiralChooseFDWaveform(
             m1_kg,
@@ -282,6 +385,7 @@ def _call_lal_single(theta, waveform_name, f_l, f_u, f_ref, df):
 
 # ── timing ───────────────────────────────────────────────────────────────────
 
+
 def _build_theta(waveform_name, waveform_type, params, i):
     if waveform_type == "precessing_bns":
         return _theta_precessing_tidal(params, i)
@@ -310,7 +414,9 @@ def time_lal_waveform(waveform_name, params, waveform_type, config):
         exec_times.append(t)
         logger.info(
             "  Run %d: %.6f s  (%.3f ms/waveform)",
-            run_idx + 1, t, t / n_waveforms * 1000,
+            run_idx + 1,
+            t,
+            t / n_waveforms * 1000,
         )
     return exec_times
 
@@ -333,7 +439,12 @@ def run_timing(args):
     }
 
     logger.info("=" * 60)
-    logger.info("LAL Timing  |  %s  |  N=%d  |  %d runs", args.waveform, args.n_waveforms, args.n_runs)
+    logger.info(
+        "LAL Timing  |  %s  |  N=%d  |  %d runs",
+        args.waveform,
+        args.n_waveforms,
+        args.n_runs,
+    )
     logger.info("=" * 60)
 
     waveform_type = _get_waveform_type(args.waveform)
@@ -352,7 +463,7 @@ def run_timing(args):
     mean_tpw_ms = mean_exec / args.n_waveforms * 1000
     std_tpw_ms = std_exec / args.n_waveforms * 1000
     mean_wps = args.n_waveforms / mean_exec
-    std_wps = args.n_waveforms * std_exec / (mean_exec ** 2)
+    std_wps = args.n_waveforms * std_exec / (mean_exec**2)
 
     logger.info("Mean time/waveform: %.3f ms (+/- %.3f ms)", mean_tpw_ms, std_tpw_ms)
     logger.info("Throughput: %.1f waveforms/s (+/- %.1f)", mean_wps, std_wps)
@@ -373,7 +484,9 @@ def run_timing(args):
         "waveforms_per_second_std": float(std_wps),
     }
 
-    output_path = Path(args.output) if args.output else Path(f"{args.waveform}_lal_cpu.json")
+    output_path = (
+        Path(args.output) if args.output else Path(f"{args.waveform}_lal_cpu.json")
+    )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w") as f:
         json.dump(results, f, indent=2)
@@ -381,7 +494,9 @@ def run_timing(args):
 
 
 def main():
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
+    )
     parser = argparse.ArgumentParser(
         description="Time LALSuite waveform generation on CPU (no JAX required)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -389,9 +504,17 @@ def main():
     parser.add_argument(
         "waveform",
         choices=[
-            "TaylorF2", "IMRPhenomD", "IMRPhenomD_NRTidalv2", "IMRPhenomHM",
-            "IMRPhenomPv2", "IMRPhenomXAS", "IMRPhenomXAS_NRTidalv3", "IMRPhenomXHM",
-            "IMRPhenomXP", "IMRPhenomXPHM", "IMRPhenomXP_NRTidalv3",
+            "TaylorF2",
+            "IMRPhenomD",
+            "IMRPhenomD_NRTidalv2",
+            "IMRPhenomHM",
+            "IMRPhenomPv2",
+            "IMRPhenomXAS",
+            "IMRPhenomXAS_NRTidalv3",
+            "IMRPhenomXHM",
+            "IMRPhenomXP",
+            "IMRPhenomXPHM",
+            "IMRPhenomXP_NRTidalv3",
         ],
     )
     parser.add_argument("--n-waveforms", type=int, default=100)
@@ -400,7 +523,11 @@ def main():
     parser.add_argument("--f-min", type=float, default=5.0)
     parser.add_argument("--f-max", type=float, default=2048.0)
     parser.add_argument("--f-ref", type=float, default=50.0)
-    parser.add_argument("--output", type=str, help="Output JSON path (default: <waveform>_lal_cpu.json in CWD)")
+    parser.add_argument(
+        "--output",
+        type=str,
+        help="Output JSON path (default: <waveform>_lal_cpu.json in CWD)",
+    )
     args = parser.parse_args()
     run_timing(args)
 
