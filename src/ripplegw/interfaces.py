@@ -10,6 +10,7 @@ from .waveforms.IMRPhenomHM import gen_IMRPhenomHM
 from .waveforms.IMRPhenomPv2 import gen_IMRPhenomPv2_hphc
 from .waveforms.IMRPhenomXAS import gen_IMRPhenomXAS_hphc
 from .waveforms.IMRPhenomXAS_NRTidalv3 import gen_IMRPhenomXAS_NRTidalv3_hphc
+from .waveforms.IMRPhenomXP_NRTidalv3 import gen_IMRPhenomXP_NRTidalv3_hphc
 from .waveforms.IMRPhenomXHM import gen_IMRPhenomXHM_hphc
 from .waveforms.IMRPhenomXP import gen_IMRPhenomXP_hphc
 from .waveforms.IMRPhenomXPHM import generate_xphm
@@ -723,6 +724,80 @@ class IMRPhenomXP(Waveform):
         return f"IMRPhenomXP(f_ref={self.f_ref})"
 
 
+class IMRPhenomXP_NRTidalv3(Waveform):
+    """IMRPhenomXP_NRTidalv3 frequency-domain waveform (precessing spins, 22-mode only).
+
+    Attributes:
+        f_ref (float): Reference frequency in Hz.
+    """
+
+    f_ref: float
+
+    def __init__(self, f_ref: float = 20.0) -> None:
+        """
+        Args:
+            f_ref (float): Reference frequency in Hz. Defaults to 20.0.
+        """
+        self.f_ref = f_ref
+
+    @property
+    def parameter_names(self) -> tuple[str, ...]:
+        return (
+            "M_c",
+            "eta",
+            "s1_x",
+            "s1_y",
+            "s1_z",
+            "s2_x",
+            "s2_y",
+            "s2_z",
+            "lambda_1",
+            "lambda_2",
+            "d_L",
+            "phase_c",
+            "iota",
+        )
+
+    def __call__(
+        self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
+    ) -> dict[str, Float[Array, " n_freq"]]:
+        """Evaluate the IMRPhenomXP_NRTidalv3 waveform.
+
+        Args:
+            frequency (Float[Array, " n_freq"]): Frequency array in Hz.
+            params (dict[str, Float]): Source parameters with keys
+                ``M_c``, ``eta``, ``s1_x``, ``s1_y``, ``s1_z``,
+                ``s2_x``, ``s2_y``, ``s2_z``, ``lambda_1``, ``lambda_2``, ``d_L``, ``phase_c``, ``iota``.
+
+        Returns:
+            dict[str, Float[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
+                polarizations.
+        """
+        theta = jnp.array(
+            [
+                params["M_c"],
+                params["eta"],
+                params["s1_x"],
+                params["s1_y"],
+                params["s1_z"],
+                params["s2_x"],
+                params["s2_y"],
+                params["s2_z"],
+                params["lambda_1"],
+                params["lambda_2"],
+                params["d_L"],
+                0.0,
+                params["phase_c"],
+                params["iota"],
+            ]
+        )
+        hp, hc = gen_IMRPhenomXP_NRTidalv3_hphc(frequency, theta, self.f_ref)
+        return {"p": hp, "c": hc}
+
+    def __repr__(self):
+        return f"IMRPhenomXP_NRTidalv3(f_ref={self.f_ref})"
+
+
 class IMRPhenomXPHM(Waveform):
     """IMRPhenomXPHM frequency-domain waveform (precessing spins, higher-order modes).
 
@@ -845,6 +920,7 @@ waveform_preset: dict[str, type[Waveform]] = {
     "IMRPhenomPv2": IMRPhenomPv2,
     "IMRPhenomXAS": IMRPhenomXAS,
     "IMRPhenomXAS_NRTidalv3": IMRPhenomXAS_NRTidalv3,
+    "IMRPhenomXP_NRTidalv3": IMRPhenomXP_NRTidalv3,
     "IMRPhenomXHM": IMRPhenomXHM,
     "IMRPhenomXP": IMRPhenomXP,
     "IMRPhenomXPHM": IMRPhenomXPHM,
