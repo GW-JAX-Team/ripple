@@ -563,7 +563,11 @@ def get_intermediate_raw_phase(
 
 
 def get_mergerringdown_raw_phase(
-    fM_s: Array, theta: Array, phase_coeffs: Array, chip: float = 0.0, a_prec_override=None
+    fM_s: Array,
+    theta: Array,
+    phase_coeffs: Array,
+    chip: float = 0.0,
+    a_prec_override=None,
 ) -> tuple[Array, tuple[Array, Array]]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
@@ -781,21 +785,41 @@ def Phase(
         f1_Ms, theta, phase_coeffs
     )
     phi_MRD_match_f2, dphi_MRD_match_f2 = jax.value_and_grad(
-        lambda f_: get_mergerringdown_raw_phase(f_, theta, phase_coeffs, chip, a_prec_override),
+        lambda f_: get_mergerringdown_raw_phase(
+            f_, theta, phase_coeffs, chip, a_prec_override
+        ),
         has_aux=True,
     )(f2_Ms)
-    phi_MRD_match_f2, _ = get_mergerringdown_raw_phase(f2_Ms, theta, phase_coeffs, chip, a_prec_override)
+    phi_MRD_match_f2, _ = get_mergerringdown_raw_phase(
+        f2_Ms, theta, phase_coeffs, chip, a_prec_override
+    )
 
     # Now find the intermediate phase
     phi_Int_match_f1, dphi_Int_match_f1 = jax.value_and_grad(
         get_intermediate_raw_phase
-    )(f1_Ms, theta, phase_coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL, chip, a_prec_override)
+    )(
+        f1_Ms,
+        theta,
+        phase_coeffs,
+        dphi_Ins_match_f1,
+        CV_phase_RD0,
+        cL,
+        chip,
+        a_prec_override,
+    )
     alpha1 = dphi_Ins_match_f1 - dphi_Int_match_f1
     alpha0 = phi_Ins_match_f1 - phi_Int_match_f1 - alpha1 * f1_Ms
 
     phi_Int_func = lambda fM_s_: (
         get_intermediate_raw_phase(
-            fM_s_, theta, phase_coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL, chip, a_prec_override
+            fM_s_,
+            theta,
+            phase_coeffs,
+            dphi_Ins_match_f1,
+            CV_phase_RD0,
+            cL,
+            chip,
+            a_prec_override,
         )
         + alpha1 * fM_s_
         + alpha0
@@ -862,13 +886,29 @@ def PhaseDerivative(
 
     phi_Int_match_f1, dphi_Int_match_f1 = jax.value_and_grad(
         get_intermediate_raw_phase
-    )(f1_Ms, theta, phase_coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL, chip, a_prec_override)
+    )(
+        f1_Ms,
+        theta,
+        phase_coeffs,
+        dphi_Ins_match_f1,
+        CV_phase_RD0,
+        cL,
+        chip,
+        a_prec_override,
+    )
     alpha1 = dphi_Ins_match_f1 - dphi_Int_match_f1
     alpha0 = phi_Ins_match_f1 - phi_Int_match_f1 - alpha1 * f1_Ms
 
     phi_Int_func = lambda fM_s_: (
         get_intermediate_raw_phase(
-            fM_s_, theta, phase_coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL, chip, a_prec_override
+            fM_s_,
+            theta,
+            phase_coeffs,
+            dphi_Ins_match_f1,
+            CV_phase_RD0,
+            cL,
+            chip,
+            a_prec_override,
         )
         + alpha1 * fM_s_
         + alpha0
@@ -881,7 +921,9 @@ def PhaseDerivative(
     dphi_Int = jax.grad(phi_Int_func)(fM_s)
     dphi_MRD = (
         jax.grad(
-            lambda x: get_mergerringdown_raw_phase(x, theta, phase_coeffs, chip, a_prec_override)[0]
+            lambda x: get_mergerringdown_raw_phase(
+                x, theta, phase_coeffs, chip, a_prec_override
+            )[0]
         )(fM_s)
         + beta1
     )
@@ -1333,7 +1375,9 @@ def get_mergerringdown_Amp(
     StotR = (mm1**2 * chi1 + mm2**2 * chi2) / (mm1**2 + mm2**2)
     chia = chi1 - chi2
 
-    fMs_RD, fMs_damp, _, _ = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2, chip, a_prec_override)
+    fMs_RD, fMs_damp, _, _ = IMRPhenomX_utils.get_cutoff_fMs(
+        m1, m2, chi1, chi2, chip, a_prec_override
+    )
 
     gamma2 = (
         IMRPhenomX_utils.Amp_Nospin_CV(amp_coeffs[4, 0:amp_eqspin_indx], eta)
@@ -1396,7 +1440,12 @@ def get_mergerringdown_Amp(
 
 
 def Amp(
-    f: Array, theta: Array, amp_coeffs: Array, D: Float = 1.0, chip: float = 0.0, a_prec_override=None
+    f: Array,
+    theta: Array,
+    amp_coeffs: Array,
+    D: Float = 1.0,
+    chip: float = 0.0,
+    a_prec_override=None,
 ) -> Array:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
@@ -1416,7 +1465,9 @@ def Amp(
     Overallamp = amp0 * ampNorm
 
     Amp_Ins = get_inspiral_Amp(fM_s, theta, amp_coeffs, chip)
-    Amp_RD, fMs_AmpRDMin = get_mergerringdown_Amp(fM_s, theta, amp_coeffs, chip, a_prec_override)
+    Amp_RD, fMs_AmpRDMin = get_mergerringdown_Amp(
+        fM_s, theta, amp_coeffs, chip, a_prec_override
+    )
     Amp_Int = get_intermediate_Amp(fM_s, theta, amp_coeffs, fMs_AmpRDMin, chip)
 
     Amp = (
