@@ -1,4 +1,11 @@
-# Citation
+# Citation & Origins
+
+## Origins
+
+ripple was originally developed as [tedwards2412/ripple](https://github.com/tedwards2412/ripple) by [Thomas Edwards](https://github.com/tedwards2412) and others.
+The original repository is no longer actively maintained; this fork is the active continuation of the project.
+
+## Citation
 
 If you use ripple in your research, please cite the accompanying paper:
 
