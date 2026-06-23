@@ -20,6 +20,7 @@ from ripplegw.conversions import ms_to_Mc_eta
 from ripplegw.benchmarks.utils import (
     generate_bbh_parameters,
     generate_bns_parameters,
+    generate_precessing_bns_parameters,
     get_device_name,
     get_git_hash,
 )
@@ -74,6 +75,26 @@ def _prepare_precessing_params(params):
         "s2_x": params["spin_2x"],
         "s2_y": params["spin_2y"],
         "s2_z": params["spin_2z"],
+        "d_L": params["luminosity_distance"],
+        "phase_c": params["phase"],
+        "iota": params["theta_jn"],
+    }
+
+
+def _prepare_precessing_bns_params(params):
+    """Build a batched param dict for precessing BNS waveforms (IMRPhenomXP_NRTidalv3)."""
+    Mc, eta = ms_to_Mc_eta(jnp.array([params["mass_1"], params["mass_2"]]))
+    return {
+        "M_c": Mc,
+        "eta": eta,
+        "s1_x": params["spin_1x"],
+        "s1_y": params["spin_1y"],
+        "s1_z": params["spin_1z"],
+        "s2_x": params["spin_2x"],
+        "s2_y": params["spin_2y"],
+        "s2_z": params["spin_2z"],
+        "lambda_1": params["lambda_1"],
+        "lambda_2": params["lambda_2"],
         "d_L": params["luminosity_distance"],
         "phase_c": params["phase"],
         "iota": params["theta_jn"],
@@ -222,7 +243,9 @@ def run_timing(args):
     # Generate parameters based on waveform type
     waveform_type = get_waveform_type(args.waveform)
 
-    if waveform_type == "bns":
+    if waveform_type == "precessing_bns":
+        params = generate_precessing_bns_parameters(args.n_waveforms)
+    elif waveform_type == "bns":
         params = generate_bns_parameters(args.n_waveforms)
     else:
         params = generate_bbh_parameters(args.n_waveforms)
@@ -240,6 +263,14 @@ def run_timing(args):
             f_ref=config["reference_frequency"]  # type: ignore
         )
         batched_params = _prepare_precessing_params(params)
+    elif waveform_type == "precessing_bns":
+        logger.info(
+            "Running precessing BNS waveform timing benchmark (%s)...", args.waveform
+        )
+        waveform = waveform_preset[args.waveform](
+            f_ref=config["reference_frequency"]  # type: ignore
+        )
+        batched_params = _prepare_precessing_bns_params(params)
     elif waveform_type == "bns":
         logger.info("Running BNS waveform timing benchmark (%s)...", args.waveform)
         waveform = waveform_preset[args.waveform](
@@ -295,6 +326,7 @@ def run_timing(args):
     # Save results
     results = {
         **config,
+        "backend": "ripple",
         "effective_batch_size": effective_batch_size
         if effective_batch_size is not None
         else args.n_waveforms,
@@ -329,8 +361,11 @@ def run_timing(args):
 
 
 def get_waveform_type(waveform):
-    """Determine if waveform is BBH or BNS."""
+    """Determine waveform parameter family."""
     bns_waveforms = ["TaylorF2", "IMRPhenomD_NRTidalv2", "IMRPhenomXAS_NRTidalv3"]
+    precessing_bns_waveforms = ["IMRPhenomXP_NRTidalv3"]
+    if waveform in precessing_bns_waveforms:
+        return "precessing_bns"
     return "bns" if waveform in bns_waveforms else "bbh"
 
 
@@ -355,6 +390,7 @@ def main():
             "IMRPhenomXHM",
             "IMRPhenomXP",
             "IMRPhenomXPHM",
+            "IMRPhenomXP_NRTidalv3",
         ],
         help="Waveform approximant to time",
     )
