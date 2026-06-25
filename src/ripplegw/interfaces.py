@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 import jax.numpy as jnp
-from jaxtyping import Array, Float
+from jaxtyping import Array, Complex, Float
 
 from .waveforms.TaylorF2 import gen_TaylorF2_hphc
 from .waveforms.IMRPhenomD import gen_IMRPhenomD_hphc
@@ -44,17 +44,19 @@ class Waveform(ABC):
 
     @abstractmethod
     def __call__(
-        self, axis: Float[Array, " n_freq"], params: dict[str, Float]
-    ) -> dict[str, Float[Array, " n_freq"]]:
+        self, axis: Float[Array, " n"], params: dict[str, Float]
+    ) -> dict[str, Float[Array, " n"] | Complex[Array, " n"]]:
         """Evaluate the waveform.
 
         Args:
-            axis (Float[Array, " n_freq"]): Frequency (or time) grid.
+            axis (Float[Array, " n"]): Frequency or time grid.
             params (dict[str, Float]): Source parameter dictionary.
 
         Returns:
-            dict[str, Float[Array, " n_freq"]]: Dictionary with keys ``"p"``
-                (plus polarization) and ``"c"`` (cross polarization).
+            dict[str, Float[Array, " n"] | Complex[Array, " n"]]: Dictionary
+                with keys ``"p"`` (plus polarization) and ``"c"`` (cross
+                polarization). Frequency-domain waveforms return complex arrays;
+                time-domain waveforms return real arrays.
         """
         raise NotImplementedError("Waveform.__call__ must be implemented by subclasses")
 
@@ -102,7 +104,7 @@ class TaylorF2(Waveform):
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
-    ) -> dict[str, Float[Array, " n_freq"]]:
+    ) -> dict[str, Complex[Array, " n_freq"]]:
         """Evaluate the TaylorF2 waveform.
 
         Args:
@@ -112,7 +114,7 @@ class TaylorF2(Waveform):
                 plus tidal keys depending on ``use_lambda_tildes``.
 
         Returns:
-            dict[str, Float[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
+            dict[str, Complex[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
                 polarizations.
         """
         if self.use_lambda_tildes:
@@ -175,7 +177,7 @@ class IMRPhenomD(Waveform):
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
-    ) -> dict[str, Float[Array, " n_freq"]]:
+    ) -> dict[str, Complex[Array, " n_freq"]]:
         """Evaluate the IMRPhenomD waveform.
 
         Args:
@@ -185,7 +187,7 @@ class IMRPhenomD(Waveform):
                 ``phase_c``, ``iota``.
 
         Returns:
-            dict[str, Float[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
+            dict[str, Complex[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
                 polarizations.
         """
         theta = jnp.array(
@@ -260,7 +262,7 @@ class IMRPhenomD_NRTidalv2(Waveform):
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
-    ) -> dict[str, Float[Array, " n_freq"]]:
+    ) -> dict[str, Complex[Array, " n_freq"]]:
         """Evaluate the IMRPhenomD_NRTidalv2 waveform.
 
         Args:
@@ -270,7 +272,7 @@ class IMRPhenomD_NRTidalv2(Waveform):
                 plus tidal keys depending on ``use_lambda_tildes``.
 
         Returns:
-            dict[str, Float[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
+            dict[str, Complex[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
                 polarizations.
         """
         if self.use_lambda_tildes:
@@ -337,7 +339,7 @@ class IMRPhenomHM(Waveform):
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
-    ) -> dict[str, Float[Array, " n_freq"]]:
+    ) -> dict[str, Complex[Array, " n_freq"]]:
         output = {}
         m1, m2 = Mc_eta_to_ms(jnp.array([params["M_c"], params["eta"]]))
         hp, hc = gen_IMRPhenomHM(
@@ -393,7 +395,7 @@ class IMRPhenomPv2(Waveform):
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
-    ) -> dict[str, Float[Array, " n_freq"]]:
+    ) -> dict[str, Complex[Array, " n_freq"]]:
         """Evaluate the IMRPhenomPv2 waveform.
 
         Args:
@@ -403,7 +405,7 @@ class IMRPhenomPv2(Waveform):
                 ``s2_x``, ``s2_y``, ``s2_z``, ``d_L``, ``phase_c``, ``iota``.
 
         Returns:
-            dict[str, Float[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
+            dict[str, Complex[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
                 polarizations.
         """
         theta = jnp.array(
@@ -459,7 +461,7 @@ class IMRPhenomXAS(Waveform):
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
-    ) -> dict[str, Float[Array, " n_freq"]]:
+    ) -> dict[str, Complex[Array, " n_freq"]]:
         """Evaluate the IMRPhenomXAS waveform.
 
         Args:
@@ -469,7 +471,7 @@ class IMRPhenomXAS(Waveform):
                 ``phase_c``, ``iota``.
 
         Returns:
-            dict[str, Float[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
+            dict[str, Complex[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
                 polarizations.
         """
         theta = jnp.array(
@@ -543,7 +545,7 @@ class IMRPhenomXAS_NRTidalv3(Waveform):
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
-    ) -> dict[str, Float[Array, " n_freq"]]:
+    ) -> dict[str, Complex[Array, " n_freq"]]:
         """Evaluate the IMRPhenomXAS_NRTidalv3 waveform.
 
         Args:
@@ -553,7 +555,7 @@ class IMRPhenomXAS_NRTidalv3(Waveform):
                 plus tidal keys depending on ``use_lambda_tildes``.
 
         Returns:
-            dict[str, Float[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
+            dict[str, Complex[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
                 polarizations.
         """
         if self.use_lambda_tildes:
@@ -620,7 +622,7 @@ class IMRPhenomXHM(Waveform):
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
-    ) -> dict[str, Float[Array, " n_freq"]]:
+    ) -> dict[str, Complex[Array, " n_freq"]]:
         """Evaluate the IMRPhenomXHM waveform.
 
         Args:
@@ -630,7 +632,7 @@ class IMRPhenomXHM(Waveform):
                 ``phase_c``, ``iota``.
 
         Returns:
-            dict[str, Float[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
+            dict[str, Complex[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
                 polarizations.
         """
         m1, m2 = Mc_eta_to_ms(jnp.array([params["M_c"], params["eta"]]))
@@ -687,7 +689,7 @@ class IMRPhenomXP(Waveform):
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
-    ) -> dict[str, Float[Array, " n_freq"]]:
+    ) -> dict[str, Complex[Array, " n_freq"]]:
         """Evaluate the IMRPhenomXP waveform.
 
         Args:
@@ -697,7 +699,7 @@ class IMRPhenomXP(Waveform):
                 ``s2_x``, ``s2_y``, ``s2_z``, ``d_L``, ``phase_c``, ``iota``.
 
         Returns:
-            dict[str, Float[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
+            dict[str, Complex[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
                 polarizations.
         """
         theta = jnp.array(
@@ -757,7 +759,7 @@ class IMRPhenomXPHM(Waveform):
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
-    ) -> dict[str, Float[Array, " n_freq"]]:
+    ) -> dict[str, Complex[Array, " n_freq"]]:
         """Evaluate the IMRPhenomXPHM waveform.
 
         Args:
@@ -767,7 +769,7 @@ class IMRPhenomXPHM(Waveform):
                 ``s2_x``, ``s2_y``, ``s2_z``, ``d_L``, ``phase_c``, ``iota``.
 
         Returns:
-            dict[str, Float[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
+            dict[str, Complex[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
                 polarizations.
         """
         m1, m2 = Mc_eta_to_ms(jnp.array([params["M_c"], params["eta"]]))
