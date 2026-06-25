@@ -295,7 +295,9 @@ def get_cutoff_fMs(
     return fRD, fdamp, fMECO, fISCO
 
 
-def calc_phaseatpeak(eta: Float, S: Float, chia: Float, delta: Float) -> tuple[Float, Float, Float]:
+def calc_phaseatpeak(
+    eta: Float, S: Float, chia: Float, delta: Float
+) -> tuple[Float, Float, Float]:
     lina = 0.0
 
     linb = (
