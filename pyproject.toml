@@ -24,6 +24,7 @@ classifiers = [
 dependencies = [
     "jax>=0.8.2",
     "jaxtyping>=0.3.3",
+    "JAXNRSur",
 ]
 
 [project.optional-dependencies]
@@ -67,6 +68,7 @@ Changelog = "https://github.com/GW-JAX-Team/ripple/releases"
 
 [tool.uv.sources]
 ripplegw = { workspace = true }
+JAXNRSur = { git = "https://github.com/GW-JAX-Team/JaxNRSur.git", branch = "main" }
 
 [build-system]
 requires = ["hatchling", "hatch-vcs"]
