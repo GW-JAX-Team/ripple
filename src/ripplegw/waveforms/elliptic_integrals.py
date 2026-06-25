@@ -7,10 +7,12 @@ specifically the incomplete elliptic integral of the first kind (F).
 
 import jax.numpy as jnp
 from jax.scipy.integrate import trapezoid
-from jaxtyping import Float
+from jaxtyping import Array, Float
 
 
-def ellint_F(phi: Float, k: Float, n_points: int = 1000) -> Float:
+def ellint_F(
+    phi: float | Float[Array, ""], k: float | Float[Array, ""], n_points: int = 1000
+) -> float | Float[Array, ""]:
     """
     Compute the incomplete elliptic integral of the first kind.
 
@@ -39,7 +41,7 @@ def ellint_F(phi: Float, k: Float, n_points: int = 1000) -> Float:
     """
     phi = jnp.asarray(phi)
     k = jnp.asarray(k)
-    k2: Float = k * k
+    k2: float | Float[Array, ""] = k * k
 
     # Handle special case: k = 0
     # F(phi, 0) = phi
@@ -72,15 +74,17 @@ def ellint_F(phi: Float, k: Float, n_points: int = 1000) -> Float:
     is_k_one = jnp.abs(abs_k - 1.0) < 1e-10
 
     # Nested conditional: check k=0 first, then k=1, then general
-    inner: Float = jnp.where(is_k_one, case_k_one(), case_general())
-    result: Float = jnp.where(is_k_zero, case_k_zero(), inner)
+    inner: float | Float[Array, ""] = jnp.where(is_k_one, case_k_one(), case_general())
+    result: float | Float[Array, ""] = jnp.where(is_k_zero, case_k_zero(), inner)
 
     return result
 
 
 def gsl_sf_elljac_e(
-    u: Float, m: Float, max_iter: int = 16
-) -> tuple[Float, Float, Float]:
+    u: float | Float[Array, ""], m: float | Float[Array, ""], max_iter: int = 16
+) -> tuple[
+    float | Float[Array, ""], float | Float[Array, ""], float | Float[Array, ""]
+]:
     """
     Compute the Jacobian elliptic functions sn(u|m), cn(u|m), dn(u|m).
 
