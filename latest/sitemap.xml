@@ -22,6 +22,9 @@
         <loc>https://gw-jax-team.github.io/ripple/latest/FAQ/</loc>
       </url>
       <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/citing/</loc>
+      </url>
+      <url>
         <loc>https://gw-jax-team.github.io/ripple/latest/contributing/</loc>
       </url>
       <url>
@@ -32,6 +35,9 @@
       </url>
       <url>
         <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/interfaces/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/typing/</loc>
       </url>
       <url>
         <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/waveforms/elliptic_integrals/</loc>
