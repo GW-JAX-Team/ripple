@@ -1,11 +1,12 @@
 import jax.numpy as jnp
 from jax.lax import complex
 
-from ..constants import PI
-from jaxtyping import Array
+from ripplegw.constants import PI
+from jaxtyping import Array, Float
+from ripplegw.typing import FloatLike
 
 
-def semi_major_minor_from_e(e: Array) -> tuple[Array, Array]:
+def semi_major_minor_from_e(e: FloatLike) -> tuple[FloatLike, FloatLike]:
     """
     Calculate the semi-major and semi-minor axes of an ellipse given the
     eccentricity of the ellipse.
@@ -21,9 +22,9 @@ def semi_major_minor_from_e(e: Array) -> tuple[Array, Array]:
 
 
 def gen_SineGaussian_hphc(
-    t: Array,
-    theta: Array,
-) -> tuple[Array, Array]:
+    t: Float[Array, " n_time"],
+    theta: Float[Array, "5"],
+) -> tuple[Float[Array, " n_time"], Float[Array, " n_time"]]:
     """
     Generate lalinference implementation of a sine-Gaussian waveform in JAX.
     See

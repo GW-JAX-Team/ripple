@@ -1,14 +1,15 @@
 import jax
 import jax.numpy as jnp
-from ..conversions import Mc_eta_to_ms
+from ripplegw.conversions import Mc_eta_to_ms
 
-from ..constants import MTSUN
-from .IMRPhenomD import Phase as PhDPhase
-from .IMRPhenomD import Amp as PhDAmp
-from .IMRPhenomD_utils import get_coeffs
+from ripplegw.constants import MTSUN
+from ripplegw.waveforms.IMRPhenomD import Phase as PhDPhase
+from ripplegw.waveforms.IMRPhenomD import Amp as PhDAmp
+from ripplegw.waveforms.IMRPhenomD_utils import get_coeffs
 
-from jaxtyping import Array
-from .IMRPhenomPv2_utils import (
+from jaxtyping import Array, Float, Complex
+from ripplegw.typing import FloatLike
+from ripplegw.waveforms.IMRPhenomPv2_utils import (
     WignerdCoefficients,
     convert_spins,
     ComputeNNLOanglecoeffs,
@@ -18,20 +19,18 @@ from .IMRPhenomPv2_utils import (
 
 
 def PhenomPCoreTwistUp(
-    fHz,
-    hPhenom,
-    # phase,
-    # Amp,
-    eta,
-    chi1_l,
-    chi2_l,
-    chip,
-    M,
-    angcoeffs,
-    Y2m,
-    alphaoffset,
-    epsilonoffset,
-):
+    fHz: Float[Array, " n_freq"],
+    hPhenom: Complex[Array, " n_freq"],
+    eta: FloatLike,
+    chi1_l: FloatLike,
+    chi2_l: FloatLike,
+    chip: FloatLike,
+    M: FloatLike,
+    angcoeffs: dict[str, FloatLike],
+    Y2m: list,
+    alphaoffset: FloatLike,
+    epsilonoffset: FloatLike,
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     assert angcoeffs is not None
     assert Y2m is not None
 
@@ -136,10 +135,10 @@ def PhenomPOneFrequency(
 
 
 def gen_IMRPhenomPv2(
-    fs: Array,
-    theta: Array,
+    fs: Float[Array, " n_freq"],
+    theta: Float[Array, "12"],
     f_ref: float,
-):
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     Thetas are waveform parameters.
     m1 must be larger than m2.
@@ -251,7 +250,9 @@ def gen_IMRPhenomPv2(
     return final_hp, final_hc
 
 
-def gen_IMRPhenomPv2_hphc(f: Array, params: Array, f_ref: float):
+def gen_IMRPhenomPv2_hphc(
+    f: Float[Array, " n_freq"], params: Float[Array, "12"], f_ref: float
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     wrapper around gen_Pph but the first two parameters are Mc and eta
     instead of m1 and m2

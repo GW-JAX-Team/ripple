@@ -1,10 +1,11 @@
 import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Float
+from ripplegw.typing import FloatLike
 
-from ..constants import MTSUN
+from ripplegw.constants import MTSUN
 
-from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
+from ripplegw.waveforms.IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
 
 # Pre-compute constants for O(1) QNM table lookup on the uniform linspace grid.
 _QNM_N = len(QNMData_a)  # 500 000
@@ -13,14 +14,14 @@ _QNM_A_MAX = float(QNMData_a[-1])  # 1.0
 _QNM_SCALE = (_QNM_N - 1) / (_QNM_A_MAX - _QNM_A_MIN)
 
 
-def _qnm_interp(x, table):
+def _qnm_interp(x: FloatLike, table: Float[Array, " n_qnm"]) -> FloatLike:
     """Linear interp on the uniform QNMData_a grid in O(1) index arithmetic."""
     t = (x - _QNM_A_MIN) * _QNM_SCALE
     i = jnp.clip(jnp.floor(t).astype(jnp.int32), 0, _QNM_N - 2)
     return table[i] + (t - i) * (table[i + 1] - table[i])
 
 
-def EradRational0815_s(eta, s):
+def EradRational0815_s(eta: FloatLike, s: FloatLike) -> FloatLike:
     eta2 = eta * eta
     eta3 = eta2 * eta
     eta4 = eta3 * eta
@@ -48,7 +49,7 @@ def EradRational0815_s(eta, s):
     )
 
 
-def EradRational0815(eta, chi1, chi2):
+def EradRational0815(eta: FloatLike, chi1: FloatLike, chi2: FloatLike) -> FloatLike:
     Seta = jnp.sqrt(jnp.abs(1.0 - 4.0 * eta))
     m1 = 0.5 * (1.0 + Seta)
     m2 = 0.5 * (1.0 - Seta)
@@ -59,7 +60,7 @@ def EradRational0815(eta, chi1, chi2):
     return EradRational0815_s(eta, s)
 
 
-def FinalSpin0815_s(eta, S):
+def FinalSpin0815_s(eta: FloatLike, S: FloatLike) -> FloatLike:
     eta2 = eta * eta
     eta3 = eta2 * eta
     S2 = S * S
@@ -79,7 +80,9 @@ def FinalSpin0815_s(eta, S):
     )
 
 
-def get_fRD_fdamp(m1, m2, chi1, chi2):
+def get_fRD_fdamp(
+    m1: FloatLike, m2: FloatLike, chi1: FloatLike, chi2: FloatLike
+) -> tuple[FloatLike, FloatLike]:
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
@@ -96,15 +99,15 @@ def get_fRD_fdamp(m1, m2, chi1, chi2):
 
 def get_transition_frequencies(
     theta: Float[Array, "4"],
-    gamma2: Float,
-    gamma3: Float,
+    gamma2: FloatLike,
+    gamma3: FloatLike,
 ) -> tuple[
-    Float,
-    Float,
-    Float,
-    Float,
-    Float,
-    Float,
+    FloatLike,
+    FloatLike,
+    FloatLike,
+    FloatLike,
+    FloatLike,
+    FloatLike,
 ]:
     m1, m2, chi1, chi2 = theta
     M = m1 + m2
@@ -136,17 +139,17 @@ def get_transition_frequencies(
 
 def get_transition_frequencies_from_fRD_fdamp(
     theta: Float[Array, "4"],
-    gamma2: Float,
-    gamma3: Float,
-    f_RD: Float,
-    f_damp: Float,
+    gamma2: FloatLike,
+    gamma3: FloatLike,
+    f_RD: FloatLike,
+    f_damp: FloatLike,
 ) -> tuple[
-    Float,
-    Float,
-    Float,
-    Float,
-    Float,
-    Float,
+    FloatLike,
+    FloatLike,
+    FloatLike,
+    FloatLike,
+    FloatLike,
+    FloatLike,
 ]:
     """
     Compute transition frequencies using externally provided fRD and fdamp.
@@ -223,7 +226,16 @@ def get_coeffs(theta: Float[Array, "4"]) -> Float[Array, "19"]:
     return coeff
 
 
-def get_delta0(f1, f2, f3, v1, v2, v3, d1, d3):
+def get_delta0(
+    f1: FloatLike,
+    f2: FloatLike,
+    f3: FloatLike,
+    v1: FloatLike,
+    v2: FloatLike,
+    v3: FloatLike,
+    d1: FloatLike,
+    d3: FloatLike,
+) -> FloatLike:
     return (
         -(d3 * f1**2 * (f1 - f2) ** 2 * f2 * (f1 - f3) * (f2 - f3) * f3)
         + d1 * f1 * (f1 - f2) * f2 * (f1 - f3) * (f2 - f3) ** 2 * f3**2
@@ -243,7 +255,16 @@ def get_delta0(f1, f2, f3, v1, v2, v3, d1, d3):
     ) / ((f1 - f2) ** 2 * (f1 - f3) ** 3 * (f2 - f3) ** 2)
 
 
-def get_delta1(f1, f2, f3, v1, v2, v3, d1, d3):
+def get_delta1(
+    f1: FloatLike,
+    f2: FloatLike,
+    f3: FloatLike,
+    v1: FloatLike,
+    v2: FloatLike,
+    v3: FloatLike,
+    d1: FloatLike,
+    d3: FloatLike,
+) -> FloatLike:
     return (
         d3 * f1 * (f1 - f3) * (f2 - f3) * (2 * f2 * f3 + f1 * (f2 + f3))
         - (
@@ -275,7 +296,16 @@ def get_delta1(f1, f2, f3, v1, v2, v3, d1, d3):
     ) / ((f1 - f3) ** 3 * (f2 - f3) ** 2)
 
 
-def get_delta2(f1, f2, f3, v1, v2, v3, d1, d3):
+def get_delta2(
+    f1: FloatLike,
+    f2: FloatLike,
+    f3: FloatLike,
+    v1: FloatLike,
+    v2: FloatLike,
+    v3: FloatLike,
+    d1: FloatLike,
+    d3: FloatLike,
+) -> FloatLike:
     return (
         d1
         * (f1 - f2)
@@ -313,7 +343,16 @@ def get_delta2(f1, f2, f3, v1, v2, v3, d1, d3):
     ) / ((f1 - f2) ** 2 * (f1 - f3) ** 3 * (f2 - f3) ** 2)
 
 
-def get_delta3(f1, f2, f3, v1, v2, v3, d1, d3):
+def get_delta3(
+    f1: FloatLike,
+    f2: FloatLike,
+    f3: FloatLike,
+    v1: FloatLike,
+    v2: FloatLike,
+    v3: FloatLike,
+    d1: FloatLike,
+    d3: FloatLike,
+) -> FloatLike:
     return (
         (d3 * (f1 - f3) * (2 * f1 + f2 + f3)) / (f2 - f3)
         - (d1 * (f1 - f3) * (f1 + f2 + 2 * f3)) / (f1 - f2)
@@ -336,7 +375,16 @@ def get_delta3(f1, f2, f3, v1, v2, v3, d1, d3):
     ) / (f1 - f3) ** 3
 
 
-def get_delta4(f1, f2, f3, v1, v2, v3, d1, d3):
+def get_delta4(
+    f1: FloatLike,
+    f2: FloatLike,
+    f3: FloatLike,
+    v1: FloatLike,
+    v2: FloatLike,
+    v3: FloatLike,
+    d1: FloatLike,
+    d3: FloatLike,
+) -> FloatLike:
     return (
         -(d3 * (f1 - f2) ** 2 * (f1 - f3) * (f2 - f3))
         + d1 * (f1 - f2) * (f1 - f3) * (f2 - f3) ** 2

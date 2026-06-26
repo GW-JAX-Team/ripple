@@ -6,10 +6,11 @@ Includes conversions between mass parameterisations and tidal parameters.
 
 import jax.numpy as jnp
 
-from jaxtyping import Array
+from jaxtyping import Array, Float
+from ripplegw.typing import FloatScalar
 
 
-def Mc_eta_to_ms(m: Array) -> tuple[Array, Array]:
+def Mc_eta_to_ms(m: Float[Array, "2"]) -> tuple[FloatScalar, FloatScalar]:
     r"""Convert chirp mass and symmetric mass ratio to binary component masses.
 
     Args:
@@ -26,7 +27,7 @@ def Mc_eta_to_ms(m: Array) -> tuple[Array, Array]:
     return m1, m2
 
 
-def ms_to_Mc_eta(m: Array) -> tuple[Array, Array]:
+def ms_to_Mc_eta(m: Float[Array, "2"]) -> tuple[FloatScalar, FloatScalar]:
     r"""Convert binary component masses to chirp mass and symmetric mass ratio.
 
     Args:
@@ -46,8 +47,8 @@ def ms_to_Mc_eta(m: Array) -> tuple[Array, Array]:
 
 
 def _compute_lambda_tildes_from_eta(
-    eta: Array, lambda_1: Array, lambda_2: Array
-) -> tuple[Array, Array]:
+    eta: FloatScalar, lambda_1: FloatScalar, lambda_2: FloatScalar
+) -> tuple[FloatScalar, FloatScalar]:
     """Core tidal conversion: individual lambdas → (lambda_tilde, delta_lambda_tilde) given eta."""
     lambda_plus = lambda_1 + lambda_2
     lambda_minus = lambda_1 - lambda_2
@@ -73,8 +74,10 @@ def _compute_lambda_tildes_from_eta(
 
 
 def _compute_lambdas_from_eta(
-    eta: Array, lambda_tilde: Array, delta_lambda_tilde: Array
-) -> tuple[Array, Array]:
+    eta: FloatScalar,
+    lambda_tilde: FloatScalar,
+    delta_lambda_tilde: FloatScalar,
+) -> tuple[FloatScalar, FloatScalar]:
     """Core tidal conversion: (lambda_tilde, delta_lambda_tilde) → individual lambdas given eta."""
     sqrt_1m4eta = jnp.sqrt(jnp.maximum(1 - 4 * eta, 0.0))
     coefficient_1 = 1 + 7 * eta - 31 * eta**2
@@ -105,7 +108,9 @@ def _compute_lambdas_from_eta(
 # ---------------------------------------------------------------------------
 
 
-def lambdas_to_lambda_tildes(params: Array) -> tuple[Array, Array]:
+def lambdas_to_lambda_tildes(
+    params: Float[Array, "4"],
+) -> tuple[FloatScalar, FloatScalar]:
     """
     Convert from individual tidal parameters to dominant tidal terms. (Code taken from Bilby)
 
@@ -122,7 +127,9 @@ def lambdas_to_lambda_tildes(params: Array) -> tuple[Array, Array]:
     return _compute_lambda_tildes_from_eta(eta, lambda_1, lambda_2)
 
 
-def lambdas_to_lambda_tildes_from_q(params: Array) -> tuple[Array, Array]:
+def lambdas_to_lambda_tildes_from_q(
+    params: Float[Array, "3"],
+) -> tuple[FloatScalar, FloatScalar]:
     """
     Convert from individual tidal parameters to dominant tidal terms using mass ratio. (Code taken from Bilby)
 
@@ -139,7 +146,9 @@ def lambdas_to_lambda_tildes_from_q(params: Array) -> tuple[Array, Array]:
     return _compute_lambda_tildes_from_eta(eta, lambda_1, lambda_2)
 
 
-def lambda_tildes_to_lambdas(params: Array) -> tuple[Array, Array]:
+def lambda_tildes_to_lambdas(
+    params: Float[Array, "4"],
+) -> tuple[FloatScalar, FloatScalar]:
     """
     Convert from dominant tidal terms to individual tidal parameters. Code taken from bilby.
 
@@ -156,7 +165,9 @@ def lambda_tildes_to_lambdas(params: Array) -> tuple[Array, Array]:
     return _compute_lambdas_from_eta(eta, lambda_tilde, delta_lambda_tilde)
 
 
-def lambda_tildes_to_lambdas_from_q(params: Array) -> tuple[Array, Array]:
+def lambda_tildes_to_lambdas_from_q(
+    params: Float[Array, "3"],
+) -> tuple[FloatScalar, FloatScalar]:
     """
     Convert from dominant tidal terms to individual tidal parameters using mass ratio. Code taken from bilby.
 

@@ -1,19 +1,27 @@
 import jax
 import jax.numpy as jnp
-from ..constants import MTSUN, MRSUN, MPC
-from jaxtyping import Float
-from .spherical_harmonics import (
+from jaxtyping import Array, Float, Complex
+from ripplegw.typing import FloatLike
+from ripplegw.constants import MTSUN, MRSUN, MPC
+from ripplegw.waveforms.spherical_harmonics import (
     compute_sminus2_l2,
     compute_sminus2_l3,
     compute_sminus2_l4,
 )
 from dataclasses import dataclass
-from . import LALSimIMRPhenomX_precession as pPrec
-from .initialize_MSA_system import IMRPhenomX_Initialize_MSA_System
-from .IMRPhenomXHM import XLALSimIMRPhenomXHMGethlmModes, build_pWF22
+from ripplegw.waveforms import LALSimIMRPhenomX_precession as pPrec
+from ripplegw.waveforms.initialize_MSA_system import IMRPhenomX_Initialize_MSA_System
+from ripplegw.waveforms.IMRPhenomXHM import XLALSimIMRPhenomXHMGethlmModes, build_pWF22
 
 
-def compute_chip(m1, m2, chi1x, chi1y, chi2x, chi2y):
+def compute_chip(
+    m1: FloatLike,
+    m2: FloatLike,
+    chi1x: FloatLike,
+    chi1y: FloatLike,
+    chi2x: FloatLike,
+    chi2y: FloatLike,
+) -> FloatLike:
     """
     Effective precession spin parameter chi_p.
 
@@ -29,7 +37,14 @@ def compute_chip(m1, m2, chi1x, chi1y, chi2x, chi2y):
     return jnp.maximum(A1 * chi1_perp * m1**2, A2 * chi2_perp * m2**2) / (A1 * m1**2)
 
 
-def compute_chiTot_perp(m1, m2, chi1x, chi1y, chi2x, chi2y):
+def compute_chiTot_perp(
+    m1: FloatLike,
+    m2: FloatLike,
+    chi1x: FloatLike,
+    chi1y: FloatLike,
+    chi2x: FloatLike,
+    chi2y: FloatLike,
+) -> FloatLike:
     """
     Total perpendicular spin parameter for afinal_prec (LAL PhenomXPFinalSpinMod=4, the default).
 
@@ -50,22 +65,24 @@ def compute_chiTot_perp(m1, m2, chi1x, chi1y, chi2x, chi2y):
 
 
 def generate_xphm(
-    mass_1,
-    mass_2,
-    chi1x,
-    chi1y,
-    chi1z,
-    chi2x,
-    chi2y,
-    chi2z,
-    distance,  # in Mpc
-    inclination,
-    phi0,
-    frequency_array,
-    reference_frequency,
-):
+    mass_1: FloatLike,
+    mass_2: FloatLike,
+    chi1x: FloatLike,
+    chi1y: FloatLike,
+    chi1z: FloatLike,
+    chi2x: FloatLike,
+    chi2y: FloatLike,
+    chi2z: FloatLike,
+    distance: FloatLike,
+    inclination: FloatLike,
+    phi0: FloatLike,
+    frequency_array: Float[Array, " n_freq"],
+    reference_frequency: float,
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """Generate IMRPhenomXPHM plus and cross polarizations."""
-    Mf = pPrec.XLALSimIMRPhenomXUtilsHztoMf(frequency_array, mass_1 + mass_2)
+    Mf: Float[Array, " n_freq"] = pPrec.XLALSimIMRPhenomXUtilsHztoMf(
+        frequency_array, mass_1 + mass_2
+    )  # type: ignore[assignment]
 
     Mtot = mass_1 + mass_2
 
@@ -138,20 +155,20 @@ def generate_xphm(
 
 
 def twistup(
-    Mf,
-    mass_1,
-    mass_2,
-    chi1x,
-    chi1y,
-    chi1z,
-    chi2x,
-    chi2y,
-    chi2z,
-    phiRef_In,
-    inclination,
-    reference_frequency,
-    hlm,
-):
+    Mf: Float[Array, " n_freq"] | FloatLike,
+    mass_1: FloatLike,
+    mass_2: FloatLike,
+    chi1x: FloatLike,
+    chi1y: FloatLike,
+    chi1z: FloatLike,
+    chi2x: FloatLike,
+    chi2y: FloatLike,
+    chi2z: FloatLike,
+    phiRef_In: FloatLike,
+    inclination: FloatLike,
+    reference_frequency: float,
+    hlm: Complex[Array, "n_modes n_freq"],
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     Rotate the co-precessing frame hlm modes into the inertial (J-frame) polarisations hp, hc.
     Implementation follows the lalsimulation function IMRPhenomXPHMTwistUps.
@@ -337,25 +354,25 @@ class BetaPowers:
         sBetah8: sin^8(beta/2)
     """
 
-    cBetah: Float
-    cBetah2: Float
-    cBetah3: Float
-    cBetah4: Float
-    cBetah5: Float
-    cBetah6: Float
-    cBetah7: Float
-    cBetah8: Float
-    sBetah: Float
-    sBetah2: Float
-    sBetah3: Float
-    sBetah4: Float
-    sBetah5: Float
-    sBetah6: Float
-    sBetah7: Float
-    sBetah8: Float
+    cBetah: FloatLike
+    cBetah2: FloatLike
+    cBetah3: FloatLike
+    cBetah4: FloatLike
+    cBetah5: FloatLike
+    cBetah6: FloatLike
+    cBetah7: FloatLike
+    cBetah8: FloatLike
+    sBetah: FloatLike
+    sBetah2: FloatLike
+    sBetah3: FloatLike
+    sBetah4: FloatLike
+    sBetah5: FloatLike
+    sBetah6: FloatLike
+    sBetah7: FloatLike
+    sBetah8: FloatLike
 
     @classmethod
-    def from_half_angle_trig(cls, cBetah: Float, sBetah: Float):
+    def from_half_angle_trig(cls, cBetah: FloatLike, sBetah: FloatLike):
         """
         Constructs a BetaPowers instance from cos(beta/2) and sin(beta/2).
 
@@ -402,7 +419,11 @@ class BetaPowers:
         )
 
 
-def twist_22(cexp_i_alpha, theta_JN, beta_powers):
+def twist_22(
+    cexp_i_alpha: Complex[Array, " n_freq"],
+    theta_JN: FloatLike,
+    beta_powers: BetaPowers,
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     Compute the twisting contributions for l=2, m'=2 mode.
 
@@ -471,7 +492,11 @@ def twist_22(cexp_i_alpha, theta_JN, beta_powers):
     return hp_sum, hc_sum
 
 
-def twist_21(cexp_i_alpha, theta_JN, beta_powers):
+def twist_21(
+    cexp_i_alpha: Complex[Array, " n_freq"],
+    theta_JN: FloatLike,
+    beta_powers: BetaPowers,
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     Compute the twisting contributions for l=2, m'=1 mode.
 
@@ -542,7 +567,11 @@ def twist_21(cexp_i_alpha, theta_JN, beta_powers):
     return hp_sum, hc_sum
 
 
-def twist_33(cexp_i_alpha, theta_JN, beta_powers):
+def twist_33(
+    cexp_i_alpha: Complex[Array, " n_freq"],
+    theta_JN: FloatLike,
+    beta_powers: BetaPowers,
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     Compute the twisting contributions for l=3, m'=3 mode.
 
@@ -621,7 +650,11 @@ def twist_33(cexp_i_alpha, theta_JN, beta_powers):
     return hp_sum, hc_sum
 
 
-def twist_32(cexp_i_alpha, theta_JN, beta_powers):
+def twist_32(
+    cexp_i_alpha: Complex[Array, " n_freq"],
+    theta_JN: FloatLike,
+    beta_powers: BetaPowers,
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     Compute the twisting contributions for l=3, m'=2 mode.
 
@@ -711,7 +744,11 @@ def twist_32(cexp_i_alpha, theta_JN, beta_powers):
     return hp_sum, hc_sum
 
 
-def twist_44(cexp_i_alpha, theta_JN, beta_powers):
+def twist_44(
+    cexp_i_alpha: Complex[Array, " n_freq"],
+    theta_JN: FloatLike,
+    beta_powers: BetaPowers,
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     Compute the twisting contributions for l=4, m'=4 mode.
 
@@ -801,7 +838,9 @@ def twist_44(cexp_i_alpha, theta_JN, beta_powers):
     return hp_sum, hc_sum
 
 
-def apply_polarization_rotation(zeta_polarization, _hp, _hc):
+def apply_polarization_rotation(
+    zeta_polarization: FloatLike, _hp, _hc
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """Apply polarization rotation to waveform components.
 
     Args:
@@ -821,7 +860,9 @@ def apply_polarization_rotation(zeta_polarization, _hp, _hc):
     return hp, hc
 
 
-def IMRPhenomXWignerdCoefficients_cosbeta(cos_beta):
+def IMRPhenomXWignerdCoefficients_cosbeta(
+    cos_beta: Float[Array, " n_freq"],
+) -> tuple[Float[Array, " n_freq"], Float[Array, " n_freq"]]:
     """
     Compute cos(beta/2) and sin(beta/2) from cos(beta).
 

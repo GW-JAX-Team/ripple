@@ -2,14 +2,14 @@
 
 import jax
 import jax.numpy as jnp
-from ..constants import MTSUN, PI
-from jaxtyping import Array
-from ..conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
-from .IMRPhenom_tidal_utils import get_kappa
-from .IMRPhenomD_NRTidalv2 import (
+from ripplegw.constants import MTSUN, PI
+from jaxtyping import Array, Float, Complex
+from ripplegw.conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
+from ripplegw.waveforms.IMRPhenom_tidal_utils import get_kappa
+from ripplegw.waveforms.IMRPhenomD_NRTidalv2 import (
     get_tidal_amplitude,
 )  # Same between v2 and v3
-from .NRTidalv3_utils import (
+from ripplegw.waveforms.NRTidalv3_utils import (
     _get_merger_frequency,
     _get_phenomx_spin_coefficients,
     get_tidal_phase,
@@ -20,19 +20,19 @@ from .NRTidalv3_utils import (
     fullTidalPhaseCorrection,
     changePhase_if_min,
 )
-from . import IMRPhenomX_utils
-from .IMRPhenomXAS import Amp, Phase, PhaseDerivative
+from ripplegw.waveforms import IMRPhenomX_utils
+from ripplegw.waveforms.IMRPhenomXAS import Amp, Phase, PhaseDerivative
 
 
 def _gen_IMRPhenomXAS_NRTidalv3(
-    f: Array,
+    f: Float[Array, " n_freq"],
     f_ref: float,
-    theta_intrinsic: Array,
-    theta_extrinsic: Array,
-    bbh_amp: Array,
-    bbh_psi: Array,
+    theta_intrinsic: Float[Array, "6"],
+    theta_extrinsic: Float[Array, "3"],
+    bbh_amp: Float[Array, " n_freq"],
+    bbh_psi: Float[Array, " n_freq"],
     no_taper: bool = False,
-):
+) -> Complex[Array, " n_freq"]:
     """
     Master internal function to get the GW strain for given parameters.
 
@@ -158,12 +158,12 @@ def _gen_IMRPhenomXAS_NRTidalv3(
 
 
 def gen_IMRPhenomXAS_NRTidalv3(
-    f: Array,
-    params: Array,
+    f: Float[Array, " n_freq"],
+    params: Float[Array, "9"],
     f_ref: float,
     use_lambda_tildes: bool = True,
     no_taper: bool = False,
-) -> Array:
+) -> Complex[Array, " n_freq"]:
     """
     Generate NRTidalv3 frequency domain waveform following 2311.07456.
 
@@ -220,12 +220,12 @@ def gen_IMRPhenomXAS_NRTidalv3(
 
 
 def gen_IMRPhenomXAS_NRTidalv3_hphc(
-    f: Array,
-    params: Array,
+    f: Float[Array, " n_freq"],
+    params: Float[Array, "10"],
     f_ref: float,
     use_lambda_tildes: bool = True,
     no_taper: bool = False,
-):
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     Generate NRTidalv3 frequency domain waveform with plus and cross polarizations.
 

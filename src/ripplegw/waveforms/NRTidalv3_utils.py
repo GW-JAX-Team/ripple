@@ -1,10 +1,11 @@
 """by Robin Chan"""
 
 import jax.numpy as jnp
-from ..constants import MTSUN, PI, TWO_PI
+from ripplegw.constants import MTSUN, PI, TWO_PI
 from jaxtyping import Array, Float
-from .IMRPhenom_tidal_utils import get_kappa, get_quadparam_octparam
-from .TaylorF2 import (
+from ripplegw.typing import FloatLike
+from ripplegw.waveforms.IMRPhenom_tidal_utils import get_kappa, get_quadparam_octparam
+from ripplegw.waveforms.TaylorF2 import (
     get_4PNQM2SCoeff,
     get_4PNQM2SOCoeff,
     get_6PNQM2SCoeff,
@@ -31,7 +32,7 @@ This uses a new fit from Gonzalez, et. al (2022) Eq. (23) of https://arxiv.org/a
 """
 
 
-def _get_merger_frequency(theta: Array):
+def _get_merger_frequency(theta: Float[Array, "6"]) -> FloatLike:
     """
     Computes the merger frequency in Hz of the given system. This is defined in equation (41) in 2311.07456 and the lal source code.
     Pretty much literally copied from LAL at the moment (XLALSimNRTunedTidesMergerFrequency_v3)
@@ -108,8 +109,8 @@ def _get_merger_frequency(theta: Array):
 
 # Full tidal correction
 def fullTidalPhaseCorrection(
-    Mf: Array, theta_intrinsic: Array, P_P: Float[Array, " n_freq"]
-):
+    Mf: FloatLike, theta_intrinsic: Float[Array, "6"], P_P: FloatLike
+) -> FloatLike:
     """
     Returns the NRTidalv3 phase corrections due to tidal and spin effects.
 
@@ -151,7 +152,9 @@ def fullTidalPhaseCorrection(
     return psi_T + psi_SS
 
 
-def _get_phenomx_spin_coefficients(theta_intrinsic: Array):
+def _get_phenomx_spin_coefficients(
+    theta_intrinsic: Float[Array, "6"],
+) -> tuple[FloatLike, FloatLike, FloatLike]:
     m1, m2, chi1, chi2, lambda1, lambda2 = theta_intrinsic
     M = m1 + m2
     X_A = m1 / M
@@ -196,7 +199,7 @@ def _get_phenomx_spin_coefficients(theta_intrinsic: Array):
     return c2pn, c3pn, ss_3p5pn + sss_3p5pn
 
 
-def phenomx_tidal_phase(theta_intrinsic: Array, Mf: Float) -> Float:
+def phenomx_tidal_phase(theta_intrinsic: Float[Array, "6"], Mf: FloatLike) -> FloatLike:
     m1, m2, _, _, lambda1, lambda2 = theta_intrinsic
     M = m1 + m2
     X_A = m1 / M
@@ -297,7 +300,9 @@ def phenomx_tidal_phase(theta_intrinsic: Array, Mf: Float) -> Float:
     return phase_tidal
 
 
-def phenomx_tidal_phase_derivative(theta_intrinsic: Array, Mf: Float) -> Float:
+def phenomx_tidal_phase_derivative(
+    theta_intrinsic: Float[Array, "6"], Mf: FloatLike
+) -> FloatLike:
     m1, m2, _, _, lambda1, lambda2 = theta_intrinsic
     M = m1 + m2
     X_A = m1 / M
@@ -525,10 +530,10 @@ def phenomx_tidal_phase_derivative(theta_intrinsic: Array, Mf: Float) -> Float:
     Mftaperend = 1.35 * Mfmerger
     plancktaperfn = general_planck_taper(Mf, Mftaperstart, Mftaperend)
 
-    dplancktaper = jnp.where(
+    dplancktaper = jnp.where(  # type: ignore[call-overload]
         Mf <= Mftaperstart,
         0.0,
-        jnp.where(
+        jnp.where(  # type: ignore[arg-type]
             Mf >= Mftaperend,
             0.0,
             -(
@@ -582,7 +587,11 @@ def general_planck_taper(x, y1, y2):
     )
 
 
-def get_tidal_phase(M_omega: Array, NRTidalv3_coeffs: Array, PN_coeffs: Array):
+def get_tidal_phase(
+    M_omega: Float[Array, " n_freq"] | FloatLike,
+    NRTidalv3_coeffs: Float[Array, "20"],
+    PN_coeffs: Float[Array, "10"],
+) -> Float[Array, " n_freq"]:
     """
     Tidal phase correction for NRTidalv3, Eq. (27,30), from Abac, et. al. (2023) (https://arxiv.org/pdf/2311.07456.pdf)
     JAXified version of SimNRTunedTidesFDTidalPhase_v3.
@@ -689,12 +698,12 @@ def get_tidal_phase(M_omega: Array, NRTidalv3_coeffs: Array, PN_coeffs: Array):
 
 
 def get_tidal_phase_PN(
-    M_omega,  # Dimensionless angular GW frequency
-    Xa,  # < Mass of companion 1 divided by total mass
-    lambda1,  # < dimensionless tidal deformability of companion 1
-    lambda2,  # < dimensionless tidal deformability of companion 2
-    PN_coeffs,  # < 7.5 PN coefficients
-):
+    M_omega: Float[Array, " n_freq"] | FloatLike,
+    Xa: FloatLike,
+    lambda1: FloatLike,
+    lambda2: FloatLike,
+    PN_coeffs: Float[Array, "10"],
+) -> Float[Array, " n_freq"]:
     """
     PN tidal phase correction, at 7.5PN, to connect with NRTidalv3 Phase post-merger, see Eq. (22) and (45) of https://arxiv.org/pdf/2311.07456.pdf
     JAXified version of SimNRTunedTidesFDTidalPhase_PN
@@ -756,7 +765,7 @@ def get_tidal_phase_PN(
     return tidal_phasePN
 
 
-def get_tidalphasePN_coeffs(theta_intrinsic: Array):
+def get_tidalphasePN_coeffs(theta_intrinsic: Float[Array, "6"]) -> Float[Array, "10"]:
     """
     Coefficients or the PN tidal phase correction, at 7.5PN, to connect with NRTidalv3 Phase post-merger, see Eq. (45) of https://arxiv.org/pdf/2311.07456.pdf
     XLALSimNRTunedTidesSetFDTidalPhase_PN_Coeffs
@@ -847,9 +856,9 @@ def get_tidalphasePN_coeffs(theta_intrinsic: Array):
 
 
 def get_NRTidalv3_coefficients(
-    theta_intrinsic: Array,
-    PN_coeffs,  # 7.5 PN coefficients to be used for constraints
-):
+    theta_intrinsic: Float[Array, "6"],
+    PN_coeffs: Float[Array, "10"],
+) -> Float[Array, "20"]:
     """
     Set the NRTidalv3 effective love number and phase coefficients in an array for use here and in the IMRPhenomX*_NRTidalv3 implementation
     XLALSimNRTunedTidesSetFDTidalPhase_v3_Coeffs

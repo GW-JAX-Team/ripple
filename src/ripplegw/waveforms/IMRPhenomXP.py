@@ -1,13 +1,14 @@
 import jax
 import jax.numpy as jnp
-from ..constants import PI, MTSUN, MRSUN, MPC
-from ..conversions import Mc_eta_to_ms
-from . import LALSimIMRPhenomX_precession as pPrec
-from .initialize_MSA_system import IMRPhenomX_Initialize_MSA_System
+from jaxtyping import Array, Float, Complex
+from ripplegw.constants import PI, MTSUN, MRSUN, MPC
+from ripplegw.conversions import Mc_eta_to_ms
+from ripplegw.waveforms import LALSimIMRPhenomX_precession as pPrec
+from ripplegw.waveforms.initialize_MSA_system import IMRPhenomX_Initialize_MSA_System
 
 
-from .IMRPhenomXHM import XLALSimIMRPhenomXHMGethlmModes, build_pWF22
-from .IMRPhenomXPHM import (
+from ripplegw.waveforms.IMRPhenomXHM import XLALSimIMRPhenomXHMGethlmModes, build_pWF22
+from ripplegw.waveforms.IMRPhenomXPHM import (
     IMRPhenomXWignerdCoefficients_cosbeta,
     twist_22,
     BetaPowers,
@@ -17,7 +18,11 @@ from .IMRPhenomXPHM import (
 jax.config.update("jax_enable_x64", True)
 
 
-def gen_IMRPhenomXP_hphc(f, theta, f_ref):
+def gen_IMRPhenomXP_hphc(
+    f: Float[Array, " n_freq"],
+    theta: Float[Array, "12"],
+    f_ref: float,
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     Generate PhenomXP frequency domain waveform.
     vars array contains both intrinsic and extrinsic variables

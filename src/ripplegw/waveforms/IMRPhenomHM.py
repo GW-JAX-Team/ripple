@@ -1,22 +1,24 @@
 import jax
 import jax.numpy as jnp
-from ..constants import PI, MSUN, MTSUN, MRSUN, MPC
-from jaxtyping import Array, Float, Integer
-from .spherical_harmonics import (
+from typing import Any
+from ripplegw.constants import PI, MSUN, MTSUN, MRSUN, MPC
+from jaxtyping import Array, Float, Integer, Complex
+from ripplegw.typing import FloatLike
+from ripplegw.waveforms.spherical_harmonics import (
     compute_sminus2_l2,
     compute_sminus2_l3,
     compute_sminus2_l4,
 )
-from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
-from .IMRPhenomD_utils import (
+from ripplegw.waveforms.IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
+from ripplegw.waveforms.IMRPhenomD_utils import (
     EradRational0815,
     get_coeffs,
     get_transition_frequencies_from_fRD_fdamp,
 )
-from .IMRPhenomD import Phase as IMRPhenomD_Phase
-from .IMRPhenomD import IMRPhenDAmplitude_NoCut
-from .IMRPhenomD import get_IIb_raw_phase
-from .IMRPhenomPv2_utils import FinalSpin0815
+from ripplegw.waveforms.IMRPhenomD import Phase as IMRPhenomD_Phase
+from ripplegw.waveforms.IMRPhenomD import IMRPhenDAmplitude_NoCut
+from ripplegw.waveforms.IMRPhenomD import get_IIb_raw_phase
+from ripplegw.waveforms.IMRPhenomPv2_utils import FinalSpin0815
 
 
 # Phase shift due to leading order complex amplitude
@@ -27,16 +29,16 @@ CSHIFT = jnp.array([0.0, PI / 2.0, 0.0, -PI / 2.0, PI, PI / 2.0, 0.0])
 
 
 def gen_IMRPhenomHM(
-    frequency_array,
-    mass_1,
-    mass_2,
-    chi1,
-    chi2,
-    distance,  # in Mpc
-    inclination,
-    phi0,
-    reference_frequency,
-):
+    frequency_array: Float[Array, " n_freq"],
+    mass_1: FloatLike,
+    mass_2: FloatLike,
+    chi1: FloatLike,
+    chi2: FloatLike,
+    distance: FloatLike,
+    inclination: FloatLike,
+    phi0: FloatLike,
+    reference_frequency: FloatLike,
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """Generate IMRPhenomHM plus and cross polarizations."""
 
     m1_SI = mass_1 * MSUN
@@ -91,7 +93,7 @@ def gen_IMRPhenomHM(
 
 
 def get_phenomHMFD_mode_projection(
-    theta: float,
+    theta: FloatLike,
     minus1l: int | Array,
     ell: int | Array,
     m: int | Array,
@@ -138,20 +140,20 @@ def get_phenomHMFD_mode_projection(
 
 
 def XLALSimIMRPhenomHMGethlmModes(
-    freqs: Array,
-    m1_SI: float,
-    m2_SI: float,
-    chi1x: float,
-    chi1y: float,
-    chi1z: float,
-    chi2x: float,
-    chi2y: float,
-    chi2z: float,
-    phiRef: float,
-    deltaF: float,
-    f_ref: float,
-    extraParams: dict,
-):
+    freqs: Float[Array, " n_freq"],
+    m1_SI: FloatLike,
+    m2_SI: FloatLike,
+    chi1x: FloatLike,
+    chi1y: FloatLike,
+    chi1z: FloatLike,
+    chi2x: FloatLike,
+    chi2y: FloatLike,
+    chi2z: FloatLike,
+    phiRef: FloatLike,
+    deltaF: FloatLike,
+    f_ref: FloatLike,
+    extraParams: dict[str, Any],
+) -> Complex[Array, "n_modes n_freq"]:
     """Compute all hlm modes for IMRPhenomHM. JAX translation of XLALSimIMRPhenomHMGethlmModes."""
     ModeArray = extraParams["ModeArray"]
 
@@ -237,8 +239,12 @@ def XLALSimIMRPhenomHMGethlmModes(
 
 
 def IMRPhenomHMEvaluateOnehlmMode(
-    freqs_geom: Float, pHM: dict, ell: int, mm: int, phi0: Float
-):
+    freqs_geom: Float[Array, " n_freq"],
+    pHM: dict[str, Any],
+    ell: int,
+    mm: int,
+    phi0: FloatLike,
+) -> Complex[Array, " n_freq"]:
     """
     Implementation of IMRPhenomHMEvaluateOnehlmMode in LALSimIMRPhenomHM.c
     """
@@ -257,8 +263,12 @@ def IMRPhenomHMEvaluateOnehlmMode(
 
 
 def XLALSimPhenomUtilsPhenomPv2FinalSpin(
-    m1: Float, m2: Float, chi1_l: Float, chi2_l: Float, chip: Float
-):
+    m1: FloatLike,
+    m2: FloatLike,
+    chi1_l: FloatLike,
+    chi2_l: FloatLike,
+    chip: FloatLike,
+) -> FloatLike:
     """
     Implementation of XLALSimPhenomUtilsPhenomPv2FinalSpin in LALSimPhenomUtils.c
     Assuming m1 >= m2
@@ -277,21 +287,21 @@ def XLALSimPhenomUtilsPhenomPv2FinalSpin(
 
 
 def init_PhenomHM_Storage(
-    p: dict,
-    m1_SI: float,
-    m2_SI: float,
-    chi1x: float,
-    chi1y: float,
-    chi1z: float,
-    chi2x: float,
-    chi2y: float,
-    chi2z: float,
-    freqs: Array,
-    deltaF: float,
-    f_ref: float,
-    phiRef: float,
-    ModeArray: Array,
-):
+    p: dict[str, Any],
+    m1_SI: FloatLike,
+    m2_SI: FloatLike,
+    chi1x: FloatLike,
+    chi1y: FloatLike,
+    chi1z: FloatLike,
+    chi2x: FloatLike,
+    chi2y: FloatLike,
+    chi2z: FloatLike,
+    freqs: Float[Array, " n_freq"],
+    deltaF: FloatLike,
+    f_ref: FloatLike,
+    phiRef: FloatLike,
+    ModeArray: Integer[Array, "n_modes 2"],
+) -> dict[str, Any]:
     """
     Precompute a bunch of PhenomHM related quantities and store them
     Implementation of init_PhenomHM_Storage in LALSimIMRPhenomHM.c
@@ -341,15 +351,15 @@ def init_PhenomHM_Storage(
     vmapped_IMRPhenomHMGetRingdownFrequency = jax.vmap(
         IMRPhenomHMGetRingdownFrequency, in_axes=(0, 0, None, None)
     )
-    f_rd_array, f_damp_array = vmapped_IMRPhenomHMGetRingdownFrequency(
+    f_rd_array, f_damp_array = vmapped_IMRPhenomHMGetRingdownFrequency(  # type: ignore[misc]
         ell_mm_pairs[:, 0], ell_mm_pairs[:, 1], p["finmass"], p["finspin"]
     )
 
     # Store as 1D arrays indexed by mode order
     p["PhenomHMfring"] = f_rd_array  # shape: (5,)
     p["PhenomHMfdamp"] = f_damp_array  # shape: (5,)
-    p["Mf_RD_22"] = f_rd_array[1]
-    p["Mf_DM_22"] = f_damp_array[1]
+    p["Mf_RD_22"] = f_rd_array[1]  # type: ignore[index]
+    p["Mf_DM_22"] = f_damp_array[1]  # type: ignore[index]
 
     # Rholm and Taulm as 1D arrays (one per mode)
     p["Rholm"] = p["Mf_RD_22"] / f_rd_array  # shape: (5,)
@@ -370,8 +380,8 @@ def init_PhenomHM_Storage(
 
 
 def IMRPhenomHMGetRingdownFrequency(
-    ell: Integer, mm: Integer, finalmass: Float, finalspin: Float
-):
+    ell: Integer, mm: Integer, finalmass: FloatLike, finalspin: FloatLike
+) -> tuple[FloatLike, FloatLike]:
     """
     Implementation of IMRPhenomHMGetRingdownFrequency in LALSimIMRPhenomHM.c
     """
@@ -389,7 +399,7 @@ def IMRPhenomHMGetRingdownFrequency(
     return fringdown, fdamp
 
 
-def SimRingdownCW_KAPPA(jf: Float, ell: Integer, emm: Integer):
+def SimRingdownCW_KAPPA(jf: FloatLike, ell: Integer, emm: Integer) -> FloatLike:
     """
     Domain mapping for dimnesionless BH spin
     """
@@ -398,7 +408,9 @@ def SimRingdownCW_KAPPA(jf: Float, ell: Integer, emm: Integer):
     return alpha**beta
 
 
-def SimRingdownCW_CW07102016(kappa: Float, ell: Integer, input_m: Integer, n: int):
+def SimRingdownCW_CW07102016(
+    kappa: FloatLike, ell: Integer, input_m: Integer, n: int
+) -> Complex:
     """
     Dimensionless QNM Frequencies: Note that name encodes date of writing
     """
@@ -529,7 +541,9 @@ def SimRingdownCW_CW07102016(kappa: Float, ell: Integer, input_m: Integer, n: in
     )
 
 
-def IMRPhenomHMFreqDomainMap(Mflm, ell, mm, pHM, AmpFlag):
+def IMRPhenomHMFreqDomainMap(
+    Mflm: Float[Array, " n_freq"], ell: int, mm: int, pHM: dict[str, Any], AmpFlag: bool
+) -> Float[Array, " n_freq"]:
     """Map input frequency Mflm to the effective 22-mode frequency Mf22 for the (ell, mm) mode."""
     # Mflm here has the same meaning as Mf_wf in XLALSimIMRPhenomHMFreqDomainMapHM (old deleted function).
     # Following variables not used in this funciton but are returned in IMRPhenomHMFreqDomainMapParams
@@ -538,7 +552,9 @@ def IMRPhenomHMFreqDomainMap(Mflm, ell, mm, pHM, AmpFlag):
     return Mf22
 
 
-def IMRPhenomHMAmplitude(freqs_geom: Array, pHM: dict, ell: int, mm: int):
+def IMRPhenomHMAmplitude(
+    freqs_geom: Float[Array, " n_freq"], pHM: dict[str, Any], ell: int, mm: int
+) -> Float[Array, " n_freq"]:
     """
     Returns IMRPhenomHM amplitude evaluated at a set of input frequencies for the l,m mode
     Implementation of IMRPhenomHMAmplitude in LALSimIMRPhenomHM.c
@@ -624,7 +640,15 @@ def IMRPhenomHMAmplitude(freqs_geom: Array, pHM: dict, ell: int, mm: int):
     return amps * rescaling
 
 
-def IMRPhenomHMOnePointFiveSpinPN(fM, ell, m, M1, M2, X1z, X2z):
+def IMRPhenomHMOnePointFiveSpinPN(
+    fM: Float[Array, " n_freq"],
+    ell: int,
+    m: int,
+    M1: FloatLike,
+    M2: FloatLike,
+    X1z: FloatLike,
+    X2z: FloatLike,
+) -> Float[Array, " n_freq"]:
     """
     Implementation of IMRPhenomHMOnePointFiveSpinPN from LALSimIMRPhenomHM.c
     Currently supported modes: (2,1), (2,2), (3,2), (3,3), (4,3), (4,4)
@@ -713,7 +737,9 @@ def IMRPhenomHMOnePointFiveSpinPN(fM, ell, m, M1, M2, X1z, X2z):
     return M * M * PI * jnp.sqrt(eta * 2.0 / 3) * v ** (-3.5) * jnp.abs(Hlm)
 
 
-def IMRPhenomHMPhase(freqs_geom: Array, pHM: dict, ell: int, mm: int):
+def IMRPhenomHMPhase(
+    freqs_geom: Float[Array, " n_freq"], pHM: dict[str, Any], ell: int, mm: int
+) -> Float[Array, " n_freq"]:
     """
     Returns IMRPhenomHM phase evaluated at a set of input frequencies for the l,m mode
     Implementation of IMRPhenomHMPhase in LALSimIMRPhenomHM.c
@@ -773,7 +799,9 @@ def IMRPhenomHMPhase(freqs_geom: Array, pHM: dict, ell: int, mm: int):
     return phase
 
 
-def IMRPhenomHMPhasePreComp(q: dict, ell: int, emm: int, pHM: dict):
+def IMRPhenomHMPhasePreComp(
+    q: dict[str, FloatLike], ell: int, emm: int, pHM: dict[str, Any]
+) -> dict[str, FloatLike]:
     """
     Implementation of IMRPhenomHMPhasePreComp in LALSimIMRPhenomHM.c
     """
@@ -835,12 +863,12 @@ def IMRPhenomHMPhasePreComp(q: dict, ell: int, emm: int, pHM: dict):
 
 
 def IMRPhenomHMFreqDomainMapParams(
-    flm: float,  # input waveform frequency
-    ell: int,  # spherical harmonics ell mode
-    mm: int,  # spherical harmonics m mode
-    pHM: dict,
-    ampFlag: bool,  # is ==1 then computes for amplitude, if ==0 then computes for phase
-):
+    flm: FloatLike | Float[Array, " n_freq"],
+    ell: int,
+    mm: int,
+    pHM: dict[str, Any],
+    ampFlag: bool,
+) -> tuple[FloatLike | Float[Array, " n_freq"], FloatLike | Float[Array, " n_freq"]]:
     """
     Implementation of the phase computation of IMRPhenomHMFreqDomainMapParams in LALSimIMRPhenomHM.c
     """
@@ -890,14 +918,14 @@ def IMRPhenomHMFreqDomainMapParams(
 
 def IMRPhenomHMSlopeAmAndBm(
     mm: int,
-    fi: float,
-    fr: float,
-    Mf_RD_22: float,
-    Mf_RD_lm: float,
+    fi: FloatLike,
+    fr: FloatLike,
+    Mf_RD_22: FloatLike,
+    Mf_RD_lm: FloatLike,
     AmpFlag: bool,
     ell: int,
-    pHM: dict,
-):
+    pHM: dict[str, Any],
+) -> tuple[FloatLike, FloatLike]:
     """
     Implementation of IMRPhenomHMSlopeAmAndBm in LALSimIMRPhenomHM.c
     """
@@ -914,8 +942,13 @@ def IMRPhenomHMSlopeAmAndBm(
 
 
 def IMRPhenomHMTrd(
-    Mf: float, Mf_RD_22: float, Mf_RD_lm: float, AmpFlag: bool, mode_idx: int, pHM: dict
-):
+    Mf: FloatLike,
+    Mf_RD_22: FloatLike,
+    Mf_RD_lm: FloatLike,
+    AmpFlag: bool,
+    mode_idx: int,
+    pHM: dict[str, Any],
+) -> FloatLike:
     """
     Implementation of IMRPhenomHMTrd in LALSimIMRPhenomHM.c
     domain mapping function - ringdown
@@ -931,16 +964,16 @@ def IMRPhenomHMTrd(
 
 
 def IMRPhenomHMMapParams(
-    flm: Float,
-    fi: Float,
-    fr: Float,
-    Ai: Float,
-    Bi: Float,
-    Am: Float,
-    Bm: Float,
-    Ar: Float,
-    Br: Float,
-):
+    flm: FloatLike,
+    fi: FloatLike,
+    fr: FloatLike,
+    Ai: FloatLike,
+    Bi: FloatLike,
+    Am: FloatLike,
+    Bm: FloatLike,
+    Ar: FloatLike,
+    Br: FloatLike,
+) -> tuple[FloatLike, FloatLike]:
     """
     Implementation of IMRPhenomHMMapParams in LALSimIMRPhenomHM.c, line 557
     """
@@ -950,7 +983,14 @@ def IMRPhenomHMMapParams(
     return a, b
 
 
-def XLALSimPhenomUtilsChiP(m1, m2, s1x, s1y, s2x, s2y):
+def XLALSimPhenomUtilsChiP(
+    m1: FloatLike,
+    m2: FloatLike,
+    s1x: FloatLike,
+    s1y: FloatLike,
+    s2x: FloatLike,
+    s2y: FloatLike,
+) -> FloatLike:
     """
     Compute the effective precession parameter chip.
 
