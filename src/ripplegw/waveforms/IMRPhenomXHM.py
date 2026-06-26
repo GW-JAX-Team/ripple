@@ -2036,7 +2036,7 @@ def _xhm_s2s_complex(
 
 
 def _compute_32_hlm(
-    freqs_geom: Float[Array, " n_freq"] | FloatLike,
+    freqs_geom: Float[Array, " n_freq"],
     pWFHM: "XHMWaveformStruct",
     pWF22: dict[str, Any],
     t0: FloatLike,
@@ -6504,10 +6504,10 @@ def xhm_get_amp_coefficients(
 
 
 def xhm_amp_noModeMixing(
-    Mf: Float[Array, " n_freq"] | FloatLike,
+    Mf: Float[Array, " n_freq"],
     pAmp: XHMAmpCoefficients,
     pWFHM: "XHMWaveformStruct",
-) -> Float[Array, " n_freq"] | FloatLike:
+) -> Float[Array, " n_freq"]:
     """
     Evaluate the (l,m) mode amplitude at frequencies Mf (no mode mixing).
 
@@ -6586,7 +6586,7 @@ def xhm_amp_noModeMixing(
 
 
 def XLALSimIMRPhenomXHMEvaluateOnehlmMode(
-    freqs_geom: Float[Array, " n_freq"] | FloatLike,
+    freqs_geom: Float[Array, " n_freq"],
     pWFHM: XHMWaveformStruct,
     pPhase: XHMPhaseCoefficients,
     pAmp: XHMAmpCoefficients,
@@ -6624,7 +6624,7 @@ def XLALSimIMRPhenomXHMEvaluateOnehlmMode(
 
 
 def XLALSimIMRPhenomXHMGethlmModes(
-    freqs_geom: Float[Array, " n_freq"] | FloatLike,
+    freqs_geom: Float[Array, " n_freq"],
     pWF22: dict[str, Any],
     phi0: float | FloatLike,
     ell_mm_pairs: list,

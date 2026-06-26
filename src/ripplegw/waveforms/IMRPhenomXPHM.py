@@ -80,7 +80,9 @@ def generate_xphm(
     reference_frequency: float,
 ) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """Generate IMRPhenomXPHM plus and cross polarizations."""
-    Mf = pPrec.XLALSimIMRPhenomXUtilsHztoMf(frequency_array, mass_1 + mass_2)
+    Mf: Float[Array, " n_freq"] = pPrec.XLALSimIMRPhenomXUtilsHztoMf(
+        frequency_array, mass_1 + mass_2
+    )  # type: ignore[assignment]
 
     Mtot = mass_1 + mass_2
 
