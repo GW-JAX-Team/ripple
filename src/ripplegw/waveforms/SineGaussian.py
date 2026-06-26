@@ -3,9 +3,10 @@ from jax.lax import complex
 
 from ..constants import PI
 from jaxtyping import Array, Float
+from ripplegw.typing import FloatLike
 
 
-def semi_major_minor_from_e(e: Float) -> tuple[Float, Float]:
+def semi_major_minor_from_e(e: FloatLike) -> tuple[FloatLike, FloatLike]:
     """
     Calculate the semi-major and semi-minor axes of an ellipse given the
     eccentricity of the ellipse.

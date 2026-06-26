@@ -3,6 +3,7 @@
 import jax.numpy as jnp
 from ..constants import MTSUN, PI, TWO_PI
 from jaxtyping import Array, Float
+from ripplegw.typing import FloatLike
 from .IMRPhenom_tidal_utils import get_kappa, get_quadparam_octparam
 from .TaylorF2 import (
     get_4PNQM2SCoeff,
@@ -31,7 +32,7 @@ This uses a new fit from Gonzalez, et. al (2022) Eq. (23) of https://arxiv.org/a
 """
 
 
-def _get_merger_frequency(theta: Float[Array, "6"]) -> Float:
+def _get_merger_frequency(theta: Float[Array, "6"]) -> FloatLike:
     """
     Computes the merger frequency in Hz of the given system. This is defined in equation (41) in 2311.07456 and the lal source code.
     Pretty much literally copied from LAL at the moment (XLALSimNRTunedTidesMergerFrequency_v3)
@@ -108,8 +109,8 @@ def _get_merger_frequency(theta: Float[Array, "6"]) -> Float:
 
 # Full tidal correction
 def fullTidalPhaseCorrection(
-    Mf: Float, theta_intrinsic: Float[Array, "6"], P_P: Float
-) -> Float:
+    Mf: FloatLike, theta_intrinsic: Float[Array, "6"], P_P: FloatLike
+) -> FloatLike:
     """
     Returns the NRTidalv3 phase corrections due to tidal and spin effects.
 
@@ -153,7 +154,7 @@ def fullTidalPhaseCorrection(
 
 def _get_phenomx_spin_coefficients(
     theta_intrinsic: Float[Array, "6"],
-) -> tuple[Float, Float, Float]:
+) -> tuple[FloatLike, FloatLike, FloatLike]:
     m1, m2, chi1, chi2, lambda1, lambda2 = theta_intrinsic
     M = m1 + m2
     X_A = m1 / M
@@ -198,7 +199,7 @@ def _get_phenomx_spin_coefficients(
     return c2pn, c3pn, ss_3p5pn + sss_3p5pn
 
 
-def phenomx_tidal_phase(theta_intrinsic: Float[Array, "6"], Mf: Float) -> Float:
+def phenomx_tidal_phase(theta_intrinsic: Float[Array, "6"], Mf: FloatLike) -> FloatLike:
     m1, m2, _, _, lambda1, lambda2 = theta_intrinsic
     M = m1 + m2
     X_A = m1 / M
@@ -300,8 +301,8 @@ def phenomx_tidal_phase(theta_intrinsic: Float[Array, "6"], Mf: Float) -> Float:
 
 
 def phenomx_tidal_phase_derivative(
-    theta_intrinsic: Float[Array, "6"], Mf: Float
-) -> Float:
+    theta_intrinsic: Float[Array, "6"], Mf: FloatLike
+) -> FloatLike:
     m1, m2, _, _, lambda1, lambda2 = theta_intrinsic
     M = m1 + m2
     X_A = m1 / M
@@ -587,7 +588,7 @@ def general_planck_taper(x, y1, y2):
 
 
 def get_tidal_phase(
-    M_omega: Float[Array, " n_freq"],
+    M_omega: Float[Array, " n_freq"] | FloatLike,
     NRTidalv3_coeffs: Float[Array, "20"],
     PN_coeffs: Float[Array, "10"],
 ) -> Float[Array, " n_freq"]:
@@ -697,10 +698,10 @@ def get_tidal_phase(
 
 
 def get_tidal_phase_PN(
-    M_omega: Float[Array, " n_freq"],
-    Xa: Float,
-    lambda1: Float,
-    lambda2: Float,
+    M_omega: Float[Array, " n_freq"] | FloatLike,
+    Xa: FloatLike,
+    lambda1: FloatLike,
+    lambda2: FloatLike,
     PN_coeffs: Float[Array, "10"],
 ) -> Float[Array, " n_freq"]:
     """

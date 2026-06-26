@@ -1,6 +1,7 @@
 import dataclasses
 import jax.numpy as jnp
 from jaxtyping import Array, Float
+from ripplegw.typing import FloatLike
 from ..constants import MTSUN
 import jax
 
@@ -13,19 +14,19 @@ from .initialize_MSA_system import (
 @jax.tree_util.register_dataclass
 @dataclasses.dataclass
 class CommonConstants:
-    sqrt2: Float = 1.4142135623730951
-    sqrt5: Float = 2.23606797749978981
-    sqrt6: Float = 2.44948974278317788
-    sqrt7: Float = 2.64575131106459072
-    sqrt10: Float = 3.16227766016838
-    sqrt14: Float = 3.74165738677394133
-    sqrt15: Float = 3.87298334620741702
-    sqrt70: Float = 8.36660026534075563
-    sqrt30: Float = 5.477225575051661
-    sqrt2p5: Float = 1.58113883008419
-    log16: Float = 2.772588722239781
-    power_of_lalpi_2: Float = 9.869604401089358
-    MAX_TOL_ATAN: Float = 1.0e-15
+    sqrt2: FloatLike = 1.4142135623730951
+    sqrt5: FloatLike = 2.23606797749978981
+    sqrt6: FloatLike = 2.44948974278317788
+    sqrt7: FloatLike = 2.64575131106459072
+    sqrt10: FloatLike = 3.16227766016838
+    sqrt14: FloatLike = 3.74165738677394133
+    sqrt15: FloatLike = 3.87298334620741702
+    sqrt70: FloatLike = 8.36660026534075563
+    sqrt30: FloatLike = 5.477225575051661
+    sqrt2p5: FloatLike = 1.58113883008419
+    log16: FloatLike = 2.772588722239781
+    power_of_lalpi_2: FloatLike = 9.869604401089358
+    MAX_TOL_ATAN: FloatLike = 1.0e-15
 
 
 def compute_vangles(
@@ -125,18 +126,18 @@ def compute_vangles(
 
 
 def compute_thetaJN_kappa_and_zeta(
-    mass_1: Float,
-    mass_2: Float,
-    chi1x: Float,
-    chi1y: Float,
-    chi1z: Float,
-    chi2x: Float,
-    chi2y: Float,
-    chi2z: Float,
-    LRef: Float,
-    phiRef_In: Float,
-    inclination: Float,
-) -> tuple[Float, Float, Float, Float, Float, Float]:
+    mass_1: FloatLike,
+    mass_2: FloatLike,
+    chi1x: FloatLike,
+    chi1y: FloatLike,
+    chi1z: FloatLike,
+    chi2x: FloatLike,
+    chi2y: FloatLike,
+    chi2z: FloatLike,
+    LRef: FloatLike,
+    phiRef_In: FloatLike,
+    inclination: FloatLike,
+) -> tuple[FloatLike, FloatLike, FloatLike, FloatLike, FloatLike, FloatLike]:
     """Compute thetaJN, Nz_Jf, Nx_Jf, phiJ_Sf, kappa, and zeta_polarization.
 
     Fuses compute_thetaJN_and_kappa with compute_zeta_polarization so that the
@@ -448,12 +449,12 @@ def Get_alphaepsilon_atfref_pflag_true(
 
 
 def flag_222_223_twoPN_non_spinning_orbitan_angular_momentum(
-    eta: Float,
-    eta2: Float,
-    chi1L: Float,
-    chi2L: Float,
-    delta: Float,
-    power_of_lalpi_2: Float,
+    eta: FloatLike,
+    eta2: FloatLike,
+    chi1L: FloatLike,
+    chi2L: FloatLike,
+    delta: FloatLike,
+    power_of_lalpi_2: FloatLike,
 ) -> Float[Array, "10"]:
     L0 = 1.0
     L1 = 0.0
@@ -503,64 +504,64 @@ class MSAPrecessionSetup:
     compute_evolved_spin_given_setup inside any jax.vmap over modes.
     """
 
-    eta: Float
-    eta2: Float
-    eta3: Float
-    eta4: Float
-    inveta: Float
-    SAv: Float
-    SAv2: Float
-    invSAv: Float
-    invSAv2: Float
-    qq: Float
-    delta_qq: Float
-    alpha_offset: Float
-    epsilon_offset: Float
-    c1: Float
-    c1_over_eta: Float
-    Seff: Float
-    dotS1Ln: Float
-    dotS2Ln: Float
-    S_0_norm: Float
-    psi0: Float
-    psi1: Float
-    psi2: Float
-    g0: Float
-    Omegaz0_coeff: Float
-    Omegaz1_coeff: Float
-    Omegaz2_coeff: Float
-    Omegaz3_coeff: Float
-    Omegaz4_coeff: Float
-    Omegaz5_coeff: Float
-    phiz_0: Float
-    Omegazeta0_coeff: Float
-    Omegazeta1_coeff: Float
-    Omegazeta2_coeff: Float
-    Omegazeta3_coeff: Float
-    Omegazeta4_coeff: Float
-    Omegazeta5_coeff: Float
-    zeta_0: Float
-    constants_L_0: Float
-    constants_L_1: Float
-    constants_L_2: Float
-    constants_L_3: Float
-    constants_L_4: Float
-    S1_norm_2: Float
-    S2_norm_2: Float
+    eta: FloatLike
+    eta2: FloatLike
+    eta3: FloatLike
+    eta4: FloatLike
+    inveta: FloatLike
+    SAv: FloatLike
+    SAv2: FloatLike
+    invSAv: FloatLike
+    invSAv2: FloatLike
+    qq: FloatLike
+    delta_qq: FloatLike
+    alpha_offset: FloatLike
+    epsilon_offset: FloatLike
+    c1: FloatLike
+    c1_over_eta: FloatLike
+    Seff: FloatLike
+    dotS1Ln: FloatLike
+    dotS2Ln: FloatLike
+    S_0_norm: FloatLike
+    psi0: FloatLike
+    psi1: FloatLike
+    psi2: FloatLike
+    g0: FloatLike
+    Omegaz0_coeff: FloatLike
+    Omegaz1_coeff: FloatLike
+    Omegaz2_coeff: FloatLike
+    Omegaz3_coeff: FloatLike
+    Omegaz4_coeff: FloatLike
+    Omegaz5_coeff: FloatLike
+    phiz_0: FloatLike
+    Omegazeta0_coeff: FloatLike
+    Omegazeta1_coeff: FloatLike
+    Omegazeta2_coeff: FloatLike
+    Omegazeta3_coeff: FloatLike
+    Omegazeta4_coeff: FloatLike
+    Omegazeta5_coeff: FloatLike
+    zeta_0: FloatLike
+    constants_L_0: FloatLike
+    constants_L_1: FloatLike
+    constants_L_2: FloatLike
+    constants_L_3: FloatLike
+    constants_L_4: FloatLike
+    S1_norm_2: FloatLike
+    S2_norm_2: FloatLike
 
 
 def compute_msa_precession_setup(
-    mass_1: Float,
-    mass_2: Float,
-    chi1x: Float,
-    chi1y: Float,
-    chi1z: Float,
-    chi2x: Float,
-    chi2y: Float,
-    chi2z: Float,
+    mass_1: FloatLike,
+    mass_2: FloatLike,
+    chi1x: FloatLike,
+    chi1y: FloatLike,
+    chi1z: FloatLike,
+    chi2x: FloatLike,
+    chi2y: FloatLike,
+    chi2z: FloatLike,
     reference_frequency: float,
-    kappa: Float,
-    phiJ_Sf: Float,
+    kappa: FloatLike,
+    phiJ_Sf: FloatLike,
 ) -> MSAPrecessionSetup:
     """Compute MSA precession constants invariant to emm and Mf.
 
@@ -701,7 +702,7 @@ def compute_msa_precession_setup(
 
 
 def compute_evolved_spin_given_setup(
-    Mf: Float[Array, " n_freq"], emm: int | Array, setup: MSAPrecessionSetup
+    Mf: Float[Array, " n_freq"] | FloatLike, emm: int | Array, setup: MSAPrecessionSetup
 ) -> tuple[Float[Array, " n_freq"], Float[Array, " n_freq"], Float[Array, " n_freq"]]:
     """Compute precession angles for mode emm using pre-computed MSA setup.
 
@@ -763,24 +764,26 @@ def compute_evolved_spin_given_setup(
         Omegazeta5_coeff=setup.Omegazeta5_coeff,
         zeta_0=setup.zeta_0,
     )
-    alpha_out: Float = jnp.where(inspiral_mask, vangles[0] - setup.alpha_offset, 0.0)
-    epsilon_out: Float = jnp.where(
+    alpha_out: FloatLike = jnp.where(
+        inspiral_mask, vangles[0] - setup.alpha_offset, 0.0
+    )
+    epsilon_out: FloatLike = jnp.where(
         inspiral_mask, vangles[1] - setup.epsilon_offset, 0.0
     )
-    cos_beta_out: Float = jnp.where(inspiral_mask, vangles[2], 0.0)
+    cos_beta_out: FloatLike = jnp.where(inspiral_mask, vangles[2], 0.0)
     return alpha_out, epsilon_out, cos_beta_out
 
 
-def XLALSimIMRPhenomXUtilsHztoMf(fHz: Float, Mtot_Msun: Float) -> Float:
+def XLALSimIMRPhenomXUtilsHztoMf(fHz: FloatLike, Mtot_Msun: FloatLike) -> FloatLike:
     """
     Convert frequency from Hz to geometric units (Mf).
 
     Args:
-        fHz (Float): Frequency in Hz
-        Mtot_Msun (Float): Total mass in solar masses
+        fHz (FloatLike): Frequency in Hz
+        Mtot_Msun (FloatLike): Total mass in solar masses
 
     Returns:
-        Float: Geometric frequency Mf
+        FloatLike: Geometric frequency Mf
     """
     return fHz * Mtot_Msun * MTSUN
 
@@ -831,37 +834,37 @@ def IMRPhenomX_rotate_y(angle, v):
 
 
 def XLALSimIMRPhenomXLPNAnsatz(
-    v: Float,
-    LNorm: Float,
-    L0: Float,
-    L1: Float,
-    L2: Float,
-    L3: Float,
-    L4: Float,
-    L5: Float,
-    L6: Float,
-    L7: Float,
-    L8: Float,
-    L8L: Float,
-) -> Float:
+    v: FloatLike,
+    LNorm: FloatLike,
+    L0: FloatLike,
+    L1: FloatLike,
+    L2: FloatLike,
+    L3: FloatLike,
+    L4: FloatLike,
+    L5: FloatLike,
+    L6: FloatLike,
+    L7: FloatLike,
+    L8: FloatLike,
+    L8L: FloatLike,
+) -> FloatLike:
     """
     Compute orbital angular momentum using post-Newtonian expansion
 
     Args:
-        v: Input velocity (Float)
-        LNorm: Orbital angular momentum normalization (Float)
-        L0: Newtonian orbital angular momentum (Float)
-        L1: 0.5PN Orbital angular momentum (Float)
-        L2: 1.0PN Orbital angular momentum (Float)
-        L3: 1.5PN Orbital angular momentum (Float)
-        L4: 2.0PN Orbital angular momentum (Float)
-        L5: 2.5PN Orbital angular momentum (Float)
-        L6: 3.0PN Orbital angular momentum (Float)
-        L7: 3.5PN Orbital angular momentum (Float)
-        L8: 4.0PN Orbital angular momentum (Float)
-        L8L: 4.0PN logarithmic orbital angular momentum term (Float)
+        v: Input velocity (FloatLike)
+        LNorm: Orbital angular momentum normalization (FloatLike)
+        L0: Newtonian orbital angular momentum (FloatLike)
+        L1: 0.5PN Orbital angular momentum (FloatLike)
+        L2: 1.0PN Orbital angular momentum (FloatLike)
+        L3: 1.5PN Orbital angular momentum (FloatLike)
+        L4: 2.0PN Orbital angular momentum (FloatLike)
+        L5: 2.5PN Orbital angular momentum (FloatLike)
+        L6: 3.0PN Orbital angular momentum (FloatLike)
+        L7: 3.5PN Orbital angular momentum (FloatLike)
+        L8: 4.0PN Orbital angular momentum (FloatLike)
+        L8L: 4.0PN logarithmic orbital angular momentum term (FloatLike)
 
-    Returns: Float: Orbital angular momentum
+    Returns: FloatLike: Orbital angular momentum
     """
 
     x = v * v

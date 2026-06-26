@@ -1,5 +1,6 @@
 import jax.numpy as jnp
 from jaxtyping import Array, Float
+from ripplegw.typing import FloatLike
 
 from ..constants import MTSUN, PI
 
@@ -8,8 +9,12 @@ fM_CUT = 0.3
 
 
 def get_cutoff_fMs(
-    m1: Float, m2: Float, chi1: Float, chi2: Float, chip: float | Float = 0.0
-) -> tuple[Float, Float, Float, Float]:
+    m1: FloatLike,
+    m2: FloatLike,
+    chi1: FloatLike,
+    chi2: FloatLike,
+    chip: float | FloatLike = 0.0,
+) -> tuple[FloatLike, FloatLike, FloatLike, FloatLike]:
     # This function returns a variety of frequencies needed for computing IMRPhenomXAS
     # In particular, we have fRD, fdamp, fMECO, FISCO
     # chip: effective precession spin parameter. When non-zero, fRD/fdamp are computed
@@ -296,8 +301,8 @@ def get_cutoff_fMs(
 
 
 def calc_phaseatpeak(
-    eta: Float, S: Float, chia: Float, delta: Float
-) -> tuple[Float, Float, Float]:
+    eta: FloatLike, S: FloatLike, chia: FloatLike, delta: FloatLike
+) -> tuple[FloatLike, FloatLike, FloatLike]:
     lina = 0.0
 
     linb = (
@@ -366,7 +371,7 @@ def calc_phaseatpeak(
     return lina, linb, psi4tostrain
 
 
-def nospin_CV(NoSpin_coeffs: Float[Array, " n_coeffs"], eta: Float) -> Float:
+def nospin_CV(NoSpin_coeffs: Float[Array, " n_coeffs"], eta: FloatLike) -> FloatLike:
     eta2 = eta * eta
     eta3 = eta2 * eta
     eta4 = eta3 * eta
@@ -386,7 +391,9 @@ def nospin_CV(NoSpin_coeffs: Float[Array, " n_coeffs"], eta: Float) -> Float:
     )
 
 
-def Eqspin_CV(EqSpin_coeffs: Float[Array, " n_coeffs"], eta: Float, S: Float) -> Float:
+def Eqspin_CV(
+    EqSpin_coeffs: Float[Array, " n_coeffs"], eta: FloatLike, S: FloatLike
+) -> FloatLike:
     eta2 = eta * eta
     eta3 = eta2 * eta
     eta4 = eta3 * eta
@@ -442,8 +449,11 @@ def Eqspin_CV(EqSpin_coeffs: Float[Array, " n_coeffs"], eta: Float, S: Float) ->
 
 
 def Uneqspin_CV(
-    EqSpin_coeffs: Float[Array, " n_coeffs"], eta: Float, S: Float, chia: Float
-) -> Float:
+    EqSpin_coeffs: Float[Array, " n_coeffs"],
+    eta: FloatLike,
+    S: FloatLike,
+    chia: FloatLike,
+) -> FloatLike:
     chia2 = chia * chia
     delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
     eta2 = eta * eta
@@ -469,7 +479,9 @@ def Uneqspin_CV(
     )
 
 
-def Amp_Nospin_CV(NoSpin_coeffs: Float[Array, " n_coeffs"], eta: Float) -> Float:
+def Amp_Nospin_CV(
+    NoSpin_coeffs: Float[Array, " n_coeffs"], eta: FloatLike
+) -> FloatLike:
     numerator = (
         NoSpin_coeffs[0]
         + NoSpin_coeffs[1] * eta
@@ -482,8 +494,8 @@ def Amp_Nospin_CV(NoSpin_coeffs: Float[Array, " n_coeffs"], eta: Float) -> Float
 
 
 def Amp_Eqspin_CV(
-    EqSpin_coeffs: Float[Array, " n_coeffs"], eta: Float, S: Float
-) -> Float:
+    EqSpin_coeffs: Float[Array, " n_coeffs"], eta: FloatLike, S: FloatLike
+) -> FloatLike:
     numeratorS0 = (
         EqSpin_coeffs[0]
         + EqSpin_coeffs[1] * eta
@@ -537,8 +549,11 @@ def Amp_Eqspin_CV(
 
 
 def Amp_Uneqspin_CV(
-    UneqSpin_coeffs: Float[Array, " n_coeffs"], eta: Float, S: Float, chia: Float
-) -> Float:
+    UneqSpin_coeffs: Float[Array, " n_coeffs"],
+    eta: FloatLike,
+    S: FloatLike,
+    chia: FloatLike,
+) -> FloatLike:
     delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
     return (
         chia

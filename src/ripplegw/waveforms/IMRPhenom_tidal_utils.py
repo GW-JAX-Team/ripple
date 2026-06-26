@@ -5,18 +5,19 @@ Small utility script for shared functions between tidal waveforms, especially fo
 import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Float
+from ripplegw.typing import FloatLike
 
 
-def universal_relation(coeffs: Float[Array, "5"], x: Float) -> Float:
+def universal_relation(coeffs: Float[Array, "5"], x: FloatLike) -> FloatLike:
     """
     Applies the general formula of a universal relationship, which is a quartic polynomial.
 
     Args:
         coeffs (Array): Array of coefficients for the quartic polynomial, starting from the constant term and going to the fourth order.
-        x (Float): Variable of quartic polynomial
+        x (FloatLike): Variable of quartic polynomial
 
     Returns:
-        Float: Result of universal relation
+        FloatLike: Result of universal relation
     """
     return (
         coeffs[0]
@@ -27,17 +28,17 @@ def universal_relation(coeffs: Float[Array, "5"], x: Float) -> Float:
     )
 
 
-def get_quadparam_octparam(lambda_: Float) -> tuple[Float, Float]:
+def get_quadparam_octparam(lambda_: FloatLike) -> tuple[FloatLike, FloatLike]:
     """
     Compute the quadrupole and octupole parameter by checking the value of lambda and choosing the right subroutine.
     If lambda is smaller than 1, we make use of the fit formula as given by the LAL source code. Otherwise, we rely on the equations of
     the NRTidalv2 paper to get these parameters.
 
     Args:
-        lambda_ (Float): Tidal deformability of object.
+        lambda_ (FloatLike): Tidal deformability of object.
 
     Returns:
-        tuple[Float, Float]: Quadrupole and octupole parameters.
+        tuple[FloatLike, FloatLike]: Quadrupole and octupole parameters.
     """
     is_low_lambda = lambda_ < 1
     return jax.lax.cond(
@@ -48,7 +49,7 @@ def get_quadparam_octparam(lambda_: Float) -> tuple[Float, Float]:
     )
 
 
-def get_quadparam_octparam_eos(lambda_: Float) -> tuple[Float, Float]:
+def get_quadparam_octparam_eos(lambda_: FloatLike) -> tuple[FloatLike, FloatLike]:
     """
     Compute the quadrupole and octupole parameters using LAL's
     XLALSimInspiralEOSQfromLambda relation.
@@ -68,7 +69,9 @@ def get_quadparam_octparam_eos(lambda_: Float) -> tuple[Float, Float]:
     return quadparam, octparam
 
 
-def _get_quadparam_octparam_low(lambda_: Float) -> tuple[Float, Float]:
+def _get_quadparam_octparam_low(
+    lambda_: FloatLike,
+) -> tuple[FloatLike, FloatLike]:
     """
     Computes quadparameter following LALSimUniversalRelations.c of lalsuite
 
@@ -100,7 +103,9 @@ def _get_quadparam_octparam_low(lambda_: Float) -> tuple[Float, Float]:
     return quadparam, octparam
 
 
-def _get_quadparam_octparam_high(lambda_: Float) -> tuple[Float, Float]:
+def _get_quadparam_octparam_high(
+    lambda_: FloatLike,
+) -> tuple[FloatLike, FloatLike]:
     """
     Computes quadparameter, following LALSimUniversalRelations.c of lalsuite
 
@@ -132,7 +137,7 @@ def _get_quadparam_octparam_high(lambda_: Float) -> tuple[Float, Float]:
     return quadparam, octparam
 
 
-def get_kappa(theta: Float[Array, "6"]) -> Float:
+def get_kappa(theta: Float[Array, "6"]) -> FloatLike:
     """
     Computes the tidal deformability parameter kappa according to equation (8) of the NRTidalv2 paper.
 
@@ -140,7 +145,7 @@ def get_kappa(theta: Float[Array, "6"]) -> Float:
         theta (Array): Intrinsic parameters m1, m2, chi1, chi2, lambda1, lambda2
 
     Returns:
-        Float: kappa_eff^T from equation (8) of NRTidalv2 paper.
+        FloatLike: kappa_eff^T from equation (8) of NRTidalv2 paper.
     """
 
     # Auxiliary variables

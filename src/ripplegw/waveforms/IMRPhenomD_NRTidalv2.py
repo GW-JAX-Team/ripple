@@ -6,6 +6,7 @@ import jax
 import jax.numpy as jnp
 from ..constants import MTSUN, MPC, PI, TWO_PI, MRSUN
 from jaxtyping import Array, Float, Complex
+from ripplegw.typing import FloatLike
 from typing import Optional
 from ..conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from .IMRPhenom_tidal_utils import get_quadparam_octparam, get_kappa
@@ -97,16 +98,16 @@ get_planck_taper.defjvps(
 )
 
 
-def get_amp0_lal(M: Float, distance: Float) -> Float:
+def get_amp0_lal(M: FloatLike, distance: FloatLike) -> FloatLike:
     """
     Get the amp0 prefactor as defined in LAL in LALSimIMRPhenomD, line 331.
 
     Args:
-        M (Float): Total mass in solar masses
-        distance (Float): Distance to the source in meters.
+        M (FloatLike): Total mass in solar masses
+        distance (FloatLike): Distance to the source in meters.
 
     Returns:
-        Float: amp0 from LAL.
+        FloatLike: amp0 from LAL.
     """
     amp0 = 2.0 * jnp.sqrt(5.0 / (64.0 * PI)) * M * MRSUN * M * MTSUN / distance
     return amp0
@@ -115,8 +116,8 @@ def get_amp0_lal(M: Float, distance: Float) -> Float:
 def get_tidal_amplitude(
     x: Float[Array, " n_freq"],
     theta: Float[Array, "6"],
-    kappa: Float,
-    distance: Float = 1,
+    kappa: FloatLike,
+    distance: FloatLike = 1,
 ) -> Float[Array, " n_freq"]:
     """
     Get the tidal amplitude corrections as given in equation (24) of the NRTidal paper.
@@ -124,8 +125,8 @@ def get_tidal_amplitude(
     Args:
         x (Array): Angular frequency, in particular, x = (pi M f)^(2/3)
         theta (Array): Intrinsic parameters (mass1, mass2, chi1, chi2, lambda1, lambda2)
-        kappa (Float): Tidal parameter kappa
-        distance (Float, optional): Distance to the source in Mpc.
+        kappa (FloatLike): Tidal parameter kappa
+        distance (FloatLike, optional): Distance to the source in Mpc.
 
     Returns:
         Array: Tidal amplitude corrections A_T from NRTidalv2 paper.
@@ -161,7 +162,7 @@ def get_tidal_amplitude(
 
 
 def get_tidal_phase(
-    x: Float[Array, " n_freq"], theta: Float[Array, "6"], kappa: Float
+    x: Float[Array, " n_freq"], theta: Float[Array, "6"], kappa: FloatLike
 ) -> Float[Array, " n_freq"]:
     """
     Computes the tidal phase psi_T from equation (17) of the NRTidalv2 paper.
@@ -293,7 +294,7 @@ def get_spin_phase_correction(
 
 
 def get_qm_phase_correction(
-    fM_s: Float[Array, " n_freq"] | Float,
+    fM_s: Float[Array, " n_freq"] | FloatLike,
     theta: Float[Array, "6"],
 ) -> Float[Array, " n_freq"]:
     """
@@ -338,7 +339,9 @@ def Phase_with_qm_correction(
     theta_bbh: Float[Array, "4"],
     theta_intrinsic: Float[Array, "6"],
     coeffs: Float[Array, "19"],
-    transition_freqs: tuple[Float, Float, Float, Float, Float, Float],
+    transition_freqs: tuple[
+        FloatLike, FloatLike, FloatLike, FloatLike, FloatLike, FloatLike
+    ],
 ) -> Float[Array, " n_freq"]:
     """
     Compute the IMRPhenomD BBH phase with the hidden NRTidalv2 quadrupole
@@ -349,7 +352,7 @@ def Phase_with_qm_correction(
     M_s = (m1 + m2) * MTSUN
     f1, f2, _, _, f_RD, f_damp = transition_freqs
 
-    def inspiral_phase(fM_s: Array | Float) -> Array:
+    def inspiral_phase(fM_s: Array) -> Array:
         return get_inspiral_phase(fM_s, theta_bbh, coeffs) + get_qm_phase_correction(
             fM_s, theta_intrinsic
         )
@@ -391,17 +394,17 @@ def Phase_with_qm_correction(
 
 
 def _get_merger_frequency(
-    theta: Float[Array, "6"], kappa: Optional[Float] = None
-) -> Float:
+    theta: Float[Array, "6"], kappa: Optional[FloatLike] = None
+) -> FloatLike:
     """
     Computes the merger frequency in Hz of the given system. This is defined in equation (11) in https://arxiv.org/abs/1804.02235 and the lal source code.
 
     Args:
         theta (Array): Intrinsic parameters with order (m1, m2, chi1, chi2, lambda1, lambda2)
-        kappa (Optional[Float]): Tidal parameter kappa. Defaults to None, so that it is computed from the given parameters theta.
+        kappa (Optional[FloatLike]): Tidal parameter kappa. Defaults to None, so that it is computed from the given parameters theta.
 
     Returns:
-        Float: The merger frequency in Hz.
+        FloatLike: The merger frequency in Hz.
     """
 
     # Compute auxiliary quantities

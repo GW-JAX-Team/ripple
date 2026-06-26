@@ -8,25 +8,30 @@ from .IMRPhenomD_utils import (
     _qnm_interp,
 )
 from jaxtyping import Array, Float, Complex
+from ripplegw.typing import FloatLike
 from .IMRPhenomD_QNMdata import QNMData_fRD, QNMData_fdamp
 
 MAX_TOL_ATAN = 1.0e-15
 
 
 # helper functions for LALtoPhenomP:
-def ROTATEZ(angle: Float, x: Float, y: Float, z: Float) -> tuple[Float, Float, Float]:
+def ROTATEZ(
+    angle: FloatLike, x: FloatLike, y: FloatLike, z: FloatLike
+) -> tuple[FloatLike, FloatLike, FloatLike]:
     tmp_x = x * jnp.cos(angle) - y * jnp.sin(angle)
     tmp_y = x * jnp.sin(angle) + y * jnp.cos(angle)
     return tmp_x, tmp_y, z
 
 
-def ROTATEY(angle: Float, x: Float, y: Float, z: Float) -> tuple[Float, Float, Float]:
+def ROTATEY(
+    angle: FloatLike, x: FloatLike, y: FloatLike, z: FloatLike
+) -> tuple[FloatLike, FloatLike, FloatLike]:
     tmp_x = x * jnp.cos(angle) + z * jnp.sin(angle)
     tmp_z = -x * jnp.sin(angle) + z * jnp.cos(angle)
     return tmp_x, y, tmp_z
 
 
-def FinalSpin0815(eta: Float, chi1: Float, chi2: Float) -> Float:
+def FinalSpin0815(eta: FloatLike, chi1: FloatLike, chi2: FloatLike) -> FloatLike:
     Seta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
     m1 = 0.5 * (1.0 + Seta)
     m2 = 0.5 * (1.0 - Seta)
@@ -37,18 +42,26 @@ def FinalSpin0815(eta: Float, chi1: Float, chi2: Float) -> Float:
 
 
 def convert_spins(
-    m1: Float,
-    m2: Float,
-    f_ref: Float,
-    phiRef: Float,
-    incl: Float,
-    s1x: Float,
-    s1y: Float,
-    s1z: Float,
-    s2x: Float,
-    s2y: Float,
-    s2z: Float,
-) -> tuple[Float, Float, Float, Float, Float, Float, Float]:
+    m1: FloatLike,
+    m2: FloatLike,
+    f_ref: FloatLike,
+    phiRef: FloatLike,
+    incl: FloatLike,
+    s1x: FloatLike,
+    s1y: FloatLike,
+    s1z: FloatLike,
+    s2x: FloatLike,
+    s2y: FloatLike,
+    s2z: FloatLike,
+) -> tuple[
+    FloatLike,
+    FloatLike,
+    FloatLike,
+    FloatLike,
+    FloatLike,
+    FloatLike,
+    FloatLike,
+]:
     # m1 = m1_SI / MSUN  # Masses in solar masses
     # m2 = m2_SI / MSUN
     M = m1 + m2
@@ -89,7 +102,7 @@ def convert_spins(
     thetaJ_sf = jnp.arccos(J0z_sf / J0)
 
     no_inplane_J0 = (jnp.abs(J0x_sf) < MAX_TOL_ATAN) & (jnp.abs(J0y_sf) < MAX_TOL_ATAN)
-    phiJ_sf: Float = jnp.where(
+    phiJ_sf: FloatLike = jnp.where(
         no_inplane_J0,
         jnp.pi / 2.0 - phiRef,  # This is the aligned-spin case
         jnp.arctan2(J0y_sf, J0x_sf),
@@ -119,7 +132,7 @@ def convert_spins(
     tmp_x, tmp_y, tmp_z = ROTATEZ(kappa, tmp_x, tmp_y, tmp_z)
 
     no_inplane_LN = (jnp.abs(tmp_x) < MAX_TOL_ATAN) & (jnp.abs(tmp_y) < MAX_TOL_ATAN)
-    alpha0: Float = jnp.where(
+    alpha0: FloatLike = jnp.where(
         no_inplane_LN,
         jnp.pi,  # This is the aligned-spin case
         jnp.arctan2(tmp_y, tmp_x),
@@ -171,9 +184,9 @@ def convert_spins(
     return chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz
 
 
-def SpinWeightedY(theta: Float, phi: Float, s: int, l: int, m: int) -> Complex:  # noqa: E741
+def SpinWeightedY(theta: FloatLike, phi: FloatLike, s: int, l: int, m: int) -> Complex:  # noqa: E741
     "copied from SphericalHarmonics.c in LAL"
-    fac: Float = jnp.zeros_like(theta)
+    fac: FloatLike = jnp.zeros_like(theta)
     if s == -2:
         if l == 2:
             if m == -2:
@@ -207,7 +220,7 @@ def SpinWeightedY(theta: Float, phi: Float, s: int, l: int, m: int) -> Complex: 
     return fac * jnp.exp(1j * m * phi)
 
 
-def L2PNR(v: float, eta: float) -> float:
+def L2PNR(v: FloatLike, eta: FloatLike) -> FloatLike:
     eta2 = eta**2
     x = v**2
     x2 = x**2
@@ -222,8 +235,8 @@ def L2PNR(v: float, eta: float) -> float:
 
 
 def WignerdCoefficients(
-    v: Float, SL: Float, eta: Float, Sp: Float
-) -> tuple[Float, Float]:
+    v: FloatLike, SL: FloatLike, eta: FloatLike, Sp: FloatLike
+) -> tuple[FloatLike, FloatLike]:
     # We define the shorthand s := Sp / (L + SL)
     L = L2PNR(v, eta)
     s = Sp / (L + SL)
@@ -235,7 +248,9 @@ def WignerdCoefficients(
     return cos_beta_half, sin_beta_half
 
 
-def ComputeNNLOanglecoeffs(q: Float, chil: Float, chip: Float) -> dict[str, Float]:
+def ComputeNNLOanglecoeffs(
+    q: FloatLike, chil: FloatLike, chip: FloatLike
+) -> dict[str, FloatLike]:
     m2 = q / (1.0 + q)
     m1 = 1.0 / (1.0 + q)
     dm = m1 - m2
@@ -356,8 +371,12 @@ def ComputeNNLOanglecoeffs(q: Float, chil: Float, chip: Float) -> dict[str, Floa
 
 
 def FinalSpin_inplane(
-    m1: Float, m2: Float, chi1_l: Float, chi2_l: Float, chip: Float
-) -> Float:
+    m1: FloatLike,
+    m2: FloatLike,
+    chi1_l: FloatLike,
+    chi2_l: FloatLike,
+    chip: FloatLike,
+) -> FloatLike:
     M = m1 + m2
     eta = m1 * m2 / (M * M)
     # Here I assume m1 > m2, the convention used in phenomD
@@ -372,8 +391,12 @@ def FinalSpin_inplane(
 
 
 def phP_get_fRD_fdamp(
-    m1: Float, m2: Float, chi1_l: Float, chi2_l: Float, chip: Float
-) -> tuple[Float, Float]:
+    m1: FloatLike,
+    m2: FloatLike,
+    chi1_l: FloatLike,
+    chi2_l: FloatLike,
+    chip: FloatLike,
+) -> tuple[FloatLike, FloatLike]:
     # m1 > m2 should hold here
     finspin = FinalSpin_inplane(m1, m2, chi1_l, chi2_l, chip)
     m1_s = m1 * MTSUN
@@ -389,10 +412,10 @@ def phP_get_fRD_fdamp(
 
 def phP_get_transition_frequencies(
     theta: Float[Array, "4"],
-    gamma2: Float,
-    gamma3: Float,
-    chip: Float,
-) -> tuple[Float, Float, Float, Float, Float, Float]:
+    gamma2: FloatLike,
+    gamma3: FloatLike,
+    chip: FloatLike,
+) -> tuple[FloatLike, FloatLike, FloatLike, FloatLike, FloatLike, FloatLike]:
     # m1 > m2 should hold here
 
     m1, m2, chi1, chi2 = theta
