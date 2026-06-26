@@ -1,11 +1,11 @@
 """by Robin Chan"""
 
 import jax.numpy as jnp
-from ..constants import MTSUN, PI, TWO_PI
+from ripplegw.constants import MTSUN, PI, TWO_PI
 from jaxtyping import Array, Float
 from ripplegw.typing import FloatLike
-from .IMRPhenom_tidal_utils import get_kappa, get_quadparam_octparam
-from .TaylorF2 import (
+from ripplegw.waveforms.IMRPhenom_tidal_utils import get_kappa, get_quadparam_octparam
+from ripplegw.waveforms.TaylorF2 import (
     get_4PNQM2SCoeff,
     get_4PNQM2SOCoeff,
     get_6PNQM2SCoeff,

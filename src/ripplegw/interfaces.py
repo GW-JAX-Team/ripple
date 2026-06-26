@@ -3,18 +3,18 @@ from abc import ABC, abstractmethod
 import jax.numpy as jnp
 from jaxtyping import Array, Complex, Float
 
-from .waveforms.TaylorF2 import gen_TaylorF2_hphc
-from .waveforms.IMRPhenomD import gen_IMRPhenomD_hphc
-from .waveforms.IMRPhenomD_NRTidalv2 import gen_IMRPhenomD_NRTidalv2_hphc
-from .waveforms.IMRPhenomHM import gen_IMRPhenomHM
-from .waveforms.IMRPhenomPv2 import gen_IMRPhenomPv2_hphc
-from .waveforms.IMRPhenomXAS import gen_IMRPhenomXAS_hphc
-from .waveforms.IMRPhenomXAS_NRTidalv3 import gen_IMRPhenomXAS_NRTidalv3_hphc
-from .waveforms.IMRPhenomXHM import gen_IMRPhenomXHM_hphc
-from .waveforms.IMRPhenomXP import gen_IMRPhenomXP_hphc
-from .waveforms.IMRPhenomXPHM import generate_xphm
-from .waveforms.SineGaussian import gen_SineGaussian_hphc
-from .conversions import Mc_eta_to_ms
+from ripplegw.waveforms.TaylorF2 import gen_TaylorF2_hphc
+from ripplegw.waveforms.IMRPhenomD import gen_IMRPhenomD_hphc
+from ripplegw.waveforms.IMRPhenomD_NRTidalv2 import gen_IMRPhenomD_NRTidalv2_hphc
+from ripplegw.waveforms.IMRPhenomHM import gen_IMRPhenomHM
+from ripplegw.waveforms.IMRPhenomPv2 import gen_IMRPhenomPv2_hphc
+from ripplegw.waveforms.IMRPhenomXAS import gen_IMRPhenomXAS_hphc
+from ripplegw.waveforms.IMRPhenomXAS_NRTidalv3 import gen_IMRPhenomXAS_NRTidalv3_hphc
+from ripplegw.waveforms.IMRPhenomXHM import gen_IMRPhenomXHM_hphc
+from ripplegw.waveforms.IMRPhenomXP import gen_IMRPhenomXP_hphc
+from ripplegw.waveforms.IMRPhenomXPHM import generate_xphm
+from ripplegw.waveforms.SineGaussian import gen_SineGaussian_hphc
+from ripplegw.conversions import Mc_eta_to_ms
 
 
 class Waveform(ABC):

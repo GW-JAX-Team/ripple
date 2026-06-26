@@ -20,15 +20,15 @@ from jax import Array
 from jaxtyping import Float, Complex
 from ripplegw.typing import FloatLike
 
-from .IMRPhenomXAS import (
+from ripplegw.waveforms.IMRPhenomXAS import (
     get_inspiral_phase,
     get_mergerringdown_Amp,
     Phase as IMRPhenomXAS_Phase,
     Amp as IMRPhenomXAS_Amp,
 )
-from . import IMRPhenomX_utils
-from ..constants import PI, MTSUN, MPC, C, MRSUN
-from .spherical_harmonics import (
+from ripplegw.waveforms import IMRPhenomX_utils
+from ripplegw.constants import PI, MTSUN, MPC, C, MRSUN
+from ripplegw.waveforms.spherical_harmonics import (
     compute_sminus2_l2,
     compute_sminus2_l3,
     compute_sminus2_l4,

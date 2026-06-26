@@ -1,6 +1,6 @@
 import jax
 import jax.numpy as jnp
-from .IMRPhenomD_utils import (
+from ripplegw.waveforms.IMRPhenomD_utils import (
     get_coeffs,
     get_delta0,
     get_delta1,
@@ -10,11 +10,11 @@ from .IMRPhenomD_utils import (
     get_transition_frequencies,
 )
 
-from .IMRPhenomD_QNMdata import fM_CUT
-from ..constants import EULERGAMMA, MTSUN, MPC, C, PI
+from ripplegw.waveforms.IMRPhenomD_QNMdata import fM_CUT
+from ripplegw.constants import EULERGAMMA, MTSUN, MPC, C, PI
 from jaxtyping import Array, Float, Complex
 from ripplegw.typing import FloatLike
-from ..conversions import Mc_eta_to_ms
+from ripplegw.conversions import Mc_eta_to_ms
 
 
 def get_inspiral_phase(

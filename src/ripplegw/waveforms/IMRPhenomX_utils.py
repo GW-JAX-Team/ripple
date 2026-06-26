@@ -2,7 +2,7 @@ import jax.numpy as jnp
 from jaxtyping import Array, Float
 from ripplegw.typing import FloatLike
 
-from ..constants import MTSUN, PI
+from ripplegw.constants import MTSUN, PI
 
 # Dimensionless cutoff frequency for PhenomXAS
 fM_CUT = 0.3

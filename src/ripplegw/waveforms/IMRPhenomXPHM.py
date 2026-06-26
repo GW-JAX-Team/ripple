@@ -2,16 +2,16 @@ import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Float, Complex
 from ripplegw.typing import FloatLike
-from ..constants import MTSUN, MRSUN, MPC
-from .spherical_harmonics import (
+from ripplegw.constants import MTSUN, MRSUN, MPC
+from ripplegw.waveforms.spherical_harmonics import (
     compute_sminus2_l2,
     compute_sminus2_l3,
     compute_sminus2_l4,
 )
 from dataclasses import dataclass
-from . import LALSimIMRPhenomX_precession as pPrec
-from .initialize_MSA_system import IMRPhenomX_Initialize_MSA_System
-from .IMRPhenomXHM import XLALSimIMRPhenomXHMGethlmModes, build_pWF22
+from ripplegw.waveforms import LALSimIMRPhenomX_precession as pPrec
+from ripplegw.waveforms.initialize_MSA_system import IMRPhenomX_Initialize_MSA_System
+from ripplegw.waveforms.IMRPhenomXHM import XLALSimIMRPhenomXHMGethlmModes, build_pWF22
 
 
 def compute_chip(

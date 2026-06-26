@@ -1,12 +1,12 @@
 # from math import PI
 import jax
 import jax.numpy as jnp
-from ..constants import EULERGAMMA, MTSUN, MPC, C, PI
-from . import IMRPhenomX_utils
+from ripplegw.constants import EULERGAMMA, MTSUN, MPC, C, PI
+from ripplegw.waveforms import IMRPhenomX_utils
 from jaxtyping import Array, Float, Complex
 from ripplegw.typing import FloatLike
 
-from ..conversions import Mc_eta_to_ms
+from ripplegw.conversions import Mc_eta_to_ms
 
 eqspin_indx = 10
 uneqspin_indx = 39

@@ -1,24 +1,24 @@
 import jax
 import jax.numpy as jnp
 from typing import Any
-from ..constants import PI, MSUN, MTSUN, MRSUN, MPC
+from ripplegw.constants import PI, MSUN, MTSUN, MRSUN, MPC
 from jaxtyping import Array, Float, Integer, Complex
 from ripplegw.typing import FloatLike
-from .spherical_harmonics import (
+from ripplegw.waveforms.spherical_harmonics import (
     compute_sminus2_l2,
     compute_sminus2_l3,
     compute_sminus2_l4,
 )
-from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
-from .IMRPhenomD_utils import (
+from ripplegw.waveforms.IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
+from ripplegw.waveforms.IMRPhenomD_utils import (
     EradRational0815,
     get_coeffs,
     get_transition_frequencies_from_fRD_fdamp,
 )
-from .IMRPhenomD import Phase as IMRPhenomD_Phase
-from .IMRPhenomD import IMRPhenDAmplitude_NoCut
-from .IMRPhenomD import get_IIb_raw_phase
-from .IMRPhenomPv2_utils import FinalSpin0815
+from ripplegw.waveforms.IMRPhenomD import Phase as IMRPhenomD_Phase
+from ripplegw.waveforms.IMRPhenomD import IMRPhenDAmplitude_NoCut
+from ripplegw.waveforms.IMRPhenomD import get_IIb_raw_phase
+from ripplegw.waveforms.IMRPhenomPv2_utils import FinalSpin0815
 
 
 # Phase shift due to leading order complex amplitude

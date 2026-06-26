@@ -5,7 +5,7 @@ try:
 except PackageNotFoundError:
     __version__ = "unknown"
 
-from .interfaces import (
+from ripplegw.interfaces import (
     TaylorF2,
     IMRPhenomD,
     IMRPhenomD_NRTidalv2,

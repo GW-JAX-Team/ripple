@@ -1,7 +1,7 @@
 import jax.numpy as jnp
 from jax.lax import complex
 
-from ..constants import PI
+from ripplegw.constants import PI
 from jaxtyping import Array, Float
 from ripplegw.typing import FloatLike
 

@@ -4,24 +4,24 @@ This file implements the NRTidalv2 corrections that can be applied to any BBH ba
 
 import jax
 import jax.numpy as jnp
-from ..constants import MTSUN, MPC, PI, TWO_PI, MRSUN
+from ripplegw.constants import MTSUN, MPC, PI, TWO_PI, MRSUN
 from jaxtyping import Array, Float, Complex
 from ripplegw.typing import FloatLike
 from typing import Optional
-from ..conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
-from .IMRPhenom_tidal_utils import get_quadparam_octparam, get_kappa
-from .IMRPhenomD import (
+from ripplegw.conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
+from ripplegw.waveforms.IMRPhenom_tidal_utils import get_quadparam_octparam, get_kappa
+from ripplegw.waveforms.IMRPhenomD import (
     Amp,
     get_IIa_raw_phase,
     get_IIb_raw_phase,
     get_inspiral_phase,
 )
-from .IMRPhenomD_utils import (
+from ripplegw.waveforms.IMRPhenomD_utils import (
     get_coeffs,
     get_transition_frequencies,
 )
-from .IMRPhenomD_QNMdata import fM_CUT
-from .TaylorF2 import (
+from ripplegw.waveforms.IMRPhenomD_QNMdata import fM_CUT
+from ripplegw.waveforms.TaylorF2 import (
     get_4PNQM2SCoeff,
     get_4PNQM2SOCoeff,
     get_6PNQM2SCoeff,

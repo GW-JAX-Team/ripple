@@ -3,11 +3,11 @@ This file implements the TaylorF2 waveform, as described in the LALSuite library
 """
 
 import jax.numpy as jnp
-from ..constants import EULERGAMMA, MTSUN, MPC, PI, MRSUN
+from ripplegw.constants import EULERGAMMA, MTSUN, MPC, PI, MRSUN
 from jaxtyping import Array, Float, Complex
 from ripplegw.typing import FloatLike
-from ..conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
-from .IMRPhenom_tidal_utils import get_quadparam_octparam
+from ripplegw.conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
+from ripplegw.waveforms.IMRPhenom_tidal_utils import get_quadparam_octparam
 
 ###########################
 ### AUXILIARY FUNCTIONS ###

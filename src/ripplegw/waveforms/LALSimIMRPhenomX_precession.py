@@ -2,10 +2,10 @@ import dataclasses
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 from ripplegw.typing import FloatLike
-from ..constants import MTSUN
+from ripplegw.constants import MTSUN
 import jax
 
-from .initialize_MSA_system import (
+from ripplegw.waveforms.initialize_MSA_system import (
     IMRPhenomX_Initialize_MSA_System,
     IMRPhenomX_Return_phi_zeta_costhetaL_MSA,
 )
