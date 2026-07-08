@@ -145,8 +145,6 @@ def IMRPhenomXAS_NRTidalv3_Amp(
 
     m1, m2, _, _, lambda1, lambda2 = theta_intrinsic
     M_s = (m1 + m2) * MTSUN
-    Xa = m1 / (m1 + m2)
-    Xb = m2 / (m1 + m2)
     x = PI * f * M_s
     x_23 = x ** (2.0 / 3.0)
     f_Ms = f * M_s
