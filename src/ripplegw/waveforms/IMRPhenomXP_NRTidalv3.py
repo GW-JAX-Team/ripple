@@ -41,8 +41,8 @@ def gen_IMRPhenomXP_NRTidalv3(
     use_lambda_tildes: bool = True,
     no_taper: bool = False,
 ):
-    """
-    TODO write docstring
+    """Generate IMRPhenomXP_NRTidalv3 frequency-domain strain.
+    `theta` = [Mchirp, eta, s1x, s1y, s1z, s2x, s2y, s2z, lambda_tilde/lambda1, delta_lambda_tilde/lambda2, D, tc, phic, iota].
     """
 
     # --- Set up precession variables ---
