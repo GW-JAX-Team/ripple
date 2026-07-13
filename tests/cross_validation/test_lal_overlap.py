@@ -83,10 +83,21 @@ OVERLAP_LOSS_THRESHOLDS = {
 }
 DEFAULT_OVERLAP_LOSS_THRESHOLD = 1e-6  # fallback for unknown waveforms
 
+# PrecVersion=222 surfaces an MSA initialization failure through this LAL error.
+# Do not treat arbitrary LAL errors as expected fallbacks: doing so can turn a
+# broken cross-validation setup into a skipped test.
+MSA_FALLBACK_ERROR = "Internal function call failed: Input domain error"
+MSA_WAVEFORMS = {"IMRPhenomXPHM", "IMRPhenomXP", "IMRPhenomXP_NRTidalv3"}
+
 
 def get_overlap_loss_threshold(waveform_name: str) -> float:
     """Return the per-waveform overlap loss threshold."""
     return OVERLAP_LOSS_THRESHOLDS.get(waveform_name, DEFAULT_OVERLAP_LOSS_THRESHOLD)
+
+
+def is_msa_fallback_error(waveform_name: str, error_message: str) -> bool:
+    """Whether a LAL error is the expected PrecVersion=222 MSA fallback."""
+    return waveform_name in MSA_WAVEFORMS and MSA_FALLBACK_ERROR in error_message
 
 
 # ============================================================================
@@ -456,12 +467,10 @@ def test_waveform_overlap(
         # Cache miss: run LAL computations in parallel then persist.
         # LAL's C extension releases the GIL, so ThreadPoolExecutor gives real
         # parallelism here — each call is independent (no shared state).
-        # For XPHM we use PrecVersion=222 which raises XLAL_EDOM (surfaces in
-        # Python as "Internal function call failed: Input domain error") whenever
-        # the MSA system fails to initialize.  Because 222 is only used for XPHM
-        # and only fails on MSA init, any exception from an XPHM call is an MSA
-        # failure.  These samples are tracked separately and excluded from the
-        # overlap loss assertion and histogram.
+        # The precessing PhenomX models use PrecVersion=222, which raises
+        # XLAL_EDOM (surfaces in Python as MSA_FALLBACK_ERROR) when the MSA
+        # system cannot initialize. These samples are tracked separately and
+        # excluded from the overlap loss assertion and histogram.
 
         def _compute_lal(i_theta):
             i, theta_lal = i_theta
@@ -479,7 +488,7 @@ def test_waveform_overlap(
                 return i, hp, hc, False, None  # MSA ok
             except Exception as e:
                 msg = str(e)
-                is_msa = waveform_name in ("IMRPhenomXPHM", "IMRPhenomXP", "IMRPhenomXP_NRTidalv3")
+                is_msa = is_msa_fallback_error(waveform_name, msg)
                 return i, None, None, is_msa, msg  # MSA fallback or real error
 
         # Use sched_getaffinity when available (Linux): respects SLURM cgroup
