@@ -736,10 +736,10 @@ def generate_random_params(
         booleans = np.repeat(booleans[:, np.newaxis], theta.shape[1], axis=1)
         if is_tidal:
             theta = np.where(
-            booleans,
-            theta[:, [1, 0, 5, 6, 7, 2, 3, 4, 9, 8, 10, 11, 12, 13]],
-            theta,
-        )
+                booleans,
+                theta[:, [1, 0, 5, 6, 7, 2, 3, 4, 9, 8, 10, 11, 12, 13]],
+                theta,
+            )
         else:
             theta = np.where(
                 booleans, theta[:, [1, 0, 5, 6, 7, 2, 3, 4, 8, 9, 10, 11]], theta
