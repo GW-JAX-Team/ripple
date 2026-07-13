@@ -725,6 +725,31 @@ class TestIMRPhenomXP_NRTidalv3:
             test_freq_grid,
         )
 
+    def test_tidal_parameterizations_agree(
+        self,
+        model,
+        model_tildes,
+        edge_freq_grid,
+        bns_precessing_tidal_dict,
+        bns_precessing_tidal_tilde_dict,
+    ):
+        """Both tidal parameterizations represent the same physical waveform."""
+        waveform_lambdas = model(edge_freq_grid, bns_precessing_tidal_dict)
+        waveform_tildes = model_tildes(
+            edge_freq_grid, bns_precessing_tidal_tilde_dict
+        )
+
+        for polarization in ("p", "c"):
+            relative_error = jnp.max(
+                jnp.abs(
+                    waveform_lambdas[polarization] - waveform_tildes[polarization]
+                )
+            ) / jnp.max(jnp.abs(waveform_lambdas[polarization]))
+            assert relative_error < 1e-12, (
+                f"{polarization} differs between tidal parameterizations: "
+                f"max relative error = {relative_error:.2e}"
+            )
+
     def test_jit(self, model, test_freq_grid, bns_precessing_tidal_dict):
         """Model is JIT-compiled (via fixture); verify valid output on production grid."""
         output = model(test_freq_grid, bns_precessing_tidal_dict)
@@ -774,7 +799,7 @@ class TestIMRPhenomXP_NRTidalv3:
         assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
 
     def test_aligned_spins_only(self, model, edge_freq_grid):
-        """In-plane spins zero — reduces to aligned-spin (XAS_NRTidalv3) limit."""
+        """In-plane spins zero — an aligned-spin BNS input remains valid."""
         params = _bns_precessing_dict(1.4, 1.3, s1_z=0.05, s2_z=-0.02)
         assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
 
