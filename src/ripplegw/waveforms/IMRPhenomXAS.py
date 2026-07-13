@@ -882,26 +882,22 @@ def PhaseDerivative(
     _phi_Int_match_f2, dphi_Int_match_f2 = jax.value_and_grad(phi_Int_func)(f2_Ms)
     beta1 = dphi_Int_match_f2 - dphi_MRD_match_f2
 
-    dphi_Ins = jax.vmap(jax.grad(get_inspiral_phase), (0, None, None))(fM_s, theta, phase_coeffs)
+    dphi_Ins = jax.vmap(jax.grad(get_inspiral_phase), (0, None, None))(
+        fM_s, theta, phase_coeffs
+    )
     dphi_Int = jax.vmap(jax.grad(phi_Int_func))(fM_s)
     dphi_MRD = (
-        jax.vmap(jax.grad(
-            lambda x: get_mergerringdown_raw_phase(x, theta, phase_coeffs, chip)[0]
-        ))(fM_s)
+        jax.vmap(
+            jax.grad(
+                lambda x: get_mergerringdown_raw_phase(x, theta, phase_coeffs, chip)[0]
+            )
+        )(fM_s)
         + beta1
     )
 
     # Two-step conditional to determine correct stage of waveform, divide by eta only at the end
-    dphase_dMf = jnp.where(
-        fM_s < f1_Ms,
-        dphi_Ins,
-        dphi_Int
-    )
-    dphase_dMf = jnp.where(
-        fM_s < f2_Ms,
-        dphase_dMf / eta,
-        dphi_MRD / eta
-    )
+    dphase_dMf = jnp.where(fM_s < f1_Ms, dphi_Ins, dphi_Int)
+    dphase_dMf = jnp.where(fM_s < f2_Ms, dphase_dMf / eta, dphi_MRD / eta)
 
     return dphase_dMf * M_s
 
