@@ -782,7 +782,7 @@ class IMRPhenomXP_NRTidalv3(Waveform):
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
     ) -> dict[str, Float[Array, " n_freq"]]:
-        """Evaluate the IMRPhenomXAS_NRTidalv3 waveform.
+        """Evaluate the IMRPhenomXP_NRTidalv3 waveform.
 
         Args:
             frequency (Float[Array, " n_freq"]): Frequency array in Hz.
