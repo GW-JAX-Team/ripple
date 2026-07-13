@@ -727,8 +727,7 @@ class IMRPhenomXP(Waveform):
 
 
 class IMRPhenomXP_NRTidalv3(Waveform):
-    """IMRPhenomXAS_NRTidalv3 frequency-domain waveform (non-precessing, NRTidalv3 tides).
-
+    """IMRPhenomXP_NRTidalv3 frequency-domain waveform (precessing spins, NRTidalv3 tides).
     Attributes:
         f_ref (float): Reference frequency in Hz.
         use_lambda_tildes (bool): If True, expects ``lambda_tilde`` /
