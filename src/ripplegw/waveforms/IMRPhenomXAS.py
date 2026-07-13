@@ -1,11 +1,12 @@
 # from math import PI
 import jax
 import jax.numpy as jnp
-from ..constants import EULERGAMMA, MTSUN, MPC, C, PI
-from . import IMRPhenomX_utils
+from ripplegw.constants import EULERGAMMA, MTSUN, MPC, C, PI
+from ripplegw.waveforms import IMRPhenomX_utils
 from jaxtyping import Array, Float, Complex
+from ripplegw.typing import FloatLike
 
-from ..conversions import Mc_eta_to_ms
+from ripplegw.conversions import Mc_eta_to_ms
 
 eqspin_indx = 10
 uneqspin_indx = 39
@@ -15,10 +16,10 @@ amp_uneqspin_indx = 36
 
 
 def get_inspiral_phase(
-    fM_s: Float[Array, " n_freq"],
+    fM_s: Float[Array, " n_freq"] | FloatLike,
     theta: Float[Array, "4"],
     phase_coeffs: Float[Array, "13 49"],
-) -> Float[Array, " n_freq"]:
+) -> Float[Array, " n_freq"] | FloatLike:
     """
     Calculate the inspiral phase for the IMRPhenomD waveform.
     """
@@ -344,7 +345,7 @@ def get_inspiral_phase(
 
 
 def get_intermediate_raw_phase(
-    fM_s: Float[Array, " n_freq"],
+    fM_s: Float[Array, " n_freq"] | FloatLike,
     theta: Float[Array, "4"],
     phase_coeffs: Float[Array, "13 49"],
     dPhaseIN: Float,
@@ -608,7 +609,7 @@ def get_mergerringdown_raw_phase(
     CP_phase_RD0 = gpoints5[0] * deltax + xmin
     CP_phase_RD1 = gpoints5[1] * deltax + xmin
     CP_phase_RD2 = gpoints5[2] * deltax + xmin
-    CP_phase_RD3 = fMs_RD
+    CP_phase_RD3 = jnp.asarray(fMs_RD)
     CP_phase_RD4 = gpoints5[4] * deltax + xmin
 
     CV_phase_RD0 = (
@@ -942,7 +943,7 @@ def PhaseDerivative(
     return dphase_dMf * M_s
 
 
-def get_Amp0(fM_s: Float[Array, " n_freq"], eta: Float) -> Float[Array, " n_freq"]:
+def get_Amp0(fM_s: Float[Array, " n_freq"], eta: FloatLike) -> Float[Array, " n_freq"]:
     Amp0 = (
         (2.0 / 3.0 * eta) ** (1.0 / 2.0) * (fM_s) ** (-7.0 / 6.0) * PI ** (-1.0 / 6.0)
     )
@@ -1163,7 +1164,7 @@ def get_intermediate_Amp(
     fM_s: Float[Array, " n_freq"],
     theta: Float[Array, "4"],
     amp_coeffs: Float[Array, "7 42"],
-    fMs_AmpRDMin: Float,
+    fMs_AmpRDMin: FloatLike,
     chip: float = 0.0,
 ) -> Float[Array, " n_freq"]:
     m1, m2, chi1, chi2 = theta
@@ -1357,7 +1358,7 @@ def get_intermediate_Amp(
 
 
 def get_mergerringdown_Amp(
-    fM_s: Float[Array, " n_freq"] | Float,
+    fM_s: Float[Array, " n_freq"] | FloatLike,
     theta: Float[Array, "4"],
     amp_coeffs: Float[Array, "7 42"],
     chip: float = 0.0,

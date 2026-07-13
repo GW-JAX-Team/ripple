@@ -2,14 +2,14 @@
 
 import jax
 import jax.numpy as jnp
-from ..constants import MTSUN, PI
+from ripplegw.constants import MTSUN, PI
 from jaxtyping import Array, Float, Complex
-from ..conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
-from .IMRPhenom_tidal_utils import get_kappa
-from .IMRPhenomD_NRTidalv2 import (
+from ripplegw.conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
+from ripplegw.waveforms.IMRPhenom_tidal_utils import get_kappa
+from ripplegw.waveforms.IMRPhenomD_NRTidalv2 import (
     get_tidal_amplitude,
 )  # Same between v2 and v3
-from .NRTidalv3_utils import (
+from ripplegw.waveforms.NRTidalv3_utils import (
     _get_merger_frequency,
     _get_phenomx_spin_coefficients,
     get_tidal_phase,
@@ -20,8 +20,8 @@ from .NRTidalv3_utils import (
     fullTidalPhaseCorrection,
     changePhase_if_min,
 )
-from . import IMRPhenomX_utils
-from .IMRPhenomXAS import Amp, Phase, PhaseDerivative
+from ripplegw.waveforms import IMRPhenomX_utils
+from ripplegw.waveforms.IMRPhenomXAS import Amp, Phase, PhaseDerivative
 
 
 def IMRPhenomXAS_NRTidalv3_Phase(

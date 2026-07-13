@@ -26,3 +26,5 @@ ripple is a JAX-based package for differentiable gravitational-wave waveform gen
 - **[Quick Start](quickstart.md)** — A basic example to get started
 - **[Tutorials](tutorials/index.md)** — Step-by-step guides and worked examples
 - **[FAQ](FAQ.md)** — Answers to common questions
+- **[Citing ripple](citing.md)** — How to cite ripple
+- **[Contributing to ripple](contributing.md)** — How to contribute to ripple

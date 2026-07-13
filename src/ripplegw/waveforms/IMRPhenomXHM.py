@@ -18,16 +18,17 @@ import jax
 import jax.numpy as jnp
 from jax import Array
 from jaxtyping import Float, Complex
+from ripplegw.typing import FloatLike
 
-from .IMRPhenomXAS import (
+from ripplegw.waveforms.IMRPhenomXAS import (
     get_inspiral_phase,
     get_mergerringdown_Amp,
     Phase as IMRPhenomXAS_Phase,
     Amp as IMRPhenomXAS_Amp,
 )
-from . import IMRPhenomX_utils
-from ..constants import PI, MTSUN, MPC, C, MRSUN
-from .spherical_harmonics import (
+from ripplegw.waveforms import IMRPhenomX_utils
+from ripplegw.constants import PI, MTSUN, MPC, C, MRSUN
+from ripplegw.waveforms.spherical_harmonics import (
     compute_sminus2_l2,
     compute_sminus2_l3,
     compute_sminus2_l4,
@@ -570,7 +571,7 @@ def XLALSimIMRPhenomXLinb(eta: float, STotR: float, dchi: float, delta: float) -
     return noSpin + eqSpin + uneqSpin
 
 
-def XLALSimIMRPhenomXPsi4ToStrain(eta: float, STotR: float, dchi: float) -> Float:
+def XLALSimIMRPhenomXPsi4ToStrain(eta: float, STotR: float, dchi: float) -> FloatLike:
     """
     Psi4-to-strain conversion factor for the time-shift.
 
@@ -1672,7 +1673,7 @@ def _xhm_rd_phase_32_collocpts(
 
 def _xhm_rd_phase_32_spheroidal_time_shift(
     eta: float, STotR: float, dchi: float, delta: float
-) -> Float:
+) -> FloatLike:
     """Time shift fit for 32-mode spheroidal phase (version 122019).
     Source: IMRPhenomXHM_RD_Phase_32_SpheroidalTimeShift, LALSimIMRPhenomXHM_ringdown.c.
     """
@@ -1730,7 +1731,7 @@ def _xhm_rd_phase_32_spheroidal_time_shift(
 
 def _xhm_rd_phase_32_spheroidal_phase_shift(
     eta: float, STotR: float, dchi: float, delta: float, chi1L: float, chi2L: float
-) -> Float:
+) -> FloatLike:
     """Phase shift fit for 32-mode spheroidal phase (version 122019).
     Source: IMRPhenomXHM_RD_Phase_32_SpheroidalPhaseShift, LALSimIMRPhenomXHM_ringdown.c.
     """
@@ -1888,12 +1889,12 @@ def _xhm_qnm_mu_l3m2(afinal: float) -> tuple[complex, complex]:
 def _xhm_get_spheroidal_coeffs(
     pWFHM: "XHMWaveformStruct",
     pWF22: dict[str, Any],
-    alambda32: float,
-    lambda32: float,
-    sigma32: float,
-    t0: float,
-    phifRef: float,
-) -> tuple[Float, Float, Float, Float, Float]:
+    alambda32: FloatLike,
+    lambda32: FloatLike,
+    sigma32: FloatLike,
+    t0: FloatLike,
+    phifRef: FloatLike,
+) -> tuple[FloatLike, FloatLike, FloatLike, FloatLike, FloatLike]:
     """Compute spheroidal RD phase coefficients for the 32 mode (version 122019).
     Port of GetSpheroidalCoefficients in LALSimIMRPhenomXHM_internals.c.
     Returns (alpha0_S, alphaL_S, alpha2_S, alpha4_S, phi0_S).
@@ -1970,33 +1971,33 @@ def _xhm_get_spheroidal_coeffs(
 
 
 def _xhm_s2s_complex(
-    Mf: float,
-    alambda32: float,
-    lambda32: float,
-    sigma32: float,
-    fRING32: float,
-    fDAMP32: float,
-    alpha0_S: float,
-    alphaL_S: float,
-    alpha2_S: float,
-    alpha4_S: float,
-    phi0_S: float,
+    Mf: FloatLike,
+    alambda32: FloatLike,
+    lambda32: FloatLike,
+    sigma32: FloatLike,
+    fRING32: FloatLike,
+    fDAMP32: FloatLike,
+    alpha0_S: FloatLike,
+    alphaL_S: FloatLike,
+    alpha2_S: FloatLike,
+    alpha4_S: FloatLike,
+    phi0_S: FloatLike,
     mu322: complex,
     mu323: complex,
     theta: Float[Array, "4"],
     phase_coeffs: Float[Array, "13 49"],
-    M_s: float,
-    t0: float,
-    phifRef: float,
+    M_s: FloatLike,
+    t0: FloatLike,
+    phifRef: FloatLike,
     amp_coeffs_22: Float[Array, "7 42"],
-    ampNorm: float,
-    fRDAux32: float,
-    fAmpRDfalloff32: float,
+    ampNorm: FloatLike,
+    fRDAux32: FloatLike,
+    fAmpRDfalloff32: FloatLike,
     rdaux_poly_c: Float[Array, "4"],
-    rdaux_falloff_amp: float,
-    rdaux_falloff_slope: float | Array,
-    chip: float = 0.0,
-) -> complex:
+    rdaux_falloff_amp: FloatLike,
+    rdaux_falloff_slope: FloatLike | Array,
+    chip: FloatLike = 0.0,
+) -> Complex[Array, ""] | complex:
     """SpheroidalToSpherical for version 122022, mode 32 (RingdownAmpVersion=1).
 
     amplm uses 3 regions (LAL case 1 with nCoefficientsRDAux=4):
@@ -2038,9 +2039,9 @@ def _compute_32_hlm(
     freqs_geom: Float[Array, " n_freq"],
     pWFHM: "XHMWaveformStruct",
     pWF22: dict[str, Any],
-    t0: float,
-    phifRef: float,
-    phi0: Float,
+    t0: FloatLike,
+    phifRef: FloatLike,
+    phi0: FloatLike,
 ) -> Complex[Array, " n_freq"]:
     """Evaluate complex h_{3,2}(f) with spheroidal mode mixing (version 122019).
 
@@ -2172,7 +2173,7 @@ def _compute_32_hlm(
 
     # Exponential falloff for f >= fAmpRDfalloff32
     rdaux_falloff_amp32 = _amplm_lor(fAmpRDfalloff32)
-    rdaux_falloff_slope32: Float = jnp.where(
+    rdaux_falloff_slope32: FloatLike = jnp.where(
         rdaux_falloff_amp32 > 0,
         -jax.grad(_amplm_lor)(fAmpRDfalloff32) / rdaux_falloff_amp32,
         0.0,
@@ -2483,25 +2484,25 @@ def _compute_32_hlm(
     def phase_rd(Mf):
         return jnp.angle(s2s(Mf)) + C1RD * Mf + CRD + deltaphiLM
 
-    def amp_ins(Mf) -> Float:
+    def amp_ins(Mf) -> FloatLike:
         v = _xhm_insp_rescaled(Mf, PNgf, pn_coeffs, rho1, rho2, rho3, fIN)
         return ampNorm * Mf ** (-7.0 / 6.0) * v
 
-    def amp_inter(Mf) -> Float:
+    def amp_inter(Mf) -> FloatLike:
         c = inter_c_32
         poly = sum(c[j] * Mf**j for j in range(nC_32))
         return Mf ** (-7.0 / 6.0) * poly
 
-    def amp_rd(Mf) -> Float:
+    def amp_rd(Mf) -> FloatLike:
         return jnp.abs(s2s(Mf))
 
     def hlm_at(Mf):
-        amp: Float = jnp.where(
+        amp: FloatLike = jnp.where(
             Mf < fIN,
             amp_ins(Mf),
             jnp.where(Mf < fIM, amp_inter(Mf), amp_rd(Mf)),
         )
-        ph: Float = jnp.where(
+        ph: FloatLike = jnp.where(
             Mf < fMatchIN,
             phase_ins(Mf),
             jnp.where(Mf < fMatchIM, phase_inter(Mf), phase_rd(Mf)),
@@ -2833,12 +2834,12 @@ def xhm_get_phase_coefficients(
 
 
 def xhm_phase_noModeMixing(
-    Mf: Float[Array, " n_freq"],
+    Mf: Float[Array, " n_freq"] | FloatLike,
     pPhase: XHMPhaseCoefficients,
     pWFHM: XHMWaveformStruct,
     pWF22: dict[str, Any],
-    t0: float,
-) -> Float[Array, " n_freq"]:
+    t0: FloatLike,
+) -> Float[Array, " n_freq"] | FloatLike:
     """
     Evaluate the (l,m) mode phase at frequencies Mf (no mode mixing: 21, 33, 44).
 
@@ -2899,7 +2900,7 @@ def xhm_phase_noModeMixing(
     )
 
     # Three-region switch
-    phi: Float = jnp.where(
+    phi: FloatLike = jnp.where(
         Mf < fMatchIN, phi_ins, jnp.where(Mf < fMatchIM, phi_inter, phi_ring)
     )
 
@@ -3219,7 +3220,7 @@ def _xhm_rd_rescaled_v1(
 
 def _xhm_insp_amp_colloc_pts(
     modeTag: int, eta: float, chiPN: float, dchi_half: float, delta: float
-) -> tuple[Float, Float, Float]:
+) -> tuple[FloatLike, FloatLike, FloatLike]:
     """122022 inspiral amplitude collocation-point fits (iv1, iv2, iv3)."""
     S = chiPN
     eta1 = eta
@@ -4004,7 +4005,7 @@ def _xhm_insp_amp_colloc_pts(
 
 def _xhm_inter_amp_colloc_pts(
     modeTag: int, eta: float, STotR: float, dchi_half: float, delta: float, chiPN: float
-) -> tuple[Float, Float, Float, Float]:
+) -> tuple[FloatLike, FloatLike, FloatLike, FloatLike]:
     """122022 intermediate amplitude collocation-point fits (int1..int4)."""
     eta1 = eta
     eta2 = eta1 * eta1
@@ -5014,7 +5015,7 @@ def _xhm_inter_amp_colloc_pts(
 
 def _xhm_rd_amp_fit_coeffs(
     modeTag: int, eta: float, STotR: float, dchi_half: float, delta: float, chiPN: float
-) -> tuple[Float, Float, Float]:
+) -> tuple[FloatLike, FloatLike, FloatLike]:
     """122022 ringdown fit coefficients (alambda, lambda, sigma)."""
     eta1 = eta
     eta2 = eta1 * eta1
@@ -5310,7 +5311,7 @@ def _xhm_rd_amp_fit_coeffs(
 
 def _xhm_rd_amp_colloc_pts(
     modeTag: int, eta: float, STotR: float, dchi_half: float, delta: float, chiPN: float
-) -> tuple[Float, Float, Float]:
+) -> tuple[FloatLike, FloatLike, FloatLike]:
     """122022 ringdown amplitude collocation-point fits (rdcp1, rdcp2, rdcp3)."""
     eta1 = eta
     eta2 = eta1 * eta1
@@ -6049,7 +6050,7 @@ def _xhm_rd_amp_colloc_pts(
 
 def _xhm_rd_amp_rdaux_pts(
     eta: float, STotR: float, dchi_half: float, delta: float, chiPN: float
-) -> tuple[Float, Float]:
+) -> tuple[FloatLike, FloatLike]:
     """122022 32-mode RDAux collocation-point fits (rdaux1, rdaux2)."""
     eta1 = eta
     eta2 = eta1 * eta1
@@ -6400,9 +6401,9 @@ def xhm_get_amp_coefficients(
     A_fall = _rd_amp22(ffall)
     dA_fall = jax.grad(_rd_amp22)(ffall)
     rd_falloff_amp = A_fall
-    rd_falloff_slope: Float = jnp.where(A_fall > 0, -dA_fall / A_fall, 0.0)
+    rd_falloff_slope: FloatLike = jnp.where(A_fall > 0, -dA_fall / A_fall, 0.0)
 
-    def _rd_amp22_full(f) -> Float:
+    def _rd_amp22_full(f) -> FloatLike:
         """RD amplitude including falloff region."""
         lorentz = _rd_amp22(f)
         falloff = rd_falloff_amp * jnp.exp(-rd_falloff_slope * (f - ffall))
@@ -6448,8 +6449,8 @@ def xhm_get_amp_coefficients(
     d_rdF_IM = jax.grad(rd_strain)(fIM)
 
     _EPS = 1e-30
-    inspF_IN_s: Float = jnp.where(jnp.abs(inspF_IN) < 1e-15, 1e-15, inspF_IN)
-    rdF_IM_s: Float = jnp.where(jnp.abs(rdF_IM) < 1e-15, 1e-15, rdF_IM)
+    inspF_IN_s: FloatLike = jnp.where(jnp.abs(inspF_IN) < 1e-15, 1e-15, inspF_IN)
+    rdF_IM_s: FloatLike = jnp.where(jnp.abs(rdF_IM) < 1e-15, 1e-15, rdF_IM)
 
     # Build and solve linear system for intermediate polynomial coefficients c_j
     # such that A_inter(f) = f^(-7/6) * sum_j c_j * f^j
@@ -6503,7 +6504,9 @@ def xhm_get_amp_coefficients(
 
 
 def xhm_amp_noModeMixing(
-    Mf: Float[Array, " n_freq"], pAmp: XHMAmpCoefficients, pWFHM: "XHMWaveformStruct"
+    Mf: Float[Array, " n_freq"],
+    pAmp: XHMAmpCoefficients,
+    pWFHM: "XHMWaveformStruct",
 ) -> Float[Array, " n_freq"]:
     """
     Evaluate the (l,m) mode amplitude at frequencies Mf (no mode mixing).
@@ -6559,7 +6562,7 @@ def xhm_amp_noModeMixing(
     dfd_f = pAmp.fDAMP * pAmp.ring_sigma
     rd_slope = pAmp.ring_lambda / dfd_f + 2.0 * dfr_f / (dfr_f**2 + dfd_f**2)
 
-    def rd_amp(f) -> Float:
+    def rd_amp(f) -> FloatLike:
         lorentz = _lorentz(f)
         falloff = A_fall * jnp.exp(-rd_slope * (f - ffall))
         # 122022 version 2 (RDRescaleFactor=0): the Lorentzian is already in
@@ -6588,8 +6591,8 @@ def XLALSimIMRPhenomXHMEvaluateOnehlmMode(
     pPhase: XHMPhaseCoefficients,
     pAmp: XHMAmpCoefficients,
     pWF22: dict[str, Any],
-    t0: float,
-    phi0: float | Float,
+    t0: FloatLike,
+    phi0: float | FloatLike,
 ) -> Complex[Array, " n_freq"]:
     """
     Evaluate complex hlm for one mode at all frequencies.
@@ -6623,7 +6626,7 @@ def XLALSimIMRPhenomXHMEvaluateOnehlmMode(
 def XLALSimIMRPhenomXHMGethlmModes(
     freqs_geom: Float[Array, " n_freq"],
     pWF22: dict[str, Any],
-    phi0: float | Float,
+    phi0: float | FloatLike,
     ell_mm_pairs: list,
 ) -> dict[tuple[int, int], Complex[Array, " n_freq"]]:
     """

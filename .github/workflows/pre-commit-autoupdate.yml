@@ -8,6 +8,8 @@ on:
 jobs:
   autoupdate:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -27,4 +29,4 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .pre-commit-config.yaml
           git commit -m "[pre-commit] autoupdate hook versions"
-          git push
+          git push || exit 1

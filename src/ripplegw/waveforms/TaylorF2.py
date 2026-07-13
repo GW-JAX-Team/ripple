@@ -3,21 +3,22 @@ This file implements the TaylorF2 waveform, as described in the LALSuite library
 """
 
 import jax.numpy as jnp
-from ..constants import EULERGAMMA, MTSUN, MPC, PI, MRSUN
+from ripplegw.constants import EULERGAMMA, MTSUN, MPC, PI, MRSUN
 from jaxtyping import Array, Float, Complex
-from ..conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
-from .IMRPhenom_tidal_utils import get_quadparam_octparam
+from ripplegw.typing import FloatLike
+from ripplegw.conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
+from ripplegw.waveforms.IMRPhenom_tidal_utils import get_quadparam_octparam
 
 ###########################
 ### AUXILIARY FUNCTIONS ###
 ###########################
 
 
-def get_3PNSOCoeff(mByM: Float) -> Float:
+def get_3PNSOCoeff(mByM: FloatLike) -> FloatLike:
     return mByM * (25.0 + 38.0 / 3.0 * mByM)
 
 
-def get_5PNSOCoeff(mByM: Float) -> Float:
+def get_5PNSOCoeff(mByM: FloatLike) -> FloatLike:
     return -mByM * (
         1391.5 / 8.4
         - mByM * (1.0 - mByM) * 10.0 / 3.0
@@ -25,11 +26,11 @@ def get_5PNSOCoeff(mByM: Float) -> Float:
     )
 
 
-def get_6PNSOCoeff(mByM: Float) -> Float:
+def get_6PNSOCoeff(mByM: FloatLike) -> FloatLike:
     return PI * mByM * (1490.0 / 3.0 + mByM * 260.0)
 
 
-def get_7PNSOCoeff(mByM: Float) -> Float:
+def get_7PNSOCoeff(mByM: FloatLike) -> FloatLike:
     eta = mByM * (1.0 - mByM)
     return mByM * (
         -17097.8035 / 4.8384
@@ -40,49 +41,49 @@ def get_7PNSOCoeff(mByM: Float) -> Float:
     )
 
 
-def get_4PNS1S2Coeff(eta: Float) -> Float:
+def get_4PNS1S2Coeff(eta: FloatLike) -> FloatLike:
     return 247.0 / 4.8 * eta
 
 
-def get_4PNS1S2OCoeff(eta: Float) -> Float:
+def get_4PNS1S2OCoeff(eta: FloatLike) -> FloatLike:
     return -721.0 / 4.8 * eta
 
 
-def get_4PNQM2SOCoeff(mByM: Float) -> Float:
+def get_4PNQM2SOCoeff(mByM: FloatLike) -> FloatLike:
     return -720.0 / 9.6 * mByM * mByM
 
 
-def get_4PNSelf2SOCoeff(mByM: Float) -> Float:
+def get_4PNSelf2SOCoeff(mByM: FloatLike) -> FloatLike:
     return 1.0 / 9.6 * mByM * mByM
 
 
-def get_4PNQM2SCoeff(mByM: Float) -> Float:
+def get_4PNQM2SCoeff(mByM: FloatLike) -> FloatLike:
     return 240.0 / 9.6 * mByM * mByM
 
 
-def get_4PNSelf2SCoeff(mByM: Float) -> Float:
+def get_4PNSelf2SCoeff(mByM: FloatLike) -> FloatLike:
     return -7.0 / 9.6 * mByM * mByM
 
 
-def get_6PNS1S2OCoeff(eta: Float) -> Float:
+def get_6PNS1S2OCoeff(eta: FloatLike) -> FloatLike:
     return (326.75 / 1.12 + 557.5 / 1.8 * eta) * eta
 
 
-def get_6PNSelf2SCoeff(mByM: Float) -> Float:
+def get_6PNSelf2SCoeff(mByM: FloatLike) -> FloatLike:
     return (
         (-4108.25 / 6.72 - 108.5 / 1.2 * mByM + 125.5 / 3.6 * mByM * mByM) * mByM * mByM
     )
 
 
-def get_6PNQM2SCoeff(mByM: Float) -> Float:
+def get_6PNQM2SCoeff(mByM: FloatLike) -> FloatLike:
     return (4703.5 / 8.4 + 2935.0 / 6.0 * mByM - 120.0 * mByM * mByM) * mByM * mByM
 
 
-def get_10PNTidalCoeff(mByM: Float) -> Float:
+def get_10PNTidalCoeff(mByM: FloatLike) -> FloatLike:
     return (-288.0 + 264.0 * mByM) * mByM * mByM * mByM * mByM
 
 
-def get_12PNTidalCoeff(mByM: Float) -> Float:
+def get_12PNTidalCoeff(mByM: FloatLike) -> FloatLike:
     return (
         (
             -15895.0 / 28.0
@@ -97,11 +98,11 @@ def get_12PNTidalCoeff(mByM: Float) -> Float:
     )
 
 
-def get_13PNTidalCoeff(mByM: Float) -> Float:
+def get_13PNTidalCoeff(mByM: FloatLike) -> FloatLike:
     return mByM * mByM * mByM * mByM * 24.0 * (12.0 - 11.0 * mByM) * PI
 
 
-def get_14PNTidalCoeff(mByM: Float) -> Float:
+def get_14PNTidalCoeff(mByM: FloatLike) -> FloatLike:
     mByM3 = mByM * mByM * mByM
     mByM4 = mByM3 * mByM
     return (
@@ -118,7 +119,7 @@ def get_14PNTidalCoeff(mByM: Float) -> Float:
     )
 
 
-def get_15PNTidalCoeff(mByM: Float) -> Float:
+def get_15PNTidalCoeff(mByM: FloatLike) -> FloatLike:
     mByM2 = mByM * mByM
     mByM3 = mByM2 * mByM
     mByM4 = mByM3 * mByM
@@ -131,11 +132,11 @@ def get_15PNTidalCoeff(mByM: Float) -> Float:
     )
 
 
-def get_flux_0PNCoeff(eta: Float) -> Float:
+def get_flux_0PNCoeff(eta: FloatLike) -> FloatLike:
     return 32.0 * eta * eta / 5.0
 
 
-def get_energy_0PNCoeff(eta: Float) -> Float:
+def get_energy_0PNCoeff(eta: FloatLike) -> FloatLike:
     return -eta / 2.0
 
 
