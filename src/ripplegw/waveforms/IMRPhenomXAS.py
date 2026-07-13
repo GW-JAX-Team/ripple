@@ -351,7 +351,7 @@ def get_intermediate_raw_phase(
     dPhaseIN: Float,
     dPhaseRD: Float,
     cL: Float,
-    chip: float = 0.0,
+    chip: FloatLike = 0.0,
     a_prec_override=None,
 ) -> Array:
     m1, m2, chi1, chi2 = theta
@@ -567,9 +567,9 @@ def get_mergerringdown_raw_phase(
     fM_s: Array,
     theta: Array,
     phase_coeffs: Array,
-    chip: float = 0.0,
+    chip: FloatLike = 0.0,
     a_prec_override=None,
-) -> tuple[Array, tuple[Array, Array]]:
+) -> tuple[Array, tuple[FloatLike, FloatLike]]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -746,7 +746,7 @@ def Phase(
     f: Float[Array, " n_freq"] | float,
     theta: Float[Array, "4"],
     phase_coeffs: Float[Array, "13 49"],
-    chip: float = 0.0,
+    chip: FloatLike = 0.0,
     a_prec_override=None,
 ) -> Array:
     """
@@ -1361,7 +1361,7 @@ def get_mergerringdown_Amp(
     fM_s: Float[Array, " n_freq"] | FloatLike,
     theta: Float[Array, "4"],
     amp_coeffs: Float[Array, "7 42"],
-    chip: float = 0.0,
+    chip: FloatLike = 0.0,
     a_prec_override=None,
 ) -> tuple[Array, Array]:
     m1, m2, chi1, chi2 = theta
