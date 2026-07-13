@@ -371,8 +371,8 @@ def psd_data():
             "IMRPhenomXAS_NRTidalv3", DEFAULT_BOUNDS, id="IMRPhenomXAS_NRTidalv3"
         ),
         pytest.param("IMRPhenomXHM", BBH_BOUNDS, id="IMRPhenomXHM"),
-        # pytest.param("IMRPhenomXP", BBH_BOUNDS, id="IMRPhenomXP"),
-        # pytest.param("IMRPhenomXPHM", BBH_BOUNDS, id="IMRPhenomXPHM"),
+        pytest.param("IMRPhenomXP", BBH_BOUNDS, id="IMRPhenomXP"),
+        pytest.param("IMRPhenomXPHM", BBH_BOUNDS, id="IMRPhenomXPHM"),
         pytest.param("IMRPhenomXP_NRTidalv3", DEFAULT_BOUNDS, id="IMRPhenomXP_NRTidalv3"),  # test XP in BNS regime
     ],
 )
