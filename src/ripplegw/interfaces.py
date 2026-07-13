@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 import jax.numpy as jnp
-from jaxtyping import Array, Float
+from jaxtyping import Array, Complex, Float
 
 from .waveforms.TaylorF2 import gen_TaylorF2_hphc
 from .waveforms.IMRPhenomD import gen_IMRPhenomD_hphc
