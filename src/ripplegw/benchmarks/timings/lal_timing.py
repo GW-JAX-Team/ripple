@@ -13,26 +13,31 @@ import socket
 import subprocess
 import time
 from datetime import datetime
+from importlib import import_module
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
 logger = logging.getLogger(__name__)
 
+lal: Any = None
+lalsim: Any = None
 try:
-    import lal
-    import lalsimulation as lalsim
-
+    lal = import_module("lal")
+    lalsim = import_module("lalsimulation")
     HAS_LAL = True
 except ImportError:
     HAS_LAL = False
 
 
-def _require_lal():
-    if not HAS_LAL:
+def _require_lal() -> tuple[Any, Any]:
+    """Return LALSuite modules, or raise a clear error when they are unavailable."""
+    if lal is None or lalsim is None:
         raise ImportError(
             "LALSuite is not available. Install lalsuite to run the LAL benchmark."
         )
+    return lal, lalsim
 
 
 # ── parameter generation (numpy, no JAX) ────────────────────────────────────
@@ -203,6 +208,7 @@ def _theta_precessing_tidal(p, i):
 
 def _call_lal_single(theta, waveform_name, f_l, f_u, f_ref, df):
     """Generate a single waveform with LALSuite and return (hp, hc) arrays."""
+    lal, lalsim = _require_lal()
     approximant = lalsim.SimInspiralGetApproximantFromString(waveform_name)
 
     if waveform_name == "IMRPhenomXPHM":
