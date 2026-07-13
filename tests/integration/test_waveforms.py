@@ -24,6 +24,7 @@ from ripplegw import (
     IMRPhenomPv2,
     IMRPhenomXAS,
     IMRPhenomXAS_NRTidalv3,
+    IMRPhenomXP_NRTidalv3,
     IMRPhenomXHM,
     IMRPhenomXP,
     IMRPhenomXPHM,
@@ -105,6 +106,51 @@ def bns_tidal_tilde_dict():
         "M_c": float(Mc),
         "eta": float(eta),
         "s1_z": 0.05,
+        "s2_z": -0.02,
+        "lambda_tilde": float(lt),
+        "delta_lambda_tilde": float(dlt),
+        "d_L": 100.0,
+        "phase_c": 0.5,
+        "iota": 0.8,
+    }
+
+
+@pytest.fixture(scope="module")
+def bns_precessing_tidal_dict():
+    """Dict params for precessing tidal approximant classes (lambda_1/lambda_2)."""
+    m1, m2 = 1.4, 1.3
+    Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
+    return {
+        "M_c": float(Mc),
+        "eta": float(eta),
+        "s1_x": 0.02,
+        "s1_y": 0.03,
+        "s1_z": 0.05,
+        "s2_x": -0.01,
+        "s2_y": 0.02,
+        "s2_z": -0.02,
+        "lambda_1": 500.0,
+        "lambda_2": 400.0,
+        "d_L": 100.0,
+        "phase_c": 0.5,
+        "iota": 0.8,
+    }
+
+
+@pytest.fixture(scope="module")
+def bns_precessing_tidal_tilde_dict():
+    """Dict params for precessing tidal approximant classes (lambda_tilde interface)."""
+    m1, m2 = 1.4, 1.3
+    Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
+    lt, dlt = lambdas_to_lambda_tildes(jnp.array([500.0, 400.0, m1, m2]))
+    return {
+        "M_c": float(Mc),
+        "eta": float(eta),
+        "s1_x": 0.02,
+        "s1_y": 0.03,
+        "s1_z": 0.05,
+        "s2_x": -0.01,
+        "s2_y": 0.02,
         "s2_z": -0.02,
         "lambda_tilde": float(lt),
         "delta_lambda_tilde": float(dlt),
@@ -245,6 +291,39 @@ def _bns_dict(
         "M_c": float(Mc),
         "eta": float(eta),
         "s1_z": s1_z,
+        "s2_z": s2_z,
+        "lambda_1": lambda_1,
+        "lambda_2": lambda_2,
+        "d_L": d_L,
+        "phase_c": phase_c,
+        "iota": iota,
+    }
+
+
+def _bns_precessing_dict(
+    m1,
+    m2,
+    s1_x=0.0,
+    s1_y=0.0,
+    s1_z=0.0,
+    s2_x=0.0,
+    s2_y=0.0,
+    s2_z=0.0,
+    lambda_1=500.0,
+    lambda_2=400.0,
+    d_L=100.0,
+    phase_c=0.0,
+    iota=0.0,
+):
+    Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
+    return {
+        "M_c": float(Mc),
+        "eta": float(eta),
+        "s1_x": s1_x,
+        "s1_y": s1_y,
+        "s1_z": s1_z,
+        "s2_x": s2_x,
+        "s2_y": s2_y,
         "s2_z": s2_z,
         "lambda_1": lambda_1,
         "lambda_2": lambda_2,
@@ -622,6 +701,84 @@ class TestIMRPhenomXAS_NRTidalv3:
         assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
 
 
+class TestIMRPhenomXP_NRTidalv3:
+    @pytest.fixture(scope="class")
+    def model(self):
+        """JIT-compiled IMRPhenomXP_NRTidalv3 (lambda_1/lambda_2 interface)."""
+        return jax.jit(IMRPhenomXP_NRTidalv3(f_ref=20.0, use_lambda_tildes=False))
+
+    @pytest.fixture(scope="class")
+    def model_tildes(self):
+        """JIT-compiled IMRPhenomXP_NRTidalv3 (lambda_tilde interface)."""
+        return jax.jit(IMRPhenomXP_NRTidalv3(f_ref=20.0, use_lambda_tildes=True))
+
+    # --- top-level approximant class ---
+    def test_basic_lambda(self, model, edge_freq_grid, bns_precessing_tidal_dict):
+        output = model(edge_freq_grid, bns_precessing_tidal_dict)
+        assert_approx_fd_valid(output, edge_freq_grid)
+
+    def test_basic_lambda_tildes(
+        self, model_tildes, test_freq_grid, bns_precessing_tidal_tilde_dict
+    ):
+        assert_approx_fd_valid(
+            model_tildes(test_freq_grid, bns_precessing_tidal_tilde_dict),
+            test_freq_grid,
+        )
+
+    def test_jit(self, model, test_freq_grid, bns_precessing_tidal_dict):
+        """Model is JIT-compiled (via fixture); verify valid output on production grid."""
+        output = model(test_freq_grid, bns_precessing_tidal_dict)
+        assert_approx_fd_valid(output, test_freq_grid)
+
+    def test_repr(self):
+        assert (
+            repr(IMRPhenomXP_NRTidalv3(f_ref=20.0))
+            == "IMRPhenomXP_NRTidalv3(f_ref=20.0)"
+        )
+
+    def test_in_waveform_preset(self):
+        assert "IMRPhenomXP_NRTidalv3" in waveform_preset
+        assert isinstance(
+            waveform_preset["IMRPhenomXP_NRTidalv3"](f_ref=20.0),
+            IMRPhenomXP_NRTidalv3,
+        )
+
+    # --- edge cases ---
+    def test_equal_mass(self, model, edge_freq_grid):
+        """eta = 0.25: equal-mass BNS with precessing spins."""
+        params = _bns_precessing_dict(
+            1.4,
+            1.4,
+            s1_x=0.02,
+            s1_y=0.03,
+            s1_z=0.05,
+            s2_x=-0.01,
+            s2_y=0.02,
+            s2_z=-0.02,
+            lambda_1=500.0,
+            lambda_2=500.0,
+        )
+        assert params["eta"] == pytest.approx(0.25)
+        assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
+
+    def test_zero_tidal_deformability(self, model, edge_freq_grid):
+        """lambda_1 = lambda_2 = 0: BH-like tidal correction."""
+        params = _bns_precessing_dict(
+            1.4, 1.3, s1_x=0.02, s1_y=0.03, s1_z=0.05, lambda_1=0.0, lambda_2=0.0
+        )
+        assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
+
+    def test_zero_spins(self, model, edge_freq_grid):
+        """All spin components zero — non-spinning BNS."""
+        params = _bns_precessing_dict(1.4, 1.3)
+        assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
+
+    def test_aligned_spins_only(self, model, edge_freq_grid):
+        """In-plane spins zero — reduces to aligned-spin (XAS_NRTidalv3) limit."""
+        params = _bns_precessing_dict(1.4, 1.3, s1_z=0.05, s2_z=-0.02)
+        assert_approx_fd_valid(model(edge_freq_grid, params), edge_freq_grid)
+
+
 class TestIMRPhenomXHM:
     @pytest.fixture(scope="class")
     def model(self):
@@ -810,6 +967,7 @@ class TestWaveformPreset:
             "IMRPhenomPv2",
             "IMRPhenomXAS",
             "IMRPhenomXAS_NRTidalv3",
+            "IMRPhenomXP_NRTidalv3",
             "IMRPhenomXHM",
             "IMRPhenomXP",
             "IMRPhenomXPHM",
