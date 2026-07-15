@@ -835,6 +835,10 @@ def PhaseDerivative(
     as Phase(), but without differentiating through the final Heaviside assembly.
     """
 
+    # If f is a float cast it to an array of shape (1,) so vmap works properly down the line
+    if f.shape == ():
+        f = f.reshape((1,))
+
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -878,26 +882,23 @@ def PhaseDerivative(
     _phi_Int_match_f2, dphi_Int_match_f2 = jax.value_and_grad(phi_Int_func)(f2_Ms)
     beta1 = dphi_Int_match_f2 - dphi_MRD_match_f2
 
-    dphi_Ins = jax.grad(get_inspiral_phase)(fM_s, theta, phase_coeffs)
-    dphi_Int = jax.grad(phi_Int_func)(fM_s)
+    dphi_Ins = jax.vmap(jax.grad(get_inspiral_phase), (0, None, None))(
+        fM_s, theta, phase_coeffs
+    )
+    dphi_Int = jax.vmap(jax.grad(phi_Int_func))(fM_s)
     dphi_MRD = (
-        jax.grad(
-            lambda x: get_mergerringdown_raw_phase(x, theta, phase_coeffs, chip)[0]
+        jax.vmap(
+            jax.grad(
+                lambda x: get_mergerringdown_raw_phase(x, theta, phase_coeffs, chip)[0]
+            )
         )(fM_s)
         + beta1
     )
 
-    dphase_dMf = jax.lax.cond(
-        fM_s < f1_Ms,
-        lambda _: dphi_Ins / eta,
-        lambda _: jax.lax.cond(
-            fM_s < f2_Ms,
-            lambda __: dphi_Int / eta,
-            lambda __: dphi_MRD / eta,
-            operand=None,
-        ),
-        operand=None,
-    )
+    # Two-step conditional to determine correct stage of waveform, divide by eta only at the end
+    dphase_dMf = jnp.where(fM_s < f1_Ms, dphi_Ins, dphi_Int)
+    dphase_dMf = jnp.where(fM_s < f2_Ms, dphase_dMf / eta, dphi_MRD / eta)
+
     return dphase_dMf * M_s
 
 
