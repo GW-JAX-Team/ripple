@@ -208,7 +208,22 @@ def convert_parameters_lal_to_ripple(
             phic = theta_lal[12]
             inclination = theta_lal[13]
             theta_ripple = jnp.array(
-                [Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, lambda_tilde, delta_lambda_tilde, dist_mpc, tc, phic, inclination]
+                [
+                    Mc,
+                    eta,
+                    s1x,
+                    s1y,
+                    s1z,
+                    s2x,
+                    s2y,
+                    s2z,
+                    lambda_tilde,
+                    delta_lambda_tilde,
+                    dist_mpc,
+                    tc,
+                    phic,
+                    inclination,
+                ]
             )
         else:
             dist_mpc = theta_lal[8]
@@ -384,7 +399,9 @@ def psd_data():
         pytest.param("IMRPhenomXHM", BBH_BOUNDS, id="IMRPhenomXHM"),
         pytest.param("IMRPhenomXP", BBH_BOUNDS, id="IMRPhenomXP"),
         pytest.param("IMRPhenomXPHM", BBH_BOUNDS, id="IMRPhenomXPHM"),
-        pytest.param("IMRPhenomXP_NRTidalv3", DEFAULT_BOUNDS, id="IMRPhenomXP_NRTidalv3"),  # test XP in BNS regime
+        pytest.param(
+            "IMRPhenomXP_NRTidalv3", DEFAULT_BOUNDS, id="IMRPhenomXP_NRTidalv3"
+        ),
     ],
 )
 def test_waveform_overlap(

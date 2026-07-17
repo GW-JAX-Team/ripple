@@ -735,15 +735,11 @@ class TestIMRPhenomXP_NRTidalv3:
     ):
         """Both tidal parameterizations represent the same physical waveform."""
         waveform_lambdas = model(edge_freq_grid, bns_precessing_tidal_dict)
-        waveform_tildes = model_tildes(
-            edge_freq_grid, bns_precessing_tidal_tilde_dict
-        )
+        waveform_tildes = model_tildes(edge_freq_grid, bns_precessing_tidal_tilde_dict)
 
         for polarization in ("p", "c"):
             relative_error = jnp.max(
-                jnp.abs(
-                    waveform_lambdas[polarization] - waveform_tildes[polarization]
-                )
+                jnp.abs(waveform_lambdas[polarization] - waveform_tildes[polarization])
             ) / jnp.max(jnp.abs(waveform_lambdas[polarization]))
             assert relative_error < 1e-12, (
                 f"{polarization} differs between tidal parameterizations: "

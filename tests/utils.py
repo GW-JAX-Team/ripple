@@ -70,7 +70,12 @@ def check_is_tidal(waveform_name: str) -> bool:
     Raises:
         ValueError: If the waveform is not supported.
     """
-    bns_waveforms = ["IMRPhenomD_NRTidalv2", "TaylorF2", "IMRPhenomXAS_NRTidalv3", "IMRPhenomXP_NRTidalv3"]
+    bns_waveforms = [
+        "IMRPhenomD_NRTidalv2",
+        "TaylorF2",
+        "IMRPhenomXAS_NRTidalv3",
+        "IMRPhenomXP_NRTidalv3",
+    ]
     bbh_waveforms = [
         "IMRPhenomD",
         "IMRPhenomHM",
@@ -100,7 +105,12 @@ def check_is_precessing(waveform_name: str) -> bool:
     Returns:
         True if the waveform includes precession, False otherwise.
     """
-    precessing_waveforms = ["IMRPhenomPv2", "IMRPhenomXP", "IMRPhenomXPHM", "IMRPhenomXP_NRTidalv3"]
+    precessing_waveforms = [
+        "IMRPhenomPv2",
+        "IMRPhenomXP",
+        "IMRPhenomXPHM",
+        "IMRPhenomXP_NRTidalv3",
+    ]
     return waveform_name in precessing_waveforms
 
 
@@ -220,9 +230,11 @@ def get_jitted_waveform(waveform_name: str, fs: jnp.ndarray, f_ref: float):
             # theta = [Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, tc, phic, inclination]
             hp, hc = gen_IMRPhenomXP_hphc(fs, theta, f_ref)
             return hp, hc
-    
+
     elif waveform_name == "IMRPhenomXP_NRTidalv3":
-        from ripplegw.waveforms.IMRPhenomXP_NRTidalv3 import gen_IMRPhenomXP_NRTidalv3_hphc
+        from ripplegw.waveforms.IMRPhenomXP_NRTidalv3 import (
+            gen_IMRPhenomXP_NRTidalv3_hphc,
+        )
 
         @jax.jit
         def waveform(theta):
@@ -708,7 +720,22 @@ def generate_random_params(
     # Build parameter array
     if is_precessing and is_tidal:
         theta = np.array(
-            [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, l1, l2, dist_mpc, tc, phi_ref, inclination]
+            [
+                m1,
+                m2,
+                s1x,
+                s1y,
+                s1z,
+                s2x,
+                s2y,
+                s2z,
+                l1,
+                l2,
+                dist_mpc,
+                tc,
+                phi_ref,
+                inclination,
+            ]
         ).T
     elif is_precessing:
         theta = np.array(
