@@ -1666,7 +1666,7 @@ def IMRPhenomX_L_norm_3PN_of_v(
     Compute L_norm at 3PN order.
 
     Args:
-        v (jax.Array): Orbital velocity parameter.
+        v (FloatLike): Orbital velocity parameter.
         L_norm (FloatLike): Normalized orbital angular momentum.
         constants_L_0 (FloatLike): L polynomial coefficient (index 0).
         constants_L_1 (FloatLike): L polynomial coefficient (index 1).
