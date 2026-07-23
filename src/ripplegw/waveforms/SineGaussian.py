@@ -1,4 +1,6 @@
 import jax.numpy as jnp
+from ripplegw.interfaces import Waveform
+from ripplegw.registry import register
 from jax.lax import complex
 
 from ripplegw.constants import PI
@@ -81,3 +83,46 @@ def gen_SineGaussian_hphc(
     plus = fac.real * h0_plus
 
     return plus, cross
+
+
+@register("SineGaussian", domain="TD", is_tidal=False, is_precessing=False)
+class SineGaussian(Waveform):
+    """Sine-Gaussian time-domain burst waveform."""
+
+    def __init__(self) -> None:
+        pass
+
+    @property
+    def parameter_names(self) -> tuple[str, ...]:
+        return ("Q", "f_0", "hrss", "phase", "e")
+
+    def __call__(
+        self, t: Float[Array, " n_time"], params: dict[str, Float]
+    ) -> dict[str, Float[Array, " n_time"]]:
+        """Evaluate the SineGaussian waveform.
+
+        Args:
+            t (Float[Array, " n_time"]): Time grid centered at t=0. Create using
+                ``jnp.arange(-duration/2, duration/2, 1/fs)``.
+            params (dict[str, Float]): Source parameters with keys ``Q``
+                (quality factor), ``f_0`` (central frequency in Hz), ``hrss``,
+                ``phase``, ``e`` (eccentricity).
+
+        Returns:
+            dict[str, Float[Array, " n_time"]]: Plus (``"p"``) and cross (``"c"``)
+                polarizations.
+        """
+        theta = jnp.array(
+            [
+                params["Q"],
+                params["f_0"],
+                params["hrss"],
+                params["phase"],
+                params["e"],
+            ]
+        )
+        hp, hc = gen_SineGaussian_hphc(t, theta)
+        return {"p": hp, "c": hc}
+
+    def __repr__(self):
+        return "SineGaussian()"

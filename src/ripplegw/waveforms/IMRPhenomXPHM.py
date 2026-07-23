@@ -1,4 +1,7 @@
 import jax
+from ripplegw.interfaces import Waveform
+from ripplegw.registry import register
+from ripplegw.conversions import Mc_eta_to_ms
 import jax.numpy as jnp
 from jaxtyping import Array, Float, Complex
 from ripplegw.typing import FloatLike
@@ -881,3 +884,73 @@ def IMRPhenomXWignerdCoefficients_cosbeta(
     sin_beta_half = jnp.sqrt(jnp.abs(1.0 - cos_beta) / 2.0)  # sin(beta/2)
 
     return cos_beta_half, sin_beta_half
+
+
+@register("IMRPhenomXPHM", domain="FD", is_tidal=False, is_precessing=True)
+class IMRPhenomXPHM(Waveform):
+    """IMRPhenomXPHM frequency-domain waveform (precessing spins, higher-order modes).
+
+    Attributes:
+        f_ref (float): Reference frequency in Hz.
+    """
+
+    f_ref: float
+
+    def __init__(self, f_ref: float = 20.0) -> None:
+        """
+        Args:
+            f_ref (float): Reference frequency in Hz. Defaults to 20.0.
+        """
+        self.f_ref = f_ref
+
+    @property
+    def parameter_names(self) -> tuple[str, ...]:
+        return (
+            "M_c",
+            "eta",
+            "s1_x",
+            "s1_y",
+            "s1_z",
+            "s2_x",
+            "s2_y",
+            "s2_z",
+            "d_L",
+            "phase_c",
+            "iota",
+        )
+
+    def __call__(
+        self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
+    ) -> dict[str, Complex[Array, " n_freq"]]:
+        """Evaluate the IMRPhenomXPHM waveform.
+
+        Args:
+            frequency (Float[Array, " n_freq"]): Frequency array in Hz.
+            params (dict[str, Float]): Source parameters with keys
+                ``M_c``, ``eta``, ``s1_x``, ``s1_y``, ``s1_z``,
+                ``s2_x``, ``s2_y``, ``s2_z``, ``d_L``, ``phase_c``, ``iota``.
+
+        Returns:
+            dict[str, Complex[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
+                polarizations.
+        """
+        m1, m2 = Mc_eta_to_ms(jnp.array([params["M_c"], params["eta"]]))
+        hp, hc = generate_xphm(
+            m1,
+            m2,
+            params["s1_x"],
+            params["s1_y"],
+            params["s1_z"],
+            params["s2_x"],
+            params["s2_y"],
+            params["s2_z"],
+            params["d_L"],
+            params["iota"],
+            params["phase_c"],
+            frequency,
+            self.f_ref,
+        )
+        return {"p": hp, "c": hc}
+
+    def __repr__(self):
+        return f"IMRPhenomXPHM(f_ref={self.f_ref})"

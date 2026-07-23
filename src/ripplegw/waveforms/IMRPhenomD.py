@@ -1,4 +1,7 @@
 import jax
+from ripplegw.interfaces import Waveform
+from ripplegw.registry import register
+from ripplegw.conversions import Mc_eta_to_ms
 import jax.numpy as jnp
 from ripplegw.waveforms.IMRPhenomD_utils import (
     get_coeffs,
@@ -14,7 +17,6 @@ from ripplegw.waveforms.IMRPhenomD_QNMdata import fM_CUT
 from ripplegw.constants import EULERGAMMA, MTSUN, MPC, C, PI
 from jaxtyping import Array, Float, Complex
 from ripplegw.typing import FloatLike
-from ripplegw.conversions import Mc_eta_to_ms
 
 
 def get_inspiral_phase(
@@ -711,3 +713,66 @@ def gen_IMRPhenomD_hphc(
     hc = -1j * h0 * jnp.cos(iota)
 
     return hp, hc
+
+
+@register("IMRPhenomD", domain="FD", is_tidal=False, is_precessing=False)
+class IMRPhenomD(Waveform):
+    """IMRPhenomD frequency-domain waveform (non-precessing, aligned spins).
+
+    Attributes:
+        f_ref (float): Reference frequency in Hz.
+    """
+
+    f_ref: float
+
+    def __init__(self, f_ref: float = 20.0) -> None:
+        """
+        Args:
+            f_ref (float): Reference frequency in Hz. Defaults to 20.0.
+        """
+        self.f_ref = f_ref
+
+    @property
+    def parameter_names(self) -> tuple[str, ...]:
+        return (
+            "M_c",
+            "eta",
+            "s1_z",
+            "s2_z",
+            "d_L",
+            "phase_c",
+            "iota",
+        )
+
+    def __call__(
+        self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
+    ) -> dict[str, Complex[Array, " n_freq"]]:
+        """Evaluate the IMRPhenomD waveform.
+
+        Args:
+            frequency (Float[Array, " n_freq"]): Frequency array in Hz.
+            params (dict[str, Float]): Source parameters with keys
+                ``M_c``, ``eta``, ``s1_z``, ``s2_z``, ``d_L``,
+                ``phase_c``, ``iota``.
+
+        Returns:
+            dict[str, Complex[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
+                polarizations.
+        """
+        theta = jnp.array(
+            [
+                params["M_c"],
+                params["eta"],
+                params["s1_z"],
+                params["s2_z"],
+                params["d_L"],
+                0.0,
+                params["phase_c"],
+                params["iota"],
+            ]
+        )
+        hp, hc = gen_IMRPhenomD_hphc(frequency, theta, self.f_ref)
+        return {"p": hp, "c": hc}
+
+    def __repr__(self):
+        return f"IMRPhenomD(f_ref={self.f_ref})"

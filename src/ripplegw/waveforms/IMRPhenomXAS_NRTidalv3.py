@@ -1,6 +1,8 @@
 """by Robin Chan"""
 
 import jax
+from ripplegw.interfaces import Waveform
+from ripplegw.registry import register
 import jax.numpy as jnp
 from ripplegw.constants import MTSUN, PI
 from jaxtyping import Array, Float, Complex
@@ -265,3 +267,103 @@ def gen_IMRPhenomXAS_NRTidalv3_hphc(
     hc = -1j * h0 * jnp.cos(iota)
 
     return hp, hc
+
+
+@register("IMRPhenomXAS_NRTidalv3", domain="FD", is_tidal=True, is_precessing=False)
+class IMRPhenomXAS_NRTidalv3(Waveform):
+    """IMRPhenomXAS_NRTidalv3 frequency-domain waveform (non-precessing, NRTidalv3 tides).
+
+    Attributes:
+        f_ref (float): Reference frequency in Hz.
+        use_lambda_tildes (bool): If True, expects ``lambda_tilde`` /
+            ``delta_lambda_tilde``; otherwise ``lambda_1`` / ``lambda_2``.
+        no_taper (bool): If True, the Planck taper in the amplitude is disabled.
+    """
+
+    f_ref: float
+    use_lambda_tildes: bool
+    no_taper: bool
+
+    def __init__(
+        self,
+        f_ref: float = 20.0,
+        use_lambda_tildes: bool = False,
+        no_taper: bool = False,
+    ) -> None:
+        """
+        Args:
+            f_ref (float): Reference frequency in Hz. Defaults to 20.0.
+            use_lambda_tildes (bool): Whether to parameterise tidal deformability
+                via ``lambda_tilde`` / ``delta_lambda_tilde`` rather than
+                ``lambda_1`` / ``lambda_2``. Defaults to False.
+            no_taper (bool): Whether to disable tapering (useful for relative
+                binning runs). Defaults to False.
+        """
+        self.f_ref = f_ref
+        self.use_lambda_tildes = use_lambda_tildes
+        self.no_taper = no_taper
+
+    @property
+    def parameter_names(self) -> tuple[str, ...]:
+        return (
+            "M_c",
+            "eta",
+            "s1_z",
+            "s2_z",
+            *(
+                ("lambda_tilde", "delta_lambda_tilde")
+                if self.use_lambda_tildes
+                else ("lambda_1", "lambda_2")
+            ),
+            "d_L",
+            "phase_c",
+            "iota",
+        )
+
+    def __call__(
+        self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
+    ) -> dict[str, Complex[Array, " n_freq"]]:
+        """Evaluate the IMRPhenomXAS_NRTidalv3 waveform.
+
+        Args:
+            frequency (Float[Array, " n_freq"]): Frequency array in Hz.
+            params (dict[str, Float]): Source parameters with keys ``M_c``,
+                ``eta``, ``s1_z``, ``s2_z``, ``d_L``, ``phase_c``, ``iota``,
+                plus tidal keys depending on ``use_lambda_tildes``.
+
+        Returns:
+            dict[str, Complex[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
+                polarizations.
+        """
+        if self.use_lambda_tildes:
+            first_lambda_param = params["lambda_tilde"]
+            second_lambda_param = params["delta_lambda_tilde"]
+        else:
+            first_lambda_param = params["lambda_1"]
+            second_lambda_param = params["lambda_2"]
+
+        theta = jnp.array(
+            [
+                params["M_c"],
+                params["eta"],
+                params["s1_z"],
+                params["s2_z"],
+                first_lambda_param,
+                second_lambda_param,
+                params["d_L"],
+                0.0,
+                params["phase_c"],
+                params["iota"],
+            ]
+        )
+        hp, hc = gen_IMRPhenomXAS_NRTidalv3_hphc(
+            frequency,
+            theta,
+            self.f_ref,
+            use_lambda_tildes=self.use_lambda_tildes,
+            no_taper=self.no_taper,
+        )
+        return {"p": hp, "c": hc}
+
+    def __repr__(self):
+        return f"IMRPhenomXAS_NRTidalv3(f_ref={self.f_ref})"

@@ -1,4 +1,7 @@
 import jax
+from ripplegw.interfaces import Waveform
+from ripplegw.registry import register
+from ripplegw.conversions import Mc_eta_to_ms
 import jax.numpy as jnp
 from typing import Any
 from ripplegw.constants import PI, MSUN, MTSUN, MRSUN, MPC
@@ -1024,3 +1027,56 @@ def XLALSimPhenomUtilsChiP(
     chip = num / den
 
     return chip
+
+
+@register("IMRPhenomHM", domain="FD", is_tidal=False, is_precessing=False)
+class IMRPhenomHM(Waveform):
+    """IMRPhenomHM frequency-domain waveform (aligned spins, higher-order modes).
+
+    Attributes:
+        f_ref (float): Reference frequency in Hz.
+    """
+
+    f_ref: float
+
+    def __init__(self, f_ref: float = 20.0) -> None:
+        """
+        Args:
+            f_ref (float): Reference frequency in Hz. Defaults to 20.0.
+        """
+        self.f_ref = f_ref
+
+    @property
+    def parameter_names(self) -> tuple[str, ...]:
+        return (
+            "M_c",
+            "eta",
+            "s1_z",
+            "s2_z",
+            "d_L",
+            "phase_c",
+            "iota",
+        )
+
+    def __call__(
+        self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
+    ) -> dict[str, Complex[Array, " n_freq"]]:
+        output = {}
+        m1, m2 = Mc_eta_to_ms(jnp.array([params["M_c"], params["eta"]]))
+        hp, hc = gen_IMRPhenomHM(
+            frequency,
+            m1,
+            m2,
+            params["s1_z"],
+            params["s2_z"],
+            params["d_L"],
+            params["iota"],
+            params["phase_c"],
+            self.f_ref,
+        )
+        output["p"] = hp
+        output["c"] = hc
+        return output
+
+    def __repr__(self):
+        return f"IMRPhenomHM(f_ref={self.f_ref})"
