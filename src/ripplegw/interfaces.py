@@ -15,6 +15,7 @@ from ripplegw.waveforms.IMRPhenomXP import gen_IMRPhenomXP_hphc
 from ripplegw.waveforms.IMRPhenomXPHM import generate_xphm
 from ripplegw.waveforms.SineGaussian import gen_SineGaussian_hphc
 from ripplegw.conversions import Mc_eta_to_ms
+from ripplegw.registry import WAVEFORM_REGISTRY, register
 
 
 class Waveform(ABC):
@@ -61,6 +62,7 @@ class Waveform(ABC):
         raise NotImplementedError("Waveform.__call__ must be implemented by subclasses")
 
 
+@register("TaylorF2", domain="FD", is_tidal=True, is_precessing=False)
 class TaylorF2(Waveform):
     """TaylorF2 post-Newtonian frequency-domain waveform including tidal effects.
 
@@ -147,6 +149,7 @@ class TaylorF2(Waveform):
         return f"TaylorF2(f_ref={self.f_ref})"
 
 
+@register("IMRPhenomD", domain="FD", is_tidal=False, is_precessing=False)
 class IMRPhenomD(Waveform):
     """IMRPhenomD frequency-domain waveform (non-precessing, aligned spins).
 
@@ -209,6 +212,7 @@ class IMRPhenomD(Waveform):
         return f"IMRPhenomD(f_ref={self.f_ref})"
 
 
+@register("IMRPhenomD_NRTidalv2", domain="FD", is_tidal=True, is_precessing=False)
 class IMRPhenomD_NRTidalv2(Waveform):
     """IMRPhenomD_NRTidalv2 frequency-domain waveform (non-precessing, NRTidalv2 tides).
 
@@ -309,6 +313,7 @@ class IMRPhenomD_NRTidalv2(Waveform):
         return f"IMRPhenomD_NRTidalv2(f_ref={self.f_ref})"
 
 
+@register("IMRPhenomHM", domain="FD", is_tidal=False, is_precessing=False)
 class IMRPhenomHM(Waveform):
     """IMRPhenomHM frequency-domain waveform (aligned spins, higher-order modes).
 
@@ -361,6 +366,7 @@ class IMRPhenomHM(Waveform):
         return f"IMRPhenomHM(f_ref={self.f_ref})"
 
 
+@register("IMRPhenomPv2", domain="FD", is_tidal=False, is_precessing=True)
 class IMRPhenomPv2(Waveform):
     """IMRPhenomPv2 frequency-domain waveform (precessing spins).
 
@@ -431,6 +437,7 @@ class IMRPhenomPv2(Waveform):
         return f"IMRPhenomPv2(f_ref={self.f_ref})"
 
 
+@register("IMRPhenomXAS", domain="FD", is_tidal=False, is_precessing=False)
 class IMRPhenomXAS(Waveform):
     """IMRPhenomXAS frequency-domain waveform (non-precessing, aligned spins, X family).
 
@@ -493,6 +500,7 @@ class IMRPhenomXAS(Waveform):
         return f"IMRPhenomXAS(f_ref={self.f_ref})"
 
 
+@register("IMRPhenomXAS_NRTidalv3", domain="FD", is_tidal=True, is_precessing=False)
 class IMRPhenomXAS_NRTidalv3(Waveform):
     """IMRPhenomXAS_NRTidalv3 frequency-domain waveform (non-precessing, NRTidalv3 tides).
 
@@ -592,6 +600,7 @@ class IMRPhenomXAS_NRTidalv3(Waveform):
         return f"IMRPhenomXAS_NRTidalv3(f_ref={self.f_ref})"
 
 
+@register("IMRPhenomXHM", domain="FD", is_tidal=False, is_precessing=False)
 class IMRPhenomXHM(Waveform):
     """IMRPhenomXHM frequency-domain waveform (aligned spins, higher-order modes).
 
@@ -655,6 +664,7 @@ class IMRPhenomXHM(Waveform):
         return f"IMRPhenomXHM(f_ref={self.f_ref})"
 
 
+@register("IMRPhenomXP", domain="FD", is_tidal=False, is_precessing=True)
 class IMRPhenomXP(Waveform):
     """IMRPhenomXP frequency-domain waveform (precessing spins, 22-mode only).
 
@@ -725,6 +735,7 @@ class IMRPhenomXP(Waveform):
         return f"IMRPhenomXP(f_ref={self.f_ref})"
 
 
+@register("IMRPhenomXPHM", domain="FD", is_tidal=False, is_precessing=True)
 class IMRPhenomXPHM(Waveform):
     """IMRPhenomXPHM frequency-domain waveform (precessing spins, higher-order modes).
 
@@ -794,6 +805,7 @@ class IMRPhenomXPHM(Waveform):
         return f"IMRPhenomXPHM(f_ref={self.f_ref})"
 
 
+@register("SineGaussian", domain="TD", is_tidal=False, is_precessing=False)
 class SineGaussian(Waveform):
     """Sine-Gaussian time-domain burst waveform."""
 
@@ -837,18 +849,9 @@ class SineGaussian(Waveform):
 
 
 #: Mapping from model name strings to ``Waveform`` subclasses.
-#: Useful for selecting waveform models by name at runtime, e.g. from a
-#: configuration file.
-waveform_preset: dict[str, type[Waveform]] = {
-    "TaylorF2": TaylorF2,
-    "IMRPhenomD": IMRPhenomD,
-    "IMRPhenomD_NRTidalv2": IMRPhenomD_NRTidalv2,
-    "IMRPhenomHM": IMRPhenomHM,
-    "IMRPhenomPv2": IMRPhenomPv2,
-    "IMRPhenomXAS": IMRPhenomXAS,
-    "IMRPhenomXAS_NRTidalv3": IMRPhenomXAS_NRTidalv3,
-    "IMRPhenomXHM": IMRPhenomXHM,
-    "IMRPhenomXP": IMRPhenomXP,
-    "IMRPhenomXPHM": IMRPhenomXPHM,
-    "SineGaussian": SineGaussian,
-}
+#:
+#: This is an alias of the global :data:`ripplegw.registry.WAVEFORM_REGISTRY`,
+#: which every model populates via the :func:`~ripplegw.registry.register`
+#: decorator at class-definition time. Retained under this name for backward
+#: compatibility; prefer :func:`ripplegw.waveform` / :func:`ripplegw.list_waveforms`.
+waveform_preset: dict[str, type[Waveform]] = WAVEFORM_REGISTRY
