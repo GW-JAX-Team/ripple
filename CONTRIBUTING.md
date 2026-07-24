@@ -68,10 +68,12 @@ IMRPhenom/CBC models.
     to `ripplegw.waveform(...)`. Metadata keys are free-form and are used by
     `ripplegw.list_waveforms(**filters)` / `ripplegw.get_waveform_metadata(name)`
     (`domain` is the conventional one; `is_tidal`/`is_precessing` are CBC tags).
-- `src/ripplegw/waveforms/__init__.py` — nothing required if the module is
-  imported at package import; if you add a brand-new module, make sure it is
-  imported so its `@register` runs (the package `__init__` imports the family
-  modules).
+- `src/ripplegw/waveforms/__init__.py` — nothing required: it auto-imports every
+  non-private submodule at package import, so a new `NewWaveform.py` self-
+  registers with no edit here. Because the module is imported at
+  `import ripplegw`, keep import-time work cheap — defer heavy data loading or
+  optional third-party imports to `__init__`/first use (or ship the family as a
+  plugin package, below), so importing ripple stays fast and dependency-light.
 - `README.md` and `docs/index.md` — add `NewWaveform` to the list of supported
   approximants.
 - `src/ripplegw/benchmarks/timings/timing.py` and `timings/submit_*.sh` — add

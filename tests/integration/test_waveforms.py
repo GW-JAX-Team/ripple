@@ -800,26 +800,34 @@ class TestSineGaussian:
         assert_approx_td_valid(model(edge_time_grid, params), edge_time_grid)
 
 
+#: Built-in models this repo ships. The registry may also hold externally
+#: installed plugins / non-CBC families with different constructors, so tests
+#: that assume the ``f_ref`` constructor iterate only these.
+BUILTIN_WAVEFORMS = {
+    "TaylorF2",
+    "IMRPhenomD",
+    "IMRPhenomD_NRTidalv2",
+    "IMRPhenomHM",
+    "IMRPhenomPv2",
+    "IMRPhenomXAS",
+    "IMRPhenomXAS_NRTidalv3",
+    "IMRPhenomXHM",
+    "IMRPhenomXP",
+    "IMRPhenomXPHM",
+    "SineGaussian",
+}
+
+
 class TestWaveformPreset:
     def test_all_keys_present(self):
-        expected = {
-            "TaylorF2",
-            "IMRPhenomD",
-            "IMRPhenomD_NRTidalv2",
-            "IMRPhenomHM",
-            "IMRPhenomPv2",
-            "IMRPhenomXAS",
-            "IMRPhenomXAS_NRTidalv3",
-            "IMRPhenomXHM",
-            "IMRPhenomXP",
-            "IMRPhenomXPHM",
-            "SineGaussian",
-        }
         # Subset (not equality): the registry may also contain externally
         # installed waveform plugins discovered via entry points.
-        assert expected <= set(waveform_preset.keys())
+        assert BUILTIN_WAVEFORMS <= set(waveform_preset.keys())
 
     def test_all_instantiable(self):
-        for name, cls in waveform_preset.items():
+        # Only the built-ins are assumed to take the CBC ``f_ref`` constructor;
+        # plugins / non-CBC families are out of scope for this assumption.
+        for name in BUILTIN_WAVEFORMS:
+            cls = waveform_preset[name]
             instance = cls() if name == "SineGaussian" else cls(f_ref=20.0)
             assert callable(instance), f"{name} instance is not callable"
