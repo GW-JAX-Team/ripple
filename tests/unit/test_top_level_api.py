@@ -228,11 +228,62 @@ def test_intree_registration_wins_over_plugin(registry_sandbox, monkeypatch):
     assert reg.WAVEFORM_REGISTRY["IMRPhenomD"] is ripplegw.IMRPhenomD
 
 
-def test_plugin_rejects_non_waveform(registry_sandbox, monkeypatch):
-    _patch_entry_points(monkeypatch, [_FakeEP("BadPlugin", object)])
+def test_bad_plugin_is_skipped_not_fatal(registry_sandbox, monkeypatch):
+    # One broken plugin must not hide the valid ones, and must not poison
+    # discovery for the rest of the process.
+    _patch_entry_points(
+        monkeypatch,
+        [_FakeEP("BadPlugin", object), _FakeEP("GoodPlugin", _ToyBurst)],
+    )
     reg._PLUGINS_LOADED = False
-    with pytest.raises(TypeError, match="subclasses of"):
+    with pytest.warns(RuntimeWarning, match="BadPlugin"):
         reg.load_plugins()
+    assert "BadPlugin" not in reg.WAVEFORM_REGISTRY
+    assert reg.WAVEFORM_REGISTRY.get("GoodPlugin") is _ToyBurst
+
+
+# --- metadata --------------------------------------------------------------
+
+
+def test_get_waveform_metadata():
+    md = ripplegw.get_waveform_metadata("IMRPhenomXP")
+    assert md["domain"] == "FD"
+    assert md["is_precessing"] is True
+    # returns a copy; mutating it must not affect the registry
+    md["is_precessing"] = False
+    assert ripplegw.get_waveform_metadata("IMRPhenomXP")["is_precessing"] is True
+
+
+def test_get_waveform_metadata_unknown_raises():
+    with pytest.raises(ValueError, match="Unknown waveform"):
+        ripplegw.get_waveform_metadata("Nope")
+
+
+def test_metadata_does_not_clobber_real_attributes(registry_sandbox):
+    # A metadata key colliding with a real API member must not overwrite it.
+    @ripplegw.register("Sneaky", parameter_names="oops", domain="TD")
+    class Sneaky(_ToyBurst):
+        pass
+
+    wf = ripplegw.waveform("Sneaky")
+    assert wf.parameter_names == ("f0", "width")  # real property intact
+    assert ripplegw.get_waveform_metadata("Sneaky")["parameter_names"] == "oops"
+
+
+# --- backward-compat via ripplegw.interfaces (PEP 562) ---------------------
+
+
+def test_legacy_interfaces_class_import():
+    from ripplegw.interfaces import IMRPhenomD as FromInterfaces
+
+    assert FromInterfaces is ripplegw.IMRPhenomD
+
+
+def test_legacy_interfaces_unknown_attr_raises():
+    import ripplegw.interfaces as ifaces
+
+    with pytest.raises(AttributeError):
+        ifaces.DefinitelyNotAWaveform
 
 
 # --- ABC contract ------------------------------------------------------------

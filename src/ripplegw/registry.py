@@ -18,8 +18,9 @@ never editing this file.
 
 from __future__ import annotations
 
+import warnings
 from importlib.metadata import entry_points
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from ripplegw.interfaces import Waveform
@@ -29,6 +30,7 @@ __all__ = [
     "register",
     "waveform",
     "list_waveforms",
+    "get_waveform_metadata",
     "load_plugins",
 ]
 
@@ -42,18 +44,22 @@ def register(name: str | None = None, *, override: bool = False, **metadata):
     """Class decorator registering a ``Waveform`` subclass under ``name``.
 
     Any keyword ``metadata`` (e.g. ``domain="FD"``, ``is_tidal=False``,
-    ``is_precessing=False``) is attached to the class as attributes, so family
-    properties live declaratively at the definition site — a single source of
-    truth for both :func:`list_waveforms` filtering and the test suite.
+    ``is_precessing=False``) is recorded in the class's ``waveform_metadata``
+    dict — a single declarative source of truth for :func:`list_waveforms`
+    filtering and :func:`get_waveform_metadata`. Metadata is stored in this
+    dedicated container rather than as free attributes, so it can never shadow
+    real API members (``parameter_names``, ``__call__``, future base fields).
+    Each class gets its own dict, inheriting any metadata declared on a base.
 
     Args:
         name (str | None): Registry key. Defaults to the class ``__name__``.
         override (bool): If False (default), re-registering an existing name
             raises; pass True to replace intentionally.
-        **metadata: Class attributes to set (``domain``, ``is_tidal``, ...).
+        **metadata: Descriptive tags (``domain``, ``is_tidal``, ...). Arbitrary
+            keys are allowed so new families can add their own.
 
     Returns:
-        The decorator, which returns the class unchanged (besides metadata).
+        The decorator, which returns the class unchanged.
     """
 
     def deco(cls):
@@ -64,8 +70,9 @@ def register(name: str | None = None, *, override: bool = False, **metadata):
                 f"Waveform {key!r} is already registered to "
                 f"{WAVEFORM_REGISTRY[key]!r}; pass override=True to replace it."
             )
-        for attr, value in metadata.items():
-            setattr(cls, attr, value)
+        inherited = dict(getattr(cls, "waveform_metadata", {}) or {})
+        inherited.update(metadata)
+        cls.waveform_metadata = inherited
         WAVEFORM_REGISTRY[key] = cls
         return cls
 
@@ -109,12 +116,14 @@ def waveform(name: str, /, **config) -> "Waveform":
 
 
 def list_waveforms(**filters) -> list[str]:
-    """List registered waveform names, optionally filtered by class metadata.
+    """List registered waveform names, optionally filtered by metadata.
 
     Args:
-        **filters: Metadata attribute constraints, e.g. ``domain="FD"`` or
-            ``is_precessing=True``. A model matches only if it defines every
-            requested attribute with the requested value.
+        **filters: Constraints on ``waveform_metadata``, e.g. ``domain="FD"`` or
+            ``is_precessing=True``. A model matches only if its metadata defines
+            every requested key with the requested value. Unknown/typo'd keys
+            simply match nothing; use :func:`get_waveform_metadata` to inspect
+            available keys.
 
     Returns:
         list[str]: Sorted matching names.
@@ -123,8 +132,33 @@ def list_waveforms(**filters) -> list[str]:
     return sorted(
         nm
         for nm, cls in WAVEFORM_REGISTRY.items()
-        if all(getattr(cls, key, None) == val for key, val in filters.items())
+        if all(
+            getattr(cls, "waveform_metadata", {}).get(key) == val
+            for key, val in filters.items()
+        )
     )
+
+
+def get_waveform_metadata(name: str) -> dict[str, Any]:
+    """Return a copy of the descriptive metadata for a registered waveform.
+
+    Args:
+        name (str): A registered model name.
+
+    Returns:
+        dict[str, Any]: The model's metadata (e.g. ``{"domain": "FD", ...}``).
+
+    Raises:
+        ValueError: If ``name`` is not registered.
+    """
+    load_plugins()
+    try:
+        cls = WAVEFORM_REGISTRY[name]
+    except KeyError:
+        raise ValueError(
+            f"Unknown waveform {name!r}. Available: {sorted(WAVEFORM_REGISTRY)}"
+        ) from None
+    return dict(getattr(cls, "waveform_metadata", {}))
 
 
 _PLUGINS_LOADED = False
@@ -134,18 +168,31 @@ def load_plugins() -> None:
     """Discover external waveform families via entry points (idempotent).
 
     Any installed package exposing the ``"ripplegw.waveforms"`` entry-point
-    group contributes ``name -> Waveform subclass`` mappings, so a
+    group contributes ``name -> Waveform subclass`` mappings (the entry-point
+    value must load to a :class:`~ripplegw.interfaces.Waveform` subclass), so a
     ``pip install`` makes the model available through :func:`waveform` with no
     edits to ripple. In-tree registrations take precedence over plugins of the
     same name.
+
+    A misbehaving plugin (fails to load, or is not a ``Waveform`` subclass) is
+    skipped with a warning rather than aborting discovery, so one bad plugin
+    cannot hide the others. Discovery is marked complete only after a full pass.
     """
     global _PLUGINS_LOADED
     if _PLUGINS_LOADED:
         return
-    _PLUGINS_LOADED = True
     for ep in entry_points(group="ripplegw.waveforms"):
         if ep.name in WAVEFORM_REGISTRY:
             continue  # in-tree registration wins over a same-named plugin
-        cls = ep.load()
-        _check_is_waveform(cls)
+        try:
+            cls = ep.load()
+            _check_is_waveform(cls)
+        except Exception as exc:  # noqa: BLE001 - isolate one bad plugin
+            warnings.warn(
+                f"Skipping waveform plugin {ep.name!r}: {exc}",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            continue
         WAVEFORM_REGISTRY[ep.name] = cls
+    _PLUGINS_LOADED = True

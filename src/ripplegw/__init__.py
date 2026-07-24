@@ -23,6 +23,7 @@ from ripplegw.waveforms.IMRPhenomXPHM import IMRPhenomXPHM
 from ripplegw.waveforms.SineGaussian import SineGaussian
 from ripplegw.registry import (
     WAVEFORM_REGISTRY,
+    get_waveform_metadata,
     list_waveforms,
     register,
     waveform,
@@ -47,5 +48,6 @@ __all__ = [
     "WAVEFORM_REGISTRY",
     "waveform",
     "list_waveforms",
+    "get_waveform_metadata",
     "register",
 ]
