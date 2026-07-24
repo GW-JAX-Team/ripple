@@ -724,4 +724,7 @@ class IMRPhenomD_NRTidalv2(Waveform):
         return {"p": hp, "c": hc}
 
     def __repr__(self):
-        return f"IMRPhenomD_NRTidalv2(f_ref={self.f_ref})"
+        return (
+            f"IMRPhenomD_NRTidalv2(f_ref={self.f_ref}, "
+            f"use_lambda_tildes={self.use_lambda_tildes}, no_taper={self.no_taper})"
+        )
