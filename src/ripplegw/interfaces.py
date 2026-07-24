@@ -17,9 +17,24 @@ class Waveform(ABC):
     """Abstract base class for gravitational waveform models.
 
     Subclasses implement the frequency- (or time-) domain waveform and expose it
-    via ``__call__``, returning a dictionary with polarization keys ``"p"`` (plus)
-    and ``"c"`` (cross).
+    via ``__call__``, returning a dictionary keyed by polarization. The compact-
+    binary and burst models here use ``"p"`` (plus) and ``"c"`` (cross), but the
+    contract is deliberately generic: a model may return any set of polarization
+    keys (e.g. additional non-tensor modes) as long as ``__call__`` takes an
+    ``axis`` (frequency *or* time grid) and a ``params`` dict.
+
+    Metadata convention:
+        Concrete models declare descriptive class attributes so they can be
+        discovered and filtered generically via
+        :func:`ripplegw.list_waveforms`. ``domain`` (``"FD"`` / ``"TD"``) is
+        universal; families may attach any further tags (e.g. ``is_tidal``,
+        ``is_precessing`` for CBC) — these are optional and not assumed by the
+        top-level API. The :func:`ripplegw.register` decorator sets them.
     """
+
+    #: ``"FD"`` (frequency domain) or ``"TD"`` (time domain); ``None`` if unset.
+    #: Universal metadata read by :func:`ripplegw.list_waveforms`.
+    domain: str | None = None
 
     def __init__(self):
         pass

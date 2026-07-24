@@ -57,6 +57,7 @@ def register(name: str | None = None, *, override: bool = False, **metadata):
     """
 
     def deco(cls):
+        _check_is_waveform(cls)
         key = name or cls.__name__
         if key in WAVEFORM_REGISTRY and not override:
             raise ValueError(
@@ -69,6 +70,18 @@ def register(name: str | None = None, *, override: bool = False, **metadata):
         return cls
 
     return deco
+
+
+def _check_is_waveform(cls) -> None:
+    """Validate that ``cls`` is a ``Waveform`` subclass (imported lazily to
+    avoid an import cycle with :mod:`ripplegw.interfaces`)."""
+    from ripplegw.interfaces import Waveform
+
+    if not (isinstance(cls, type) and issubclass(cls, Waveform)):
+        raise TypeError(
+            f"Cannot register {cls!r}: waveforms must be subclasses of "
+            f"ripplegw.interfaces.Waveform."
+        )
 
 
 def waveform(name: str, /, **config) -> "Waveform":
@@ -131,4 +144,8 @@ def load_plugins() -> None:
         return
     _PLUGINS_LOADED = True
     for ep in entry_points(group="ripplegw.waveforms"):
-        WAVEFORM_REGISTRY.setdefault(ep.name, ep.load())
+        if ep.name in WAVEFORM_REGISTRY:
+            continue  # in-tree registration wins over a same-named plugin
+        cls = ep.load()
+        _check_is_waveform(cls)
+        WAVEFORM_REGISTRY[ep.name] = cls
