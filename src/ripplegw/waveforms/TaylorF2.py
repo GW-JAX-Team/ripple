@@ -3,6 +3,7 @@ This file implements the TaylorF2 waveform, as described in the LALSuite library
 """
 
 import jax.numpy as jnp
+from typing import Any, Mapping
 from ripplegw.interfaces import Waveform
 from ripplegw.registry import register
 from ripplegw.constants import EULERGAMMA, MTSUN, MPC, PI, MRSUN
@@ -550,7 +551,7 @@ class TaylorF2(Waveform):
         )
 
     def __call__(
-        self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
     ) -> dict[str, Complex[Array, " n_freq"]]:
         """Evaluate the TaylorF2 waveform.
 

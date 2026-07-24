@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from ripplegw.interfaces import Waveform
 from ripplegw.registry import register
 from ripplegw.conversions import Mc_eta_to_ms
-from typing import Any
+from typing import Any, Mapping
 import jax
 import jax.numpy as jnp
 from jax import Array
@@ -6820,7 +6820,7 @@ class IMRPhenomXHM(Waveform):
         )
 
     def __call__(
-        self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
     ) -> dict[str, Complex[Array, " n_freq"]]:
         """Evaluate the IMRPhenomXHM waveform.
 

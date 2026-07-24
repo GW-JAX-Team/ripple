@@ -6,48 +6,49 @@ except PackageNotFoundError:
     __version__ = "unknown"
 
 from ripplegw.interfaces import Waveform, waveform_preset
-
-# Importing each family module registers its Waveform subclass in the global
-# registry (via @register) and re-exports the class at the top level for
-# backward compatibility.
-from ripplegw.waveforms.TaylorF2 import TaylorF2
-from ripplegw.waveforms.IMRPhenomD import IMRPhenomD
-from ripplegw.waveforms.IMRPhenomD_NRTidalv2 import IMRPhenomD_NRTidalv2
-from ripplegw.waveforms.IMRPhenomHM import IMRPhenomHM
-from ripplegw.waveforms.IMRPhenomPv2 import IMRPhenomPv2
-from ripplegw.waveforms.IMRPhenomXAS import IMRPhenomXAS
-from ripplegw.waveforms.IMRPhenomXAS_NRTidalv3 import IMRPhenomXAS_NRTidalv3
-from ripplegw.waveforms.IMRPhenomXHM import IMRPhenomXHM
-from ripplegw.waveforms.IMRPhenomXP import IMRPhenomXP
-from ripplegw.waveforms.IMRPhenomXPHM import IMRPhenomXPHM
-from ripplegw.waveforms.SineGaussian import SineGaussian
 from ripplegw.registry import (
     WAVEFORM_REGISTRY,
     get_waveform_metadata,
     list_waveforms,
+    load_plugins,
     register,
     waveform,
 )
 
+# Importing the waveforms package auto-imports every in-tree family module,
+# each of which self-registers via @register. Then discover any externally
+# installed families exposed through the "ripplegw.waveforms" entry-point group.
+# Adding a family (in-tree module or plugin package) needs no edit here.
+from ripplegw import waveforms as _waveforms  # noqa: F401
+
+load_plugins()
+
+# Stable, family-agnostic public API. Concrete waveform classes are not listed
+# statically — they are resolved by name from the registry via ``__getattr__``
+# and appended to ``__all__`` below, so no family is hard-coded at the top level.
 __all__ = [
     "__version__",
     "Waveform",
-    "TaylorF2",
-    "IMRPhenomD",
-    "IMRPhenomD_NRTidalv2",
-    "IMRPhenomHM",
-    "IMRPhenomPv2",
-    "IMRPhenomXAS",
-    "IMRPhenomXAS_NRTidalv3",
-    "IMRPhenomXHM",
-    "IMRPhenomXP",
-    "IMRPhenomXPHM",
-    "SineGaussian",
-    "waveform_preset",
-    # top-level registry API
-    "WAVEFORM_REGISTRY",
     "waveform",
     "list_waveforms",
     "get_waveform_metadata",
     "register",
+    "waveform_preset",
+    "WAVEFORM_REGISTRY",
 ]
+
+# Expose registered model names for ``from ripplegw import *`` and ``dir()``.
+__all__ += sorted(WAVEFORM_REGISTRY)  # pyright: ignore[reportUnsupportedDunderAll]
+
+
+def __getattr__(name):
+    """Resolve registered waveform classes by name (e.g.
+    ``from ripplegw import IMRPhenomD``) without hard-coding any family."""
+    cls = WAVEFORM_REGISTRY.get(name)
+    if cls is not None:
+        return cls
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__():
+    return sorted(set(globals()) | set(__all__))

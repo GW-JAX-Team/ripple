@@ -1,5 +1,6 @@
 # from math import PI
 import jax
+from typing import Any, Mapping
 from ripplegw.interfaces import Waveform
 from ripplegw.registry import register
 from ripplegw.conversions import Mc_eta_to_ms
@@ -1583,7 +1584,7 @@ class IMRPhenomXAS(Waveform):
         )
 
     def __call__(
-        self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
     ) -> dict[str, Complex[Array, " n_freq"]]:
         """Evaluate the IMRPhenomXAS waveform.
 

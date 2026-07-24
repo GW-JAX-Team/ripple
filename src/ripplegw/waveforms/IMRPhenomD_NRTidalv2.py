@@ -9,7 +9,7 @@ import jax.numpy as jnp
 from ripplegw.constants import MTSUN, MPC, PI, TWO_PI, MRSUN
 from jaxtyping import Array, Float, Complex
 from ripplegw.typing import FloatLike
-from typing import Optional
+from typing import Any, Mapping, Optional
 from ripplegw.conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from ripplegw.waveforms.IMRPhenom_tidal_utils import get_quadparam_octparam, get_kappa
 from ripplegw.waveforms.IMRPhenomD import (
@@ -679,7 +679,7 @@ class IMRPhenomD_NRTidalv2(Waveform):
         )
 
     def __call__(
-        self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
     ) -> dict[str, Complex[Array, " n_freq"]]:
         """Evaluate the IMRPhenomD_NRTidalv2 waveform.
 

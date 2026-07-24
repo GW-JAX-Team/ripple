@@ -815,7 +815,9 @@ class TestWaveformPreset:
             "IMRPhenomXPHM",
             "SineGaussian",
         }
-        assert expected == set(waveform_preset.keys())
+        # Subset (not equality): the registry may also contain externally
+        # installed waveform plugins discovered via entry points.
+        assert expected <= set(waveform_preset.keys())
 
     def test_all_instantiable(self):
         for name, cls in waveform_preset.items():

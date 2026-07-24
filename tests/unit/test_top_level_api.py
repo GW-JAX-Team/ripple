@@ -286,6 +286,20 @@ def test_legacy_interfaces_unknown_attr_raises():
         ifaces.DefinitelyNotAWaveform
 
 
+# --- no hard-coded family list at the top level -----------------------------
+
+
+def test_top_level_resolves_classes_dynamically():
+    # Classes are resolved from the registry, not a hard-coded import list.
+    assert ripplegw.IMRPhenomD is ripplegw.WAVEFORM_REGISTRY["IMRPhenomD"]
+    assert BUILTINS <= set(ripplegw.__all__)  # star-import exposes them too
+
+
+def test_top_level_unknown_attr_raises():
+    with pytest.raises(AttributeError):
+        ripplegw.DefinitelyNotAWaveform
+
+
 # --- ABC contract ------------------------------------------------------------
 
 

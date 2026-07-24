@@ -3,7 +3,7 @@ from ripplegw.interfaces import Waveform
 from ripplegw.registry import register
 from ripplegw.conversions import Mc_eta_to_ms
 import jax.numpy as jnp
-from typing import Any
+from typing import Any, Mapping
 from ripplegw.constants import PI, MSUN, MTSUN, MRSUN, MPC
 from jaxtyping import Array, Float, Integer, Complex
 from ripplegw.typing import FloatLike
@@ -1059,7 +1059,7 @@ class IMRPhenomHM(Waveform):
         )
 
     def __call__(
-        self, frequency: Float[Array, " n_freq"], params: dict[str, Float]
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
     ) -> dict[str, Complex[Array, " n_freq"]]:
         output = {}
         m1, m2 = Mc_eta_to_ms(jnp.array([params["M_c"], params["eta"]]))
