@@ -12,12 +12,11 @@ uv sync --group test --group doc
 uv run pre-commit install
 ```
 
-If you're unsure whether a feature fits ripple's scope, open an issue first — see [Contributing](../contributing.md) for the three principles new features are expected to follow (JIT-friendliness, modular implementation, machine-precision agreement with any LAL counterpart or a written explanation of the discrepancy).
+If you're unsure whether a feature fits ripple's scope, open an issue first — see [Contributing](../contributing.md) for the principles new features are expected to follow (JIT-friendliness, modular implementation, machine-precision agreement with any LAL counterpart or a written explanation of the discrepancy).
 
 ## 2. Where it lives
 
-New waveforms are added in-tree: the model lives in `src/ripplegw/waveforms/`, sharing the
-`Waveform` + `@register` contract described below.
+New waveforms are added in-tree: the model lives in `src/ripplegw/waveforms/`, and implements the `Waveform` interface with `@register` as described below.
 
 ## 3. Choose the subpackage
 
@@ -44,10 +43,12 @@ If it's a genuinely new family, create a new subpackage — it needs nothing but
 No imports, no `__all__`.
 Auto-discovery (below) finds it on its own.
 
-## 4. The three-part module shape
+## 4. A common module shape
 
-Every model follows the same shape.
-The complete reference is [`src/ripplegw/waveforms/burst/SineGaussian.py`](https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/burst/SineGaussian.py) (129 lines — read the whole file, it's the simplest complete example in the repo):
+Your class only has to implement the `Waveform` interface correctly (steps 5–9) and register itself — internally, it can be structured however you like.
+In practice, every built-in model happens to follow the same shape below, mainly because it makes porting a LAL/lalinference implementation a direct line-by-line comparison.
+Use it unless you have a reason not to.
+The complete reference is [`src/ripplegw/waveforms/burst/SineGaussian.py`](https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/burst/SineGaussian.py) — read the whole file, it's the simplest complete example in the repo:
 
 **(a) A module-level generator function taking a positional, packed `theta` array** — this is the differentiable numerical core:
 
@@ -104,8 +105,8 @@ class SineGaussian(TimeDomainWaveform):
         return "SineGaussian()"
 ```
 
-!!! note "The core contract"
-    **Configuration** lives on `self`, set once at construction (`self.f_ref`, or nothing at all for `SineGaussian`).
+!!! note "Configuration vs. parameters"
+    **Configuration** lives on `self`, set once at construction (`self.f_ref`, or nothing at all for `SineGaussian`) — this is the one part that *is* required, regardless of internal structure.
     **Physics parameters** arrive fresh on every call, in the `params` mapping.
     Never read configuration out of `params`, and never accept physics parameters through `__init__`.
 
@@ -123,10 +124,10 @@ Two rules that are easy to get wrong:
 
 - `DistanceScaledWaveform` is a **bare mixin, not a `Waveform` subclass**.
   Inheriting only it is rejected by the registry with `TypeError` — always combine it with a domain base.
-  All 10 built-in models that have it put the domain base first and the mixin last: `class IMRPhenomD(AmplitudePhaseWaveform, DistanceScaledWaveform):`.
+  Every built-in model that has it puts the domain base first and the mixin last: `class IMRPhenomD(AmplitudePhaseWaveform, DistanceScaledWaveform):`.
 - `domain` metadata comes from the base class's `ClassVar`, **not** from `@register` — never pass `domain=` to the decorator.
 
-See the [Waveform Catalogue](../guides/catalogue.md) for how all 11 built-in models are classified — find the closest precedent to your model.
+See the [Waveform Catalogue](../guides/catalogue.md) for how the built-in models are classified — find the closest precedent to your model.
 
 ## 6. `parameter_names`
 
@@ -173,7 +174,7 @@ Practical consequences:
 - This cost is paid by every user of the package at import time.
   Keep it cheap — defer heavy data loading or optional third-party imports to `__init__`/first use.
 
-## 9. The return contract
+## 9. Return value
 
 `__call__` always returns a `dict`.
 The convention is `{"p": ..., "c": ...}` (plus/cross), though the base class permits any keys a model needs.
@@ -282,9 +283,8 @@ Then: `uv run ruff check src/`, `uv run pyright`, `uv run pre-commit run --all-f
 
 - **`README.md`** — its "Supported waveforms" list is a curated set of highlights, not exhaustive; update it only if your model represents a genuinely new capability.
   `docs/index.md` links to the [catalogue](../guides/catalogue.md) instead of listing models, so it needs no edit.
-- **`src/ripplegw/benchmarks/timings/timing.py`** — up to **three** separate lists, depending on your model: `choices=[...]` in `main()`'s argument parser (required for every model), `bns_waveforms` in `get_waveform_type()` if it's a tidal model, `precessing_waveforms` in `run_timing()` if it takes in-plane spins.
-  You may also need a new `_prepare_*_params` builder if your model's parameter set doesn't match an existing one.
-- **`timings/submit_slurm.sh`** and **`timings/submit_condor.sh`** — the `MODELS=(...)` array in each.
+- **Benchmarks** — usually nothing: `timing.py` and the two `timings/submit_*.sh` scripts all derive their model list from `ripplegw.list_waveforms(source_type="CBC")`, so a new CBC model is picked up automatically.
+  You'll only need to touch `timing.py` if your model's parameter set doesn't match an existing `_prepare_*_params` builder.
 - **[LAL Agreement](lal_agreement.md)** — add a row if you cross-validated against LALSuite; keep it in sync with `tests/cross_validation/tolerances.toml` (`cross_validation/test_tolerance_table.py` checks the two match).
 - **Jim** (separate repository, separate PR) — `src/jimgw/core/single_event/waveform.py`, `src/jimgw/cli/_waveform.py`, `src/jimgw/cli/_config.py`.
   See that repo's own `CONTRIBUTING.md`.

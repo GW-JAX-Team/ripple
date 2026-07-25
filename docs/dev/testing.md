@@ -21,7 +21,8 @@ uv run pytest -m accuracy --reference lal --n-samples 1000     # the real campai
 ```
 
 `cross_validation/test_reference_constants.py` sits outside this table on purpose.
-It compares numeric literals in `ripplegw.constants` against a reference backend, not waveform output, so it is cheap enough to run unconditionally wherever a backend happens to be installed -- it lives under `cross_validation/` because it is the one CI-tier test that touches a reference backend at all, and every file that does so is kept there. It contributes zero test cases, not a failure, when no backend is installed.
+It compares numeric literals in `ripplegw.constants` against a reference backend, not waveform output, so it is cheap enough to run unconditionally wherever a backend happens to be installed -- it lives under `cross_validation/` because it is the one CI-tier test that touches a reference backend at all, and every file that does so is kept there.
+It contributes zero test cases, not a failure, when no backend is installed.
 
 ## CI tier: `unit/` and `integration/`
 
