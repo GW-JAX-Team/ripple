@@ -14,15 +14,10 @@ uv run pre-commit install
 
 If you're unsure whether a feature fits ripple's scope, open an issue first — see [Contributing](../contributing.md) for the three principles new features are expected to follow (JIT-friendliness, modular implementation, machine-precision agreement with any LAL counterpart or a written explanation of the discrepancy).
 
-## 2. In-tree or plugin?
+## 2. Where it lives
 
-Two ways to add a waveform, sharing the identical `Waveform` + `@register` contract described below:
-
-- **In-tree** (this page): the model lives in `src/ripplegw/waveforms/`.
-  The right choice for anything without large data files or unusual optional dependencies.
-- **Plugin package**: a separate installable package that registers itself via an entry point, with zero edits to ripple.
-  The right choice for large or optional-data families (NR surrogates, anything needing a third-party dependency ripple shouldn't require).
-  See [Distributing a Waveform Plugin](plugins.md).
+New waveforms are added in-tree: the model lives in `src/ripplegw/waveforms/`, sharing the
+`Waveform` + `@register` contract described below.
 
 ## 3. Choose the subpackage
 
@@ -172,7 +167,7 @@ Practical consequences:
 - You never edit a central list — adding the file is the whole registration step.
 - A `_`-prefixed module or subpackage name is the escape hatch if you have a helper you don't want auto-imported.
 - This cost is paid by every user of the package at import time.
-  Keep it cheap — defer heavy data loading or optional third-party imports to `__init__`/first use, or ship as a [plugin](plugins.md) instead.
+  Keep it cheap — defer heavy data loading or optional third-party imports to `__init__`/first use.
 
 ## 9. The return contract
 

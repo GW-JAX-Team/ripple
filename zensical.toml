@@ -28,7 +28,6 @@ nav = [
         {"Architecture" = "dev/architecture.md"},
         {"Adding a Waveform" = "dev/adding_a_waveform.md"},
         {"Testing" = "dev/testing.md"},
-        {"Distributing a Waveform Plugin" = "dev/plugins.md"},
         {"LAL Agreement" = "dev/lal_agreement.md"},
     ]},
     {"FAQ" = "FAQ.md"},

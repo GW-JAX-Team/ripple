@@ -29,7 +29,7 @@ It compares numeric literals in `ripplegw.constants` against a reference backend
 
 These never evaluate against a reference implementation.
 `unit/` covers the registry, `ripplegw.conversions`, and the tolerance table itself.
-`integration/` is parametrized directly off `ripplegw.list_waveforms()`, so a newly registered model — in-tree or a third-party plugin — is covered the moment it appears, with no test-file edits:
+`integration/` is parametrized directly off `ripplegw.list_waveforms()`, so a newly registered model is covered the moment it appears, with no test-file edits:
 
 - `test_output_format.py` — output keys, shape, dtype, finiteness, `repr`, registry round-trip.
 - `test_transforms.py` — `jit` matches eager evaluation, `vmap` over a batch of parameters, `grad` is finite for every parameter.
@@ -65,7 +65,7 @@ On a cluster, `bash tests/cross_validation/submit_slurm.sh` or `bash tests/cross
 
 ### Adding a reference backend
 
-The comment in the issue that started this — "there is only LAL, but later on we may need other CPU-based comparisons for new waveform families" — is why this is a plugin point, not a hardcoded LAL call.
+The comment in the issue that started this — "there is only LAL, but later on we may need other CPU-based comparisons for new waveform families" — is why this is an extension point, not a hardcoded LAL call.
 A backend is a class in `tests/helpers/reference/` implementing the `ReferenceBackend` protocol:
 
 ```python

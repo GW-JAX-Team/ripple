@@ -34,7 +34,7 @@ Please follow these principles:
 
 If you are unsure whether a feature fits, open an issue first to discuss it with the maintainers.
 
-Adding a new waveform is the most common feature contribution — see the [Developer Guide](https://gw-jax-team.github.io/ripple/latest/dev/) for the architecture and a step-by-step walkthrough, including how to distribute a waveform as a separate plugin package instead of editing ripple directly.
+Adding a new waveform is the most common feature contribution — see the [Developer Guide](https://gw-jax-team.github.io/ripple/latest/dev/) for the architecture and a step-by-step walkthrough.
 
 ## Do you intend to add an example or tutorial?
 

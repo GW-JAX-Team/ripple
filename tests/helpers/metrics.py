@@ -1,7 +1,5 @@
 """Noise-weighted comparison metrics used by the cross-validation campaign."""
 
-from __future__ import annotations
-
 import jax.numpy as jnp
 from jax.scipy.integrate import trapezoid
 

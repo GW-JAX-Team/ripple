@@ -5,12 +5,14 @@ and register themselves with ``@register`` from ``ripplegw.registry``. Construct
 any model through ``ripplegw.waveform(name, **config)``.
 """
 
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
 from typing import Any, ClassVar, Mapping
 
 import jax.numpy as jnp
+from jax.typing import ArrayLike
+from jaxtyping import Array, Complex, Float
+
+StrainDict = dict[str, Float[Array, " n"] | Complex[Array, " n"]]
 
 
 class Waveform(ABC):
@@ -45,12 +47,13 @@ class Waveform(ABC):
         )
 
     @abstractmethod
-    def __call__(self, axis: Any, params: Mapping[str, Any]) -> dict[str, Any]:
+    def __call__(
+        self, axis: Float[Array, " n"], params: Mapping[str, ArrayLike]
+    ) -> StrainDict:
         """Evaluate the waveform.
 
         Args:
-            axis: Evaluation grid (a frequency or time array, or any structure
-                the model consumes).
+            axis: Evaluation grid (a frequency or time array).
             params: Source parameters, keyed by name.
 
         Returns:
@@ -82,16 +85,22 @@ class AmplitudePhaseWaveform(FrequencyDomainWaveform):
     """
 
     @abstractmethod
-    def amplitude(self, frequency: Any, params: Mapping[str, Any]) -> Any:
+    def amplitude(
+        self, frequency: Float[Array, " n"], params: Mapping[str, ArrayLike]
+    ) -> Float[Array, " n"]:
         """Amplitude of ``h0``, as a function of frequency. Includes distance scaling."""
         raise NotImplementedError
 
     @abstractmethod
-    def phase(self, frequency: Any, params: Mapping[str, Any]) -> Any:
+    def phase(
+        self, frequency: Float[Array, " n"], params: Mapping[str, ArrayLike]
+    ) -> Float[Array, " n"]:
         """Phase of ``h0``, as a function of frequency (the exponent in ``exp(1j * phase)``)."""
         raise NotImplementedError
 
-    def strain(self, frequency: Any, params: Mapping[str, Any]) -> Any:
+    def strain(
+        self, frequency: Float[Array, " n"], params: Mapping[str, ArrayLike]
+    ) -> Complex[Array, " n"]:
         """Pre-polarization strain: ``amplitude(f, params) * exp(1j * phase(f, params))``."""
         return self.amplitude(frequency, params) * jnp.exp(
             1j * self.phase(frequency, params)
@@ -108,6 +117,8 @@ class DistanceScaledWaveform:
     factoring distance out of a cached result.
     """
 
-    def at_unit_distance(self, axis: Any, params: Mapping[str, Any]) -> dict[str, Any]:
+    def at_unit_distance(
+        self, axis: Float[Array, " n"], params: Mapping[str, ArrayLike]
+    ) -> StrainDict:
         """Evaluate at ``d_L = 1`` Mpc; any ``d_L`` already in ``params`` is ignored."""
         return self(axis, {**params, "d_L": 1.0})  # type: ignore[attr-defined]

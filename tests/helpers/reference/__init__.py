@@ -7,8 +7,6 @@ backend is one file here plus a matching ``[<name>.<model>]`` block in
 ``tests/cross_validation/tolerances.toml`` -- no test file changes.
 """
 
-from __future__ import annotations
-
 from typing import ClassVar, Protocol, runtime_checkable
 
 import numpy as np

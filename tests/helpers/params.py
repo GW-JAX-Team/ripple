@@ -11,8 +11,6 @@ this file as the place to extend -- that is the entire test-side cost of
 adding a waveform with a genuinely new parameter.
 """
 
-from __future__ import annotations
-
 import jax.numpy as jnp
 import numpy as np
 

@@ -17,8 +17,6 @@ path:
   relation ripple assumes internally.
 """
 
-from __future__ import annotations
-
 import numpy as np
 
 from ripplegw.conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas

@@ -6,8 +6,6 @@ plugin -- a subdirectory conftest's options are invisible once the run is
 anchored at ``testpaths = ["tests"]``.
 """
 
-from __future__ import annotations
-
 from functools import cache
 
 import jax

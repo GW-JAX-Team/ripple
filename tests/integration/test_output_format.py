@@ -1,11 +1,8 @@
 """Every registered waveform: output shape/dtype/keys, repr, registry roundtrip.
 
 Parametrized directly off ``ripplegw.list_waveforms()`` -- a newly registered
-model (in-tree or third-party plugin) is covered the moment it appears, with
-no test-file edits.
+model is covered the moment it appears, with no test-file edits.
 """
-
-from __future__ import annotations
 
 import inspect
 

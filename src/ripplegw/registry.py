@@ -1,23 +1,16 @@
 """Top-level waveform registry.
 
 A single, family-agnostic entry point for constructing waveforms by name. Each
-``Waveform`` subclass registers itself with ``register`` — in-tree families are
-imported for their registration side-effect; external packages self-register
-via the ``"ripplegw.waveforms"`` entry-point group. Users then construct any
-model through ``waveform`` without importing the implementing module:
+``Waveform`` subclass registers itself with ``register``. Users then construct
+any model through ``waveform`` without importing the implementing module:
 
     import ripplegw
     wf = ripplegw.waveform("IMRPhenomXAS", f_ref=20.0)
     ripplegw.list_waveforms(domain="FD")
 
-Adding a family means adding a self-registering module (or installing a plugin
-package) — never editing this file.
+Adding a family means adding a self-registering module — never editing this file.
 """
 
-from __future__ import annotations
-
-import warnings
-from importlib.metadata import entry_points
 from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
@@ -27,14 +20,13 @@ __all__ = [
     "WAVEFORM_REGISTRY",
     "get_waveform_metadata",
     "list_waveforms",
-    "load_plugins",
     "register",
     "waveform",
 ]
 
 WAVEFORM_REGISTRY: dict[str, type["Waveform"]] = {}
 """Global name -> ``Waveform`` subclass registry, populated at import by
-``register`` (in-tree families) and ``load_plugins`` (external ones)."""
+``register``."""
 
 
 def register(name: Optional[str] = None, *, override: bool = False, **metadata):
@@ -103,7 +95,6 @@ def waveform(name: str, /, **config) -> "Waveform":
     Raises:
         ValueError: If ``name`` is not registered.
     """
-    load_plugins()
     try:
         cls = WAVEFORM_REGISTRY[name]
     except KeyError:
@@ -126,7 +117,6 @@ def list_waveforms(**filters) -> list[str]:
     Returns:
         Sorted matching names.
     """
-    load_plugins()
     return sorted(
         nm
         for nm, cls in WAVEFORM_REGISTRY.items()
@@ -149,7 +139,6 @@ def get_waveform_metadata(name: str) -> dict[str, Any]:
     Raises:
         ValueError: If ``name`` is not registered.
     """
-    load_plugins()
     try:
         cls = WAVEFORM_REGISTRY[name]
     except KeyError:
@@ -157,36 +146,3 @@ def get_waveform_metadata(name: str) -> dict[str, Any]:
             f"Unknown waveform {name!r}. Available: {sorted(WAVEFORM_REGISTRY)}"
         ) from None
     return dict(getattr(cls, "waveform_metadata", {}))
-
-
-_PLUGINS_LOADED = False
-
-
-def load_plugins() -> None:
-    """Discover external waveform families via entry points (idempotent).
-
-    Any installed package exposing the ``"ripplegw.waveforms"`` entry-point
-    group contributes ``name -> Waveform subclass`` mappings, so a ``pip
-    install`` makes the model available through ``waveform`` with no edits to
-    ripple. In-tree registrations take precedence over plugins of the same
-    name. A misbehaving plugin (fails to load, or is not a ``Waveform``
-    subclass) is skipped with a warning rather than aborting discovery.
-    """
-    global _PLUGINS_LOADED
-    if _PLUGINS_LOADED:
-        return
-    for ep in entry_points(group="ripplegw.waveforms"):
-        if ep.name in WAVEFORM_REGISTRY:
-            continue  # in-tree registration wins over a same-named plugin
-        try:
-            cls = ep.load()
-            _check_is_waveform(cls)
-        except Exception as exc:  # noqa: BLE001 - isolate one bad plugin
-            warnings.warn(
-                f"Skipping waveform plugin {ep.name!r}: {exc}",
-                RuntimeWarning,
-                stacklevel=2,
-            )
-            continue
-        WAVEFORM_REGISTRY[ep.name] = cls
-    _PLUGINS_LOADED = True

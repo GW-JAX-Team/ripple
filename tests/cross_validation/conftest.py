@@ -6,8 +6,6 @@ Per-sample data and run metadata are written by ``campaign.write_results``
 under ``--outdir``; this hook is display-only.
 """
 
-from __future__ import annotations
-
 import platform
 from datetime import datetime
 

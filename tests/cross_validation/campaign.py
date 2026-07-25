@@ -8,8 +8,6 @@ the test files is what keeps them short and keeps matplotlib an optional,
 ``--plots``-gated import.
 """
 
-from __future__ import annotations
-
 import json
 import os
 import platform

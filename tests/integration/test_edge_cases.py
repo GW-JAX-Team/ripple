@@ -2,8 +2,6 @@
 than by name -- a new tidal or precessing model is covered automatically.
 """
 
-from __future__ import annotations
-
 import jax
 import jax.numpy as jnp
 import pytest

@@ -23,16 +23,13 @@ This page explains *why* ripple is organised the way it is.
 Two submodules are user-facing but **not** re-exported at the top level — import them explicitly: `ripplegw.conversions` (mass and tidal-parameter conversions) and `ripplegw.constants` (physical constants).
 `ripplegw.typing` holds internal `jaxtyping` aliases.
 
-`load_plugins` is importable as `ripplegw.load_plugins` but is not listed in `__all__` — a known inconsistency (it's called automatically at import time, so there is rarely a reason to call it again).
-Don't document it as part of the stable public API.
-
 ## Source layout
 
 ```
 src/ripplegw/
   __init__.py       public API surface (see above)
   interfaces.py     the Waveform class hierarchy — no concrete-family knowledge
-  registry.py       WAVEFORM_REGISTRY, register(), waveform(), list_waveforms(), load_plugins()
+  registry.py       WAVEFORM_REGISTRY, register(), waveform(), list_waveforms()
   constants.py      physical constants
   conversions.py    mass / tidal parameter conversions
   typing.py         internal jaxtyping aliases
@@ -61,8 +58,6 @@ Registering an existing name without `override=True` raises `ValueError`.
 `list_waveforms(**filters)` returns every name whose metadata matches all the given filters (a typo'd filter key just matches nothing — there's no validation).
 `get_waveform_metadata(name)` returns a **copy** of a model's metadata dict, so callers can't mutate the registry by accident.
 
-`load_plugins()` reads the `"ripplegw.waveforms"` [entry-point group](plugins.md), is idempotent, lets in-tree registrations win over same-named plugins, and isolates a broken plugin with a warning rather than aborting discovery for the rest.
-
 ## Auto-discovery
 
 `waveforms/__init__.py` walks every module and subpackage under `waveforms/` with `pkgutil.walk_packages(..., onerror=_reraise)` and imports each one whose dotted path has **no leading-underscore component**.
@@ -72,7 +67,7 @@ Two consequences worth internalising:
 
 - A `_`-prefixed module or subpackage name is the escape hatch for something you don't want auto-imported.
 - This work happens at `import ripplegw`, so it's paid by every user of the package.
-  Keep import-time work cheap — defer heavy data loading or optional third-party imports to `__init__`/first use, or ship the family as a [plugin package](plugins.md) instead.
+  Keep import-time work cheap — defer heavy data loading or optional third-party imports to `__init__`/first use.
 - `onerror=_reraise` is deliberate: `pkgutil.walk_packages`'s default behaviour is to silently drop a subpackage that fails to import.
   Re-raising means a broken family fails loudly at `import ripplegw` instead of just vanishing from `list_waveforms()`.
 

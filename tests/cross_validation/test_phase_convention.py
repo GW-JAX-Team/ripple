@@ -12,8 +12,6 @@ Non-precessing models only: for a precessing model the global phase is
 entangled with the spin azimuthal angles and needs a separate analysis.
 """
 
-from __future__ import annotations
-
 import jax.numpy as jnp
 import pytest
 

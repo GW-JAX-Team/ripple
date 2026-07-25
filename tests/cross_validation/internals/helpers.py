@@ -18,8 +18,6 @@ the suite runs cleanly in environments that do not have lalsimulation
 installed.
 """
 
-from __future__ import annotations
-
 import numpy as np
 import pytest
 

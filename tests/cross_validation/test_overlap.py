@@ -9,8 +9,6 @@ campaign. See ``docs/dev/lal_agreement.md`` for the documented cause of every
 non-machine-precision threshold in ``tolerances.toml``.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import numpy as np

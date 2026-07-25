@@ -5,8 +5,6 @@ grids are centred at zero, matching the convention every ``TD`` model in
 ripple expects (see ``SineGaussian``).
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 
 import jax.numpy as jnp

@@ -1,7 +1,5 @@
 """jit / vmap / grad, exercised across every registered waveform."""
 
-from __future__ import annotations
-
 import jax
 import jax.numpy as jnp
 import pytest

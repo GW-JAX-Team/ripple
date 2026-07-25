@@ -1,11 +1,10 @@
 """Tests for the generic top-level waveform API (registry + factory).
 
 These exercise the family-agnostic surface — :func:`ripplegw.waveform`,
-:func:`ripplegw.list_waveforms`, :func:`ripplegw.register`, and entry-point
-plugin discovery — and, crucially, prove the API is future-proof for *any*
-waveform, not just the built-in Phenom CBC models: a toy non-CBC waveform with
-novel parameters and non-``{"p","c"}`` polarizations round-trips through the
-same top-level entry point.
+:func:`ripplegw.list_waveforms`, :func:`ripplegw.register` — and, crucially,
+prove the API is future-proof for *any* waveform, not just the built-in Phenom
+CBC models: a toy non-CBC waveform with novel parameters and non-``{"p","c"}``
+polarizations round-trips through the same top-level entry point.
 """
 
 import jax
@@ -36,16 +35,14 @@ BUILTINS = {
 
 @pytest.fixture
 def registry_sandbox():
-    """Snapshot and restore the global registry so tests that register or
-    discover plugins do not leak state into other tests."""
+    """Snapshot and restore the global registry so tests that register a
+    custom waveform do not leak state into other tests."""
     saved = dict(reg.WAVEFORM_REGISTRY)
-    saved_flag = reg._PLUGINS_LOADED
     try:
         yield reg
     finally:
         reg.WAVEFORM_REGISTRY.clear()
         reg.WAVEFORM_REGISTRY.update(saved)
-        reg._PLUGINS_LOADED = saved_flag
 
 
 # --- a toy, deliberately non-CBC waveform used to prove genericity -----------
@@ -178,59 +175,6 @@ def test_register_rejects_non_waveform(registry_sandbox):
 
     with pytest.raises(TypeError, match="subclasses of"):
         ripplegw.register("Bad")(NotAWaveform)
-
-
-# --- entry-point plugin discovery -------------------------------------------
-
-
-class _FakeEP:
-    def __init__(self, name, obj):
-        self.name = name
-        self._obj = obj
-
-    def load(self):
-        return self._obj
-
-
-def _patch_entry_points(monkeypatch, eps):
-    def fake_entry_points(*, group):
-        assert group == "ripplegw.waveforms"
-        return eps
-
-    monkeypatch.setattr(reg, "entry_points", fake_entry_points)
-
-
-def test_plugin_discovered_via_entry_point(registry_sandbox, monkeypatch):
-    _patch_entry_points(monkeypatch, [_FakeEP("PluginToy", _ToyBurst)])
-    reg._PLUGINS_LOADED = False
-
-    # discovery happens transparently through the public factory
-    wf = ripplegw.waveform("PluginToy", sampling_rate=8.0)
-    assert isinstance(wf, _ToyBurst)
-    assert "PluginToy" in ripplegw.list_waveforms()
-
-
-def test_intree_registration_wins_over_plugin(registry_sandbox, monkeypatch):
-    original_cls = reg.WAVEFORM_REGISTRY["IMRPhenomD"]
-    sentinel = _ToyBurst  # a same-named plugin must NOT replace the builtin
-    _patch_entry_points(monkeypatch, [_FakeEP("IMRPhenomD", sentinel)])
-    reg._PLUGINS_LOADED = False
-    reg.load_plugins()
-    assert reg.WAVEFORM_REGISTRY["IMRPhenomD"] is original_cls
-
-
-def test_bad_plugin_is_skipped_not_fatal(registry_sandbox, monkeypatch):
-    # One broken plugin must not hide the valid ones, and must not poison
-    # discovery for the rest of the process.
-    _patch_entry_points(
-        monkeypatch,
-        [_FakeEP("BadPlugin", object), _FakeEP("GoodPlugin", _ToyBurst)],
-    )
-    reg._PLUGINS_LOADED = False
-    with pytest.warns(RuntimeWarning, match="BadPlugin"):
-        reg.load_plugins()
-    assert "BadPlugin" not in reg.WAVEFORM_REGISTRY
-    assert reg.WAVEFORM_REGISTRY.get("GoodPlugin") is _ToyBurst
 
 
 # --- metadata --------------------------------------------------------------
