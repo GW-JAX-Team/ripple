@@ -49,7 +49,7 @@ def _ripple_fring_fdamp_hz(ell, m):
     return float(pWFHM.fRING) / M_s, float(pWFHM.fDAMP) / M_s
 
 
-@pytest.mark.parametrize("ell,m", XHM_MODES, ids=[f"{l}{m}" for l, m in XHM_MODES])
+@pytest.mark.parametrize("ell,m", XHM_MODES, ids=[f"{ell}{m}" for ell, m in XHM_MODES])
 def test_per_mode_fring_inside_band(ell, m):
     """Sanity-check that ripple's per-mode fRING is positive, finite,
     and falls inside a physically reasonable band (10 Hz – 2 kHz for
@@ -63,7 +63,7 @@ def test_per_mode_fring_inside_band(ell, m):
     assert 0.0 < fDAMP_Hz < fRING_Hz, f"({ell},{m}) fDAMP={fDAMP_Hz} Hz invalid"
 
 
-@pytest.mark.parametrize("ell,m", XHM_MODES, ids=[f"{l}{m}" for l, m in XHM_MODES])
+@pytest.mark.parametrize("ell,m", XHM_MODES, ids=[f"{ell}{m}" for ell, m in XHM_MODES])
 def test_lal_amp_finite_at_fring(ell, m):
     """LAL's amplitude must be finite & non-zero at ripple's fRING_lm.
 
