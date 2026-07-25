@@ -86,21 +86,21 @@ class AmplitudePhaseWaveform(FrequencyDomainWaveform):
 
     @abstractmethod
     def amplitude(
-        self, frequency: Float[Array, " n"], params: Mapping[str, ArrayLike]
-    ) -> Float[Array, " n"]:
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, ArrayLike]
+    ) -> Float[Array, " n_freq"]:
         """Amplitude of ``h0``, as a function of frequency. Includes distance scaling."""
         raise NotImplementedError
 
     @abstractmethod
     def phase(
-        self, frequency: Float[Array, " n"], params: Mapping[str, ArrayLike]
-    ) -> Float[Array, " n"]:
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, ArrayLike]
+    ) -> Float[Array, " n_freq"]:
         """Phase of ``h0``, as a function of frequency (the exponent in ``exp(1j * phase)``)."""
         raise NotImplementedError
 
     def strain(
-        self, frequency: Float[Array, " n"], params: Mapping[str, ArrayLike]
-    ) -> Complex[Array, " n"]:
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, ArrayLike]
+    ) -> Complex[Array, " n_freq"]:
         """Pre-polarization strain: ``amplitude(f, params) * exp(1j * phase(f, params))``."""
         return self.amplitude(frequency, params) * jnp.exp(
             1j * self.phase(frequency, params)
