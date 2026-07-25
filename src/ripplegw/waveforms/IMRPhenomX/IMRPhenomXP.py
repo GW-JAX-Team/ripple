@@ -1,11 +1,12 @@
 import jax
-from typing import Any, Mapping
+from typing import Mapping
 from ripplegw.interfaces import FrequencyDomainWaveform, DistanceScaledWaveform
 from ripplegw.registry import register
 from ripplegw.conversions import Mc_eta_to_ms
 import jax.numpy as jnp
 from jaxtyping import Array, Float, Complex
 from ripplegw.constants import PI, MTSUN, MRSUN, MPC
+from ripplegw.typing import FloatLike
 import ripplegw.waveforms.IMRPhenomX.LALSimIMRPhenomX_precession as pPrec
 from ripplegw.waveforms.IMRPhenomX.initialize_MSA_system import (
     IMRPhenomX_Initialize_MSA_System,
@@ -229,7 +230,7 @@ class IMRPhenomXP(FrequencyDomainWaveform, DistanceScaledWaveform):
         )
 
     def __call__(
-        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> dict[str, Complex[Array, " n_freq"]]:
         """Evaluate the IMRPhenomXP waveform.
 

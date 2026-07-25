@@ -1,5 +1,5 @@
 import jax
-from typing import Any, Mapping
+from typing import Mapping
 from ripplegw.interfaces import FrequencyDomainWaveform, DistanceScaledWaveform
 from ripplegw.registry import register
 from ripplegw.conversions import Mc_eta_to_ms
@@ -317,7 +317,7 @@ class IMRPhenomPv2(FrequencyDomainWaveform, DistanceScaledWaveform):
         )
 
     def __call__(
-        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> dict[str, Complex[Array, " n_freq"]]:
         """Evaluate the IMRPhenomPv2 waveform.
 

@@ -9,7 +9,7 @@ import jax.numpy as jnp
 from ripplegw.constants import MTSUN, MPC, PI, TWO_PI, MRSUN
 from jaxtyping import Array, Float, Complex
 from ripplegw.typing import FloatLike
-from typing import Any, Mapping, Optional
+from typing import Mapping, Optional
 from ripplegw.conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from ripplegw.utils.tidal import get_quadparam_octparam, get_kappa
 from ripplegw.waveforms.IMRPhenomD.IMRPhenomD import (
@@ -658,7 +658,7 @@ def gen_IMRPhenomD_NRTidalv2_hphc(
 
 
 def _split_params(
-    params: Mapping[str, Any], use_lambda_tildes: bool
+    params: Mapping[str, FloatLike], use_lambda_tildes: bool
 ) -> tuple[Float[Array, "6"], Float[Array, "3"]]:
     """Build ``(theta_intrinsic, theta_extrinsic)`` from a params mapping.
 
@@ -740,7 +740,7 @@ class IMRPhenomD_NRTidalv2(AmplitudePhaseWaveform, DistanceScaledWaveform):
         )
 
     def amplitude(
-        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> Float[Array, " n_freq"]:
         """Amplitude of ``h0``. Requires a grid with at least 2 uniformly spaced points."""
         theta_intrinsic, theta_extrinsic = _split_params(params, self.use_lambda_tildes)
@@ -752,7 +752,7 @@ class IMRPhenomD_NRTidalv2(AmplitudePhaseWaveform, DistanceScaledWaveform):
         )
 
     def phase(
-        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> Float[Array, " n_freq"]:
         """Phase of ``h0``. Forced to ``2*pi`` above the BBH baseline's high-frequency cutoff."""
         theta_intrinsic, theta_extrinsic = _split_params(params, self.use_lambda_tildes)
@@ -762,7 +762,7 @@ class IMRPhenomD_NRTidalv2(AmplitudePhaseWaveform, DistanceScaledWaveform):
         return _phase_of(frequency, theta_intrinsic, bbh_psi)
 
     def __call__(
-        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> dict[str, Complex[Array, " n_freq"]]:
         """Evaluate the IMRPhenomD_NRTidalv2 waveform.
 

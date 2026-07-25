@@ -6820,7 +6820,7 @@ class IMRPhenomXHM(FrequencyDomainWaveform, DistanceScaledWaveform):
         )
 
     def __call__(
-        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> dict[str, Complex[Array, " n_freq"]]:
         """Evaluate the IMRPhenomXHM waveform.
 

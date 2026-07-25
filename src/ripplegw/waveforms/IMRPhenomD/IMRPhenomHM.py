@@ -1063,7 +1063,7 @@ class IMRPhenomHM(FrequencyDomainWaveform, DistanceScaledWaveform):
         )
 
     def __call__(
-        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> dict[str, Complex[Array, " n_freq"]]:
         output = {}
         m1, m2 = Mc_eta_to_ms(jnp.array([params["M_c"], params["eta"]]))

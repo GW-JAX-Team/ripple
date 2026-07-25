@@ -1,5 +1,5 @@
 import jax
-from typing import Any, Mapping
+from typing import Mapping
 from ripplegw.interfaces import AmplitudePhaseWaveform, DistanceScaledWaveform
 from ripplegw.registry import register
 from ripplegw.conversions import Mc_eta_to_ms
@@ -737,7 +737,7 @@ def gen_IMRPhenomD_hphc(
 
 
 def _split_params(
-    params: Mapping[str, Any],
+    params: Mapping[str, FloatLike],
 ) -> tuple[Float[Array, "4"], Float[Array, "3"]]:
     """Build ``(theta_intrinsic, theta_extrinsic)`` from a params mapping.
 
@@ -780,7 +780,7 @@ class IMRPhenomD(AmplitudePhaseWaveform, DistanceScaledWaveform):
         )
 
     def amplitude(
-        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> Float[Array, " n_freq"]:
         """Amplitude of ``h0``. Requires a grid with at least 2 uniformly spaced points."""
         theta_intrinsic, theta_extrinsic = _split_params(params)
@@ -788,7 +788,7 @@ class IMRPhenomD(AmplitudePhaseWaveform, DistanceScaledWaveform):
         return _amplitude_of(frequency, theta_intrinsic, theta_extrinsic, coeffs)
 
     def phase(
-        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> Float[Array, " n_freq"]:
         """Phase of ``h0``. Forced to ``2*pi`` above the model's high-frequency cutoff."""
         theta_intrinsic, theta_extrinsic = _split_params(params)
@@ -798,7 +798,7 @@ class IMRPhenomD(AmplitudePhaseWaveform, DistanceScaledWaveform):
         )
 
     def __call__(
-        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> dict[str, Complex[Array, " n_freq"]]:
         """Evaluate the IMRPhenomD waveform.
 

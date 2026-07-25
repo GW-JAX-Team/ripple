@@ -9,8 +9,9 @@ from abc import ABC, abstractmethod
 from typing import Any, ClassVar, Mapping
 
 import jax.numpy as jnp
-from jax.typing import ArrayLike
 from jaxtyping import Array, Complex, Float
+
+from ripplegw.typing import FloatLike
 
 StrainDict = dict[str, Float[Array, " n"] | Complex[Array, " n"]]
 
@@ -48,7 +49,7 @@ class Waveform(ABC):
 
     @abstractmethod
     def __call__(
-        self, axis: Float[Array, " n"], params: Mapping[str, ArrayLike]
+        self, axis: Float[Array, " n"], params: Mapping[str, FloatLike]
     ) -> StrainDict:
         """Evaluate the waveform.
 
@@ -86,20 +87,20 @@ class AmplitudePhaseWaveform(FrequencyDomainWaveform):
 
     @abstractmethod
     def amplitude(
-        self, frequency: Float[Array, " n_freq"], params: Mapping[str, ArrayLike]
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> Float[Array, " n_freq"]:
         """Amplitude of ``h0``, as a function of frequency. Includes distance scaling."""
         raise NotImplementedError
 
     @abstractmethod
     def phase(
-        self, frequency: Float[Array, " n_freq"], params: Mapping[str, ArrayLike]
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> Float[Array, " n_freq"]:
         """Phase of ``h0``, as a function of frequency (the exponent in ``exp(1j * phase)``)."""
         raise NotImplementedError
 
     def strain(
-        self, frequency: Float[Array, " n_freq"], params: Mapping[str, ArrayLike]
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> Complex[Array, " n_freq"]:
         """Pre-polarization strain: ``amplitude(f, params) * exp(1j * phase(f, params))``."""
         return self.amplitude(frequency, params) * jnp.exp(
@@ -118,7 +119,7 @@ class DistanceScaledWaveform:
     """
 
     def at_unit_distance(
-        self, axis: Float[Array, " n"], params: Mapping[str, ArrayLike]
+        self, axis: Float[Array, " n"], params: Mapping[str, FloatLike]
     ) -> StrainDict:
         """Evaluate at ``d_L = 1`` Mpc; any ``d_L`` already in ``params`` is ignored."""
         return self(axis, {**params, "d_L": 1.0})  # type: ignore[attr-defined]

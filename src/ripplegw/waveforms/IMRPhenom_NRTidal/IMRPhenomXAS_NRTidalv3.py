@@ -1,11 +1,12 @@
 """by Robin Chan"""
 
 import jax
-from typing import Any, Mapping
+from typing import Mapping
 from ripplegw.interfaces import AmplitudePhaseWaveform, DistanceScaledWaveform
 from ripplegw.registry import register
 import jax.numpy as jnp
 from ripplegw.constants import MTSUN, PI
+from ripplegw.typing import FloatLike
 from jaxtyping import Array, Float, Complex
 from ripplegw.conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from ripplegw.utils.tidal import get_kappa
@@ -316,7 +317,7 @@ def gen_IMRPhenomXAS_NRTidalv3_hphc(
 
 
 def _split_params(
-    params: Mapping[str, Any], use_lambda_tildes: bool
+    params: Mapping[str, FloatLike], use_lambda_tildes: bool
 ) -> tuple[Float[Array, "6"], Float[Array, "3"]]:
     """Build ``(theta_intrinsic, theta_extrinsic)`` from a params mapping.
 
@@ -397,7 +398,7 @@ class IMRPhenomXAS_NRTidalv3(AmplitudePhaseWaveform, DistanceScaledWaveform):
         )
 
     def amplitude(
-        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> Float[Array, " n_freq"]:
         """Amplitude of ``h0``."""
         theta_intrinsic, theta_extrinsic = _split_params(params, self.use_lambda_tildes)
@@ -407,7 +408,7 @@ class IMRPhenomXAS_NRTidalv3(AmplitudePhaseWaveform, DistanceScaledWaveform):
         )
 
     def phase(
-        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> Float[Array, " n_freq"]:
         """Phase of ``h0``."""
         theta_intrinsic, theta_extrinsic = _split_params(params, self.use_lambda_tildes)
@@ -422,7 +423,7 @@ class IMRPhenomXAS_NRTidalv3(AmplitudePhaseWaveform, DistanceScaledWaveform):
         )
 
     def __call__(
-        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> dict[str, Complex[Array, " n_freq"]]:
         """Evaluate the IMRPhenomXAS_NRTidalv3 waveform.
 

@@ -1,5 +1,5 @@
 import jax.numpy as jnp
-from typing import Any, Mapping
+from typing import Mapping
 from ripplegw.interfaces import TimeDomainWaveform
 from ripplegw.registry import register
 from jax.lax import complex
@@ -98,7 +98,7 @@ class SineGaussian(TimeDomainWaveform):
         return ("Q", "f_0", "hrss", "phase", "e")
 
     def __call__(
-        self, t: Float[Array, " n_time"], params: Mapping[str, Any]
+        self, t: Float[Array, " n_time"], params: Mapping[str, FloatLike]
     ) -> dict[str, Float[Array, " n_time"]]:
         """Evaluate the SineGaussian waveform.
 
