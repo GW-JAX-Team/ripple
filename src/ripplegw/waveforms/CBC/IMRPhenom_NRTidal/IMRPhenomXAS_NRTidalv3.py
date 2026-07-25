@@ -10,10 +10,10 @@ from ripplegw.typing import FloatLike
 from jaxtyping import Array, Float, Complex
 from ripplegw.conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from ripplegw.utils.tidal import get_kappa
-from ripplegw.waveforms.IMRPhenom_NRTidal.IMRPhenomD_NRTidalv2 import (
+from ripplegw.waveforms.CBC.IMRPhenom_NRTidal.IMRPhenomD_NRTidalv2 import (
     get_tidal_amplitude,
 )  # Same between v2 and v3
-from ripplegw.waveforms.IMRPhenom_NRTidal.NRTidalv3_utils import (
+from ripplegw.waveforms.CBC.IMRPhenom_NRTidal.NRTidalv3_utils import (
     _get_merger_frequency,
     _get_phenomx_spin_coefficients,
     get_tidal_phase,
@@ -24,8 +24,8 @@ from ripplegw.waveforms.IMRPhenom_NRTidal.NRTidalv3_utils import (
     fullTidalPhaseCorrection,
     changePhase_if_min,
 )
-import ripplegw.waveforms.IMRPhenomX.IMRPhenomX_utils as IMRPhenomX_utils
-from ripplegw.waveforms.IMRPhenomX.IMRPhenomXAS import Amp, Phase, PhaseDerivative
+import ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomX_utils as IMRPhenomX_utils
+from ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomXAS import Amp, Phase, PhaseDerivative
 
 
 def _amplitude_of(

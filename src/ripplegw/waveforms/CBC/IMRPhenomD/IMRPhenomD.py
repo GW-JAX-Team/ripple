@@ -4,7 +4,7 @@ from ripplegw.interfaces import AmplitudePhaseWaveform, DistanceScaledWaveform
 from ripplegw.registry import register
 from ripplegw.conversions import Mc_eta_to_ms
 import jax.numpy as jnp
-from ripplegw.waveforms.IMRPhenomD.IMRPhenomD_utils import (
+from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_utils import (
     get_coeffs,
     get_delta0,
     get_delta1,
@@ -14,7 +14,7 @@ from ripplegw.waveforms.IMRPhenomD.IMRPhenomD_utils import (
     get_transition_frequencies,
 )
 
-from ripplegw.waveforms.IMRPhenomD.IMRPhenomD_QNMdata import fM_CUT
+from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_QNMdata import fM_CUT
 from ripplegw.constants import EULERGAMMA, MTSUN, MPC, C, PI
 from jaxtyping import Array, Float, Complex
 from ripplegw.typing import FloatLike

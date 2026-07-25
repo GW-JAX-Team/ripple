@@ -6,13 +6,13 @@ from ripplegw.conversions import Mc_eta_to_ms
 import jax.numpy as jnp
 
 from ripplegw.constants import MTSUN
-from ripplegw.waveforms.IMRPhenomD.IMRPhenomD import Phase as PhDPhase
-from ripplegw.waveforms.IMRPhenomD.IMRPhenomD import Amp as PhDAmp
-from ripplegw.waveforms.IMRPhenomD.IMRPhenomD_utils import get_coeffs
+from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD import Phase as PhDPhase
+from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD import Amp as PhDAmp
+from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_utils import get_coeffs
 
 from jaxtyping import Array, Float, Complex
 from ripplegw.typing import FloatLike
-from ripplegw.waveforms.IMRPhenomD.IMRPhenomPv2_utils import (
+from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomPv2_utils import (
     WignerdCoefficients,
     convert_spins,
     ComputeNNLOanglecoeffs,

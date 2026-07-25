@@ -3,8 +3,8 @@ import jax
 from jaxtyping import Array, Float
 from ripplegw.typing import FloatLike
 from ripplegw.constants import EULERGAMMA, MSUN, G, C
-from ripplegw.waveforms.IMRPhenomX.elliptic_integrals import ellint_F
-from ripplegw.waveforms.IMRPhenomX.elliptic_integrals import gsl_sf_elljac_e
+from ripplegw.waveforms.CBC.IMRPhenomX.elliptic_integrals import ellint_F
+from ripplegw.waveforms.CBC.IMRPhenomX.elliptic_integrals import gsl_sf_elljac_e
 
 
 # /** This function initializes all the core variables required for the MSA system. This will be called first. */

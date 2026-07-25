@@ -38,20 +38,24 @@ src/ripplegw/
     tidal.py
   waveforms/
     __init__.py     recursive auto-discovery (see below) — never edited when adding a family
-    IMRPhenomD/     IMRPhenomD, IMRPhenomPv2, IMRPhenomHM, and their private helpers
-    IMRPhenomX/     IMRPhenomXAS, IMRPhenomXHM, IMRPhenomXP, IMRPhenomXPHM, and their private helpers
-    IMRPhenom_NRTidal/  IMRPhenomD_NRTidalv2, IMRPhenomXAS_NRTidalv3
-    TaylorF2/       TaylorF2
+    CBC/            compact binary coalescence waveforms
+      IMRPhenomD/     IMRPhenomD, IMRPhenomPv2, IMRPhenomHM, and their private helpers
+      IMRPhenomX/     IMRPhenomXAS, IMRPhenomXHM, IMRPhenomXP, IMRPhenomXPHM, and their private helpers
+      IMRPhenom_NRTidal/  IMRPhenomD_NRTidalv2, IMRPhenomXAS_NRTidalv3
+      TaylorF2/       TaylorF2
     burst/          SineGaussian
 ```
 
-Subpackages under `waveforms/` are split by **lineage, not class name** — `IMRPhenomHM` and `IMRPhenomPv2` live under `IMRPhenomD/` because they build on the D baseline, not because their names start with "IMRPhenom".
+Subpackages under `waveforms/CBC/` are split by **lineage, not class name** — `IMRPhenomHM` and `IMRPhenomPv2` live under `IMRPhenomD/` because they build on the D baseline.
+Non-CBC source types (e.g. `burst/`) are direct children of `waveforms/`, not `CBC/`, since they don't share the CBC parameterisation.
+This isn't just a directory convention: `register()` infers `source_type` from `cls.__module__` (a class under `ripplegw.waveforms.CBC.*` gets `source_type="CBC"`, `ripplegw.waveforms.burst.*` gets `"burst"`, and so on) — the same pattern as `domain` (see below), so it's checkable at runtime via `get_waveform_metadata(name)["source_type"]` without every family needing to state it.
 Every subpackage `__init__.py` is a bare one-line docstring: zero imports, zero `__all__` — the subpackage doesn't need to know what's inside it.
 
 ## Registry mechanics
 
 `register(name=None, *, override=False, **metadata)` is a class decorator.
 It validates the class is a `Waveform` subclass, then merges `**metadata` onto a *copy* of whatever `waveform_metadata` the class already inherited from its base — which is how `domain` arrives without ever being passed to the decorator (see below) — and stores the result in `WAVEFORM_REGISTRY[name]`.
+If `source_type` isn't in `**metadata`, it's filled in from `cls.__module__` — a class under `ripplegw.waveforms.<type>.*` gets `source_type=<type>` for free; classes registered from outside `ripplegw.waveforms` entirely (e.g. user code) get no inferred value unless passed explicitly.
 Registering an existing name without `override=True` raises `ValueError`.
 
 `waveform(name, /, **config)` looks the class up and calls `cls(**config)`.

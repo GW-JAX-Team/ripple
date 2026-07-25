@@ -20,7 +20,7 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 import pytest
 
-from ripplegw.waveforms.IMRPhenomX.IMRPhenomXHM import xhm_set_waveform_variables
+from ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomXHM import xhm_set_waveform_variables
 from tests.cross_validation.internals.helpers import (
     FIDUCIAL_PARAMS,
     LAL_AVAILABLE,

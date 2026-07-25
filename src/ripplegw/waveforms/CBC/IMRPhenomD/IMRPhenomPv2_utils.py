@@ -2,14 +2,17 @@ import jax
 import jax.numpy as jnp
 
 from ripplegw.constants import MTSUN
-from ripplegw.waveforms.IMRPhenomD.IMRPhenomD_utils import (
+from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_utils import (
     EradRational0815,
     FinalSpin0815_s,
     _qnm_interp,
 )
 from jaxtyping import Array, Float, Complex
 from ripplegw.typing import FloatLike
-from ripplegw.waveforms.IMRPhenomD.IMRPhenomD_QNMdata import QNMData_fRD, QNMData_fdamp
+from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_QNMdata import (
+    QNMData_fRD,
+    QNMData_fdamp,
+)
 
 MAX_TOL_ATAN = 1.0e-15
 

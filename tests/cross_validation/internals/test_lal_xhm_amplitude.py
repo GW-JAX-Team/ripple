@@ -13,7 +13,7 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
-from ripplegw.waveforms.IMRPhenomX.IMRPhenomXHM import (
+from ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomXHM import (
     _compute_32_hlm,
     xhm_amp_noModeMixing,
     xhm_get_amp_coefficients,
@@ -68,7 +68,9 @@ def _ripple_amp_only(freqs_hz, ell, m, params=FIDUCIAL_PARAMS):
     if pWFHM.MixingOn:
         # 32 with mixing: amplitude is the magnitude of the complex hlm
         # before the (-1)^l and amp0 prefactors.
-        from ripplegw.waveforms.IMRPhenomX.IMRPhenomXHM import IMRPhenomX_TimeShift_22
+        from ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomXHM import (
+            IMRPhenomX_TimeShift_22,
+        )
 
         t0 = IMRPhenomX_TimeShift_22(pWF22)
         # phifRef does not affect the magnitude.

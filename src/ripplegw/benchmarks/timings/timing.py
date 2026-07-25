@@ -6,7 +6,6 @@ with various configurations including hardware selection and precision.
 """
 
 import argparse
-import inspect
 import json
 import logging
 import time
@@ -21,7 +20,6 @@ from ripplegw.conversions import ms_to_Mc_eta
 from ripplegw.benchmarks.utils import (
     generate_bbh_parameters,
     generate_bns_parameters,
-    generate_burst_parameters,
     get_device_name,
     get_git_hash,
 )
@@ -98,22 +96,9 @@ def _prepare_bns_params(params):
     }
 
 
-def _prepare_burst_params(params):
-    """Build a batched param dict for burst waveforms (SineGaussian).
-
-    ``generate_burst_parameters`` already returns exactly ``SineGaussian``'s
-    parameter names -- no mass/spin conversion applies to a burst model.
-    """
-    return dict(params)
-
-
 def _construct_waveform(name, f_ref):
-    """Construct a registered waveform, passing ``f_ref`` only if its
-    constructor accepts one -- burst models like SineGaussian take none."""
-    cls = ripplegw.WAVEFORM_REGISTRY[name]
-    if "f_ref" in inspect.signature(cls.__init__).parameters:
-        return ripplegw.waveform(name, f_ref=f_ref)
-    return ripplegw.waveform(name)
+    """Construct a registered CBC waveform. Every CBC model takes ``f_ref``."""
+    return ripplegw.waveform(name, f_ref=f_ref)
 
 
 def time_waveform(waveform, batched_params, config, domain="FD"):
@@ -124,8 +109,12 @@ def time_waveform(waveform, batched_params, config, domain="FD"):
         batched_params: Dict of JAX arrays, each of shape ``(n_waveforms,)``.
         config: Benchmark configuration dictionary.
         domain: ``"FD"`` builds a frequency grid from ``f_min``/``f_max``/``duration``;
-            ``"TD"`` builds a time grid centred at zero, sampled at ``2 * f_max`` Hz
-            over ``duration`` seconds (the same convention as ripple's own TD tests).
+            ``"TD"`` builds a time grid sampled at ``2 * f_max`` Hz, ending 2 seconds
+            after ``t=0`` (coalescence) rather than centred on it -- ``duration``
+            seconds of mostly-inspiral before merger, a couple seconds of
+            ringdown/buffer after, matching standard segment placement.
+            Every CBC model built into ripple today is FD, but CBC isn't defined by
+            domain -- a future time-domain CBC model is timed correctly too.
 
     Returns:
         tuple: ``(first_run_time, exec_times, effective_batch_size)`` where
@@ -134,11 +123,9 @@ def time_waveform(waveform, batched_params, config, domain="FD"):
     """
     if domain == "TD":
         f_sampling = 2.0 * config["maximum_frequency"]
-        f = jnp.arange(
-            -config["duration"] / 2, config["duration"] / 2, 1.0 / f_sampling
-        )
+        axis = jnp.arange(-config["duration"] + 2.0, 2.0, 1.0 / f_sampling)
     else:
-        f = jnp.arange(
+        axis = jnp.arange(
             config["minimum_frequency"],
             config["maximum_frequency"],
             1.0 / config["duration"],
@@ -147,7 +134,7 @@ def time_waveform(waveform, batched_params, config, domain="FD"):
     n_runs = config.get("n_runs", 5)
 
     def _make_batched(batch_size):
-        single = lambda p: waveform(f, p)
+        single = lambda p: waveform(axis, p)
         if batch_size is None:
             return jax.jit(jax.vmap(single))
         return jax.jit(lambda bp: jax.lax.map(single, bp, batch_size=batch_size))
@@ -254,12 +241,11 @@ def run_timing(args):
     is_precessing = metadata.get("is_precessing", False)
     config["domain"] = metadata["domain"]
 
-    if waveform_type == "burst":
-        params = generate_burst_parameters(args.n_waveforms)
-    elif waveform_type == "bns":
-        params = generate_bns_parameters(args.n_waveforms)
-    else:
-        params = generate_bbh_parameters(args.n_waveforms)
+    params = (
+        generate_bns_parameters(args.n_waveforms)
+        if waveform_type == "bns"
+        else generate_bbh_parameters(args.n_waveforms)
+    )
 
     logger.info("Generated %d parameter sets", args.n_waveforms)
     logger.info("Parameter keys: %s", list(params.keys()))
@@ -274,9 +260,6 @@ def run_timing(args):
     elif waveform_type == "bns":
         logger.info("Running BNS waveform timing benchmark (%s)...", args.waveform)
         batched_params = _prepare_bns_params(params)
-    elif waveform_type == "burst":
-        logger.info("Running burst waveform timing benchmark (%s)...", args.waveform)
-        batched_params = _prepare_burst_params(params)
     else:
         logger.info(
             "Running aligned-spin waveform timing benchmark (%s)...", args.waveform
@@ -357,14 +340,26 @@ def run_timing(args):
 
 
 def get_waveform_type(waveform):
-    """Determine the parameter shape a waveform needs: ``"bbh"``, ``"bns"``, or ``"burst"``.
+    """Determine the parameter shape a CBC waveform needs: ``"bbh"`` or ``"bns"``.
 
     Driven by the registry's own metadata rather than a hardcoded list, so a
-    newly registered model is timed correctly with no edits to this file.
+    newly registered CBC model is timed correctly with no edits to this file.
+
+    Raises:
+        ValueError: If ``waveform`` isn't a CBC model -- timing only supports
+            CBC waveforms, which share one parameterisation; other GW sources
+            (e.g. bursts, and eventually continuous waves) have their own and
+            aren't covered here. CBC models can be FD or TD -- domain doesn't
+            factor into this check; see ``time_waveform`` for the grid built
+            for each.
     """
     metadata = ripplegw.get_waveform_metadata(waveform)
-    if metadata["domain"] == "TD":
-        return "burst"
+    if metadata.get("source_type") != "CBC":
+        raise ValueError(
+            f"ripple-benchmark only times CBC waveforms (the shared "
+            f"M_c/eta/spins/d_L/phase_c/iota parameterisation); {waveform!r} "
+            f"has source_type={metadata.get('source_type')!r} and isn't supported."
+        )
     return "bns" if metadata.get("is_tidal") else "bbh"
 
 
@@ -378,8 +373,8 @@ def main():
     parser.add_argument(
         "waveform",
         type=str,
-        choices=sorted(ripplegw.list_waveforms()),
-        help="Waveform approximant to time",
+        choices=sorted(ripplegw.list_waveforms(source_type="CBC")),
+        help="CBC waveform approximant to time (non-CBC sources, e.g. bursts, aren't supported)",
     )
 
     parser.add_argument(

@@ -122,7 +122,7 @@ def lal_xhm_amplitude(freqs_hz, ell, m, params=FIDUCIAL_PARAMS):
 
 def ripple_pwf22(params=FIDUCIAL_PARAMS):
     """Return (pWF22, freqs_geom_factor M_s) for the fiducial parameters."""
-    from ripplegw.waveforms.IMRPhenomX.IMRPhenomXHM import build_pWF22
+    from ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomXHM import build_pWF22
 
     pWF22 = build_pWF22(
         params["m1"], params["m2"], params["chi1z"], params["chi2z"], params["f_ref"]
@@ -142,7 +142,7 @@ def region_masks(freqs_hz, ell, m, params=FIDUCIAL_PARAMS):
     inside ripple's per-mode pPhase/pAmp objects; we use the *amplitude*
     boundaries as a coarse proxy that works well enough to bisect.
     """
-    from ripplegw.waveforms.IMRPhenomX.IMRPhenomXHM import (
+    from ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomXHM import (
         build_pWF22,
         xhm_get_amp_coefficients,
         xhm_set_waveform_variables,

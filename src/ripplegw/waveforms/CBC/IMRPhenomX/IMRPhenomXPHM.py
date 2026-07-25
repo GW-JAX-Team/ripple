@@ -13,11 +13,11 @@ from ripplegw.utils.spherical_harmonics import (
     compute_sminus2_l4,
 )
 from dataclasses import dataclass
-import ripplegw.waveforms.IMRPhenomX.LALSimIMRPhenomX_precession as pPrec
-from ripplegw.waveforms.IMRPhenomX.initialize_MSA_system import (
+import ripplegw.waveforms.CBC.IMRPhenomX.LALSimIMRPhenomX_precession as pPrec
+from ripplegw.waveforms.CBC.IMRPhenomX.initialize_MSA_system import (
     IMRPhenomX_Initialize_MSA_System,
 )
-from ripplegw.waveforms.IMRPhenomX.IMRPhenomXHM import (
+from ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomXHM import (
     XLALSimIMRPhenomXHMGethlmModes,
     build_pWF22,
 )

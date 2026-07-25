@@ -5,7 +5,7 @@ from ripplegw.constants import MTSUN, PI, TWO_PI
 from jaxtyping import Array, Float
 from ripplegw.typing import FloatLike
 from ripplegw.utils.tidal import get_kappa, get_quadparam_octparam
-from ripplegw.waveforms.TaylorF2.TaylorF2 import (
+from ripplegw.waveforms.CBC.TaylorF2.TaylorF2 import (
     get_4PNQM2SCoeff,
     get_4PNQM2SOCoeff,
     get_6PNQM2SCoeff,

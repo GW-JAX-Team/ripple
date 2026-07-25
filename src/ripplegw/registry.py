@@ -60,11 +60,36 @@ def register(name: Optional[str] = None, *, override: bool = False, **metadata):
         # API members. Each class gets its own copy, inheriting the base's.
         inherited = dict(getattr(cls, "waveform_metadata", {}) or {})
         inherited.update(metadata)
+        if "source_type" not in inherited:
+            inferred = _infer_source_type(cls)
+            if inferred is not None:
+                inherited["source_type"] = inferred
         cls.waveform_metadata = inherited
         WAVEFORM_REGISTRY[key] = cls
         return cls
 
     return deco
+
+
+def _infer_source_type(cls) -> Optional[str]:
+    """Infer ``source_type`` from where ``cls`` is defined.
+
+    A class living in ``ripplegw.waveforms.<type>.*`` (e.g.
+    ``ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD``) gets ``source_type=<type>``
+    for free -- mirrors how ``domain`` is never passed to ``@register`` either,
+    it comes from the ``FrequencyDomainWaveform``/``TimeDomainWaveform`` base.
+    Classes registered from outside ``ripplegw.waveforms`` (e.g. user code
+    registering its own model) get no inferred value; pass ``source_type=``
+    to ``@register`` explicitly for those.
+    """
+    parts = cls.__module__.split(".")
+    try:
+        idx = parts.index("waveforms")
+    except ValueError:
+        return None
+    if idx + 1 >= len(parts):
+        return None
+    return parts[idx + 1]
 
 
 def _check_is_waveform(cls) -> None:

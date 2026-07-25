@@ -5,7 +5,7 @@ from ripplegw.typing import FloatLike
 
 from ripplegw.constants import MTSUN
 
-from ripplegw.waveforms.IMRPhenomD.IMRPhenomD_QNMdata import (
+from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_QNMdata import (
     QNMData_a,
     QNMData_fRD,
     QNMData_fdamp,

@@ -13,8 +13,10 @@ N_RUNS="50"
 
 PRECISIONS=("float32" "float64")
 # Registry-driven: whatever ripplegw.list_waveforms() reports, so a newly
-# registered model is picked up automatically with no edits to this script.
-MODELS=($(cd "${REPO_DIR}" && uv run python -c "import ripplegw; print(' '.join(sorted(ripplegw.list_waveforms())))"))
+# registered CBC model is picked up automatically with no edits to this
+# script. timing.py only supports CBC waveforms -- other
+# source types (e.g. burst) have their own parameterisation and would fail.
+MODELS=($(cd "${REPO_DIR}" && uv run python -c "import ripplegw; print(' '.join(sorted(ripplegw.list_waveforms(source_type='CBC'))))"))
 
 mkdir -p "${SCRIPT_DIR}/outdir"
 

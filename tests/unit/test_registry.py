@@ -205,6 +205,35 @@ def test_metadata_does_not_clobber_real_attributes(registry_sandbox):
     assert ripplegw.get_waveform_metadata("Sneaky")["parameter_names"] == "oops"
 
 
+# --- source_type is inferred from module path, like domain from base class --
+
+
+@pytest.mark.parametrize("name", sorted(BUILTINS - {"SineGaussian"}))
+def test_cbc_source_type_inferred(name):
+    assert ripplegw.get_waveform_metadata(name)["source_type"] == "CBC"
+
+
+def test_burst_source_type_inferred():
+    assert ripplegw.get_waveform_metadata("SineGaussian")["source_type"] == "burst"
+
+
+def test_source_type_absent_outside_ripplegw_waveforms(registry_sandbox):
+    # _ToyBurst lives in this test module, not under ripplegw.waveforms.<type> --
+    # inference has nothing to key off, so it's simply absent, not an error.
+    ripplegw.register("ToyNoSourceType")(_ToyBurst)
+    assert "source_type" not in ripplegw.get_waveform_metadata("ToyNoSourceType")
+
+
+def test_explicit_source_type_overrides_inference(registry_sandbox):
+    @ripplegw.register("ToyExplicitSourceType", source_type="CW")
+    class ToyExplicit(_ToyBurst):
+        pass
+
+    assert (
+        ripplegw.get_waveform_metadata("ToyExplicitSourceType")["source_type"] == "CW"
+    )
+
+
 # --- no hard-coded family list at the top level -----------------------------
 
 

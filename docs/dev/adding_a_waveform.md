@@ -21,18 +21,20 @@ New waveforms are added in-tree: the model lives in `src/ripplegw/waveforms/`, s
 
 ## 3. Choose the subpackage
 
-Subpackages under `src/ripplegw/waveforms/` are split by **lineage, not class name** — `IMRPhenomHM`/`IMRPhenomPv2` live under `IMRPhenomD/` because they build on the D baseline.
+CBC subpackages live under `src/ripplegw/waveforms/CBC/`, split by **lineage, not class name** — `IMRPhenomHM`/`IMRPhenomPv2` live under `CBC/IMRPhenomD/` because they build on the D baseline.
+Non-CBC source types (e.g. `burst/`) are their own top-level subpackage under `waveforms/`, not nested under `CBC/`, since they don't share the CBC parameterisation.
 The existing subpackages:
 
 | Subpackage | Contains |
 | --- | --- |
-| `IMRPhenomD/` | `IMRPhenomD`, `IMRPhenomPv2`, `IMRPhenomHM` |
-| `IMRPhenomX/` | `IMRPhenomXAS`, `IMRPhenomXHM`, `IMRPhenomXP`, `IMRPhenomXPHM` |
-| `IMRPhenom_NRTidal/` | `IMRPhenomD_NRTidalv2`, `IMRPhenomXAS_NRTidalv3` |
-| `TaylorF2/` | `TaylorF2` |
+| `CBC/IMRPhenomD/` | `IMRPhenomD`, `IMRPhenomPv2`, `IMRPhenomHM` |
+| `CBC/IMRPhenomX/` | `IMRPhenomXAS`, `IMRPhenomXHM`, `IMRPhenomXP`, `IMRPhenomXPHM` |
+| `CBC/IMRPhenom_NRTidal/` | `IMRPhenomD_NRTidalv2`, `IMRPhenomXAS_NRTidalv3` |
+| `CBC/TaylorF2/` | `TaylorF2` |
 | `burst/` | `SineGaussian` |
 
-If your model builds on an existing baseline, add it to that subpackage.
+If your model builds on an existing CBC baseline, add it to that subpackage.
+A genuinely new source type (not CBC, not burst) gets its own top-level subpackage alongside them, with its own `source_type` tag.
 If it's a genuinely new family, create a new subpackage — it needs nothing but a one-line docstring in its `__init__.py`:
 
 ```python
@@ -63,7 +65,7 @@ Taking one packed array rather than separate keyword arguments keeps this functi
 
 **(b) A module-level `_split_params(params)` helper** converting the `params` mapping into that packed array.
 This is per-module — there's no shared framework helper.
-`SineGaussian` folds it directly into `__call__` since it's a single 5-element pack with no config-dependent shape; when there's real work to share between `amplitude()`/`phase()`/`__call__()` (see step 9), it's worth its own function — the pattern from [`IMRPhenomD.py:739-750`](https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/IMRPhenomD/IMRPhenomD.py#L739-L750):
+`SineGaussian` folds it directly into `__call__` since it's a single 5-element pack with no config-dependent shape; when there's real work to share between `amplitude()`/`phase()`/`__call__()` (see step 9), it's worth its own function — the pattern from [`IMRPhenomD.py:739-750`](https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/CBC/IMRPhenomD/IMRPhenomD.py#L739-L750):
 
 ```python
 def _split_params(
@@ -130,7 +132,7 @@ See the [Waveform Catalogue](../guides/catalogue.md) for how all 11 built-in mod
 
 A `@property`, not a method — `wf.parameter_names`, no parentheses.
 The order must match how `__call__` packs `theta`.
-It can depend on construction-time configuration; from [`TaylorF2.py`](https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/TaylorF2/TaylorF2.py):
+It can depend on construction-time configuration; from [`TaylorF2.py`](https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/CBC/TaylorF2/TaylorF2.py):
 
 ```python
 @property
@@ -156,7 +158,9 @@ Reuse the established names (`M_c`, `eta`, `s1_z`, `d_L`, `phase_c`, `iota`, ...
 
 The first argument is the registry key — the exact string users pass to `ripplegw.waveform(...)` (defaults to the class name if omitted).
 Keyword arguments become `waveform_metadata`, which `list_waveforms(**filters)` filters on and `get_waveform_metadata(name)` returns.
-`is_tidal` and `is_precessing` are the two conventional CBC tags; add your own free-form keys if useful, but each one is a new public filter, so pick deliberately.
+`source_type` (the GW source category — `"CBC"`, `"burst"`, eventually `"CW"` for continuous waves) is inferred automatically from where the class lives (`ripplegw.waveforms.<type>.*`), the same way `domain` is inferred from the `FrequencyDomainWaveform`/`TimeDomainWaveform` base rather than passed to `@register` — placing your model's subpackage correctly (step 3) is all that's needed.
+Pass `source_type=` explicitly only to override the inferred value (e.g. registering a model from outside `ripplegw.waveforms` entirely).
+`is_tidal` and `is_precessing` are the two conventional CBC-only tags; add your own free-form keys if useful, but each one is a new public filter, so pick deliberately.
 Registering a name that already exists raises `ValueError` unless you pass `override=True`.
 
 ## 8. Auto-discovery
@@ -178,7 +182,7 @@ Output length matches the input axis.
 ripple's `src/` never performs an FFT — if your model is naturally time-domain, return a time series; don't convert to frequency domain internally.
 
 If your model qualifies for `AmplitudePhaseWaveform` (step 5), implement `amplitude(f, params)` and `phase(f, params)` such that `amplitude(f, p) * exp(1j * phase(f, p))` reproduces the pre-polarization strain `h0` — `strain()` (concrete on the base class) computes exactly that product for you.
-`__call__` then applies whatever inclination-dependent plus/cross prefactor your model needs on top of `strain()`, the way [`IMRPhenomD.py:782-825`](https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/IMRPhenomD/IMRPhenomD.py#L782-L825) does.
+`__call__` then applies whatever inclination-dependent plus/cross prefactor your model needs on top of `strain()`, the way [`IMRPhenomD.py:782-825`](https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/CBC/IMRPhenomD/IMRPhenomD.py#L782-L825) does.
 
 ## 10. Numerical requirements
 
@@ -189,7 +193,7 @@ If your model qualifies for `AmplitudePhaseWaveform` (step 5), implement `amplit
 ## 11. Worked example
 
 Read [`SineGaussian.py`](https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/burst/SineGaussian.py) top to bottom for the complete minimal shape (step 4).
-Read [`IMRPhenomD.py:739-828`](https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/IMRPhenomD/IMRPhenomD.py#L739-L828) for the same shape extended with `f_ref` configuration, `amplitude`/`phase`, and the distance mixin.
+Read [`IMRPhenomD.py:739-828`](https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/CBC/IMRPhenomD/IMRPhenomD.py#L739-L828) for the same shape extended with `f_ref` configuration, `amplitude`/`phase`, and the distance mixin.
 
 A skeleton for a new frequency-domain, single-mode, aligned-spin model with a distance parameter, combining both:
 

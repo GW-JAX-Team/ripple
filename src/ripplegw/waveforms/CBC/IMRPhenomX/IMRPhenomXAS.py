@@ -6,7 +6,7 @@ from ripplegw.registry import register
 from ripplegw.conversions import Mc_eta_to_ms
 import jax.numpy as jnp
 from ripplegw.constants import EULERGAMMA, MTSUN, MPC, C, PI
-import ripplegw.waveforms.IMRPhenomX.IMRPhenomX_utils as IMRPhenomX_utils
+import ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomX_utils as IMRPhenomX_utils
 from jaxtyping import Array, Float, Complex
 from ripplegw.typing import FloatLike
 
