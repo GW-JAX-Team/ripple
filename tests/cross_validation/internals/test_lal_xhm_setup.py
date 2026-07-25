@@ -20,16 +20,15 @@ jax.config.update("jax_enable_x64", True)
 import numpy as np
 import pytest
 
-from tests.cross_validation.IMRPhenomXHM.xhm_helpers import (
-    LAL_AVAILABLE,
+from ripplegw.waveforms.IMRPhenomX.IMRPhenomXHM import xhm_set_waveform_variables
+from tests.cross_validation.internals.helpers import (
     FIDUCIAL_PARAMS,
+    LAL_AVAILABLE,
     XHM_MODES,
     lal_xhm_amplitude,
-    make_freq_grid,
     require_lal,
     ripple_pwf22,
 )
-from ripplegw.waveforms.IMRPhenomXHM import xhm_set_waveform_variables
 
 pytestmark = pytest.mark.skipif(
     not LAL_AVAILABLE, reason="LALSuite required for cross-validation tests"
