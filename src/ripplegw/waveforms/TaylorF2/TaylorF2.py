@@ -3,8 +3,8 @@ This file implements the TaylorF2 waveform, as described in the LALSuite library
 """
 
 import jax.numpy as jnp
-from typing import Any, Mapping
-from ripplegw.interfaces import FrequencyDomainWaveform, DistanceScaledWaveform
+from typing import Mapping
+from ripplegw.interfaces import AmplitudePhaseWaveform, DistanceScaledWaveform
 from ripplegw.registry import register
 from ripplegw.constants import EULERGAMMA, MTSUN, MPC, PI, MRSUN
 from jaxtyping import Array, Float, Complex
@@ -347,43 +347,50 @@ def gen_TaylorF2_hphc(
     return hp, hc
 
 
-def _gen_TaylorF2(
+def _amplitude_of(
+    f: Float[Array, " n_freq"],
+    theta_intrinsic: Float[Array, "6"],
+    dist_mpc: FloatLike,
+) -> Float[Array, " n_freq"]:
+    """Amplitude of ``h0 = amplitude * exp(1j * phase)``. Includes distance scaling.
+
+    Depends only on the orbital-mechanics (flux/energy) PN coefficients -- tidal
+    deformability enters ``_phase_of`` alone, never the amplitude, so this is
+    identical whether or not the source is tidal.
+    """
+    m1, m2, _, _, _, _ = theta_intrinsic
+    M_s = (m1 + m2) * MTSUN
+    eta = (m1 * MTSUN) * (m2 * MTSUN) / (M_s**2.0)
+    piM = PI * M_s
+
+    # Flux and energy coefficients
+    FTaN = get_flux_0PNCoeff(eta)
+    dETaN = 2.0 * get_energy_0PNCoeff(eta)
+
+    v = jnp.cbrt(piM * f)
+    flux = FTaN * v**10
+    dEnergy = dETaN * v
+
+    r = dist_mpc * MPC
+    amp0 = -4.0 * m1 * m2 / r * MRSUN * MTSUN * jnp.sqrt(PI / 12.0)
+    return amp0 * jnp.sqrt(-dEnergy / flux) * v
+
+
+def _phase_of(
     f: Float[Array, " n_freq"],
     theta_intrinsic: Float[Array, "6"],
     theta_extrinsic: Float[Array, "3"],
-    f_ref: float,
-) -> Complex[Array, " n_freq"]:
+    f_ref: FloatLike,
+) -> Float[Array, " n_freq"]:
+    """Phase of ``h0 = amplitude * exp(1j * phase)``.
+
+    Tidal terms (``pft10``..``pft15``, from ``lambda1``/``lambda2``) are folded
+    in here alongside the point-particle PN phasing; with ``lambda1 = lambda2 =
+    0`` this reduces exactly to the point-particle phase.
     """
-    Generates the TaylorF2 waveform accoding to lal implementation.
-
-    Note: internal units for mass are solar masses, as in LAL.
-
-    Args:
-        f (Array): Frequencies at which GW must be evaluated (Hz)
-        theta_intrinsic (Array): Intrinsic parameters:
-            component mass 1 [M_sun],
-            component mass 2 [M_sun],
-            spin 1 z-component,
-            spin 2 z-component,
-            dimensionless tidal deformability 1,
-            dimensionless tidal deformability 2
-        theta_extrinsic (Array): Extrinsic parameters:
-            dist_mpc,
-            tc,
-            phic
-        f_ref (float): Reference frequency
-
-    Returns:
-        Array: GW strain, evaluated at given frequencies
-    """
-
     m1, m2, chi1, chi2, lambda1, lambda2 = theta_intrinsic
-    dist_mpc, tc, phi_ref = theta_extrinsic
-    m1_s = m1 * MTSUN
-    m2_s = m2 * MTSUN
-    # M = m1 + m2
+    _, tc, phi_ref = theta_extrinsic
     M_s = (m1 + m2) * MTSUN
-    eta = m1_s * m2_s / (M_s**2.0)
     piM = PI * M_s
 
     # TODO: incorporate this into the waveform
@@ -414,13 +421,6 @@ def _gen_TaylorF2(
     pft13 = phasing_coeffs["13PN"]
     pft12 = phasing_coeffs["12PN"]
     pft10 = phasing_coeffs["10PN"]
-
-    # Flux and energy coefficients
-    FTaN = get_flux_0PNCoeff(eta)
-    dETaN = 2.0 * get_energy_0PNCoeff(eta)
-
-    r = dist_mpc * MPC
-    amp0 = -4.0 * m1 * m2 / r * MRSUN * MTSUN * jnp.sqrt(PI / 12.0)
 
     ref_phasing = 0.0
     if f_ref != 0:
@@ -494,22 +494,77 @@ def _gen_TaylorF2(
     phasing += pft10 * v10
 
     phasing /= v5
-    flux = FTaN * v10
-    dEnergy = dETaN * v
 
     shft = 2 * PI * tc
     phasing += shft * f - 2.0 * phi_ref - ref_phasing
 
-    amp = amp0 * jnp.sqrt(-dEnergy / flux) * v
+    return PI / 4.0 - phasing
 
-    # Assemble everything in final waveform
-    h0 = amp * jnp.cos(phasing - PI / 4) - amp * jnp.sin(phasing - PI / 4) * 1.0j
 
-    return h0
+def _gen_TaylorF2(
+    f: Float[Array, " n_freq"],
+    theta_intrinsic: Float[Array, "6"],
+    theta_extrinsic: Float[Array, "3"],
+    f_ref: float,
+) -> Complex[Array, " n_freq"]:
+    """
+    Generates the TaylorF2 waveform accoding to lal implementation.
+
+    Note: internal units for mass are solar masses, as in LAL.
+
+    Args:
+        f (Array): Frequencies at which GW must be evaluated (Hz)
+        theta_intrinsic (Array): Intrinsic parameters:
+            component mass 1 [M_sun],
+            component mass 2 [M_sun],
+            spin 1 z-component,
+            spin 2 z-component,
+            dimensionless tidal deformability 1,
+            dimensionless tidal deformability 2
+        theta_extrinsic (Array): Extrinsic parameters:
+            dist_mpc,
+            tc,
+            phic
+        f_ref (float): Reference frequency
+
+    Returns:
+        Array: GW strain, evaluated at given frequencies
+    """
+    amp = _amplitude_of(f, theta_intrinsic, theta_extrinsic[0])
+    phase = _phase_of(f, theta_intrinsic, theta_extrinsic, f_ref)
+    # amp * cos(phase) + 1j * (amp * sin(phase)), NOT amp * jnp.exp(1j * phase):
+    # XLA's complex exp lowering costs ~2x the transcendental ops of the
+    # equivalent explicit cos/sin split (measured; not a style preference).
+    return amp * jnp.cos(phase) + 1j * (amp * jnp.sin(phase))
+
+
+def _split_params(
+    params: Mapping[str, FloatLike], use_lambda_tildes: bool
+) -> tuple[Float[Array, "6"], Float[Array, "3"]]:
+    """Build ``(theta_intrinsic, theta_extrinsic)`` from a params mapping.
+
+    Mirrors the ``M_c``/``eta`` -> ``m1``/``m2`` and (if applicable)
+    ``lambda_tilde``/``delta_lambda_tilde`` -> ``lambda1``/``lambda2``
+    conversions ``gen_TaylorF2`` applies before calling ``_gen_TaylorF2``.
+    ``tc`` (time of coalescence) is fixed at 0; it is not yet reachable
+    through the class API.
+    """
+    m1, m2 = Mc_eta_to_ms(jnp.array([params["M_c"], params["eta"]]))
+    if use_lambda_tildes:
+        lambda1, lambda2 = lambda_tildes_to_lambdas(
+            jnp.array([params["lambda_tilde"], params["delta_lambda_tilde"], m1, m2])
+        )
+    else:
+        lambda1, lambda2 = params["lambda_1"], params["lambda_2"]
+    theta_intrinsic = jnp.array(
+        [m1, m2, params["s1_z"], params["s2_z"], lambda1, lambda2]
+    )
+    theta_extrinsic = jnp.array([params["d_L"], 0.0, params["phase_c"]])
+    return theta_intrinsic, theta_extrinsic
 
 
 @register("TaylorF2", is_tidal=True, is_precessing=False)
-class TaylorF2(FrequencyDomainWaveform, DistanceScaledWaveform):
+class TaylorF2(AmplitudePhaseWaveform, DistanceScaledWaveform):
     """TaylorF2 post-Newtonian frequency-domain waveform including tidal effects.
 
     Attributes:
@@ -550,8 +605,23 @@ class TaylorF2(FrequencyDomainWaveform, DistanceScaledWaveform):
             "iota",
         )
 
+    def amplitude(
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
+    ) -> Float[Array, " n_freq"]:
+        """Amplitude of ``h0``. Does not depend on tidal deformability."""
+        theta_intrinsic, _ = _split_params(params, self.use_lambda_tildes)
+        return _amplitude_of(frequency, theta_intrinsic, params["d_L"])
+
+    def phase(
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
+    ) -> Float[Array, " n_freq"]:
+        """Phase of ``h0``. Includes tidal terms; reduces to the point-particle
+        phase when ``lambda1 = lambda2 = 0``."""
+        theta_intrinsic, theta_extrinsic = _split_params(params, self.use_lambda_tildes)
+        return _phase_of(frequency, theta_intrinsic, theta_extrinsic, self.f_ref)
+
     def __call__(
-        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> dict[str, Complex[Array, " n_freq"]]:
         """Evaluate the TaylorF2 waveform.
 
