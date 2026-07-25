@@ -5,7 +5,11 @@ from ripplegw.typing import FloatLike
 
 from ripplegw.constants import MTSUN
 
-from ripplegw.waveforms.IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
+from ripplegw.waveforms.IMRPhenomD.IMRPhenomD_QNMdata import (
+    QNMData_a,
+    QNMData_fRD,
+    QNMData_fdamp,
+)
 
 # Pre-compute constants for O(1) QNM table lookup on the uniform linspace grid.
 _QNM_N = len(QNMData_a)  # 500 000

@@ -3,11 +3,14 @@ This file implements the TaylorF2 waveform, as described in the LALSuite library
 """
 
 import jax.numpy as jnp
+from typing import Any, Mapping
+from ripplegw.interfaces import FrequencyDomainWaveform, DistanceScaledWaveform
+from ripplegw.registry import register
 from ripplegw.constants import EULERGAMMA, MTSUN, MPC, PI, MRSUN
 from jaxtyping import Array, Float, Complex
 from ripplegw.typing import FloatLike
 from ripplegw.conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
-from ripplegw.waveforms.IMRPhenom_tidal_utils import get_quadparam_octparam
+from ripplegw.utils.tidal import get_quadparam_octparam
 
 ###########################
 ### AUXILIARY FUNCTIONS ###
@@ -503,3 +506,90 @@ def _gen_TaylorF2(
     h0 = amp * jnp.cos(phasing - PI / 4) - amp * jnp.sin(phasing - PI / 4) * 1.0j
 
     return h0
+
+
+@register("TaylorF2", is_tidal=True, is_precessing=False)
+class TaylorF2(FrequencyDomainWaveform, DistanceScaledWaveform):
+    """TaylorF2 post-Newtonian frequency-domain waveform including tidal effects.
+
+    Attributes:
+        f_ref (float): Reference frequency in Hz.
+        use_lambda_tildes (bool): If True, expects ``lambda_tilde`` and
+            ``delta_lambda_tilde``; otherwise expects ``lambda_1`` and ``lambda_2``.
+    """
+
+    f_ref: float
+    use_lambda_tildes: bool
+
+    def __init__(self, f_ref: float = 20.0, use_lambda_tildes: bool = False) -> None:
+        """
+        Args:
+            f_ref (float): Reference frequency in Hz. Defaults to 20.0.
+            use_lambda_tildes (bool): Whether to parameterise tidal deformability
+                via ``lambda_tilde`` / ``delta_lambda_tilde`` (as in Eq. 5-6 of
+                arXiv:1402.5156) instead of ``lambda_1`` / ``lambda_2``.
+                Defaults to False.
+        """
+        self.f_ref = f_ref
+        self.use_lambda_tildes = use_lambda_tildes
+
+    @property
+    def parameter_names(self) -> tuple[str, ...]:
+        return (
+            "M_c",
+            "eta",
+            "s1_z",
+            "s2_z",
+            *(
+                ("lambda_tilde", "delta_lambda_tilde")
+                if self.use_lambda_tildes
+                else ("lambda_1", "lambda_2")
+            ),
+            "d_L",
+            "phase_c",
+            "iota",
+        )
+
+    def __call__(
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
+    ) -> dict[str, Complex[Array, " n_freq"]]:
+        """Evaluate the TaylorF2 waveform.
+
+        Args:
+            frequency (Float[Array, " n_freq"]): Frequency array in Hz.
+            params: Source parameters with keys ``M_c``,
+                ``eta``, ``s1_z``, ``s2_z``, ``d_L``, ``phase_c``, ``iota``,
+                plus tidal keys depending on ``use_lambda_tildes``.
+
+        Returns:
+            dict[str, Complex[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
+                polarizations.
+        """
+        if self.use_lambda_tildes:
+            first_lambda_param = params["lambda_tilde"]
+            second_lambda_param = params["delta_lambda_tilde"]
+        else:
+            first_lambda_param = params["lambda_1"]
+            second_lambda_param = params["lambda_2"]
+
+        theta = jnp.array(
+            [
+                params["M_c"],
+                params["eta"],
+                params["s1_z"],
+                params["s2_z"],
+                first_lambda_param,
+                second_lambda_param,
+                params["d_L"],
+                0.0,
+                params["phase_c"],
+                params["iota"],
+            ]
+        )
+        hp, hc = gen_TaylorF2_hphc(
+            frequency, theta, self.f_ref, use_lambda_tildes=self.use_lambda_tildes
+        )
+        return {"p": hp, "c": hc}
+
+    def __repr__(self):
+        return f"TaylorF2(f_ref={self.f_ref})"

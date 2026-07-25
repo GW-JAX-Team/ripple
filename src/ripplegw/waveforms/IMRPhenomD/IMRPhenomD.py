@@ -1,6 +1,10 @@
 import jax
+from typing import Any, Mapping
+from ripplegw.interfaces import AmplitudePhaseWaveform, DistanceScaledWaveform
+from ripplegw.registry import register
+from ripplegw.conversions import Mc_eta_to_ms
 import jax.numpy as jnp
-from ripplegw.waveforms.IMRPhenomD_utils import (
+from ripplegw.waveforms.IMRPhenomD.IMRPhenomD_utils import (
     get_coeffs,
     get_delta0,
     get_delta1,
@@ -10,11 +14,10 @@ from ripplegw.waveforms.IMRPhenomD_utils import (
     get_transition_frequencies,
 )
 
-from ripplegw.waveforms.IMRPhenomD_QNMdata import fM_CUT
+from ripplegw.waveforms.IMRPhenomD.IMRPhenomD_QNMdata import fM_CUT
 from ripplegw.constants import EULERGAMMA, MTSUN, MPC, C, PI
 from jaxtyping import Array, Float, Complex
 from ripplegw.typing import FloatLike
-from ripplegw.conversions import Mc_eta_to_ms
 
 
 def get_inspiral_phase(
@@ -620,13 +623,25 @@ def Amp(
     return Amp0 * Amp * (M_s**2.0) / dist_s
 
 
-def _gen_IMRPhenomD(
+def _amplitude_of(
+    f: Float[Array, " n_freq"],
+    theta_intrinsic: Float[Array, "4"],
+    theta_extrinsic: Float[Array, "3"],
+    coeffs: Float[Array, "19"],
+) -> Float[Array, " n_freq"]:
+    """Amplitude of ``h0 = amplitude * exp(1j * phase)``. Includes distance scaling."""
+    transition_freqs = get_transition_frequencies(theta_intrinsic, coeffs[5], coeffs[6])
+    return Amp(f, theta_intrinsic, coeffs, transition_freqs, D=theta_extrinsic[0])
+
+
+def _phase_of(
     f: Float[Array, " n_freq"],
     theta_intrinsic: Float[Array, "4"],
     theta_extrinsic: Float[Array, "3"],
     coeffs: Float[Array, "19"],
     f_ref: float,
-) -> Complex[Array, " n_freq"]:
+) -> Float[Array, " n_freq"]:
+    """Phase of ``h0 = amplitude * exp(1j * phase)`` (the exponent, already peak-aligned)."""
     M_s = (theta_intrinsic[0] + theta_intrinsic[1]) * MTSUN
 
     # Shift phase so that peak amplitude matches t = 0
@@ -634,7 +649,6 @@ def _gen_IMRPhenomD(
     _, _, _, f4, f_RD, f_damp = transition_freqs
     t0 = jax.grad(get_IIb_raw_phase)(f4 * M_s, theta_intrinsic, coeffs, f_RD, f_damp)
 
-    # Lets call the amplitude and phase now
     Psi = Phase(f, theta_intrinsic, coeffs, transition_freqs)
     Mf_ref = f_ref * M_s
     Psi_ref = Phase(f_ref, theta_intrinsic, coeffs, transition_freqs)
@@ -645,10 +659,19 @@ def _gen_IMRPhenomD(
     Psi = Psi * jnp.heaviside(fcut_true - f, 0.0) + 2.0 * PI * jnp.heaviside(
         f - fcut_true, 1.0
     )
+    return -Psi
 
-    A = Amp(f, theta_intrinsic, coeffs, transition_freqs, D=theta_extrinsic[0])
 
-    h0 = A * jnp.exp(1j * -Psi)
+def _gen_IMRPhenomD(
+    f: Float[Array, " n_freq"],
+    theta_intrinsic: Float[Array, "4"],
+    theta_extrinsic: Float[Array, "3"],
+    coeffs: Float[Array, "19"],
+    f_ref: float,
+) -> Complex[Array, " n_freq"]:
+    A = _amplitude_of(f, theta_intrinsic, theta_extrinsic, coeffs)
+    phi = _phase_of(f, theta_intrinsic, theta_extrinsic, coeffs, f_ref)
+    h0 = A * jnp.exp(1j * phi)
     return h0
 
 
@@ -711,3 +734,97 @@ def gen_IMRPhenomD_hphc(
     hc = -1j * h0 * jnp.cos(iota)
 
     return hp, hc
+
+
+def _split_params(
+    params: Mapping[str, Any],
+) -> tuple[Float[Array, "4"], Float[Array, "3"]]:
+    """Build ``(theta_intrinsic, theta_extrinsic)`` from a params mapping.
+
+    ``tc`` (time of coalescence) is fixed at 0; it is not yet reachable
+    through the class API.
+    """
+    m1, m2 = Mc_eta_to_ms(jnp.array([params["M_c"], params["eta"]]))
+    theta_intrinsic = jnp.array([m1, m2, params["s1_z"], params["s2_z"]])
+    theta_extrinsic = jnp.array([params["d_L"], 0.0, params["phase_c"]])
+    return theta_intrinsic, theta_extrinsic
+
+
+@register("IMRPhenomD", is_tidal=False, is_precessing=False)
+class IMRPhenomD(AmplitudePhaseWaveform, DistanceScaledWaveform):
+    """IMRPhenomD frequency-domain waveform (non-precessing, aligned spins).
+
+    Attributes:
+        f_ref (float): Reference frequency in Hz.
+    """
+
+    f_ref: float
+
+    def __init__(self, f_ref: float = 20.0) -> None:
+        """
+        Args:
+            f_ref (float): Reference frequency in Hz. Defaults to 20.0.
+        """
+        self.f_ref = f_ref
+
+    @property
+    def parameter_names(self) -> tuple[str, ...]:
+        return (
+            "M_c",
+            "eta",
+            "s1_z",
+            "s2_z",
+            "d_L",
+            "phase_c",
+            "iota",
+        )
+
+    def amplitude(
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
+    ) -> Float[Array, " n_freq"]:
+        """Amplitude of ``h0``. Requires a grid with at least 2 uniformly spaced points."""
+        theta_intrinsic, theta_extrinsic = _split_params(params)
+        coeffs = get_coeffs(theta_intrinsic)
+        return _amplitude_of(frequency, theta_intrinsic, theta_extrinsic, coeffs)
+
+    def phase(
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
+    ) -> Float[Array, " n_freq"]:
+        """Phase of ``h0``. Forced to ``2*pi`` above the model's high-frequency cutoff."""
+        theta_intrinsic, theta_extrinsic = _split_params(params)
+        coeffs = get_coeffs(theta_intrinsic)
+        return _phase_of(
+            frequency, theta_intrinsic, theta_extrinsic, coeffs, self.f_ref
+        )
+
+    def __call__(
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
+    ) -> dict[str, Complex[Array, " n_freq"]]:
+        """Evaluate the IMRPhenomD waveform.
+
+        Args:
+            frequency (Float[Array, " n_freq"]): Frequency array in Hz.
+            params: Source parameters with keys ``M_c``, ``eta``, ``s1_z``,
+                ``s2_z``, ``d_L``, ``phase_c``, ``iota``.
+
+        Returns:
+            dict[str, Complex[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
+                polarizations.
+        """
+        theta = jnp.array(
+            [
+                params["M_c"],
+                params["eta"],
+                params["s1_z"],
+                params["s2_z"],
+                params["d_L"],
+                0.0,
+                params["phase_c"],
+                params["iota"],
+            ]
+        )
+        hp, hc = gen_IMRPhenomD_hphc(frequency, theta, self.f_ref)
+        return {"p": hp, "c": hc}
+
+    def __repr__(self):
+        return f"IMRPhenomD(f_ref={self.f_ref})"

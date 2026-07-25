@@ -1,24 +1,31 @@
 import jax
+from ripplegw.interfaces import FrequencyDomainWaveform, DistanceScaledWaveform
+from ripplegw.registry import register
+from ripplegw.conversions import Mc_eta_to_ms
 import jax.numpy as jnp
-from typing import Any
+from typing import Any, Mapping
 from ripplegw.constants import PI, MSUN, MTSUN, MRSUN, MPC
 from jaxtyping import Array, Float, Integer, Complex
 from ripplegw.typing import FloatLike
-from ripplegw.waveforms.spherical_harmonics import (
+from ripplegw.utils.spherical_harmonics import (
     compute_sminus2_l2,
     compute_sminus2_l3,
     compute_sminus2_l4,
 )
-from ripplegw.waveforms.IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
-from ripplegw.waveforms.IMRPhenomD_utils import (
+from ripplegw.waveforms.IMRPhenomD.IMRPhenomD_QNMdata import (
+    QNMData_a,
+    QNMData_fRD,
+    QNMData_fdamp,
+)
+from ripplegw.waveforms.IMRPhenomD.IMRPhenomD_utils import (
     EradRational0815,
     get_coeffs,
     get_transition_frequencies_from_fRD_fdamp,
 )
-from ripplegw.waveforms.IMRPhenomD import Phase as IMRPhenomD_Phase
-from ripplegw.waveforms.IMRPhenomD import IMRPhenDAmplitude_NoCut
-from ripplegw.waveforms.IMRPhenomD import get_IIb_raw_phase
-from ripplegw.waveforms.IMRPhenomPv2_utils import FinalSpin0815
+from ripplegw.waveforms.IMRPhenomD.IMRPhenomD import Phase as IMRPhenomD_Phase
+from ripplegw.waveforms.IMRPhenomD.IMRPhenomD import IMRPhenDAmplitude_NoCut
+from ripplegw.waveforms.IMRPhenomD.IMRPhenomD import get_IIb_raw_phase
+from ripplegw.waveforms.IMRPhenomD.IMRPhenomPv2_utils import FinalSpin0815
 
 
 # Phase shift due to leading order complex amplitude
@@ -1024,3 +1031,56 @@ def XLALSimPhenomUtilsChiP(
     chip = num / den
 
     return chip
+
+
+@register("IMRPhenomHM", is_tidal=False, is_precessing=False)
+class IMRPhenomHM(FrequencyDomainWaveform, DistanceScaledWaveform):
+    """IMRPhenomHM frequency-domain waveform (aligned spins, higher-order modes).
+
+    Attributes:
+        f_ref (float): Reference frequency in Hz.
+    """
+
+    f_ref: float
+
+    def __init__(self, f_ref: float = 20.0) -> None:
+        """
+        Args:
+            f_ref (float): Reference frequency in Hz. Defaults to 20.0.
+        """
+        self.f_ref = f_ref
+
+    @property
+    def parameter_names(self) -> tuple[str, ...]:
+        return (
+            "M_c",
+            "eta",
+            "s1_z",
+            "s2_z",
+            "d_L",
+            "phase_c",
+            "iota",
+        )
+
+    def __call__(
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
+    ) -> dict[str, Complex[Array, " n_freq"]]:
+        output = {}
+        m1, m2 = Mc_eta_to_ms(jnp.array([params["M_c"], params["eta"]]))
+        hp, hc = gen_IMRPhenomHM(
+            frequency,
+            m1,
+            m2,
+            params["s1_z"],
+            params["s2_z"],
+            params["d_L"],
+            params["iota"],
+            params["phase_c"],
+            self.f_ref,
+        )
+        output["p"] = hp
+        output["c"] = hc
+        return output
+
+    def __repr__(self):
+        return f"IMRPhenomHM(f_ref={self.f_ref})"

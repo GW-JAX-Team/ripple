@@ -1,12 +1,15 @@
 # from math import PI
 import jax
+from typing import Any, Mapping
+from ripplegw.interfaces import AmplitudePhaseWaveform, DistanceScaledWaveform
+from ripplegw.registry import register
+from ripplegw.conversions import Mc_eta_to_ms
 import jax.numpy as jnp
 from ripplegw.constants import EULERGAMMA, MTSUN, MPC, C, PI
-from ripplegw.waveforms import IMRPhenomX_utils
+import ripplegw.waveforms.IMRPhenomX.IMRPhenomX_utils as IMRPhenomX_utils
 from jaxtyping import Array, Float, Complex
 from ripplegw.typing import FloatLike
 
-from ripplegw.conversions import Mc_eta_to_ms
 
 eqspin_indx = 10
 uneqspin_indx = 39
@@ -1437,14 +1440,24 @@ def Amp(
     return Overallamp * Amp * (fM_s ** (-7.0 / 6.0))
 
 
-def _gen_IMRPhenomXAS(
+def _amplitude_of(
+    f: Float[Array, " n_freq"],
+    theta_intrinsic: Float[Array, "4"],
+    theta_extrinsic: Float[Array, "3"],
+    amp_coeffs: Float[Array, "7 42"],
+) -> Float[Array, " n_freq"]:
+    """Amplitude of ``h0 = amplitude * exp(1j * phase)``. Includes distance scaling."""
+    return Amp(f, theta_intrinsic, amp_coeffs, D=theta_extrinsic[0])
+
+
+def _phase_of(
     f: Float[Array, " n_freq"],
     theta_intrinsic: Float[Array, "4"],
     theta_extrinsic: Float[Array, "3"],
     phase_coeffs: Float[Array, "13 49"],
-    amp_coeffs: Float[Array, "7 42"],
     f_ref: float,
-) -> Complex[Array, " n_freq"]:
+) -> Float[Array, " n_freq"]:
+    """Phase of ``h0 = amplitude * exp(1j * phase)`` (the exponent, already peak-aligned)."""
     m1, m2, chi1, chi2 = theta_intrinsic
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -1477,9 +1490,20 @@ def _gen_IMRPhenomXAS(
     )
     ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] + 2 * theta_extrinsic[2]
     Psi = Psi + (linb * fM_s) + lina + phifRef - 2 * PI + ext_phase_contrib
+    return Psi
 
-    A = Amp(f, theta_intrinsic, amp_coeffs, D=theta_extrinsic[0])
-    h0 = A * jnp.exp(1j * Psi)
+
+def _gen_IMRPhenomXAS(
+    f: Float[Array, " n_freq"],
+    theta_intrinsic: Float[Array, "4"],
+    theta_extrinsic: Float[Array, "3"],
+    phase_coeffs: Float[Array, "13 49"],
+    amp_coeffs: Float[Array, "7 42"],
+    f_ref: float,
+) -> Complex[Array, " n_freq"]:
+    A = _amplitude_of(f, theta_intrinsic, theta_extrinsic, amp_coeffs)
+    phi = _phase_of(f, theta_intrinsic, theta_extrinsic, phase_coeffs, f_ref)
+    h0 = A * jnp.exp(1j * phi)
     return h0
 
 
@@ -1549,3 +1573,97 @@ def gen_IMRPhenomXAS_hphc(
     hc = 1j * h22 * jnp.cos(iota)
 
     return hp, hc
+
+
+def _split_params(
+    params: Mapping[str, Any],
+) -> tuple[Float[Array, "4"], Float[Array, "3"]]:
+    """Build ``(theta_intrinsic, theta_extrinsic)`` from a params mapping.
+
+    ``tc`` (time of coalescence) is fixed at 0; it is not yet reachable
+    through the class API.
+    """
+    m1, m2 = Mc_eta_to_ms(jnp.array([params["M_c"], params["eta"]]))
+    theta_intrinsic = jnp.array([m1, m2, params["s1_z"], params["s2_z"]])
+    theta_extrinsic = jnp.array([params["d_L"], 0.0, params["phase_c"]])
+    return theta_intrinsic, theta_extrinsic
+
+
+@register("IMRPhenomXAS", is_tidal=False, is_precessing=False)
+class IMRPhenomXAS(AmplitudePhaseWaveform, DistanceScaledWaveform):
+    """IMRPhenomXAS frequency-domain waveform (non-precessing, aligned spins, X family).
+
+    Attributes:
+        f_ref (float): Reference frequency in Hz.
+    """
+
+    f_ref: float
+
+    def __init__(self, f_ref: float = 20.0) -> None:
+        """
+        Args:
+            f_ref (float): Reference frequency in Hz. Defaults to 20.0.
+        """
+        self.f_ref = f_ref
+
+    @property
+    def parameter_names(self) -> tuple[str, ...]:
+        return (
+            "M_c",
+            "eta",
+            "s1_z",
+            "s2_z",
+            "d_L",
+            "phase_c",
+            "iota",
+        )
+
+    def amplitude(
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
+    ) -> Float[Array, " n_freq"]:
+        """Amplitude of ``h0``. Works on scalar or array frequencies."""
+        theta_intrinsic, theta_extrinsic = _split_params(params)
+        amp_coeffs = IMRPhenomX_utils.PhenomX_amp_coeff_table
+        return _amplitude_of(frequency, theta_intrinsic, theta_extrinsic, amp_coeffs)
+
+    def phase(
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
+    ) -> Float[Array, " n_freq"]:
+        """Phase of ``h0``. Goes to 0 above the model's high-frequency cutoff."""
+        theta_intrinsic, theta_extrinsic = _split_params(params)
+        phase_coeffs = IMRPhenomX_utils.PhenomX_phase_coeff_table
+        return _phase_of(
+            frequency, theta_intrinsic, theta_extrinsic, phase_coeffs, self.f_ref
+        )
+
+    def __call__(
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, Any]
+    ) -> dict[str, Complex[Array, " n_freq"]]:
+        """Evaluate the IMRPhenomXAS waveform.
+
+        Args:
+            frequency (Float[Array, " n_freq"]): Frequency array in Hz.
+            params: Source parameters with keys ``M_c``, ``eta``, ``s1_z``,
+                ``s2_z``, ``d_L``, ``phase_c``, ``iota``.
+
+        Returns:
+            dict[str, Complex[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
+                polarizations.
+        """
+        theta = jnp.array(
+            [
+                params["M_c"],
+                params["eta"],
+                params["s1_z"],
+                params["s2_z"],
+                params["d_L"],
+                0.0,
+                params["phase_c"],
+                params["iota"],
+            ]
+        )
+        hp, hc = gen_IMRPhenomXAS_hphc(frequency, theta, self.f_ref)
+        return {"p": hp, "c": hc}
+
+    def __repr__(self):
+        return f"IMRPhenomXAS(f_ref={self.f_ref})"
