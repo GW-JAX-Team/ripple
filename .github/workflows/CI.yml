@@ -29,15 +29,21 @@ jobs:
         run: uv sync --python ${{ matrix.python-version }} --group test ${{ matrix.python-version == '3.12' && '--group cross-validation' || '' }}
       - name: Run tests
         run: |
+          # Every PR/push: unit + integration, plus reference-constant checks
+          # wherever LAL happens to be installed (python 3.12 only, via the
+          # cross-validation dependency group). Never the accuracy campaign or
+          # the internals/ diagnostic suite -- see tests/README.md.
           if [[ "${{ matrix.python-version }}" == "3.12" ]]; then
-            OVERLAP_TESTS=""
-            if [[ "${{ github.base_ref }}" == "main" || "${{ github.ref }}" == "refs/heads/main" ]]; then
-              OVERLAP_TESTS="tests/cross_validation/test_lal_overlap.py"
-            fi
-            uv run pytest --cov=ripplegw --cov-report=term-missing tests/unit tests/integration tests/cross_validation/test_lal_constants.py $OVERLAP_TESTS
+            uv run pytest -m "not accuracy and not internals" --cov=ripplegw --cov-report=term-missing
           else
-            uv run pytest tests/unit tests/integration tests/cross_validation/test_lal_constants.py
+            uv run pytest -m "not accuracy and not internals"
           fi
+      - name: Accuracy smoke
+        # A cheap 3-model subset of the accuracy campaign, only on pushes/PRs
+        # targeting main. The full campaign is HPC-only (see
+        # tests/cross_validation/submit_slurm.sh / submit_condor.sh).
+        if: matrix.python-version == '3.12' && (github.base_ref == 'main' || github.ref == 'refs/heads/main')
+        run: uv run pytest -m "accuracy and smoke" --reference lal --n-samples 3
       - name: Upload coverage to Coveralls
         if: matrix.python-version == '3.12'
         env:
