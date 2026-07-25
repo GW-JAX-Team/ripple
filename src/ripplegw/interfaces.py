@@ -102,10 +102,16 @@ class AmplitudePhaseWaveform(FrequencyDomainWaveform):
     def strain(
         self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> Complex[Array, " n_freq"]:
-        """Pre-polarization strain: ``amplitude(f, params) * exp(1j * phase(f, params))``."""
-        return self.amplitude(frequency, params) * jnp.exp(
-            1j * self.phase(frequency, params)
-        )
+        """Pre-polarization strain: ``amplitude(f, params) * exp(1j * phase(f, params))``.
+
+        Computed as ``amp * cos(phase) + 1j * (amp * sin(phase))``, not via
+        ``jnp.exp(1j * phase)`` -- XLA's complex-exponential lowering costs
+        roughly 2x the transcendental ops of the equivalent explicit cos/sin
+        split (measured), and this identity is exact for real ``phase``.
+        """
+        amp = self.amplitude(frequency, params)
+        phase = self.phase(frequency, params)
+        return amp * jnp.cos(phase) + 1j * (amp * jnp.sin(phase))
 
 
 class DistanceScaledWaveform:
