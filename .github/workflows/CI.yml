@@ -27,7 +27,7 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
       - name: Install dependencies
         run: uv sync --python ${{ matrix.python-version }} --group test ${{ matrix.python-version == '3.12' && '--group cross-validation' || '' }}
-      - name: Run tests
+      - name: Run non-accuracy tests
         run: |
           # Every PR/push: unit + integration, plus reference-constant checks
           # wherever LAL happens to be installed (python 3.12 only, via the
@@ -38,7 +38,7 @@ jobs:
           else
             uv run pytest -m "not accuracy"
           fi
-      - name: Accuracy smoke
+      - name: Run accuracy smoke test
         # A cheap 3-model subset of the accuracy campaign, only on pushes/PRs
         # targeting main. The full campaign is HPC-only (see
         # tests/cross_validation/submit_slurm.sh / submit_condor.sh).
