@@ -31,12 +31,12 @@ jobs:
         run: |
           # Every PR/push: unit + integration, plus reference-constant checks
           # wherever LAL happens to be installed (python 3.12 only, via the
-          # cross-validation dependency group). Never the accuracy campaign or
-          # the internals/ diagnostic suite -- see tests/README.md.
+          # cross-validation dependency group). Never the accuracy campaign --
+          # see tests/README.md.
           if [[ "${{ matrix.python-version }}" == "3.12" ]]; then
-            uv run pytest -m "not accuracy and not internals" --cov=ripplegw --cov-report=term-missing
+            uv run pytest -m "not accuracy" --cov=ripplegw --cov-report=term-missing
           else
-            uv run pytest -m "not accuracy and not internals"
+            uv run pytest -m "not accuracy"
           fi
       - name: Accuracy smoke
         # A cheap 3-model subset of the accuracy campaign, only on pushes/PRs

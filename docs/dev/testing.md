@@ -5,21 +5,19 @@ CI runs on every pull request and needs to be fast: it should prove the package 
 An HPC run, typically on a single high-end GPU, does the opposite: it exists specifically to check waveform accuracy against a CPU-based reference implementation, at a scale CI cannot afford.
 
 The suite is organised around that split.
-Three pytest markers, not directory paths, decide what runs where.
+Two pytest markers, not directory paths, decide what runs where.
 
-## The three tiers
+## The two tiers
 
 | Marker | What it checks | Where it runs |
 | --- | --- | --- |
 | *(none)* | Every registered waveform's output format, `jit`/`vmap`/`grad`, amplitude/phase + distance, and edge cases | Every PR, every supported Python version |
 | `accuracy` | ripple's output against a reference backend (LAL today) | The `smoke` subset on PRs/pushes to `main`; the full campaign on HPC |
-| `internals` | ripple's private per-mode functions against LAL's internal functions | Never in CI; diagnostic tooling only |
 
 ```bash
-uv run pytest -m "not accuracy and not internals"              # what CI runs
+uv run pytest -m "not accuracy"                                       # what CI runs
 uv run pytest -m "accuracy and smoke" --reference lal --n-samples 3   # CI's accuracy check
 uv run pytest -m accuracy --reference lal --n-samples 1000     # the real campaign
-uv run pytest -m internals                                      # diagnostic, needs LAL
 ```
 
 `cross_validation/test_reference_constants.py` sits outside this table on purpose.
@@ -81,15 +79,6 @@ class ReferenceBackend(Protocol):
 `params` is always ripple's own dict, keyed by `parameter_names` — the backend owns translating that into its own convention, so `test_overlap.py` and `test_phase_convention.py` never need to know it exists.
 Register with `@register_backend`, add a `[<name>.<waveform>]` block per supported model to `tolerances.toml`, and select it with `--reference <name>`.
 `supports()` gates which models a partial backend is asked to generate, so covering only some models is fine.
-
-## Diagnostic tier: `cross_validation/internals/`
-
-These compare ripple's private per-mode functions (`build_pWF22`, `xhm_get_amp_coefficients`, and similar) directly against LAL's own internal C functions, bisecting a discrepancy the top-level overlap test alone cannot localise — see the XHM entries in [LAL Agreement](lal_agreement.md) for the diagnoses this produced.
-They are marked `internals` in `tests/cross_validation/internals/conftest.py` and never gate CI: they bind to LAL private function names and ripple internals that are expected to drift, and a failure here is a prompt to investigate, not a release blocker.
-
-Only two layers remain: per-mode QNM sanity (`test_lal_xhm_setup.py`) and per-mode amplitude (`test_lal_xhm_amplitude.py`), both compared against LAL's public per-mode functions (`SimIMRPhenomXHMAmplitude` and friends).
-A third layer that compared full complex `h_lm` and `hp`/`hc` via LAL's raw per-mode API (`SimIMRPhenomXHMFrequencySequenceOneMode`, `SimIMRPhenomXPHMFrequencySequenceOneMode`) was removed: it diverged from LAL by tens of radians in a way that traced back to a reference-time convention specific to those particular low-level LAL functions, not to ripple's output — the same ripple code, exercised through `gen_IMRPhenomXHM_hphc` and compared against `ChooseFDWaveform` in `test_overlap.py`, agrees with LAL to ~1e-9.
-See `tests/cross_validation/internals/helpers.py` for the full account.
 
 ## Adding a waveform
 

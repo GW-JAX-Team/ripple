@@ -28,7 +28,7 @@ class ReferenceBackend(Protocol):
         ...
 
     def constants(self) -> dict[str, float]:
-        """Physical constants this backend defines, for ``unit/test_reference_constants.py``."""
+        """Physical constants this backend defines, for ``cross_validation/test_reference_constants.py``."""
         ...
 
     def generate(

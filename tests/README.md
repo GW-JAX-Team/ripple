@@ -1,6 +1,6 @@
 # ripple test suite
 
-Three tiers, selected by pytest marker rather than by directory path.
+Two tiers, selected by pytest marker rather than by directory path.
 See [`docs/dev/testing.md`](https://gw-jax-team.github.io/ripple/latest/dev/testing/) for the full developer-facing writeup.
 This file is the quick-reference.
 
@@ -26,8 +26,7 @@ tests/
     ├── test_phase_convention.py
     ├── test_reference_constants.py  # unmarked; 0 cases if no backend is installed
     ├── test_tolerance_table.py      # unmarked; no backend needed to run
-    ├── submit_slurm.sh / submit_condor.sh
-    └── internals/            # white-box vs LAL internals; diagnostic only
+    └── submit_slurm.sh / submit_condor.sh
 ```
 
 ## Markers
@@ -37,13 +36,11 @@ tests/
 | *(none)* | `unit/` + `integration/` | Every PR, every Python version |
 | `accuracy` | Compares waveform output against a reference backend | Only the `smoke` subset, on PRs/pushes to `main` |
 | `smoke` | The cheap `accuracy` subset (3 representative models) | Yes |
-| `internals` | White-box comparison against reference internals | Never |
 
 ```bash
-uv run pytest -m "not accuracy and not internals"   # CI's default tier
+uv run pytest -m "not accuracy"   # CI's default tier
 uv run pytest -m "accuracy and smoke" --reference lal --n-samples 3
 uv run pytest -m accuracy --reference lal --n-samples 1000   # the real campaign
-uv run pytest -m internals                                    # diagnostic, needs LAL
 ```
 
 `cross_validation/test_reference_constants.py` is deliberately **not** marked `accuracy`: it compares numeric literals in `ripplegw.constants`, not waveform output.

@@ -7,8 +7,8 @@
 #   tc = phi_c = 0 (see test_phase_convention.py).
 #
 # See docs/dev/lal_agreement.md for the documented cause of each
-# non-machine-precision threshold. unit/test_tolerance_table.py checks this
-# file stays consistent with that table.
+# non-machine-precision threshold. cross_validation/test_tolerance_table.py
+# checks this file stays consistent with that table.
 
 [lal.defaults]
 overlap_loss = 1e-6

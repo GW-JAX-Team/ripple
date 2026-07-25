@@ -18,5 +18,5 @@ uv run pre-commit install
 
 - **[Architecture](architecture.md)** — How ripple is organised: the public surface, the registry, auto-discovery, and the `Waveform` class hierarchy.
 - **[Adding a Waveform](adding_a_waveform.md)** — Step-by-step: implement, register, and validate a new model, with a full worked example.
-- **[Testing](testing.md)** — The three test tiers (CI, accuracy, internals), how to run each, and what a new waveform needs.
+- **[Testing](testing.md)** — The two test tiers (CI, accuracy), how to run each, and what a new waveform needs.
 - **[LAL Agreement](lal_agreement.md)** — What's known about the overlap between ripple and LALSuite for each supported waveform.
