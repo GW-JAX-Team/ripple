@@ -14,7 +14,9 @@ N_RUNS="50"
 mkdir -p "${OUTDIR}"
 
 PRECISIONS=("float32" "float64")
-MODELS=("TaylorF2" "IMRPhenomD" "IMRPhenomD_NRTidalv2" "IMRPhenomHM" "IMRPhenomPv2" "IMRPhenomXAS" "IMRPhenomXAS_NRTidalv3" "IMRPhenomXHM" "IMRPhenomXP" "IMRPhenomXPHM")
+# Registry-driven: whatever ripplegw.list_waveforms() reports, so a newly
+# registered model is picked up automatically with no edits to this script.
+MODELS=($(cd "${REPO_DIR}" && uv run python -c "import ripplegw; print(' '.join(sorted(ripplegw.list_waveforms())))"))
 
 TIMING_SUB="${OUTDIR}/timing.sub"
 POSTPROCESS_SUB="${OUTDIR}/postprocess.sub"

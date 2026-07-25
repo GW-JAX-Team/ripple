@@ -6,6 +6,7 @@ with various configurations including hardware selection and precision.
 """
 
 import argparse
+import inspect
 import json
 import logging
 import time
@@ -15,11 +16,12 @@ from pathlib import Path
 import jax
 import jax.numpy as jnp
 
-from ripplegw import waveform_preset
+import ripplegw
 from ripplegw.conversions import ms_to_Mc_eta
 from ripplegw.benchmarks.utils import (
     generate_bbh_parameters,
     generate_bns_parameters,
+    generate_burst_parameters,
     get_device_name,
     get_git_hash,
 )
@@ -96,24 +98,49 @@ def _prepare_bns_params(params):
     }
 
 
-def time_waveform(waveform, batched_params, config):
+def _prepare_burst_params(params):
+    """Build a batched param dict for burst waveforms (SineGaussian).
+
+    ``generate_burst_parameters`` already returns exactly ``SineGaussian``'s
+    parameter names -- no mass/spin conversion applies to a burst model.
+    """
+    return dict(params)
+
+
+def _construct_waveform(name, f_ref):
+    """Construct a registered waveform, passing ``f_ref`` only if its
+    constructor accepts one -- burst models like SineGaussian take none."""
+    cls = ripplegw.WAVEFORM_REGISTRY[name]
+    if "f_ref" in inspect.signature(cls.__init__).parameters:
+        return ripplegw.waveform(name, f_ref=f_ref)
+    return ripplegw.waveform(name)
+
+
+def time_waveform(waveform, batched_params, config, domain="FD"):
     """Time waveform generation using the class-based waveform interface.
 
     Args:
-        waveform: An instantiated waveform object from ``ripplegw.waveform_preset``.
+        waveform: An instantiated waveform object from ``ripplegw.waveform(...)``.
         batched_params: Dict of JAX arrays, each of shape ``(n_waveforms,)``.
         config: Benchmark configuration dictionary.
+        domain: ``"FD"`` builds a frequency grid from ``f_min``/``f_max``/``duration``;
+            ``"TD"`` builds a time grid centred at zero, sampled at ``2 * f_max`` Hz
+            over ``duration`` seconds (the same convention as ripple's own TD tests).
 
     Returns:
         tuple: ``(first_run_time, exec_times, effective_batch_size)`` where
         ``effective_batch_size`` is ``None`` when full vmap succeeded or the
         integer ``batch_size`` used with ``jax.lax.map`` when vmap OOM'd.
     """
-    f = jnp.arange(
-        config["minimum_frequency"],
-        config["maximum_frequency"],
-        1.0 / config["duration"],
-    )
+    if domain == "TD":
+        f_sampling = 2.0 * config["maximum_frequency"]
+        f = jnp.arange(-config["duration"] / 2, config["duration"] / 2, 1.0 / f_sampling)
+    else:
+        f = jnp.arange(
+            config["minimum_frequency"],
+            config["maximum_frequency"],
+            1.0 / config["duration"],
+        )
     n_waveforms = config["n_waveforms"]
     n_runs = config.get("n_runs", 5)
 
@@ -221,8 +248,13 @@ def run_timing(args):
 
     # Generate parameters based on waveform type
     waveform_type = get_waveform_type(args.waveform)
+    metadata = ripplegw.get_waveform_metadata(args.waveform)
+    is_precessing = metadata.get("is_precessing", False)
+    config["domain"] = metadata["domain"]
 
-    if waveform_type == "bns":
+    if waveform_type == "burst":
+        params = generate_burst_parameters(args.n_waveforms)
+    elif waveform_type == "bns":
         params = generate_bns_parameters(args.n_waveforms)
     else:
         params = generate_bbh_parameters(args.n_waveforms)
@@ -231,32 +263,26 @@ def run_timing(args):
     logger.info("Parameter keys: %s", list(params.keys()))
 
     # Run timing based on waveform
-    precessing_waveforms = ["IMRPhenomPv2", "IMRPhenomXP", "IMRPhenomXPHM"]
-    if args.waveform in precessing_waveforms:
+    waveform = _construct_waveform(args.waveform, config["reference_frequency"])
+    if is_precessing:
         logger.info(
             "Running precessing waveform timing benchmark (%s)...", args.waveform
-        )
-        waveform = waveform_preset[args.waveform](
-            f_ref=config["reference_frequency"]  # type: ignore
         )
         batched_params = _prepare_precessing_params(params)
     elif waveform_type == "bns":
         logger.info("Running BNS waveform timing benchmark (%s)...", args.waveform)
-        waveform = waveform_preset[args.waveform](
-            f_ref=config["reference_frequency"]  # type: ignore
-        )
         batched_params = _prepare_bns_params(params)
+    elif waveform_type == "burst":
+        logger.info("Running burst waveform timing benchmark (%s)...", args.waveform)
+        batched_params = _prepare_burst_params(params)
     else:
         logger.info(
             "Running aligned-spin waveform timing benchmark (%s)...", args.waveform
         )
-        waveform = waveform_preset[args.waveform](
-            f_ref=config["reference_frequency"]  # type: ignore
-        )
         batched_params = _prepare_aligned_params(params)
 
     first_run_time, exec_times, effective_batch_size = time_waveform(
-        waveform, batched_params, config
+        waveform, batched_params, config, domain=config["domain"]
     )
 
     # Compute statistics over timed runs
@@ -329,9 +355,15 @@ def run_timing(args):
 
 
 def get_waveform_type(waveform):
-    """Determine if waveform is BBH or BNS."""
-    bns_waveforms = ["TaylorF2", "IMRPhenomD_NRTidalv2", "IMRPhenomXAS_NRTidalv3"]
-    return "bns" if waveform in bns_waveforms else "bbh"
+    """Determine the parameter shape a waveform needs: ``"bbh"``, ``"bns"``, or ``"burst"``.
+
+    Driven by the registry's own metadata rather than a hardcoded list, so a
+    newly registered model is timed correctly with no edits to this file.
+    """
+    metadata = ripplegw.get_waveform_metadata(waveform)
+    if metadata["domain"] == "TD":
+        return "burst"
+    return "bns" if metadata.get("is_tidal") else "bbh"
 
 
 def main():
@@ -344,18 +376,7 @@ def main():
     parser.add_argument(
         "waveform",
         type=str,
-        choices=[
-            "TaylorF2",
-            "IMRPhenomD",
-            "IMRPhenomD_NRTidalv2",
-            "IMRPhenomHM",
-            "IMRPhenomPv2",
-            "IMRPhenomXAS",
-            "IMRPhenomXAS_NRTidalv3",
-            "IMRPhenomXHM",
-            "IMRPhenomXP",
-            "IMRPhenomXPHM",
-        ],
+        choices=sorted(ripplegw.list_waveforms()),
         help="Waveform approximant to time",
     )
 

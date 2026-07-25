@@ -159,3 +159,23 @@ def generate_bns_parameters(n_waveforms, seed=42):
         "phase": phase,
         "geocent_time": geocent_time,
     }
+
+
+def generate_burst_parameters(n_waveforms, seed=42):
+    """Generate sine-Gaussian burst parameters using JAX random sampling.
+
+    Keys match ``SineGaussian.parameter_names`` directly -- no mass/spin
+    conversion is needed, unlike the BBH/BNS generators above.
+    """
+    keys = jax.random.split(jax.random.PRNGKey(seed), 5)
+
+    def uniform(key, low, high):
+        return jax.random.uniform(key, shape=(n_waveforms,), minval=low, maxval=high)
+
+    return {
+        "Q": uniform(keys[0], 2.0, 20.0),
+        "f_0": uniform(keys[1], 50.0, 1000.0),
+        "hrss": uniform(keys[2], 1e-23, 1e-20),
+        "phase": uniform(keys[3], 0.0, 2 * jnp.pi),
+        "e": uniform(keys[4], 0.0, 1.0),
+    }
