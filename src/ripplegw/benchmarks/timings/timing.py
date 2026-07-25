@@ -134,7 +134,9 @@ def time_waveform(waveform, batched_params, config, domain="FD"):
     """
     if domain == "TD":
         f_sampling = 2.0 * config["maximum_frequency"]
-        f = jnp.arange(-config["duration"] / 2, config["duration"] / 2, 1.0 / f_sampling)
+        f = jnp.arange(
+            -config["duration"] / 2, config["duration"] / 2, 1.0 / f_sampling
+        )
     else:
         f = jnp.arange(
             config["minimum_frequency"],
