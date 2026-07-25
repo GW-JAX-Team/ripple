@@ -59,4 +59,4 @@ def get_backend(name: str) -> ReferenceBackend:
 
 
 # Import built-in backends for their registration side effect.
-from tests.helpers.reference import lal  # noqa: E402, F401
+from tests.cross_validation.reference import lal  # noqa: E402, F401

@@ -21,7 +21,7 @@ import numpy as np
 
 from ripplegw.conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from tests.helpers.grids import Grid
-from tests.helpers.reference import register_backend
+from tests.cross_validation.reference import register_backend
 
 try:
     import lal

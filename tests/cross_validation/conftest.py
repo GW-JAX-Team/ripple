@@ -12,7 +12,7 @@ from datetime import datetime
 import jax
 import pytest
 
-from tests.helpers.reference import get_backend
+from tests.cross_validation.reference import get_backend
 
 
 def pytest_configure(config):

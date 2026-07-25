@@ -1,9 +1,9 @@
 """ripplegw's physical constants match every available reference backend.
 
-Parametrized over every backend in ``tests/helpers/reference/`` whose
+Parametrized over every backend in ``tests/cross_validation/reference/`` whose
 dependency is importable -- a backend that is not installed contributes zero
 test cases rather than failing, so adding a new backend needs no edits here.
-This is deliberately a ``unit`` test, not ``accuracy``: it compares numeric
+This is deliberately left unmarked (not ``accuracy``): it compares numeric
 literals, not waveform output, so it is cheap enough to run on every PR
 wherever the backend happens to be installed.
 """
@@ -11,7 +11,7 @@ wherever the backend happens to be installed.
 import pytest
 
 import ripplegw.constants as const
-from tests.helpers.reference import REFERENCE_BACKENDS, get_backend
+from tests.cross_validation.reference import REFERENCE_BACKENDS, get_backend
 
 CONST_NAMES = ["MSUN", "MRSUN", "MTSUN", "G", "C", "PI", "TWO_PI", "MPC", "EULERGAMMA"]
 

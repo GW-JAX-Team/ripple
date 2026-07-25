@@ -22,13 +22,13 @@ uv run pytest -m accuracy --reference lal --n-samples 1000     # the real campai
 uv run pytest -m internals                                      # diagnostic, needs LAL
 ```
 
-`unit/test_reference_constants.py` sits outside this table on purpose.
-It compares numeric literals in `ripplegw.constants` against a reference backend, not waveform output, so it is cheap enough to run unconditionally in `unit/` wherever a backend happens to be installed.
+`cross_validation/test_reference_constants.py` sits outside this table on purpose.
+It compares numeric literals in `ripplegw.constants` against a reference backend, not waveform output, so it is cheap enough to run unconditionally wherever a backend happens to be installed -- it lives under `cross_validation/` because it is the one CI-tier test that touches a reference backend at all, and every file that does so is kept there. It contributes zero test cases, not a failure, when no backend is installed.
 
 ## CI tier: `unit/` and `integration/`
 
-These never evaluate against a reference implementation.
-`unit/` covers the registry, `ripplegw.conversions`, and the tolerance table itself.
+These never import a reference backend and never evaluate against one -- LAL/lalsimulation usage anywhere in the suite is confined to `tests/cross_validation/` (the `reference/` subpackage and its two consumers below), so `unit/` and `integration/` work with no CPU-based reference package installed at all.
+`unit/` covers the registry and `ripplegw.conversions`.
 `integration/` is parametrized directly off `ripplegw.list_waveforms()`, so a newly registered model is covered the moment it appears, with no test-file edits:
 
 - `test_output_format.py` — output keys, shape, dtype, finiteness, `repr`, registry round-trip.
@@ -48,7 +48,7 @@ A session-scoped cache in `tests/conftest.py` (`compiled_model`) jit-compiles ea
 Both use the Einstein Telescope D-design PSD (`tests/psds/ET_D_psd.txt`) for the noise weighting; the documented thresholds are calibrated against that specific weighting, not a flat spectrum.
 
 Thresholds live in `tests/cross_validation/tolerances.toml`, one `[<backend>.<waveform>]` block per model, falling back to `[<backend>.defaults]` per key.
-`unit/test_tolerance_table.py` checks two things without needing a reference backend installed: every waveform a backend claims to support has an entry, and the overlap-loss column matches the table in [LAL Agreement](lal_agreement.md).
+`cross_validation/test_tolerance_table.py` checks two things without needing a reference backend installed: every waveform a backend claims to support has an entry, and the overlap-loss column matches the table in [LAL Agreement](lal_agreement.md).
 
 `tests/cross_validation/campaign.py` holds everything that is not the assertion itself: batch generation, the on-disk reference cache (`--cache-reference`), the OOM-retry ladder, and JSON/figure output (`--plots`, matplotlib-gated so it is never a hard dependency).
 Results land under `--outdir` (default `accuracy-results/`, gitignored) as `n<N>_T<T>/<backend>_<waveform>.json`.
@@ -66,7 +66,7 @@ On a cluster, `bash tests/cross_validation/submit_slurm.sh` or `bash tests/cross
 ### Adding a reference backend
 
 The comment in the issue that started this — "there is only LAL, but later on we may need other CPU-based comparisons for new waveform families" — is why this is an extension point, not a hardcoded LAL call.
-A backend is a class in `tests/helpers/reference/` implementing the `ReferenceBackend` protocol:
+A backend is a class in `tests/cross_validation/reference/` implementing the `ReferenceBackend` protocol:
 
 ```python
 class ReferenceBackend(Protocol):

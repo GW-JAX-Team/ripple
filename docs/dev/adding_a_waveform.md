@@ -285,7 +285,7 @@ Then: `uv run ruff check src/`, `uv run pyright`, `uv run pre-commit run --all-f
 - **`src/ripplegw/benchmarks/timings/timing.py`** — up to **three** separate lists, depending on your model: `choices=[...]` in `main()`'s argument parser (required for every model), `bns_waveforms` in `get_waveform_type()` if it's a tidal model, `precessing_waveforms` in `run_timing()` if it takes in-plane spins.
   You may also need a new `_prepare_*_params` builder if your model's parameter set doesn't match an existing one.
 - **`timings/submit_slurm.sh`** and **`timings/submit_condor.sh`** — the `MODELS=(...)` array in each.
-- **[LAL Agreement](lal_agreement.md)** — add a row if you cross-validated against LALSuite; keep it in sync with `tests/cross_validation/tolerances.toml` (`unit/test_tolerance_table.py` checks the two match).
+- **[LAL Agreement](lal_agreement.md)** — add a row if you cross-validated against LALSuite; keep it in sync with `tests/cross_validation/tolerances.toml` (`cross_validation/test_tolerance_table.py` checks the two match).
 - **Jim** (separate repository, separate PR) — `src/jimgw/core/single_event/waveform.py`, `src/jimgw/cli/_waveform.py`, `src/jimgw/cli/_config.py`.
   See that repo's own `CONTRIBUTING.md`.
 - **Tests** — usually nothing: `integration/` and the accuracy campaign both parametrize off `ripplegw.list_waveforms()`, so a registered model is covered automatically.

@@ -13,16 +13,19 @@ tests/
 ├── helpers/                 # importable test utilities, never collected
 │   ├── grids.py             # frequency/time axis construction
 │   ├── params.py            # canonical_params / random_params_batch
-│   ├── metrics.py           # overlap, overlap loss, phase
-│   └── reference/           # ReferenceBackend protocol + backends (lal.py, ...)
+│   └── metrics.py           # overlap, overlap loss, phase
 ├── unit/                    # fast, pure; no waveform evaluation
 ├── integration/             # every registered waveform: output format, jit/vmap/grad,
 │                             # amplitude/phase + distance, edge cases
 └── cross_validation/
+    ├── reference/            # ReferenceBackend protocol + backends (lal.py, ...) -- the
+    │                         # only place LAL/lalsimulation is imported anywhere in tests/
     ├── campaign.py           # batch runner (not a test module)
     ├── tolerances.toml       # per-(backend, waveform) thresholds
     ├── test_overlap.py       # the accuracy campaign
     ├── test_phase_convention.py
+    ├── test_reference_constants.py  # unmarked; 0 cases if no backend is installed
+    ├── test_tolerance_table.py      # unmarked; no backend needed to run
     ├── submit_slurm.sh / submit_condor.sh
     └── internals/            # white-box vs LAL internals; diagnostic only
 ```
@@ -43,8 +46,8 @@ uv run pytest -m accuracy --reference lal --n-samples 1000   # the real campaign
 uv run pytest -m internals                                    # diagnostic, needs LAL
 ```
 
-`unit/test_reference_constants.py` is deliberately **not** marked `accuracy`: it compares numeric literals in `ripplegw.constants`, not waveform output.
-It runs in `unit/` wherever a reference backend happens to be installed.
+`cross_validation/test_reference_constants.py` is deliberately **not** marked `accuracy`: it compares numeric literals in `ripplegw.constants`, not waveform output.
+It runs in the default CI tier wherever a reference backend happens to be installed, contributing zero test cases (not a failure) otherwise.
 
 ## Running the accuracy campaign
 
@@ -62,7 +65,7 @@ On a cluster: `bash tests/cross_validation/submit_slurm.sh` or `bash tests/cross
 ## Adding a reference backend
 
 Currently only LAL.
-A future CPU-based reference for a new waveform family is one file in `tests/helpers/reference/` implementing the `ReferenceBackend` protocol (`available`, `supports`, `constants`, `generate`), registered with `@register_backend`, plus a `[<name>.<waveform>]` block per supported model in `tests/cross_validation/tolerances.toml`.
+A future CPU-based reference for a new waveform family is one file in `tests/cross_validation/reference/` implementing the `ReferenceBackend` protocol (`available`, `supports`, `constants`, `generate`), registered with `@register_backend`, plus a `[<name>.<waveform>]` block per supported model in `tests/cross_validation/tolerances.toml`.
 No existing test file changes.
 
 ## Adding a waveform
