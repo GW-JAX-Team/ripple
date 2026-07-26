@@ -86,7 +86,9 @@ def test_resolve_existing_path_is_returned_without_network(tmp_path):
     """An existing path is returned as-is; no download is attempted."""
     path = str(tmp_path / "eph.dat")
     _write_synthetic(path, gzipped=False)
-    with patch("ripplegw.waveforms.cw.ephemeris.urllib.request.urlopen") as mock_urlopen:
+    with patch(
+        "ripplegw.waveforms.cw.ephemeris.urllib.request.urlopen"
+    ) as mock_urlopen:
         assert resolve_ephemeris_path(path) == path
     mock_urlopen.assert_not_called()
 
@@ -133,7 +135,9 @@ def test_resolve_standard_name_downloads_and_caches(tmp_path, monkeypatch):
     ) as mock_urlopen:
         resolved = resolve_ephemeris_path("earth00-40-DE405.dat")
     mock_urlopen.assert_called_once()
-    assert resolved == str(cache_dir / "ripplegw" / "ephemeris" / "earth00-40-DE405.dat")
+    assert resolved == str(
+        cache_dir / "ripplegw" / "ephemeris" / "earth00-40-DE405.dat"
+    )
     eph = read_ephemeris_file(resolved)
     assert eph.n_entries == n
 
@@ -149,14 +153,19 @@ def test_resolve_standard_name_downloads_and_caches(tmp_path, monkeypatch):
     assert leftovers == []
 
 
-def test_resolve_download_failure_raises_file_not_found_and_cleans_up(tmp_path, monkeypatch):
+def test_resolve_download_failure_raises_file_not_found_and_cleans_up(
+    tmp_path, monkeypatch
+):
     """A failed download surfaces as FileNotFoundError with no partial file left behind."""
     cache_dir = tmp_path / "cache"
     monkeypatch.setenv("RIPPLEGW_CACHE_DIR", str(cache_dir))
-    with patch(
-        "ripplegw.waveforms.cw.ephemeris.urllib.request.urlopen",
-        side_effect=OSError("network unreachable"),
-    ), pytest.raises(FileNotFoundError):
+    with (
+        patch(
+            "ripplegw.waveforms.cw.ephemeris.urllib.request.urlopen",
+            side_effect=OSError("network unreachable"),
+        ),
+        pytest.raises(FileNotFoundError),
+    ):
         resolve_ephemeris_path("sun00-40-DE405.dat.gz")
     ephemeris_dir = cache_dir / "ripplegw" / "ephemeris"
     leftovers = list(ephemeris_dir.glob("*")) if ephemeris_dir.exists() else []

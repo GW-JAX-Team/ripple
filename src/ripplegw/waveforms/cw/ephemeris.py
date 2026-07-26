@@ -109,9 +109,14 @@ def _download_to_cache(name: str) -> str:
     if os.path.exists(dest):
         return dest
     url = f"{_LALSUITE_RAW_BASE}/{name}"
-    tmp_fd, tmp_path = tempfile.mkstemp(dir=cache_dir, prefix=f".{name}.", suffix=".part")
+    tmp_fd, tmp_path = tempfile.mkstemp(
+        dir=cache_dir, prefix=f".{name}.", suffix=".part"
+    )
     try:
-        with urllib.request.urlopen(url, timeout=60) as response, os.fdopen(tmp_fd, "wb") as tmp_file:
+        with (
+            urllib.request.urlopen(url, timeout=60) as response,
+            os.fdopen(tmp_fd, "wb") as tmp_file,
+        ):
             shutil.copyfileobj(response, tmp_file)
         os.replace(tmp_path, dest)
     except BaseException:
