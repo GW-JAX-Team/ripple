@@ -26,7 +26,7 @@ It contributes zero test cases, not a failure, when no backend is installed.
 
 ## CI tier: `unit/` and `integration/`
 
-These never import a reference backend and never evaluate against one -- LAL/lalsimulation usage anywhere in the suite is confined to `tests/cross_validation/` (the `reference/` subpackage and its two consumers below), so `unit/` and `integration/` work with no CPU-based reference package installed at all.
+These never import a reference backend and never evaluate against one -- LAL/lalsimulation usage anywhere in the suite is confined to `tests/cross_validation/` (the `reference/` subpackage, its two consumers below, and `test_cw_exact_pulsar.py`, which imports `lalpulsar` directly since CW's calling convention doesn't fit the `ReferenceBackend` protocol -- see [LAL Agreement](lal_agreement.md)), so `unit/` and `integration/` work with no CPU-based reference package installed at all.
 `unit/` covers the registry and `ripplegw.conversions`.
 `integration/` is parametrized directly off `ripplegw.list_waveforms()`, so a newly registered model is covered the moment it appears, with no test-file edits:
 

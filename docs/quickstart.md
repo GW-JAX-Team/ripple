@@ -51,7 +51,7 @@ ripplegw.get_waveform_metadata("IMRPhenomD")
 
 ripple also generates continuous-wave (CW) waveforms from spinning neutron stars, ported from LALPulsar.
 These share the `{"p", "c"}` return convention, but the axis is **time** (seconds relative to a GPS start epoch), and the detector, ephemeris, and start time are fixed at construction.
-A JPL ephemeris file is required (see the [Installation](installation.md#continuous-wave-ephemeris-files) page):
+A JPL ephemeris file is required; standard names like the ones below are fetched and cached automatically the first time they're used (see the [Installation](installation.md#continuous-wave-ephemeris-files) page):
 
 ```python
 import jax.numpy as jnp

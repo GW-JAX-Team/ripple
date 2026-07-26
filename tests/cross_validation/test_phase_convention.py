@@ -28,10 +28,10 @@ from tests.helpers.params import canonical_params, regime
 
 _TOLERANCES = load_tolerances()
 
-_PRECESSING = set(ripplegw.list_waveforms(is_precessing=True))
-NON_PRECESSING = [
-    n for n in ripplegw.list_waveforms() if n not in _PRECESSING and n != "SineGaussian"
-]
+# Positive tagging (not "every non-precessing model"): a family that never sets
+# is_precessing either way (e.g. burst, continuous-wave) has no concept of
+# aligned vs. precessing spins and must not be silently swept in here.
+NON_PRECESSING = ripplegw.list_waveforms(is_precessing=False)
 
 
 def _fiducial_params(wf) -> dict:

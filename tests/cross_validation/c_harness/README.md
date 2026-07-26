@@ -55,7 +55,7 @@ JAX_ENABLE_X64=1 PYTHONPATH=/path/to/ripple/src \
 
 The figure of merit is the **overlap loss** (mismatch) `1 − ⟨h₁|h₂⟩/√(⟨h₁|h₁⟩⟨h₂|h₂⟩)`
 between the reconstructed strain and the compiled-LAL strain — the same metric
-(and numerically-stable form) used by `test_lal_overlap.py`, reported as `log10`.
+(and numerically-stable form) used by `test_overlap.py`, reported as `log10`.
 
 ```text
 EXACT       vs compiled XLALSimulateExactPulsarSignal: overlap loss = 3.4e-13  log10 = -12.46
@@ -76,9 +76,10 @@ computes the phase directly per sample and matches the per-sample
 a CSV; `make_figs.py` draws random parameters (isolated exact / isolated
 generate / binary), drives the harness, reconstructs the ripple strain, and
 plots `log10` overlap loss vs sky position and frequency. Output PNGs are
-written to the current directory (or `--outdir`); the committed reference copies
-live in `figures/`. `run_macmini.sh` is the macOS (Apple-Silicon) build+run
-recipe used to generate them.
+written to the current directory (or `--outdir`); they are attached to the PR
+description rather than committed, matching the CBC cross-validation
+convention. `run_macmini.sh` is the macOS (Apple-Silicon) build+run recipe
+used to generate them.
 
 Key point for the PR: the overlap loss is bounded by **LAL's own reference
 precision**, not ripple's:

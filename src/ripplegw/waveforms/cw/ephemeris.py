@@ -18,14 +18,33 @@ File format (see ``XLALReadEphemerisFile`` in LALInitBarycenter.c):
 All quantities are in *natural* units used by LAL barycentering: positions in
 light-seconds, velocities dimensionless (``v/c``) and accelerations in
 ``1/s``. The first column is the GPS time of the entry in seconds.
+
+A standard ``earth*``/``sun*`` file isn't bundled with ripple (see
+``docs/installation.md``); if the requested name isn't found on disk,
+:func:`read_ephemeris_file` downloads it from the LALSuite repository and
+caches it locally (see :func:`resolve_ephemeris_path`) rather than requiring
+users to fetch it manually.
 """
 
 import gzip
 import os
+import re
+import shutil
+import sys
+import tempfile
+import urllib.error
+import urllib.request
 from dataclasses import dataclass
 
 import jax.numpy as jnp
 from jaxtyping import Array, Float
+
+# Raw-file base for LALSuite's tracked copies of the standard ephemerides.
+_LALSUITE_RAW_BASE = "https://git.ligo.org/lscsoft/lalsuite/-/raw/master/lalpulsar/lib"
+# LALPulsar's standard ephemeris naming convention, e.g. "earth00-40-DE405.dat.gz".
+# Auto-download is only ever attempted for a bare name matching this pattern --
+# ripple never guesses at an arbitrary URL.
+_EPHEMERIS_NAME_RE = re.compile(r"\A(earth|sun)\d{2}-\d{2}-DE\d{3}\.dat(\.gz)?\Z")
 
 
 @dataclass(frozen=True)
@@ -60,6 +79,91 @@ class Ephemeris:
         return self.gps0 + (self.n_entries - 1) * self.dt
 
 
+def _cache_dir() -> str:
+    """Local directory auto-downloaded ephemeris files are cached under.
+
+    Override with the ``RIPPLEGW_CACHE_DIR`` environment variable; otherwise
+    ``$XDG_CACHE_HOME/ripplegw/ephemeris`` (``~/.cache`` if unset), or
+    ``~/Library/Caches/ripplegw/ephemeris`` on macOS.
+    """
+    override = os.environ.get("RIPPLEGW_CACHE_DIR")
+    if override:
+        base = override
+    elif sys.platform == "darwin":
+        base = os.path.expanduser("~/Library/Caches")
+    else:
+        base = os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache")
+    return os.path.join(base, "ripplegw", "ephemeris")
+
+
+def _download_to_cache(name: str) -> str:
+    """Download a standard LALPulsar ephemeris file to the local cache.
+
+    Downloads to a temporary file in the same directory and atomically
+    renames it into place, so a failed or interrupted download never leaves
+    behind a cache entry that looks valid but isn't. Returns the cached path.
+    """
+    cache_dir = _cache_dir()
+    os.makedirs(cache_dir, exist_ok=True)
+    dest = os.path.join(cache_dir, name)
+    if os.path.exists(dest):
+        return dest
+    url = f"{_LALSUITE_RAW_BASE}/{name}"
+    tmp_fd, tmp_path = tempfile.mkstemp(dir=cache_dir, prefix=f".{name}.", suffix=".part")
+    try:
+        with urllib.request.urlopen(url, timeout=60) as response, os.fdopen(tmp_fd, "wb") as tmp_file:
+            shutil.copyfileobj(response, tmp_file)
+        os.replace(tmp_path, dest)
+    except BaseException:
+        os.remove(tmp_path)
+        raise
+    return dest
+
+
+def resolve_ephemeris_path(name_or_path: str) -> str:
+    """Resolve an ephemeris argument to a local path, downloading if needed.
+
+    If ``name_or_path`` (or ``name_or_path + ".gz"``) already exists on disk,
+    it is returned as-is -- no network access. Otherwise, if it is a bare
+    filename matching LALPulsar's standard ``earth*``/``sun*`` naming
+    convention (e.g. ``"earth00-40-DE405.dat.gz"``), it is downloaded from
+    the LALSuite repository and cached locally (see :func:`_cache_dir`) so
+    later calls reuse it without re-downloading. Anything else -- a path with
+    a directory component, or a name that doesn't match the convention --
+    raises ``FileNotFoundError`` without attempting a download: ripple never
+    guesses at an arbitrary URL.
+
+    Args:
+        name_or_path (str): A local path, or a standard ephemeris file name.
+
+    Returns:
+        str: A local path to the (possibly newly cached) ephemeris file.
+
+    Raises:
+        FileNotFoundError: The file isn't local and isn't a recognised
+            standard name, or downloading it failed.
+    """
+    if os.path.exists(name_or_path) or os.path.exists(name_or_path + ".gz"):
+        return name_or_path
+    basename = os.path.basename(name_or_path)
+    if os.path.dirname(name_or_path) or not _EPHEMERIS_NAME_RE.match(basename):
+        raise FileNotFoundError(
+            f"Ephemeris file '{name_or_path}' not found, and it isn't a standard "
+            "LALPulsar 'earth*'/'sun*' name ripple can fetch automatically (e.g. "
+            "'earth00-40-DE405.dat.gz'). Pass an existing file path, or one of "
+            "the standard names to have it downloaded and cached automatically."
+        )
+    try:
+        return _download_to_cache(basename)
+    except (urllib.error.URLError, OSError, TimeoutError) as exc:
+        raise FileNotFoundError(
+            f"Ephemeris file '{name_or_path}' isn't cached locally, and "
+            f"downloading it from {_LALSUITE_RAW_BASE}/{basename} failed: {exc}. "
+            "See docs/installation.md to obtain it manually and pass the local "
+            "path instead."
+        ) from exc
+
+
 def _open_maybe_gzip(path: str):
     """Open ``path`` transparently handling gzip compression.
 
@@ -92,14 +196,19 @@ def read_ephemeris_file(path: str) -> Ephemeris:
     Args:
         path (str): Path to an ``earth*`` or ``sun*`` ephemeris file. A
             ``.gz`` suffix is added automatically if the bare name is absent.
+            If ``path`` doesn't exist locally but is a standard LALPulsar
+            name (e.g. ``"earth00-40-DE405.dat.gz"``), it is downloaded and
+            cached automatically -- see :func:`resolve_ephemeris_path`.
 
     Returns:
         Ephemeris: Parsed table.
 
     Raises:
-        FileNotFoundError: If neither ``path`` nor ``path + ".gz"`` exists.
+        FileNotFoundError: ``path`` doesn't exist, isn't a recognised
+            standard name to fetch automatically, or downloading it failed.
         ValueError: If the header or row count is inconsistent with the data.
     """
+    path = resolve_ephemeris_path(path)
     with _open_maybe_gzip(path) as fh:
         tokens: list[str] = []
         for line in fh:

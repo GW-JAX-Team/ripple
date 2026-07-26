@@ -12,6 +12,15 @@ synthetic ephemeris (shared with ``tests/helpers/config.py``'s
 ``default_config``, which every other registry-driven integration test relies
 on for zero-arg-construction call sites) is used so this runs in CI with no
 LAL/ephemeris-data dependency.
+
+``default_config`` (and so ``tests/integration/test_output_format.py`` /
+``test_transforms.py``, which parametrize off the registry generically) always
+builds the ``n_spindowns=0`` configuration -- that already exercises the
+output-contract/jit/vmap/grad properties once per class. What's dedicated here
+instead: the ``n_spindowns=1`` and binary-orbital-parameter configurations
+those generic tests never construct, ``f_heterodyne`` (exercised nowhere
+else), and the exact ``parameter_names`` ordering / ``repr`` string (the
+generic tests only check uniqueness and that the class name appears).
 """
 
 import jax

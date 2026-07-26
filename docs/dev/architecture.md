@@ -21,7 +21,7 @@ Two modules are usable but not re-exported at the top level — import them expl
 ## The registry
 
 Waveform classes self-register with `@register` when their module is imported — there's no central list mapping names to classes to maintain.
-Metadata like `domain` and `source_type` (the GW source category — CBC, burst, ...) is inferred from the class itself — its base class, its location on disk — rather than declared, so it can't drift from what the class actually is.
+Metadata like `domain` and `source_type` (the GW source category — `cbc`, `burst`, `cw`, ...) is inferred from the class itself — its base class, its location on disk — rather than declared, so it can't drift from what the class actually is.
 See [Adding a Waveform](adding_a_waveform.md) for the registration and discovery mechanics.
 
 ## The class hierarchy

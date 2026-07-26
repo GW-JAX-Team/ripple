@@ -63,7 +63,9 @@ class ExactPulsarSignal(TimeDomainWaveform):
             detector (str | Detector): Detector name (``"H1"``, ``"L1"``,
                 ``"V1"``) or a :class:`Detector` instance.
             earth_ephemeris_file (str): Path to a LALPulsar Earth ephemeris
-                file (e.g. ``earth00-40-DE405.dat.gz``).
+                file, or a standard name (e.g. ``"earth00-40-DE405.dat.gz"``)
+                to download and cache automatically -- see
+                :func:`~ripplegw.waveforms.cw.ephemeris.resolve_ephemeris_path`.
             start_gps (int): Integer GPS second corresponding to ``t == 0`` on
                 the time axis passed to :meth:`__call__`.
             sun_ephemeris_file (str | None): Unused by the exact model (the

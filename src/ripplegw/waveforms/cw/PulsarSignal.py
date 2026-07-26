@@ -50,8 +50,12 @@ class PulsarSignal(TimeDomainWaveform):
         """
         Args:
             detector: Detector name or :class:`Detector`.
-            earth_ephemeris_file (str): Earth ephemeris path.
-            sun_ephemeris_file (str): Sun ephemeris path (for the Shapiro term).
+            earth_ephemeris_file (str): Earth ephemeris path, or a standard
+                LALPulsar name (e.g. ``"earth00-40-DE405.dat.gz"``) to
+                download and cache automatically -- see
+                :func:`~ripplegw.waveforms.cw.ephemeris.resolve_ephemeris_path`.
+            sun_ephemeris_file (str): Sun ephemeris path or standard name
+                (for the Shapiro term), same rules as ``earth_ephemeris_file``.
             start_gps (int): GPS second of ``t == 0`` (also the heterodyne epoch).
             n_spindowns (int): Number of spindown parameters.
             ref_time_ssb (float | None): SSB spin reference epoch.

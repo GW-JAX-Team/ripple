@@ -13,9 +13,11 @@ This simultaneously checks: the barycentered geometric delay (vs
 ``XLALBarycenter``), the spindown phase polynomial, the reference-time
 handling, the amplitudes, and the ``{p, c}`` ↔ (A₁…A₄) decomposition.
 
-The test is skipped unless both ``lalpulsar`` and an Earth ephemeris file are
-available. Point ``RIPPLE_EARTH_EPHEMERIS`` (and optionally
-``RIPPLE_SUN_EPHEMERIS``) at a LALPulsar ``earth*``/``sun*`` file to run it.
+Marked ``accuracy`` like the rest of this directory (excluded by CI's default
+``-m "not accuracy"`` run), and additionally skipped unless both ``lalpulsar``
+and an Earth ephemeris file are available. Point ``RIPPLE_EARTH_EPHEMERIS``
+(and optionally ``RIPPLE_SUN_EPHEMERIS``) at a LALPulsar ``earth*``/``sun*``
+file to run it.
 """
 
 import math
@@ -44,7 +46,7 @@ def _overlap_loss(h1, h2) -> float:
     """1 − normalized overlap between two real time series (white inner product).
 
     Uses the same numerically stable identity as
-    ``tests.utils.compute_overlap_loss`` —
+    ``tests.helpers.metrics.overlap_loss`` —
     ``(AB − C²) / (√(AB)·(√(AB) + C))`` with ``A=⟨h1|h1⟩`` etc. — but with a flat
     (white) time-domain inner product, the conventional figure of merit for
     these quasi-monochromatic continuous-wave strain series. Returns the
@@ -88,10 +90,13 @@ def _find_ephemeris():
 
 
 EARTH_FILE, SUN_FILE = _find_ephemeris()
-pytestmark = pytest.mark.skipif(
-    EARTH_FILE is None or SUN_FILE is None,
-    reason="LALPulsar Earth and Sun ephemeris files required",
-)
+pytestmark = [
+    pytest.mark.accuracy,
+    pytest.mark.skipif(
+        EARTH_FILE is None or SUN_FILE is None,
+        reason="LALPulsar Earth and Sun ephemeris files required",
+    ),
+]
 
 
 def test_exact_pulsar_matches_lal_reference():
