@@ -18,9 +18,11 @@ repos:
       - id: ruff-format
         files: ^(src|tests)/
   
-  - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.411
+  - repo: local
     hooks:
-    - id: pyright
-      files: src/
-      additional_dependencies: ["jax>=0.8.2", "jaxtyping>=0.3.3", numpy, typing_extensions]
+      - id: pyright
+        name: pyright
+        entry: uv run pyright
+        language: system
+        files: src/
+        require_serial: true
