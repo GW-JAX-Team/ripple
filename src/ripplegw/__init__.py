@@ -1,10 +1,14 @@
-from importlib.metadata import version, PackageNotFoundError
+from importlib.metadata import PackageNotFoundError, version
 
 try:
     __version__ = version("ripplegw")
 except PackageNotFoundError:
     __version__ = "unknown"
 
+# Importing the waveforms package auto-imports every in-tree family module,
+# each of which self-registers via @register. Adding a family needs no edit
+# here — just a new self-registering module under ripplegw.waveforms.
+from ripplegw import waveforms as _waveforms  # noqa: F401
 from ripplegw.interfaces import (
     AmplitudePhaseWaveform,
     DistanceScaledWaveform,
@@ -20,25 +24,20 @@ from ripplegw.registry import (
     waveform,
 )
 
-# Importing the waveforms package auto-imports every in-tree family module,
-# each of which self-registers via @register. Adding a family needs no edit
-# here — just a new self-registering module under ripplegw.waveforms.
-from ripplegw import waveforms as _waveforms  # noqa: F401
-
 # The entire public API. Concrete waveform classes (IMRPhenomD, TaylorF2, ...)
 # are intentionally NOT exposed here — the single entry point is
 # ripplegw.waveform(name, **config); use ripplegw.list_waveforms() to discover
 # names.
 __all__ = [
-    "__version__",
-    "Waveform",
-    "FrequencyDomainWaveform",
-    "TimeDomainWaveform",
+    "WAVEFORM_REGISTRY",
     "AmplitudePhaseWaveform",
     "DistanceScaledWaveform",
-    "waveform",
-    "list_waveforms",
+    "FrequencyDomainWaveform",
+    "TimeDomainWaveform",
+    "Waveform",
+    "__version__",
     "get_waveform_metadata",
+    "list_waveforms",
     "register",
-    "WAVEFORM_REGISTRY",
+    "waveform",
 ]

@@ -1,14 +1,13 @@
 import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Float
-from ripplegw.typing import FloatLike
 
 from ripplegw.constants import MTSUN
-
+from ripplegw.typing import FloatLike
 from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_QNMdata import (
     QNMData_a,
-    QNMData_fRD,
     QNMData_fdamp,
+    QNMData_fRD,
 )
 
 # Pre-compute constants for O(1) QNM table lookup on the uniform linspace grid.
@@ -161,7 +160,7 @@ def get_transition_frequencies_from_fRD_fdamp(
     This is used by IMRPhenomHM where fRD/fdamp are computed using PhenomPv2
     final spin (with chip) rather than FinalSpin0815 (aligned spin only).
     """
-    m1, m2, chi1, chi2 = theta
+    m1, m2, _chi1, _chi2 = theta
     M = m1 + m2
 
     # Phase transition frequencies

@@ -10,19 +10,18 @@ import json
 import logging
 import math
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 import jax.numpy as jnp
 
 logger = logging.getLogger(__name__)
 
 try:
-    import matplotlib.pyplot as plt  # type: ignore[import]
-
-    HAS_MATPLOTLIB = True
+    import matplotlib.pyplot as _plt
 except ImportError:
-    plt: Any = None
-    HAS_MATPLOTLIB = False
+    plt = None
+else:
+    plt = _plt
 
 _TIMINGS_DIR = Path(__file__).parent.parent.parent.parent.parent / "timings"
 DEFAULT_RESULTS_DIR = _TIMINGS_DIR / "outdir"
@@ -31,7 +30,7 @@ DEFAULT_OUTPUT_DIR = _TIMINGS_DIR / "figures"
 
 def load_timing_results(
     results_dir: Path, gpu_filter: Optional[str] = None
-) -> List[Dict]:
+) -> list[dict]:
     """Load all timing JSON files from the results directory.
 
     Args:
@@ -61,7 +60,7 @@ def load_timing_results(
     return results
 
 
-def organize_results_by_waveform(results: List[Dict]) -> Dict[str, Dict[str, Dict]]:
+def organize_results_by_waveform(results: list[dict]) -> dict[str, dict[str, dict]]:
     """Organize results by waveform and precision.
 
     Args:
@@ -85,13 +84,13 @@ def organize_results_by_waveform(results: List[Dict]) -> Dict[str, Dict[str, Dic
 
 
 def create_time_per_waveform_plot(
-    organized_results: Dict[str, Dict[str, Dict]],
+    organized_results: dict[str, dict[str, dict]],
     output_path: Path,
     gpu_name: str,
     n_waveforms: int,
 ):
     """Create bar chart comparing time per waveform for float32 vs float64."""
-    if not HAS_MATPLOTLIB:
+    if plt is None:
         logger.warning("matplotlib not available, skipping plot.")
         return
     waveforms = sorted(organized_results.keys())
@@ -128,7 +127,7 @@ def create_time_per_waveform_plot(
         alpha=0.8,
         yerr=float32_stds,
         capsize=4,
-        error_kw=dict(ecolor="black", lw=1.5),
+        error_kw={"ecolor": "black", "lw": 1.5},
     )
     bars2 = ax.bar(
         x + width / 2,
@@ -139,7 +138,7 @@ def create_time_per_waveform_plot(
         alpha=0.8,
         yerr=float64_stds,
         capsize=4,
-        error_kw=dict(ecolor="black", lw=1.5),
+        error_kw={"ecolor": "black", "lw": 1.5},
     )
 
     ax.set_ylabel("Time per Waveform (ms)", fontsize=12, fontweight="bold")
@@ -175,7 +174,7 @@ def create_time_per_waveform_plot(
         "Better",
         xy=(len(waveforms) - 0.5, y_max * 0.15),
         xytext=(len(waveforms) - 0.5, y_max * 0.3),
-        arrowprops=dict(arrowstyle="->", color="black", lw=1.5),
+        arrowprops={"arrowstyle": "->", "color": "black", "lw": 1.5},
         fontsize=10,
         ha="center",
         fontweight="bold",
@@ -188,13 +187,13 @@ def create_time_per_waveform_plot(
 
 
 def create_throughput_plot(
-    organized_results: Dict[str, Dict[str, Dict]],
+    organized_results: dict[str, dict[str, dict]],
     output_path: Path,
     gpu_name: str,
     n_waveforms: int,
 ):
     """Create bar chart comparing throughput (waveforms/s) for float32 vs float64."""
-    if not HAS_MATPLOTLIB:
+    if plt is None:
         logger.warning("matplotlib not available, skipping plot.")
         return
     waveforms = sorted(organized_results.keys())
@@ -231,7 +230,7 @@ def create_throughput_plot(
         alpha=0.8,
         yerr=float32_throughput_stds,
         capsize=4,
-        error_kw=dict(ecolor="black", lw=1.5),
+        error_kw={"ecolor": "black", "lw": 1.5},
     )
     bars2 = ax.bar(
         x + width / 2,
@@ -242,7 +241,7 @@ def create_throughput_plot(
         alpha=0.8,
         yerr=float64_throughput_stds,
         capsize=4,
-        error_kw=dict(ecolor="black", lw=1.5),
+        error_kw={"ecolor": "black", "lw": 1.5},
     )
 
     ax.set_ylabel("Waveforms per Second", fontsize=12, fontweight="bold")
@@ -278,7 +277,7 @@ def create_throughput_plot(
         "Better",
         xy=(len(waveforms) - 0.5, y_max * 0.85),
         xytext=(len(waveforms) - 0.5, y_max * 0.7),
-        arrowprops=dict(arrowstyle="->", color="black", lw=1.5),
+        arrowprops={"arrowstyle": "->", "color": "black", "lw": 1.5},
         fontsize=10,
         ha="center",
         fontweight="bold",
@@ -330,7 +329,7 @@ def run_postprocess(
     logger.info("  N waveforms: %d", n_waveforms)
     logger.info("  Waveforms analyzed: %s", ", ".join(sorted(organized.keys())))
 
-    if not HAS_MATPLOTLIB:
+    if plt is None:
         logger.warning("matplotlib not available, skipping plots.")
         return
 

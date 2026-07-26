@@ -1,22 +1,22 @@
+from collections.abc import Mapping
+
 import jax
-from typing import Mapping
-from ripplegw.interfaces import FrequencyDomainWaveform, DistanceScaledWaveform
-from ripplegw.registry import register
-from ripplegw.conversions import Mc_eta_to_ms
 import jax.numpy as jnp
+from jaxtyping import Array, Complex, Float
 
 from ripplegw.constants import MTSUN
-from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD import Phase as PhDPhase
-from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD import Amp as PhDAmp
-from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_utils import get_coeffs
-
-from jaxtyping import Array, Float, Complex
+from ripplegw.conversions import Mc_eta_to_ms
+from ripplegw.interfaces import DistanceScaledWaveform, FrequencyDomainWaveform
+from ripplegw.registry import register
 from ripplegw.typing import FloatLike
+from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD import Amp as PhDAmp
+from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD import Phase as PhDPhase
+from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_utils import get_coeffs
 from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomPv2_utils import (
-    WignerdCoefficients,
-    convert_spins,
     ComputeNNLOanglecoeffs,
     SpinWeightedY,
+    WignerdCoefficients,
+    convert_spins,
     phP_get_transition_frequencies,
 )
 

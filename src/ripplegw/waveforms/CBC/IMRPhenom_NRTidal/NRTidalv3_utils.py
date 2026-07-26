@@ -1,8 +1,9 @@
 """by Robin Chan"""
 
 import jax.numpy as jnp
-from ripplegw.constants import MTSUN, PI, TWO_PI
 from jaxtyping import Array, Float
+
+from ripplegw.constants import MTSUN, PI, TWO_PI
 from ripplegw.typing import FloatLike
 from ripplegw.utils.tidal import get_kappa, get_quadparam_octparam
 from ripplegw.waveforms.CBC.TaylorF2.TaylorF2 import (
@@ -10,7 +11,6 @@ from ripplegw.waveforms.CBC.TaylorF2.TaylorF2 import (
     get_4PNQM2SOCoeff,
     get_6PNQM2SCoeff,
 )
-
 
 """
 Corrections from NRTidalv3: (2311.07456)
@@ -530,25 +530,26 @@ def phenomx_tidal_phase_derivative(
     Mftaperend = 1.35 * Mfmerger
     plancktaperfn = general_planck_taper(Mf, Mftaperstart, Mftaperend)
 
-    dplancktaper = jnp.where(  # type: ignore[call-overload]
-        Mf <= Mftaperstart,
+    taper_Mf = jnp.asarray(Mf)
+    dplancktaper = jnp.where(
+        taper_Mf <= Mftaperstart,
         0.0,
-        jnp.where(  # type: ignore[arg-type]
-            Mf >= Mftaperend,
+        jnp.where(
+            taper_Mf >= Mftaperend,
             0.0,
             -(
                 jnp.cosh(
-                    (Mftaperend - Mftaperstart) / (Mf - Mftaperstart)
-                    + (Mftaperend - Mftaperstart) / (Mf - Mftaperend)
+                    (Mftaperend - Mftaperstart) / (taper_Mf - Mftaperstart)
+                    + (Mftaperend - Mftaperstart) / (taper_Mf - Mftaperend)
                 )
                 + jnp.sinh(
-                    (Mftaperend - Mftaperstart) / (Mf - Mftaperstart)
-                    + (Mftaperend - Mftaperstart) / (Mf - Mftaperend)
+                    (Mftaperend - Mftaperstart) / (taper_Mf - Mftaperstart)
+                    + (Mftaperend - Mftaperstart) / (taper_Mf - Mftaperend)
                 )
             )
             * (
-                -(Mftaperend - Mftaperstart) / ((Mf - Mftaperstart) ** 2)
-                - (Mftaperend - Mftaperstart) / ((Mf - Mftaperend) ** 2)
+                -(Mftaperend - Mftaperstart) / ((taper_Mf - Mftaperstart) ** 2)
+                - (Mftaperend - Mftaperstart) / ((taper_Mf - Mftaperend) ** 2)
             )
             * (plancktaperfn**2),
         ),

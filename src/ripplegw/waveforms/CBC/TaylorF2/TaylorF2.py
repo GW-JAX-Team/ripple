@@ -2,14 +2,16 @@
 This file implements the TaylorF2 waveform, as described in the LALSuite library.
 """
 
+from collections.abc import Mapping
+
 import jax.numpy as jnp
-from typing import Mapping
+from jaxtyping import Array, Complex, Float
+
+from ripplegw.constants import EULERGAMMA, MPC, MRSUN, MTSUN, PI
+from ripplegw.conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from ripplegw.interfaces import AmplitudePhaseWaveform, DistanceScaledWaveform
 from ripplegw.registry import register
-from ripplegw.constants import EULERGAMMA, MTSUN, MPC, PI, MRSUN
-from jaxtyping import Array, Float, Complex
 from ripplegw.typing import FloatLike
-from ripplegw.conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from ripplegw.utils.tidal import get_quadparam_octparam
 
 ###########################
@@ -149,8 +151,13 @@ def get_energy_0PNCoeff(eta: FloatLike) -> FloatLike:
 
 
 def get_PNPhasing_F2(
-    m1: float, m2: float, S1z: float, S2z: float, lambda1: float, lambda2: float
-) -> tuple[dict[str, float], dict[str, float]]:
+    m1: FloatLike,
+    m2: FloatLike,
+    S1z: FloatLike,
+    S2z: FloatLike,
+    lambda1: FloatLike,
+    lambda2: FloatLike,
+) -> tuple[dict[str, FloatLike], dict[str, FloatLike]]:
     """
     Gets dictionaries giving the phasing coefficients to be used in the approximant.
     Keys are the different PN orders, with values being the corresponding coefficient.
@@ -186,8 +193,8 @@ def get_PNPhasing_F2(
     qm_def2, _ = get_quadparam_octparam(lambda2)  # quadrupole parameter 2
 
     # We are going to build a dictionary with coefficients for varying PN orders
-    phasing_coeffs = dict()
-    phasing_log_coeffs = dict()
+    phasing_coeffs: dict[str, FloatLike] = {}
+    phasing_log_coeffs: dict[str, FloatLike] = {}
 
     # Basic PN phasing coefficients (LALSimInspiralPNCoefficents)
     phasing_coeffs["0PN"] = 1.0
@@ -260,9 +267,9 @@ def get_PNPhasing_F2(
     ) + lambda2 * get_10PNTidalCoeff(m2M)
 
     # Multiply all at the end with the prefactor
-    for key in phasing_coeffs.keys():
+    for key in phasing_coeffs:
         phasing_coeffs[key] *= pfaN
-    for key in phasing_log_coeffs.keys():
+    for key in phasing_log_coeffs:
         phasing_log_coeffs[key] *= pfaN
 
     return phasing_coeffs, phasing_log_coeffs

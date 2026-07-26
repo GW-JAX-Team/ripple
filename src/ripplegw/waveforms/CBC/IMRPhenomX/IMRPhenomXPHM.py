@@ -1,25 +1,27 @@
+from collections.abc import Mapping
+from dataclasses import dataclass
+
 import jax
-from typing import Mapping
-from ripplegw.interfaces import FrequencyDomainWaveform, DistanceScaledWaveform
-from ripplegw.registry import register
-from ripplegw.conversions import Mc_eta_to_ms
 import jax.numpy as jnp
-from jaxtyping import Array, Float, Complex
+from jaxtyping import Array, Complex, Float
+
+import ripplegw.waveforms.CBC.IMRPhenomX.LALSimIMRPhenomX_precession as pPrec
+from ripplegw.constants import MPC, MRSUN, MTSUN
+from ripplegw.conversions import Mc_eta_to_ms
+from ripplegw.interfaces import DistanceScaledWaveform, FrequencyDomainWaveform
+from ripplegw.registry import register
 from ripplegw.typing import FloatLike
-from ripplegw.constants import MTSUN, MRSUN, MPC
 from ripplegw.utils.spherical_harmonics import (
     compute_sminus2_l2,
     compute_sminus2_l3,
     compute_sminus2_l4,
 )
-from dataclasses import dataclass
-import ripplegw.waveforms.CBC.IMRPhenomX.LALSimIMRPhenomX_precession as pPrec
-from ripplegw.waveforms.CBC.IMRPhenomX.initialize_MSA_system import (
-    IMRPhenomX_Initialize_MSA_System,
-)
 from ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomXHM import (
     XLALSimIMRPhenomXHMGethlmModes,
     build_pWF22,
+)
+from ripplegw.waveforms.CBC.IMRPhenomX.initialize_MSA_system import (
+    IMRPhenomX_Initialize_MSA_System,
 )
 
 
@@ -89,9 +91,7 @@ def generate_xphm(
     reference_frequency: float,
 ) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """Generate IMRPhenomXPHM plus and cross polarizations."""
-    Mf: Float[Array, " n_freq"] = pPrec.XLALSimIMRPhenomXUtilsHztoMf(
-        frequency_array, mass_1 + mass_2
-    )  # type: ignore[assignment]
+    Mf: Float[Array, " n_freq"] = frequency_array * (mass_1 + mass_2) * MTSUN
 
     Mtot = mass_1 + mass_2
 

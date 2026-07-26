@@ -1,14 +1,16 @@
 """by Robin Chan"""
 
+from collections.abc import Mapping
+
 import jax
-from typing import Mapping
+import jax.numpy as jnp
+from jaxtyping import Array, Complex, Float
+
+from ripplegw.constants import MTSUN, PI
+from ripplegw.conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from ripplegw.interfaces import AmplitudePhaseWaveform, DistanceScaledWaveform
 from ripplegw.registry import register
-import jax.numpy as jnp
-from ripplegw.constants import MTSUN, PI
 from ripplegw.typing import FloatLike
-from jaxtyping import Array, Float, Complex
-from ripplegw.conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from ripplegw.utils.tidal import get_kappa
 from ripplegw.waveforms.CBC.IMRPhenom_NRTidal.IMRPhenomD_NRTidalv2 import (
     get_tidal_amplitude,
@@ -16,15 +18,15 @@ from ripplegw.waveforms.CBC.IMRPhenom_NRTidal.IMRPhenomD_NRTidalv2 import (
 from ripplegw.waveforms.CBC.IMRPhenom_NRTidal.NRTidalv3_utils import (
     _get_merger_frequency,
     _get_phenomx_spin_coefficients,
-    get_tidal_phase,
-    get_NRTidalv3_coefficients,
-    get_tidalphasePN_coeffs,
-    get_tidal_phase_PN,
-    general_planck_taper,
-    fullTidalPhaseCorrection,
     changePhase_if_min,
+    fullTidalPhaseCorrection,
+    general_planck_taper,
+    get_NRTidalv3_coefficients,
+    get_tidal_phase,
+    get_tidal_phase_PN,
+    get_tidalphasePN_coeffs,
 )
-import ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomX_utils as IMRPhenomX_utils
+from ripplegw.waveforms.CBC.IMRPhenomX import IMRPhenomX_utils
 from ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomXAS import Amp, Phase, PhaseDerivative
 
 

@@ -7,6 +7,7 @@ specifically the incomplete elliptic integral of the first kind (F).
 
 import jax.numpy as jnp
 from jax.scipy.integrate import trapezoid
+
 from ripplegw.typing import FloatLike
 
 

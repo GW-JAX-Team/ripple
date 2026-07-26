@@ -1,9 +1,15 @@
+from collections.abc import Mapping
+
 import jax
-from typing import Mapping
+import jax.numpy as jnp
+from jaxtyping import Array, Complex, Float
+
+from ripplegw.constants import EULERGAMMA, MPC, MTSUN, PI, C
+from ripplegw.conversions import Mc_eta_to_ms
 from ripplegw.interfaces import AmplitudePhaseWaveform, DistanceScaledWaveform
 from ripplegw.registry import register
-from ripplegw.conversions import Mc_eta_to_ms
-import jax.numpy as jnp
+from ripplegw.typing import FloatLike
+from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_QNMdata import fM_CUT
 from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_utils import (
     get_coeffs,
     get_delta0,
@@ -13,11 +19,6 @@ from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_utils import (
     get_delta4,
     get_transition_frequencies,
 )
-
-from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_QNMdata import fM_CUT
-from ripplegw.constants import EULERGAMMA, MTSUN, MPC, C, PI
-from jaxtyping import Array, Float, Complex
-from ripplegw.typing import FloatLike
 
 
 def get_inspiral_phase(

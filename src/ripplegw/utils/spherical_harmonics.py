@@ -1,5 +1,6 @@
 import jax.numpy as jnp
 from jaxtyping import Array
+
 from ripplegw.typing import FloatLike
 
 

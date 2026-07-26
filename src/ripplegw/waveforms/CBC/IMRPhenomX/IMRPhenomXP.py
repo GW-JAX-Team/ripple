@@ -1,28 +1,28 @@
+from collections.abc import Mapping
+
 import jax
-from typing import Mapping
-from ripplegw.interfaces import FrequencyDomainWaveform, DistanceScaledWaveform
-from ripplegw.registry import register
-from ripplegw.conversions import Mc_eta_to_ms
 import jax.numpy as jnp
-from jaxtyping import Array, Float, Complex
-from ripplegw.constants import PI, MTSUN, MRSUN, MPC
-from ripplegw.typing import FloatLike
+from jaxtyping import Array, Complex, Float
+
 import ripplegw.waveforms.CBC.IMRPhenomX.LALSimIMRPhenomX_precession as pPrec
-from ripplegw.waveforms.CBC.IMRPhenomX.initialize_MSA_system import (
-    IMRPhenomX_Initialize_MSA_System,
-)
-
-
+from ripplegw.constants import MPC, MRSUN, MTSUN, PI
+from ripplegw.conversions import Mc_eta_to_ms
+from ripplegw.interfaces import DistanceScaledWaveform, FrequencyDomainWaveform
+from ripplegw.registry import register
+from ripplegw.typing import FloatLike
 from ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomXHM import (
     XLALSimIMRPhenomXHMGethlmModes,
     build_pWF22,
 )
 from ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomXPHM import (
-    IMRPhenomXWignerdCoefficients_cosbeta,
-    twist_22,
     BetaPowers,
+    IMRPhenomXWignerdCoefficients_cosbeta,
     apply_polarization_rotation,
+    twist_22,
 )  # spaghetti code! FIXME
+from ripplegw.waveforms.CBC.IMRPhenomX.initialize_MSA_system import (
+    IMRPhenomX_Initialize_MSA_System,
+)
 
 jax.config.update("jax_enable_x64", True)
 

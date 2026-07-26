@@ -12,30 +12,47 @@ Ports the 122019-release code from:
 The 22-mode reuses ripple's existing IMRPhenomXAS.py (Phase + Amp functions).
 """
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from ripplegw.interfaces import FrequencyDomainWaveform, DistanceScaledWaveform
-from ripplegw.registry import register
-from ripplegw.conversions import Mc_eta_to_ms
-from typing import Any, Mapping
+from typing import Any, TypeAlias
+
 import jax
 import jax.numpy as jnp
 from jax import Array
-from jaxtyping import Float, Complex
-from ripplegw.typing import FloatLike
+from jaxtyping import Complex, Float
 
-from ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomXAS import (
-    get_inspiral_phase,
-    get_mergerringdown_Amp,
-    Phase as IMRPhenomXAS_Phase,
-    Amp as IMRPhenomXAS_Amp,
-)
-import ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomX_utils as IMRPhenomX_utils
-from ripplegw.constants import PI, MTSUN, MPC, C, MRSUN
+from ripplegw.constants import MPC, MRSUN, MTSUN, PI, C
+from ripplegw.conversions import Mc_eta_to_ms
+from ripplegw.interfaces import DistanceScaledWaveform, FrequencyDomainWaveform
+from ripplegw.registry import register
+from ripplegw.typing import ComplexLike, FloatLike
 from ripplegw.utils.spherical_harmonics import (
     compute_sminus2_l2,
     compute_sminus2_l3,
     compute_sminus2_l4,
 )
+from ripplegw.waveforms.CBC.IMRPhenomX import IMRPhenomX_utils
+from ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomXAS import (
+    Amp as IMRPhenomXAS_Amp,
+)
+from ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomXAS import (
+    Phase as IMRPhenomXAS_Phase,
+)
+from ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomXAS import (
+    get_inspiral_phase,
+    get_mergerringdown_Amp,
+)
+
+PNCoefficient: TypeAlias = FloatLike | ComplexLike
+PNCoefficients: TypeAlias = tuple[
+    PNCoefficient,
+    PNCoefficient,
+    PNCoefficient,
+    PNCoefficient,
+    PNCoefficient,
+    PNCoefficient,
+    PNCoefficient,
+]
 
 # ---------------------------------------------------------------------------
 # Section 1: QNM fits
@@ -445,7 +462,7 @@ def build_pWF22(
     phase_coeffs = IMRPhenomX_utils.PhenomX_phase_coeff_table
     Mf_ref = f_ref * M_s
 
-    return dict(
+    return dict(  # noqa: C408
         eta=eta,
         delta=delta,
         S=S,
@@ -2925,8 +2942,12 @@ _AMP_PREFACTORS = [
 
 
 def _xhm_pn_amp_coeffs(
-    modeTag: int, eta: float, delta: float, chi1L: float, chi2L: float
-) -> tuple[complex, complex, complex, complex, complex, complex, complex]:
+    modeTag: int,
+    eta: FloatLike,
+    delta: FloatLike,
+    chi1L: FloatLike,
+    chi2L: FloatLike,
+) -> PNCoefficients:
     """
     Complex PN polynomial coefficients (pnInit..pnSixTh) for inspiral amplitude.
 
@@ -3162,12 +3183,12 @@ def _xhm_pn_amp_coeffs(
             * h2
         )
 
-    return (pnInit, pnOneTh, pnTwoTh, pnThreeTh, pnFourTh, pnFiveTh, pnSixTh)
+    return pnInit, pnOneTh, pnTwoTh, pnThreeTh, pnFourTh, pnFiveTh, pnSixTh
 
 
 def _xhm_pn_poly(
     f: float | Array,
-    pn_coeffs: tuple[complex, complex, complex, complex, complex, complex, complex],
+    pn_coeffs: PNCoefficients,
 ) -> Array:
     """Evaluate complex PN polynomial at frequency f."""
     c0, c1, c2, c3, c4, c5, c6 = pn_coeffs
@@ -3185,7 +3206,7 @@ def _xhm_pn_poly(
 def _xhm_insp_rescaled(
     f: float | Array,
     PNgf: float | Array,
-    pn_coeffs: tuple[complex, complex, complex, complex, complex, complex, complex],
+    pn_coeffs: PNCoefficients,
     rho1: float | Array,
     rho2: float | Array,
     rho3: float | Array,
@@ -6191,7 +6212,7 @@ def _xhm_fAmpMatchIN(pWFHM: "XHMWaveformStruct", pWF22: dict[str, Any]) -> Array
     sharpness = 0.004
     funcs = 0.5 + 0.5 * jnp.tanh((eta - transition_eta) / sharpness)
     fcut_emr = funcs * fMECO + (1.0 - funcs) * fcutEMR
-    return jnp.where(eta > eta_q20, fMECO, fcut_emr)  # type: ignore[return-value]
+    return jnp.where(eta > eta_q20, fMECO, fcut_emr)
 
 
 def _xhm_fAmpMatchIM(pWFHM: "XHMWaveformStruct", pWF22: dict[str, Any]) -> float:
@@ -6577,9 +6598,7 @@ def xhm_amp_noModeMixing(
     amp_m = jax.vmap(inter_amp)(Mf)
     amp_r = jax.vmap(rd_amp)(Mf)
 
-    result: Float[Array, " n_freq"] = jnp.where(
-        Mf < fIN, amp_i, jnp.where(Mf < fIM, amp_m, amp_r)
-    )  # type: ignore[assignment]
+    result = jnp.where(Mf < fIN, amp_i, jnp.where(Mf < fIM, amp_m, amp_r))
     return result
 
 

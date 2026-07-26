@@ -1,8 +1,8 @@
 import jax.numpy as jnp
 from jaxtyping import Array, Float
-from ripplegw.typing import FloatLike
 
 from ripplegw.constants import MTSUN, PI
+from ripplegw.typing import FloatLike
 
 # Dimensionless cutoff frequency for PhenomXAS
 fM_CUT = 0.3
@@ -205,7 +205,7 @@ def get_cutoff_fMs(
     # fISCO uses aligned-spin afinal (a), not afinal_prec — LAL sets fISCO before
     # the precessing final spin override.
     a_isco2 = a * a
-    Z1 = 1.0 + jnp.cbrt((1.0 - a_isco2)) * (jnp.cbrt(1 + a) + jnp.cbrt(1 - a))
+    Z1 = 1.0 + jnp.cbrt(1.0 - a_isco2) * (jnp.cbrt(1 + a) + jnp.cbrt(1 - a))
     Z1 = jnp.where(Z1 > 3.0, 3.0, Z1)
     Z2 = jnp.sqrt(3.0 * a_isco2 + Z1 * Z1)
     rISCO = 3.0 + Z2 - jnp.sign(a) * jnp.sqrt((3 - Z1) * (3 + Z1 + 2 * Z2))
@@ -1195,8 +1195,8 @@ PhenomX_phase_coeff_table = jnp.array(
             -5.58197349185435e6,
             -3.5225742421184325e8,
             1.4667258334378073e9,
-            0.0,  #
-            0.0,  #
+            0.0,
+            0.0,
             1.0,
             66757.12830903867,
             5.385164380400193e6,

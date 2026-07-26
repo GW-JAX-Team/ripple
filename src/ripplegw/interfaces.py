@@ -6,7 +6,8 @@ any model through ``ripplegw.waveform(name, **config)``.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, ClassVar, Mapping
+from collections.abc import Mapping
+from typing import Any, ClassVar
 
 import jax.numpy as jnp
 from jaxtyping import Array, Complex, Float
@@ -49,7 +50,7 @@ class Waveform(ABC):
 
     @abstractmethod
     def __call__(
-        self, axis: Float[Array, " n"], params: Mapping[str, FloatLike]
+        self, axis: Float[Array, " n"], /, params: Mapping[str, FloatLike]
     ) -> StrainDict:
         """Evaluate the waveform.
 
@@ -114,7 +115,7 @@ class AmplitudePhaseWaveform(FrequencyDomainWaveform):
         return amp * jnp.cos(phase) + 1j * (amp * jnp.sin(phase))
 
 
-class DistanceScaledWaveform:
+class DistanceScaledWaveform(Waveform):
     """Mixin for waveforms whose ``params`` includes a distance ``d_L``.
 
     ``at_unit_distance(axis, params) == __call__(axis, {**params, "d_L": 1.0})``
@@ -128,4 +129,4 @@ class DistanceScaledWaveform:
         self, axis: Float[Array, " n"], params: Mapping[str, FloatLike]
     ) -> StrainDict:
         """Evaluate at ``d_L = 1`` Mpc; any ``d_L`` already in ``params`` is ignored."""
-        return self(axis, {**params, "d_L": 1.0})  # type: ignore[attr-defined]
+        return self(axis, {**params, "d_L": 1.0})

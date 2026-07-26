@@ -1,11 +1,12 @@
+from collections.abc import Mapping
+
 import jax.numpy as jnp
-from typing import Mapping
-from ripplegw.interfaces import TimeDomainWaveform
-from ripplegw.registry import register
 from jax.lax import complex
+from jaxtyping import Array, Float
 
 from ripplegw.constants import PI
-from jaxtyping import Array, Float
+from ripplegw.interfaces import TimeDomainWaveform
+from ripplegw.registry import register
 from ripplegw.typing import FloatLike
 
 

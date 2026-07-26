@@ -9,20 +9,20 @@ import argparse
 import json
 import logging
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 import jax
 import jax.numpy as jnp
 
 import ripplegw
-from ripplegw.conversions import ms_to_Mc_eta
 from ripplegw.benchmarks.utils import (
     generate_bbh_parameters,
     generate_bns_parameters,
     get_device_name,
     get_git_hash,
 )
+from ripplegw.conversions import ms_to_Mc_eta
 
 logger = logging.getLogger(__name__)
 
@@ -214,7 +214,7 @@ def run_timing(args):
         "minimum_frequency": args.f_min,
         "maximum_frequency": args.f_max,
         "reference_frequency": args.f_ref,
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "git_hash": get_git_hash(),
     }
 

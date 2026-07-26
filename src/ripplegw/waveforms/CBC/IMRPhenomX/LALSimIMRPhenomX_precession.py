@@ -1,10 +1,11 @@
 import dataclasses
+
+import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Float
-from ripplegw.typing import FloatLike
-from ripplegw.constants import MTSUN
-import jax
 
+from ripplegw.constants import MTSUN
+from ripplegw.typing import FloatLike
 from ripplegw.waveforms.CBC.IMRPhenomX.initialize_MSA_system import (
     IMRPhenomX_Initialize_MSA_System,
     IMRPhenomX_Return_phi_zeta_costhetaL_MSA,
@@ -772,20 +773,6 @@ def compute_evolved_spin_given_setup(
     )
     cos_beta_out: FloatLike = jnp.where(inspiral_mask, vangles[2], 0.0)
     return alpha_out, epsilon_out, cos_beta_out
-
-
-def XLALSimIMRPhenomXUtilsHztoMf(fHz: FloatLike, Mtot_Msun: FloatLike) -> FloatLike:
-    """
-    Convert frequency from Hz to geometric units (Mf).
-
-    Args:
-        fHz (FloatLike): Frequency in Hz
-        Mtot_Msun (FloatLike): Total mass in solar masses
-
-    Returns:
-        FloatLike: Geometric frequency Mf
-    """
-    return fHz * Mtot_Msun * MTSUN
 
 
 def IMRPhenomX_rotate_z(angle, v):

@@ -1,17 +1,17 @@
 import jax
 import jax.numpy as jnp
+from jaxtyping import Array, Float
 
 from ripplegw.constants import MTSUN
+from ripplegw.typing import ComplexScalar, FloatLike
+from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_QNMdata import (
+    QNMData_fdamp,
+    QNMData_fRD,
+)
 from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_utils import (
     EradRational0815,
     FinalSpin0815_s,
     _qnm_interp,
-)
-from jaxtyping import Array, Float, Complex
-from ripplegw.typing import FloatLike
-from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_QNMdata import (
-    QNMData_fRD,
-    QNMData_fdamp,
 )
 
 MAX_TOL_ATAN = 1.0e-15
@@ -187,39 +187,40 @@ def convert_spins(
     return chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz
 
 
-def SpinWeightedY(theta: FloatLike, phi: FloatLike, s: int, l: int, m: int) -> Complex:  # noqa: E741
+def SpinWeightedY(
+    theta: FloatLike, phi: FloatLike, s: int, l: int, m: int
+) -> ComplexScalar:
     "copied from SphericalHarmonics.c in LAL"
     fac: FloatLike = jnp.zeros_like(theta)
-    if s == -2:
-        if l == 2:
-            if m == -2:
-                fac = (
-                    jnp.sqrt(5.0 / (64.0 * jnp.pi))
-                    * (1.0 - jnp.cos(theta))
-                    * (1.0 - jnp.cos(theta))
-                )
-            elif m == -1:
-                fac = (
-                    jnp.sqrt(5.0 / (16.0 * jnp.pi))
-                    * jnp.sin(theta)
-                    * (1.0 - jnp.cos(theta))
-                )
-            elif m == 0:
-                fac = jnp.sqrt(15.0 / (32.0 * jnp.pi)) * jnp.sin(theta) * jnp.sin(theta)
-            elif m == 1:
-                fac = (
-                    jnp.sqrt(5.0 / (16.0 * jnp.pi))
-                    * jnp.sin(theta)
-                    * (1.0 + jnp.cos(theta))
-                )
-            elif m == 2:
-                fac = (
-                    jnp.sqrt(5.0 / (64.0 * jnp.pi))
-                    * (1.0 + jnp.cos(theta))
-                    * (1.0 + jnp.cos(theta))
-                )
-            else:
-                raise ValueError(f"Invalid mode s={s}, l={l}, m={m} - require |m| <= l")
+    if s == -2 and l == 2:
+        if m == -2:
+            fac = (
+                jnp.sqrt(5.0 / (64.0 * jnp.pi))
+                * (1.0 - jnp.cos(theta))
+                * (1.0 - jnp.cos(theta))
+            )
+        elif m == -1:
+            fac = (
+                jnp.sqrt(5.0 / (16.0 * jnp.pi))
+                * jnp.sin(theta)
+                * (1.0 - jnp.cos(theta))
+            )
+        elif m == 0:
+            fac = jnp.sqrt(15.0 / (32.0 * jnp.pi)) * jnp.sin(theta) * jnp.sin(theta)
+        elif m == 1:
+            fac = (
+                jnp.sqrt(5.0 / (16.0 * jnp.pi))
+                * jnp.sin(theta)
+                * (1.0 + jnp.cos(theta))
+            )
+        elif m == 2:
+            fac = (
+                jnp.sqrt(5.0 / (64.0 * jnp.pi))
+                * (1.0 + jnp.cos(theta))
+                * (1.0 + jnp.cos(theta))
+            )
+        else:
+            raise ValueError(f"Invalid mode s={s}, l={l}, m={m} - require |m| <= l")
     return fac * jnp.exp(1j * m * phi)
 
 

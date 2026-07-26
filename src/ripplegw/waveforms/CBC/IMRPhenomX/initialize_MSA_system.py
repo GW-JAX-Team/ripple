@@ -1,10 +1,13 @@
-import jax.numpy as jnp
 import jax
+import jax.numpy as jnp
 from jaxtyping import Array, Float
+
+from ripplegw.constants import EULERGAMMA, MSUN, C, G
 from ripplegw.typing import FloatLike
-from ripplegw.constants import EULERGAMMA, MSUN, G, C
-from ripplegw.waveforms.CBC.IMRPhenomX.elliptic_integrals import ellint_F
-from ripplegw.waveforms.CBC.IMRPhenomX.elliptic_integrals import gsl_sf_elljac_e
+from ripplegw.waveforms.CBC.IMRPhenomX.elliptic_integrals import (
+    ellint_F,
+    gsl_sf_elljac_e,
+)
 
 
 # /** This function initializes all the core variables required for the MSA system. This will be called first. */
@@ -1407,11 +1410,9 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
     def compute_Dphi_term():
         return (
             jnp.abs(
-                (
-                    -c4 * d0 * ((2 * d0 + d2) - sd)
-                    + c2 * d0 * ((d2 + 2.0 * d4) + sd)
-                    - c0 * (-(2 * d0 * d4) + (d2 + d4) * (d2 + sd))
-                )
+                -c4 * d0 * ((2 * d0 + d2) - sd)
+                + c2 * d0 * ((d2 + 2.0 * d4) + sd)
+                - c0 * (-(2 * d0 * d4) + (d2 + d4) * (d2 + sd))
             )
             / C2den
             * (sqrt_nd / (nd - 1.0))

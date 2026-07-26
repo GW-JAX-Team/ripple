@@ -1,32 +1,36 @@
+from collections.abc import Mapping
+from typing import Any
+
 import jax
-from ripplegw.interfaces import FrequencyDomainWaveform, DistanceScaledWaveform
-from ripplegw.registry import register
-from ripplegw.conversions import Mc_eta_to_ms
 import jax.numpy as jnp
-from typing import Any, Mapping
-from ripplegw.constants import PI, MSUN, MTSUN, MRSUN, MPC
-from jaxtyping import Array, Float, Integer, Complex
-from ripplegw.typing import FloatLike
+from jaxtyping import Array, Complex, Float, Integer
+
+from ripplegw.constants import MPC, MRSUN, MSUN, MTSUN, PI
+from ripplegw.conversions import Mc_eta_to_ms
+from ripplegw.interfaces import DistanceScaledWaveform, FrequencyDomainWaveform
+from ripplegw.registry import register
+from ripplegw.typing import ComplexScalar, FloatLike, IntScalar
 from ripplegw.utils.spherical_harmonics import (
     compute_sminus2_l2,
     compute_sminus2_l3,
     compute_sminus2_l4,
 )
+from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD import (
+    IMRPhenDAmplitude_NoCut,
+    get_IIb_raw_phase,
+)
+from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD import Phase as IMRPhenomD_Phase
 from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_QNMdata import (
     QNMData_a,
-    QNMData_fRD,
     QNMData_fdamp,
+    QNMData_fRD,
 )
 from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_utils import (
     EradRational0815,
     get_coeffs,
     get_transition_frequencies_from_fRD_fdamp,
 )
-from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD import Phase as IMRPhenomD_Phase
-from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD import IMRPhenDAmplitude_NoCut
-from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD import get_IIb_raw_phase
 from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomPv2_utils import FinalSpin0815
-
 
 # Phase shift due to leading order complex amplitude
 # [L.Blancet, arXiv:1310.1528 (Sec. 9.5)]
@@ -358,15 +362,17 @@ def init_PhenomHM_Storage(
     vmapped_IMRPhenomHMGetRingdownFrequency = jax.vmap(
         IMRPhenomHMGetRingdownFrequency, in_axes=(0, 0, None, None)
     )
-    f_rd_array, f_damp_array = vmapped_IMRPhenomHMGetRingdownFrequency(  # type: ignore[misc]
+    f_rd, f_damp = vmapped_IMRPhenomHMGetRingdownFrequency(
         ell_mm_pairs[:, 0], ell_mm_pairs[:, 1], p["finmass"], p["finspin"]
     )
+    f_rd_array = jnp.asarray(f_rd)
+    f_damp_array = jnp.asarray(f_damp)
 
     # Store as 1D arrays indexed by mode order
     p["PhenomHMfring"] = f_rd_array  # shape: (5,)
     p["PhenomHMfdamp"] = f_damp_array  # shape: (5,)
-    p["Mf_RD_22"] = f_rd_array[1]  # type: ignore[index]
-    p["Mf_DM_22"] = f_damp_array[1]  # type: ignore[index]
+    p["Mf_RD_22"] = f_rd_array[1]
+    p["Mf_DM_22"] = f_damp_array[1]
 
     # Rholm and Taulm as 1D arrays (one per mode)
     p["Rholm"] = p["Mf_RD_22"] / f_rd_array  # shape: (5,)
@@ -387,7 +393,7 @@ def init_PhenomHM_Storage(
 
 
 def IMRPhenomHMGetRingdownFrequency(
-    ell: Integer, mm: Integer, finalmass: FloatLike, finalspin: FloatLike
+    ell: IntScalar, mm: IntScalar, finalmass: FloatLike, finalspin: FloatLike
 ) -> tuple[FloatLike, FloatLike]:
     """
     Implementation of IMRPhenomHMGetRingdownFrequency in LALSimIMRPhenomHM.c
@@ -406,7 +412,7 @@ def IMRPhenomHMGetRingdownFrequency(
     return fringdown, fdamp
 
 
-def SimRingdownCW_KAPPA(jf: FloatLike, ell: Integer, emm: Integer) -> FloatLike:
+def SimRingdownCW_KAPPA(jf: FloatLike, ell: IntScalar, emm: IntScalar) -> FloatLike:
     """
     Domain mapping for dimnesionless BH spin
     """
@@ -416,8 +422,8 @@ def SimRingdownCW_KAPPA(jf: FloatLike, ell: Integer, emm: Integer) -> FloatLike:
 
 
 def SimRingdownCW_CW07102016(
-    kappa: FloatLike, ell: Integer, input_m: Integer, n: int
-) -> Complex:
+    kappa: FloatLike, ell: IntScalar, input_m: IntScalar, n: int
+) -> ComplexScalar:
     """
     Dimensionless QNM Frequencies: Note that name encodes date of writing
     """

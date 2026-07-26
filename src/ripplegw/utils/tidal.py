@@ -5,6 +5,7 @@ Small utility script for shared functions between tidal waveforms, especially fo
 import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Float
+
 from ripplegw.typing import FloatLike
 
 

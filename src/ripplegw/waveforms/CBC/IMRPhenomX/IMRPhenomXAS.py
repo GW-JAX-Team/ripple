@@ -1,15 +1,16 @@
 # from math import PI
+from collections.abc import Mapping
+
 import jax
-from typing import Mapping
+import jax.numpy as jnp
+from jaxtyping import Array, Complex, Float
+
+from ripplegw.constants import EULERGAMMA, MPC, MTSUN, PI, C
+from ripplegw.conversions import Mc_eta_to_ms
 from ripplegw.interfaces import AmplitudePhaseWaveform, DistanceScaledWaveform
 from ripplegw.registry import register
-from ripplegw.conversions import Mc_eta_to_ms
-import jax.numpy as jnp
-from ripplegw.constants import EULERGAMMA, MTSUN, MPC, C, PI
-import ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomX_utils as IMRPhenomX_utils
-from jaxtyping import Array, Float, Complex
 from ripplegw.typing import FloatLike
-
+from ripplegw.waveforms.CBC.IMRPhenomX import IMRPhenomX_utils
 
 eqspin_indx = 10
 uneqspin_indx = 39

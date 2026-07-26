@@ -5,8 +5,8 @@ Includes conversions between mass parameterisations and tidal parameters.
 """
 
 import jax.numpy as jnp
-
 from jaxtyping import Array, Float
+
 from ripplegw.typing import FloatScalar
 
 

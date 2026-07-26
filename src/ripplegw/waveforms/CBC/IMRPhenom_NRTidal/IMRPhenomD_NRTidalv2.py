@@ -2,27 +2,30 @@
 This file implements the NRTidalv2 corrections that can be applied to any BBH baseline, see http://arxiv.org/abs/1905.06011 for equations used.
 """
 
+from collections.abc import Mapping
+from typing import Optional
+
 import jax
+import jax.numpy as jnp
+from jaxtyping import Array, Complex, Float
+
+from ripplegw.constants import MPC, MRSUN, MTSUN, PI, TWO_PI
+from ripplegw.conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from ripplegw.interfaces import AmplitudePhaseWaveform, DistanceScaledWaveform
 from ripplegw.registry import register
-import jax.numpy as jnp
-from ripplegw.constants import MTSUN, MPC, PI, TWO_PI, MRSUN
-from jaxtyping import Array, Float, Complex
 from ripplegw.typing import FloatLike
-from typing import Mapping, Optional
-from ripplegw.conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
-from ripplegw.utils.tidal import get_quadparam_octparam, get_kappa
+from ripplegw.utils.tidal import get_kappa, get_quadparam_octparam
 from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD import (
     Amp,
     get_IIa_raw_phase,
     get_IIb_raw_phase,
     get_inspiral_phase,
 )
+from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_QNMdata import fM_CUT
 from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_utils import (
     get_coeffs,
     get_transition_frequencies,
 )
-from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_QNMdata import fM_CUT
 from ripplegw.waveforms.CBC.TaylorF2.TaylorF2 import (
     get_4PNQM2SCoeff,
     get_4PNQM2SOCoeff,
