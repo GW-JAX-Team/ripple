@@ -49,7 +49,8 @@ cd ripple
 pip install -e .
 ```
 
-We recommend using [uv](https://docs.astral.sh/uv/) to manage your Python environment. After cloning the repository, run `uv sync` to create a virtual environment with all dependencies installed.
+We recommend using [uv](https://docs.astral.sh/uv/) to manage your Python environment.
+After cloning the repository, run `uv sync` to create a virtual environment with all dependencies installed.
 
 ## Origins
 
