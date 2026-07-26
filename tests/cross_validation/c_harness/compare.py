@@ -26,9 +26,10 @@ jax.config.update("jax_enable_x64", True)
 
 import lal
 import lalpulsar
-from ripplegw.cw.detectors import get_detector
-from ripplegw.cw.ephemeris import read_ephemeris_file
-from ripplegw.cw.pulsar_signal import (
+
+from ripplegw.waveforms.cw.detectors import get_detector
+from ripplegw.waveforms.cw.ephemeris import read_ephemeris_file
+from ripplegw.waveforms.cw.pulsar_signal import (
     exact_pulsar_polarizations,
     generate_pulsar_polarizations,
 )
@@ -90,7 +91,7 @@ def main(earth, sun, out_exact, out_gen0, out_genhet):
     ts = lalpulsar.CreateTimestampVector(n)
     for i in range(n):
         g = START_GPS + i * dt
-        ts.data[i] = lal.LIGOTimeGPS(int(g // 1), int(round((g % 1) * 1e9)))
+        ts.data[i] = lal.LIGOTimeGPS(int(g // 1), round((g % 1) * 1e9))
     ts.deltaT = dt
     ds = lalpulsar.GetDetectorStates(ts, det, edat, 0.0)
     sk = lal.SkyPosition()
@@ -121,7 +122,7 @@ def main(earth, sun, out_exact, out_gen0, out_genhet):
         for i in range(n):
             g = START_GPS + i * dt
             gmst = lal.GreenwichMeanSiderealTime(
-                lal.LIGOTimeGPS(int(g // 1), int(round((g % 1) * 1e9)))
+                lal.LIGOTimeGPS(int(g // 1), round((g % 1) * 1e9))
             )
             fp[i], fc[i] = lal.ComputeDetAMResponse(
                 det.response, ALPHA, DELTA, PSI, gmst

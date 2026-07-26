@@ -71,24 +71,24 @@ def _overlap_loss(h1, h2):
 def _draw(rng, n, kind):
     rows = []
     for _ in range(n):
-        r = dict(
-            kind=kind,
-            alpha=rng.uniform(0, 2 * np.pi),
-            delta=math.asin(rng.uniform(-1, 1)),  # uniform on the sphere
-            f0=rng.uniform(10.0, 500.0),
-            f1=-(10 ** rng.uniform(-12, -8)),
-            f2=rng.uniform(-1e-17, 1e-17),
-            phi0=rng.uniform(0, 2 * np.pi),
-            psi=rng.uniform(0, np.pi),
-            aplus=1.0,
-            across=rng.uniform(0.2, 1.0),
-            asini=0.0,
-            ecc=0.0,
-            period=0.0,
-            argp=0.0,
-            tp=0.0,
-            fhet=0.0,
-        )
+        r = {
+            "kind": kind,
+            "alpha": rng.uniform(0, 2 * np.pi),
+            "delta": math.asin(rng.uniform(-1, 1)),  # uniform on the sphere
+            "f0": rng.uniform(10.0, 500.0),
+            "f1": -(10 ** rng.uniform(-12, -8)),
+            "f2": rng.uniform(-1e-17, 1e-17),
+            "phi0": rng.uniform(0, 2 * np.pi),
+            "psi": rng.uniform(0, np.pi),
+            "aplus": 1.0,
+            "across": rng.uniform(0.2, 1.0),
+            "asini": 0.0,
+            "ecc": 0.0,
+            "period": 0.0,
+            "argp": 0.0,
+            "tp": 0.0,
+            "fhet": 0.0,
+        }
         r["mode"] = 0 if kind == "exact" else 1
         if kind == "binary":
             r.update(
@@ -111,9 +111,10 @@ def compute(earth, sun, n_exact=200, n_generate=100, n_binary=100):
     import jax.numpy as jnp
     import lal
     import lalpulsar
-    from ripplegw.cw.detectors import get_detector
-    from ripplegw.cw.ephemeris import read_ephemeris_file
-    from ripplegw.cw.pulsar_signal import (
+
+    from ripplegw.waveforms.cw.detectors import get_detector
+    from ripplegw.waveforms.cw.ephemeris import read_ephemeris_file
+    from ripplegw.waveforms.cw.pulsar_signal import (
         exact_pulsar_polarizations,
         generate_binary_pulsar_polarizations,
         generate_pulsar_polarizations,
@@ -149,7 +150,7 @@ def compute(earth, sun, n_exact=200, n_generate=100, n_binary=100):
     ts = lalpulsar.CreateTimestampVector(N)
     for i in range(N):
         g = START_GPS + i * DT
-        ts.data[i] = lal.LIGOTimeGPS(int(g // 1), int(round((g % 1) * 1e9)))
+        ts.data[i] = lal.LIGOTimeGPS(int(g // 1), round((g % 1) * 1e9))
     ts.deltaT = DT
     detstates = lalpulsar.GetDetectorStates(ts, det, edat, 0.0)
     t_rel = jnp.arange(N, dtype=jnp.float64) * DT
@@ -362,7 +363,11 @@ def _fig(rows, kind, title, fname):
             va="top",
             ha="left",
             fontsize=8,
-            bbox=dict(boxstyle="round,pad=0.3", facecolor="lightyellow", alpha=0.8),
+            bbox={
+                "boxstyle": "round,pad=0.3",
+                "facecolor": "lightyellow",
+                "alpha": 0.8,
+            },
         )
     fig.tight_layout()
     fig.savefig(fname, dpi=150)
