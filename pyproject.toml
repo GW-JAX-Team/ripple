@@ -49,7 +49,6 @@ cross-validation = [
     "lalsuite",
 ]
 doc = [
-    "nbconvert",
     "mkdocstrings[python]",
     "pymdown-extensions",
     "zensical",
@@ -79,7 +78,11 @@ raw-options = { local_scheme = "no-local-version" }
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-norecursedirs = ["tests/cross_validation"]
+testpaths = ["tests"]
+markers = [
+    "accuracy: compares waveform output against a CPU reference backend",
+    "smoke: minimal accuracy subset cheap enough for CI",
+]
 
 [tool.ruff.lint]
 ignore = [
@@ -89,6 +92,15 @@ ignore = [
 
 [tool.ruff.lint.extend-per-file-ignores]
 "notebooks/*" = ["E402"]
+# jax.config.update("jax_enable_x64", True) must run before any jax-dependent
+# import, so these deliberately import after it.
+"tests/conftest.py" = ["E402"]
+"tests/unit/test_conversions.py" = ["E402"]
+"tests/unit/test_registry.py" = ["E402"]
+"tests/integration/test_amplitude_and_distance.py" = ["E402"]
+"tests/integration/test_edge_cases.py" = ["E402"]
+"tests/integration/test_output_format.py" = ["E402"]
+"tests/integration/test_transforms.py" = ["E402"]
 
 [tool.pyright]
 include = ["src"]

@@ -10,6 +10,9 @@ __pycache__/
 .coverage.*
 htmlcov/
 
+# Cross-validation accuracy campaign output (see tests/cross_validation/)
+/accuracy-results/
+
 # Virtual environments
 .venv/
 venv/

@@ -1,22 +1,18 @@
-"""Cross-validation test configuration and session summary.
+"""Cross-validation session summary.
 
-This conftest collects per-waveform overlap loss statistics from all
-test_waveform_overlap runs and prints a formatted summary at the end of the
-session, including hardware information and pass/fail status per waveform.
+Collects one summary dict per completed campaign (from ``cross_val_results``)
+and prints a hardware block + results table at the end of the session.
+Per-sample data and run metadata are written by ``campaign.write_results``
+under ``--outdir``; this hook is display-only.
 """
 
-import json
 import platform
 from datetime import datetime
-from pathlib import Path
 
 import jax
 import pytest
 
-
-# ---------------------------------------------------------------------------
-# Session-level results store
-# ---------------------------------------------------------------------------
+from tests.cross_validation.reference import get_backend
 
 
 def pytest_configure(config):
@@ -24,91 +20,45 @@ def pytest_configure(config):
     config._cross_val_results = []
 
 
-def pytest_addoption(parser):
-    """Register CLI options for cross-validation tests."""
-    parser.addoption(
-        "--n-samples",
-        type=int,
-        default=10,
-        help="Number of random parameter sets per waveform (default: 10)",
-    )
-    parser.addoption(
-        "--cache-lal",
-        action="store_true",
-        default=False,
-        help="Cache LAL waveforms to disk and reuse on subsequent runs (default: off)",
-    )
-    parser.addoption(
-        "--T",
-        type=float,
-        default=None,
-        help=(
-            "Segment duration in seconds. Overrides the per-family defaults "
-            "(BBH: 32 s, BNS: 128 s) when provided."
-        ),
-    )
-
-
 @pytest.fixture(scope="session")
-def n_samples(request):
-    """Number of random samples to test per waveform (set via --n-samples)."""
-    return request.config.getoption("--n-samples")
+def reference(reference_name):
+    """The reference backend selected by ``--reference`` (default: lal).
 
-
-@pytest.fixture(scope="session")
-def cache_lal(request):
-    """Whether to cache/reuse LAL waveforms on disk (set via --cache-lal)."""
-    return request.config.getoption("--cache-lal")
+    Skips every test that depends on this fixture -- i.e. the whole module --
+    when the backend's dependency (e.g. LALSuite) is not installed.
+    """
+    backend = get_backend(reference_name)
+    if not backend.available():
+        pytest.skip(
+            f"Reference backend {reference_name!r} is not available (missing dependency)"
+        )
+    return backend
 
 
 @pytest.fixture(scope="session")
 def cross_val_results(request):
-    """Session-scoped list that accumulates per-waveform result dicts.
+    """Session-scoped list of summary dicts, one per completed campaign::
 
-    Each entry has the shape::
-
-        {
-            "waveform": str,
-            "n_samples": int,
-            "n_finite": int,
-            "n_failed": int,
-            "mean": float,
-            "median": float,
-            "min": float,
-            "max": float,
-            "threshold": float,
-            "passed": bool,
-        }
+    {"waveform": str, "reference": str, "n_samples": int, "n_failed": int,
+     "mean": float, "median": float, "max": float, "threshold": float,
+     "passed": bool}
     """
     return request.config._cross_val_results
 
 
-# ---------------------------------------------------------------------------
-# Terminal summary hook
-# ---------------------------------------------------------------------------
-
-
 def _hardware_info() -> dict:
-    """Collect hardware / runtime information."""
     import jax.numpy as jnp
-
-    devices = jax.devices()
-    device_strs = [str(d) for d in devices]
-
-    x64_enabled = bool(jax.config.jax_enable_x64)
-    # Confirm the actual floating-point dtype in use
-    float_dtype = str(jnp.zeros(1).dtype)  # "float64" or "float32"
 
     return {
         "host": platform.node(),
         "os": f"{platform.system()} {platform.release()}",
         "cpu": platform.processor() or platform.machine(),
         "python": platform.python_version(),
-        "jax_devices": device_strs,
+        "jax_devices": [str(d) for d in jax.devices()],
         "jax_version": jax.__version__,
-        "float_dtype": float_dtype,
-        "x64_enabled": x64_enabled,
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "float_dtype": str(jnp.zeros(1).dtype),
+        "x64_enabled": bool(jax.config.jax_enable_x64),
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),  # noqa: DTZ005 - local display timestamp only
     }
 
 
@@ -119,11 +69,7 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
         return
 
     hw = _hardware_info()
-
-    # ---- header -----------------------------------------------------------
     terminalreporter.write_sep("=", "Cross-Validation Summary")
-
-    # ---- hardware block ---------------------------------------------------
     terminalreporter.write_line("Hardware / Runtime")
     terminalreporter.write_line(f"  Host       : {hw['host']}")
     terminalreporter.write_line(f"  OS         : {hw['os']}")
@@ -137,66 +83,26 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     terminalreporter.write_line(f"  Timestamp  : {hw['timestamp']}")
     terminalreporter.write_line("")
 
-    # ---- results table ----------------------------------------------------
-    col_w = 26
-    num_w = 12
+    col_w, num_w = 26, 12
     header = (
-        f"{'Waveform':<{col_w}}"
-        f"{'Samples':>{num_w}}"
-        f"{'Failed':>{num_w}}"
-        f"{'Mean':>{num_w}}"
-        f"{'Median':>{num_w}}"
-        f"{'Max':>{num_w}}"
-        f"{'Threshold':>{num_w}}"
-        f"{'Status':>{10}}"
+        f"{'Waveform':<{col_w}}{'Reference':<{12}}{'Samples':>{num_w}}{'Failed':>{num_w}}"
+        f"{'Mean':>{num_w}}{'Median':>{num_w}}{'Max':>{num_w}}{'Threshold':>{num_w}}{'Status':>10}"
     )
     terminalreporter.write_line(header)
-    terminalreporter.write_line("-" * (col_w + num_w * 6 + 10))
+    terminalreporter.write_line("-" * (col_w + 12 + num_w * 6 + 10))
 
     all_passed = True
     for r in results:
         status = "PASS" if r["passed"] else "FAIL"
-        if not r["passed"]:
-            all_passed = False
-
-        row = (
-            f"{r['waveform']:<{col_w}}"
-            f"{r['n_samples']:>{num_w}}"
-            f"{r['n_failed']:>{num_w}}"
-            f"{r['mean']:>{num_w}.2e}"
-            f"{r['median']:>{num_w}.2e}"
-            f"{r['max']:>{num_w}.2e}"
-            f"{r['threshold']:>{num_w}.2e}"
-            f"{status:>{10}}"
+        all_passed &= r["passed"]
+        terminalreporter.write_line(
+            f"{r['waveform']:<{col_w}}{r['reference']:<{12}}{r['n_samples']:>{num_w}}"
+            f"{r['n_failed']:>{num_w}}{r['mean']:>{num_w}.2e}{r['median']:>{num_w}.2e}"
+            f"{r['max']:>{num_w}.2e}{r['threshold']:>{num_w}.2e}{status:>10}"
         )
-        terminalreporter.write_line(row)
 
-    terminalreporter.write_line("-" * (col_w + num_w * 6 + 10))
-    overall = "ALL PASSED" if all_passed else "SOME FAILED"
-    terminalreporter.write_line(f"Overall: {overall}")
+    terminalreporter.write_line("-" * (col_w + 12 + num_w * 6 + 10))
+    terminalreporter.write_line(
+        f"Overall: {'ALL PASSED' if all_passed else 'SOME FAILED'}"
+    )
     terminalreporter.write_sep("=", "")
-
-    # ---- persist metadata to disk ----------------------------------------
-    # Group results by (n_samples, T) to match the run-tag directories used by
-    # the test (n{N}_T{T}).  Each group gets its own metadata.json so the file
-    # always lands in the same directory as the per-waveform CSV files.
-    from itertools import groupby
-
-    def _run_tag(r):
-        T = r["T"]
-        T_str = f"T{int(T)}" if T == int(T) else f"T{T}"
-        return f"n{r['n_samples']}_{T_str}"
-
-    sorted_results = sorted(results, key=_run_tag)
-    for tag, group in groupby(sorted_results, key=_run_tag):
-        group_results = list(group)
-        results_dir = Path(__file__).parent / "results" / tag
-        results_dir.mkdir(parents=True, exist_ok=True)
-        metadata = {
-            "hardware": hw,
-            "waveforms": group_results,
-        }
-        metadata_file = results_dir / "metadata.json"
-        with open(metadata_file, "w") as f:
-            json.dump(metadata, f, indent=2)
-        terminalreporter.write_line(f"Metadata saved to: {metadata_file}")

@@ -1,0 +1,55 @@
+# Per-(reference backend, waveform) accuracy thresholds for the campaign in
+# test_overlap.py / test_phase_convention.py.
+#
+# overlap_loss: max allowed 1 - noise-weighted overlap between ripple and the
+#   reference, over a Monte Carlo draw of parameter space.
+# phase_offset: max allowed |arg(<h_p,ripple | h_p,ref>)| in radians, at
+#   tc = phi_c = 0 (see test_phase_convention.py).
+#
+# See docs/dev/lal_agreement.md for the documented cause of each
+# non-machine-precision threshold. cross_validation/test_tolerance_table.py
+# checks this file stays consistent with that table.
+
+[lal.defaults]
+overlap_loss = 1e-6
+phase_offset = 1e-3
+
+[lal.TaylorF2]
+overlap_loss = 1e-15
+phase_offset = 1e-6
+
+[lal.IMRPhenomD]
+overlap_loss = 1e-15
+phase_offset = 1e-6
+
+[lal.IMRPhenomD_NRTidalv2]
+overlap_loss = 1e-15
+phase_offset = 1e-6
+
+[lal.IMRPhenomHM]
+overlap_loss = 1e-15
+phase_offset = 1e-6
+
+[lal.IMRPhenomPv2]
+overlap_loss = 1e-4
+# phase_offset: precessing; not checked by test_phase_convention.py.
+
+[lal.IMRPhenomXAS]
+overlap_loss = 1e-15
+phase_offset = 1e-6
+
+[lal.IMRPhenomXAS_NRTidalv3]
+overlap_loss = 1e-12
+phase_offset = 1e-3
+
+[lal.IMRPhenomXHM]
+overlap_loss = 1e-6
+phase_offset = 1e-3
+
+[lal.IMRPhenomXP]
+overlap_loss = 1e-6
+# phase_offset: precessing; not checked by test_phase_convention.py.
+
+[lal.IMRPhenomXPHM]
+overlap_loss = 1e-6
+# phase_offset: precessing; not checked by test_phase_convention.py.
