@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Generate API reference stubs and produce _zensical_build.toml.
 
 Run before: uv run zensical build -f _zensical_build.toml --clean
@@ -87,24 +86,42 @@ def write_stubs(modules: list[tuple[list[str], Path]], docs_dir: Path) -> None:
 # ── waveform catalogue ─────────────────────────────────────────────────────────
 
 
+SOURCE_TYPE_LABELS: dict[str, str] = {
+    "cbc": "Compact-Binary-Coalescence (CBC)",
+    "burst": "Burst",
+    "cw": "Continuous-Wave (CW)",
+}
+
+
 def write_catalogue(docs_dir: Path) -> None:
     """Generate docs/guides/catalogue.md from the live waveform registry.
 
     Ripple-specific (not part of the shared template): every registered
-    waveform's shape (domain, capabilities, constructor config,
+    waveform's shape (domain, description, capabilities, constructor config,
     parameter_names) is introspected directly from the package rather than
     hand-maintained, so the catalogue cannot drift out of sync with the
     registry the way the old hand-written "supported waveforms" lists did.
+
+    One table per ``source_type``, so a reader looking for "what CBC models
+    exist" isn't scanning past burst/CW rows to find them. Each table is a
+    quick overview (name, domain, one-line description); the constructor
+    config and parameter names -- useful once you've picked a model, not
+    while comparing options -- live in the per-model "Details" entry below
+    each table instead.
     """
     import inspect
 
     import ripplegw
     from ripplegw.interfaces import AmplitudePhaseWaveform, DistanceScaledWaveform
 
+    domain_label = {"FD": "frequency", "TD": "time"}
+
     def format_config(cls) -> str:
         params = list(inspect.signature(cls.__init__).parameters.values())[1:]
         parts = [
-            p.name if p.default is inspect.Parameter.empty else f"{p.name}={p.default!r}"
+            p.name
+            if p.default is inspect.Parameter.empty
+            else f"{p.name}={p.default!r}"
             for p in params
             if p.kind not in (p.VAR_POSITIONAL, p.VAR_KEYWORD)
         ]
@@ -113,67 +130,96 @@ def write_catalogue(docs_dir: Path) -> None:
     def format_names(names) -> str:
         return ", ".join(f"`{n}`" for n in names)
 
-    def yes_no_dash(value) -> str:
-        if value is None:
-            return "—"
-        return "yes" if value else "no"
+    def short_description(cls) -> str:
+        """First line of the class docstring, as a reader-facing description.
 
-    rows = []
-    details = []
-    for name in ripplegw.list_waveforms():
-        cls = ripplegw.WAVEFORM_REGISTRY[name]
-        metadata = ripplegw.get_waveform_metadata(name)
-        domain = metadata.get("domain", "?")
-        dtype = {"FD": "complex", "TD": "real"}.get(domain, "?")
-        has_amp_phase = issubclass(cls, AmplitudePhaseWaveform)
-        has_distance = issubclass(cls, DistanceScaledWaveform)
-        config = format_config(cls)
-        ctor_params = inspect.signature(cls.__init__).parameters
+        RST-style double-backtick code spans (``` ``x`` ```, common in
+        docstrings shared with the LAL source they're ported from) are
+        normalised to single-backtick Markdown (`` `x` ``) so they render as
+        code rather than literal double backticks.
+        """
+        doc = (cls.__doc__ or "").strip().split("\n")[0].strip()
+        return re.sub(r"``([^`]+)``", r"`\1`", doc) if doc else "—"
 
-        rows.append(
-            f"| `{name}` | {domain} | {dtype} | {yes_no_dash(has_amp_phase)} | "
-            f"{yes_no_dash(has_distance)} | {yes_no_dash(metadata.get('is_tidal'))} | "
-            f"{yes_no_dash(metadata.get('is_precessing'))} | `{config}` |"
-        )
+    all_names = ripplegw.list_waveforms()
+    assert all_names, "catalogue generator found no registered waveforms"
 
-        detail = [f"### `{name}`", ""]
-        detail.append("Config: " + (f"`{config}`" if config != "(none)" else "no constructor arguments."))
-        detail.append("")
-        if "use_lambda_tildes" in ctor_params:
-            detail.append(
-                "`parameter_names` (`use_lambda_tildes=False`, default): "
-                + format_names(cls(use_lambda_tildes=False).parameter_names)
-            )
-            detail.append("")
-            detail.append(
-                "`parameter_names` (`use_lambda_tildes=True`): "
-                + format_names(cls(use_lambda_tildes=True).parameter_names)
-            )
-        else:
-            detail.append("`parameter_names`: " + format_names(cls().parameter_names))
-        detail.append("")
-        details.append("\n".join(detail))
-
-    assert rows, "catalogue generator produced no rows"
+    groups: dict[str, list[str]] = {}
+    for name in all_names:
+        source_type = ripplegw.get_waveform_metadata(name).get("source_type") or "other"
+        groups.setdefault(source_type, []).append(name)
+    ordered_types = [st for st in SOURCE_TYPE_LABELS if st in groups]
+    ordered_types += sorted(st for st in groups if st not in SOURCE_TYPE_LABELS)
 
     lines = [
         "<!-- Generated by docs/gen_api.py — do not edit. -->",
         "",
         "# Waveform Catalogue",
         "",
-        "Every waveform currently registered with `ripplegw.waveform(...)`. Construct any of them by "
-        'name: `ripplegw.waveform("<Name>", **config)`. See [Working with Waveforms](waveforms.md) '
-        "for the calling convention and [Parameters and Conventions](parameters.md) for what each "
-        "parameter means.",
-        "",
-        "| Name | Domain | Output | `amplitude`/`phase` | `at_unit_distance` | Tidal | Precessing | Config |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- |",
-        *rows,
-        "",
-        "## Details",
-        "",
-        *details,
+        (
+            "Every waveform currently registered with `ripplegw.waveform(...)`, grouped by "
+            'source type. Construct any of them by name: `ripplegw.waveform("<Name>", '
+            "**config)`. See [Working with Waveforms](waveforms.md) for the calling convention "
+            "and [Parameters and Conventions](parameters.md) for what each parameter means."
+        ),
     ]
+
+    for source_type in ordered_types:
+        names = groups[source_type]
+        lines += ["", f"## {SOURCE_TYPE_LABELS.get(source_type, source_type)}", ""]
+        lines += ["| Name | Domain | Description |", "| --- | --- | --- |"]
+        for name in names:
+            cls = ripplegw.WAVEFORM_REGISTRY[name]
+            domain = ripplegw.get_waveform_metadata(name).get("domain", "?")
+            lines.append(
+                f"| `{name}` | {domain_label.get(domain, domain)} | {short_description(cls)} |"
+            )
+
+        for name in names:
+            cls = ripplegw.WAVEFORM_REGISTRY[name]
+            has_amp_phase = issubclass(cls, AmplitudePhaseWaveform)
+            has_distance = issubclass(cls, DistanceScaledWaveform)
+            config = format_config(cls)
+            ctor_params = inspect.signature(cls.__init__).parameters
+
+            lines += ["", f"### `{name}`", "", short_description(cls), ""]
+            if has_amp_phase:
+                lines.append(
+                    "Exposes separate `amplitude(...)` and `phase(...)` methods, in addition "
+                    "to the default complex-strain call."
+                )
+            if has_distance:
+                lines.append(
+                    "Supports `at_unit_distance(...)`: compute the strain at unit distance "
+                    "and rescale to any `d_L` afterward."
+                )
+            if has_amp_phase or has_distance:
+                lines.append("")
+            lines.append(
+                "Config: "
+                + (f"`{config}`" if config != "(none)" else "no constructor arguments.")
+            )
+            lines.append("")
+            if "use_lambda_tildes" in ctor_params:
+                lines.append(
+                    "`parameter_names` (`use_lambda_tildes=False`, default): "
+                    + format_names(cls(use_lambda_tildes=False).parameter_names)
+                )
+                lines.append("")
+                lines.append(
+                    "`parameter_names` (`use_lambda_tildes=True`): "
+                    + format_names(cls(use_lambda_tildes=True).parameter_names)
+                )
+            else:
+                try:
+                    names_str = format_names(cls().parameter_names)
+                except TypeError:
+                    # No safe zero-argument default (e.g. continuous-wave models,
+                    # whose constructor needs a detector + ephemeris + GPS epoch --
+                    # see docs/dev/adding_a_waveform.md step 13). Point at the
+                    # constructor instead of guessing at values to construct with.
+                    names_str = "see the class docstring; construction needs " + config
+                lines.append("`parameter_names`: " + names_str)
 
     out_path = docs_dir / "guides" / "catalogue.md"
     out_path.parent.mkdir(parents=True, exist_ok=True)

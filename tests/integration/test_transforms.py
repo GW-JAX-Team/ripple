@@ -7,6 +7,7 @@ import pytest
 jax.config.update("jax_enable_x64", True)
 
 import ripplegw
+from tests.helpers.config import default_config
 from tests.helpers.grids import grid_for
 from tests.helpers.params import canonical_params
 
@@ -19,7 +20,7 @@ def _batch(params: dict, batch_size: int) -> dict:
 
 @pytest.mark.parametrize("name", ALL_WAVEFORMS)
 def test_jit_matches_eager(name):
-    wf = ripplegw.waveform(name)
+    wf = ripplegw.waveform(name, **default_config(name))
     axis = grid_for(name, small=True)
     params = canonical_params(wf)
     eager = wf(axis, params)

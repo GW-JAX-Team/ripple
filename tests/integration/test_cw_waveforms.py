@@ -1,78 +1,35 @@
 """Integration tests for continuous-wave (pulsar) waveform generation.
 
-Covers the callable ``Waveform`` classes exported from ``ripplegw.cw``
-(``ExactPulsarSignal``, ``PulsarSignal``, ``BinaryPulsarSignal``): the
-dict-param call interface, output validity, ``parameter_names`` / ``repr``, and
-``jit`` / ``grad`` / ``vmap`` compatibility.
+Covers the three registered ``source_type="cw"`` models (``ExactPulsarSignal``,
+``PulsarSignal``, ``BinaryPulsarSignal``): the dict-param call interface,
+output validity, ``parameter_names`` / ``repr``, and ``jit`` / ``grad`` /
+``vmap`` compatibility.
 
-Unlike the CBC approximants these take a *time* axis (seconds relative to a GPS
-start epoch) and a detector + ephemeris fixed at construction, and they are not
-part of ``waveform_preset``.  These tests do NOT compare against LALSuite — that
-is done in cross_validation/.  A tiny synthetic ephemeris (written to a tmp
-file) is used so they run in CI with no LAL/ephemeris-data dependency.
+Unlike the CBC approximants these take a *time* axis (seconds relative to a
+GPS start epoch) and a detector + ephemeris fixed at construction. These tests
+do NOT compare against LALSuite -- that is done in cross_validation/. A tiny
+synthetic ephemeris (shared with ``tests/helpers/config.py``'s
+``default_config``, which every other registry-driven integration test relies
+on for zero-arg-construction call sites) is used so this runs in CI with no
+LAL/ephemeris-data dependency.
 """
 
 import jax
 import jax.numpy as jnp
 import pytest
 
-from ripplegw import waveform_preset
-from ripplegw.cw import BinaryPulsarSignal, ExactPulsarSignal, PulsarSignal
-
-jax.config.update("jax_platforms", "cpu")
 jax.config.update("jax_enable_x64", True)
+
+import ripplegw
+from tests.helpers.config import synthetic_ephemeris_files
 
 START_GPS = 1_000_000_000
 
 
-# ============================================================================
-# Synthetic ephemeris (no LAL / data dependency)
-# ============================================================================
-
-
-def _write_ephemeris(path, pos, vel, acc, *, gps0, dt=7200.0, n=4):
-    """Write a tiny synthetic LALPulsar-format ephemeris covering the span.
-
-    Constant pos/vel/acc rows on a uniform GPS grid — enough for the barycenter
-    interpolation to produce a finite, well-defined signal without real data.
-    Layout matches ``XLALReadEphemerisFile``: a ``gpsYr dt nEntries`` header
-    (the first token is ignored by the reader) then ``nEntries`` rows of
-    ``gps  pos(3)  vel(3)  acc(3)``.
-    """
-    lines = [f"{gps0} {dt} {n}"]
-    for i in range(n):
-        gps = gps0 + i * dt
-        row = [gps, *pos, *vel, *acc]
-        lines.append(" ".join(repr(float(v)) for v in row))
-    path.write_text("\n".join(lines) + "\n")
-    return str(path)
-
-
 @pytest.fixture(scope="module")
-def ephemeris_files(tmp_path_factory):
+def ephemeris_files():
     """``(earth, sun)`` synthetic ephemeris paths spanning the observation."""
-    d = tmp_path_factory.mktemp("cw_ephem")
-    gps0 = START_GPS - 7200.0  # so START_GPS lands inside the table
-    earth = _write_ephemeris(
-        d / "earth-synth.dat",
-        pos=(490.0, 30.0, -10.0),  # ~1 AU in light-seconds
-        vel=(1e-4, -2e-5, 3e-5),  # ~Earth orbital v/c
-        acc=(0.0, 0.0, 0.0),
-        gps0=gps0,
-    )
-    sun = _write_ephemeris(
-        d / "sun-synth.dat",
-        pos=(2.0, 1.0, 0.5),  # distinct from Earth → Earth-Sun vector well defined
-        vel=(0.0, 0.0, 0.0),
-        acc=(0.0, 0.0, 0.0),
-        gps0=gps0,
-    )
-    return earth, sun
-
-
-# ============================================================================
-# Fixtures — grids and params
-# ============================================================================
+    return synthetic_ephemeris_files()
 
 
 @pytest.fixture(scope="module")
@@ -114,11 +71,6 @@ def binary_params():
     }
 
 
-# ============================================================================
-# Helpers
-# ============================================================================
-
-
 def assert_cw_valid(out, t):
     """Assert CW dict output ``{"p": h+, "c": hx}`` is finite, real, right shape."""
     hp, hc = out["p"], out["c"]
@@ -138,18 +90,19 @@ def _batch(params, b):
 ISOLATED_NAMES = ("alpha", "delta", "f0", "phi0", "aplus", "across", "f1")
 
 
-# ============================================================================
-# Tests per class
-# ============================================================================
-
-
 class TestExactPulsarSignal:
     @pytest.fixture(scope="class")
     @classmethod
     def model(cls, ephemeris_files):
         """Earth-only exact model with one spindown (Sun ephemeris unused)."""
         earth, _ = ephemeris_files
-        return ExactPulsarSignal("H1", earth, start_gps=START_GPS, n_spindowns=1)
+        return ripplegw.waveform(
+            "ExactPulsarSignal",
+            detector="H1",
+            earth_ephemeris_file=earth,
+            start_gps=START_GPS,
+            n_spindowns=1,
+        )
 
     def test_basic(self, model, time_grid, isolated_params):
         assert_cw_valid(model(time_grid, isolated_params), time_grid)
@@ -187,7 +140,14 @@ class TestPulsarSignal:
     def model(cls, ephemeris_files):
         """Full (isolated) model with one spindown; needs Earth + Sun."""
         earth, sun = ephemeris_files
-        return PulsarSignal("H1", earth, sun, start_gps=START_GPS, n_spindowns=1)
+        return ripplegw.waveform(
+            "PulsarSignal",
+            detector="H1",
+            earth_ephemeris_file=earth,
+            sun_ephemeris_file=sun,
+            start_gps=START_GPS,
+            n_spindowns=1,
+        )
 
     def test_basic(self, model, time_grid, isolated_params):
         assert_cw_valid(model(time_grid, isolated_params), time_grid)
@@ -213,8 +173,14 @@ class TestPulsarSignal:
     def test_heterodyne(self, ephemeris_files, time_grid, isolated_params):
         """A nonzero heterodyne frequency still yields a valid (real) signal."""
         earth, sun = ephemeris_files
-        model = PulsarSignal(
-            "H1", earth, sun, start_gps=START_GPS, n_spindowns=1, f_heterodyne=11.0
+        model = ripplegw.waveform(
+            "PulsarSignal",
+            detector="H1",
+            earth_ephemeris_file=earth,
+            sun_ephemeris_file=sun,
+            start_gps=START_GPS,
+            n_spindowns=1,
+            f_heterodyne=11.0,
         )
         assert_cw_valid(model(time_grid, isolated_params), time_grid)
 
@@ -234,7 +200,13 @@ class TestBinaryPulsarSignal:
     def model(cls, ephemeris_files):
         """Binary model (no spindown); needs Earth + Sun."""
         earth, sun = ephemeris_files
-        return BinaryPulsarSignal("H1", earth, sun, start_gps=START_GPS)
+        return ripplegw.waveform(
+            "BinaryPulsarSignal",
+            detector="H1",
+            earth_ephemeris_file=earth,
+            sun_ephemeris_file=sun,
+            start_gps=START_GPS,
+        )
 
     def test_basic(self, model, time_grid, binary_params):
         assert_cw_valid(model(time_grid, binary_params), time_grid)
@@ -280,7 +252,10 @@ class TestBinaryPulsarSignal:
         )
 
 
-def test_cw_classes_not_in_waveform_preset():
-    """CW models are exposed via ``ripplegw.cw``, not the CBC ``waveform_preset``."""
-    for name in ("ExactPulsarSignal", "PulsarSignal", "BinaryPulsarSignal"):
-        assert name not in waveform_preset
+def test_cw_classes_registered_under_cw_source_type():
+    """CW models are constructed via the registry, tagged ``source_type="cw"``."""
+    assert sorted(ripplegw.list_waveforms(source_type="cw")) == [
+        "BinaryPulsarSignal",
+        "ExactPulsarSignal",
+        "PulsarSignal",
+    ]

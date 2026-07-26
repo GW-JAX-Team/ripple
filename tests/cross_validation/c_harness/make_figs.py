@@ -32,15 +32,32 @@ from pathlib import Path
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
-import numpy as np  # noqa: E402
+import matplotlib.pyplot as plt
+import numpy as np
 
 START_GPS, DURATION, FS = 1_000_000_000, 1800, 16.0
 N = int(FS * DURATION)
 DT = 1.0 / FS
-FIELDS = ["kind", "alpha", "delta", "f0", "f1", "f2", "phi0", "psi", "aplus",
-          "across", "asini", "ecc", "period", "argp", "tp", "fhet",
-          "overlap_loss", "log10_overlap_loss"]
+FIELDS = [
+    "kind",
+    "alpha",
+    "delta",
+    "f0",
+    "f1",
+    "f2",
+    "phi0",
+    "psi",
+    "aplus",
+    "across",
+    "asini",
+    "ecc",
+    "period",
+    "argp",
+    "tp",
+    "fhet",
+    "overlap_loss",
+    "log10_overlap_loss",
+]
 
 
 def _overlap_loss(h1, h2):
@@ -59,20 +76,28 @@ def _draw(rng, n, kind):
             alpha=rng.uniform(0, 2 * np.pi),
             delta=math.asin(rng.uniform(-1, 1)),  # uniform on the sphere
             f0=rng.uniform(10.0, 500.0),
-            f1=-10 ** rng.uniform(-12, -8),
+            f1=-(10 ** rng.uniform(-12, -8)),
             f2=rng.uniform(-1e-17, 1e-17),
             phi0=rng.uniform(0, 2 * np.pi),
             psi=rng.uniform(0, np.pi),
             aplus=1.0,
             across=rng.uniform(0.2, 1.0),
-            asini=0.0, ecc=0.0, period=0.0, argp=0.0, tp=0.0, fhet=0.0,
+            asini=0.0,
+            ecc=0.0,
+            period=0.0,
+            argp=0.0,
+            tp=0.0,
+            fhet=0.0,
         )
         r["mode"] = 0 if kind == "exact" else 1
         if kind == "binary":
-            r.update(asini=rng.uniform(0.5, 3.0), ecc=rng.uniform(0.0, 0.5),
-                     period=rng.uniform(3600.0, 86400.0),
-                     argp=rng.uniform(0, 2 * np.pi),
-                     tp=START_GPS + rng.uniform(0, DURATION))
+            r.update(
+                asini=rng.uniform(0.5, 3.0),
+                ecc=rng.uniform(0.0, 0.5),
+                period=rng.uniform(3600.0, 86400.0),
+                argp=rng.uniform(0, 2 * np.pi),
+                tp=START_GPS + rng.uniform(0, DURATION),
+            )
         rows.append(r)
     return rows
 
@@ -86,7 +111,6 @@ def compute(earth, sun, n_exact=200, n_generate=100, n_binary=100):
     import jax.numpy as jnp
     import lal
     import lalpulsar
-
     from ripplegw.cw.detectors import get_detector
     from ripplegw.cw.ephemeris import read_ephemeris_file
     from ripplegw.cw.pulsar_signal import (
@@ -96,18 +120,31 @@ def compute(earth, sun, n_exact=200, n_generate=100, n_binary=100):
     )
 
     rng = np.random.default_rng(20240619)
-    sets = (_draw(rng, n_exact, "exact") + _draw(rng, n_generate, "generate")
-            + _draw(rng, n_binary, "binary"))
+    sets = (
+        _draw(rng, n_exact, "exact")
+        + _draw(rng, n_generate, "generate")
+        + _draw(rng, n_binary, "binary")
+    )
 
     eph = read_ephemeris_file(earth)
     seph = read_ephemeris_file(sun)
     loc = get_detector("H1").location
     edat = lalpulsar.InitBarycenter(earth, sun)
     det = lal.CachedDetectors[lal.LALDetectorIndexLHODIFF]
-    eE = (eph.gps0, eph.dt, jnp.asarray(eph.pos), jnp.asarray(eph.vel),
-          jnp.asarray(eph.acc))
-    eS = (seph.gps0, seph.dt, jnp.asarray(seph.pos), jnp.asarray(seph.vel),
-          jnp.asarray(seph.acc))
+    eE = (
+        eph.gps0,
+        eph.dt,
+        jnp.asarray(eph.pos),
+        jnp.asarray(eph.vel),
+        jnp.asarray(eph.acc),
+    )
+    eS = (
+        seph.gps0,
+        seph.dt,
+        jnp.asarray(seph.pos),
+        jnp.asarray(seph.vel),
+        jnp.asarray(seph.acc),
+    )
 
     ts = lalpulsar.CreateTimestampVector(N)
     for i in range(N):
@@ -140,14 +177,33 @@ def compute(earth, sun, n_exact=200, n_generate=100, n_binary=100):
 
     # write CSV for the C harness and run it
     with open(csv_path, "w") as f:
-        for r in sets:
-            f.write(" ".join(f"{r[k]:.17g}" if k != "mode" else f"{r['mode']}"
-                             for k in ["mode", "alpha", "delta", "f0", "f1", "f2",
-                                       "phi0", "psi", "aplus", "across", "asini",
-                                       "ecc", "period", "argp", "tp", "fhet"]) + "\n")
+        f.writelines(
+            " ".join(
+                f"{r[k]:.17g}" if k != "mode" else f"{r['mode']}"
+                for k in [
+                    "mode",
+                    "alpha",
+                    "delta",
+                    "f0",
+                    "f1",
+                    "f2",
+                    "phi0",
+                    "psi",
+                    "aplus",
+                    "across",
+                    "asini",
+                    "ecc",
+                    "period",
+                    "argp",
+                    "tp",
+                    "fhet",
+                ]
+            )
+            + "\n"
+            for r in sets
+        )
     print("running compiled-LAL sweep harness ...", flush=True)
-    subprocess.run([str(harness), earth, sun, str(csv_path), str(bin_path)],
-                   check=True)
+    subprocess.run([str(harness), earth, sun, str(csv_path), str(bin_path)], check=True)
     with open(bin_path, "rb") as f:
         n_sets, n_samp = struct.unpack("II", f.read(8))
         assert n_sets == len(sets) and n_samp == N
@@ -159,24 +215,61 @@ def compute(earth, sun, n_exact=200, n_generate=100, n_binary=100):
         fkdot = (r["f1"], r["f2"])
         if r["kind"] == "exact":
             hp, hc = exact_pulsar_polarizations(
-                t_rel, START_GPS, r["alpha"], r["delta"], r["f0"], r["phi0"],
-                r["aplus"], r["across"], loc, *eE, fkdot=fkdot)
+                t_rel,
+                START_GPS,
+                r["alpha"],
+                r["delta"],
+                r["f0"],
+                r["phi0"],
+                r["aplus"],
+                r["across"],
+                loc,
+                *eE,
+                fkdot=fkdot,
+            )
         elif r["kind"] == "generate":
             hp, hc = generate_pulsar_polarizations(
-                t_rel, START_GPS, r["alpha"], r["delta"], r["f0"], r["phi0"],
-                r["aplus"], r["across"], loc, *eE, *eS, fkdot=fkdot,
-                f_heterodyne=r["fhet"])
+                t_rel,
+                START_GPS,
+                r["alpha"],
+                r["delta"],
+                r["f0"],
+                r["phi0"],
+                r["aplus"],
+                r["across"],
+                loc,
+                *eE,
+                *eS,
+                fkdot=fkdot,
+                f_heterodyne=r["fhet"],
+            )
         else:
             hp, hc = generate_binary_pulsar_polarizations(
-                t_rel, START_GPS, r["alpha"], r["delta"], r["f0"], r["phi0"],
-                r["aplus"], r["across"], r["asini"], r["ecc"], r["period"],
-                r["argp"], r["tp"], loc, *eE, *eS, fkdot=fkdot,
-                f_heterodyne=r["fhet"])
+                t_rel,
+                START_GPS,
+                r["alpha"],
+                r["delta"],
+                r["f0"],
+                r["phi0"],
+                r["aplus"],
+                r["across"],
+                r["asini"],
+                r["ecc"],
+                r["period"],
+                r["argp"],
+                r["tp"],
+                loc,
+                *eE,
+                *eS,
+                fkdot=fkdot,
+                f_heterodyne=r["fhet"],
+            )
         fp, fc = antenna(r["alpha"], r["delta"], r["psi"])
         h_me = fp * np.array(hp) + fc * np.array(hc)
         r["overlap_loss"] = _overlap_loss(h_me, lal_h[i])
-        r["log10_overlap_loss"] = (math.log10(r["overlap_loss"])
-                                   if r["overlap_loss"] > 0 else -17.0)
+        r["log10_overlap_loss"] = (
+            math.log10(r["overlap_loss"]) if r["overlap_loss"] > 0 else -17.0
+        )
     return sets
 
 
@@ -214,8 +307,9 @@ def _fig(rows, kind, title, fname):
     fig.suptitle(title, fontsize=13)
 
     ax[0, 0].hist(log10, bins=25, edgecolor="black", alpha=0.8)
-    ax[0, 0].axvline(np.median(log10), color="red", ls="--",
-                     label=f"median = {np.median(log10):.2f}")
+    ax[0, 0].axvline(
+        np.median(log10), color="red", ls="--", label=f"median = {np.median(log10):.2f}"
+    )
     ax[0, 0].set_xlabel(r"$\log_{10}(1-\mathcal{O})$")
     ax[0, 0].set_ylabel("count")
     ax[0, 0].set_title("overlap-loss distribution")
@@ -240,19 +334,36 @@ def _fig(rows, kind, title, fname):
     if kind == "exact":
         ulp = float(np.spacing(float(START_GPS)))
         ff = np.linspace(max(f0.min(), 1.0), f0.max(), 200)
-        ax[1, 1].plot(ff, np.log10((2 * np.pi * ff * ulp) ** 2 / 24.0), "r-",
-                      lw=2, label=r"LAL REAL8 GPS floor $\propto f_0^2$")
+        ax[1, 1].plot(
+            ff,
+            np.log10((2 * np.pi * ff * ulp) ** 2 / 24.0),
+            "r-",
+            lw=2,
+            label=r"LAL REAL8 GPS floor $\propto f_0^2$",
+        )
         ax[1, 1].legend(loc="lower right", fontsize=9)
     else:
-        note = ("floor: LAL PulsarSimulateCoherentGW interpolation\n"
+        note = (
+            (
+                "floor: LAL PulsarSimulateCoherentGW interpolation\n"
                 r"(sourceDeltaT, dt$_{\rm delay}$, dt$_{\rm pol}$); ripple per-sample"
-                ) if kind == "generate" else (
+            )
+            if kind == "generate"
+            else (
                 "floor: LAL GenerateSpinOrbitCW Kepler tolerance\n"
-                r"$\delta x_{\max}=0.01/(f_0 P)$; ripple solves to machine precision")
-        ax[1, 1].text(0.03, 0.97, note, transform=ax[1, 1].transAxes, va="top",
-                      ha="left", fontsize=8,
-                      bbox=dict(boxstyle="round,pad=0.3", facecolor="lightyellow",
-                                alpha=0.8))
+                r"$\delta x_{\max}=0.01/(f_0 P)$; ripple solves to machine precision"
+            )
+        )
+        ax[1, 1].text(
+            0.03,
+            0.97,
+            note,
+            transform=ax[1, 1].transAxes,
+            va="top",
+            ha="left",
+            fontsize=8,
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="lightyellow", alpha=0.8),
+        )
     fig.tight_layout()
     fig.savefig(fname, dpi=150)
     plt.close(fig)
@@ -264,18 +375,29 @@ def plot(rows, outdir):
 
     os.makedirs(outdir, exist_ok=True)
     for kind, title, fname in [
-        ("exact", "ripple vs compiled XLALSimulateExactPulsarSignal (H1)",
-         "cw_overlap_exact.png"),
-        ("generate", "ripple vs compiled XLALGeneratePulsarSignal — isolated (H1)",
-         "cw_overlap_generate.png"),
-        ("binary", "ripple vs compiled XLALGeneratePulsarSignal — binary orbit (H1)",
-         "cw_overlap_binary.png"),
+        (
+            "exact",
+            "ripple vs compiled XLALSimulateExactPulsarSignal (H1)",
+            "cw_overlap_exact.png",
+        ),
+        (
+            "generate",
+            "ripple vs compiled XLALGeneratePulsarSignal — isolated (H1)",
+            "cw_overlap_generate.png",
+        ),
+        (
+            "binary",
+            "ripple vs compiled XLALGeneratePulsarSignal — binary orbit (H1)",
+            "cw_overlap_binary.png",
+        ),
     ]:
         _fig(rows, kind, title, f"{outdir}/{fname}")
     for kind in ("exact", "generate", "binary"):
         ls = [r["log10_overlap_loss"] for r in rows if r["kind"] == kind]
-        print(f"  {kind:9s}: n={len(ls)}  log10 overlap loss  "
-              f"median={np.median(ls):.2f}  max={np.max(ls):.2f}")
+        print(
+            f"  {kind:9s}: n={len(ls)}  log10 overlap loss  "
+            f"median={np.median(ls):.2f}  max={np.max(ls):.2f}"
+        )
 
 
 def main():
@@ -292,6 +414,7 @@ def main():
         rows = load_cache(args.from_cache)
     else:
         import os
+
         if os.path.exists(args.cache) and not args.recompute:
             rows = load_cache(args.cache)
         else:

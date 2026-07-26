@@ -31,9 +31,9 @@ jax.config.update("jax_enable_x64", True)
 lal = pytest.importorskip("lal")
 lalpulsar = pytest.importorskip("lalpulsar")
 
-from ripplegw.cw.barycenter import roemer_delay  # noqa: E402
-from ripplegw.cw.ephemeris import read_ephemeris_file  # noqa: E402
-from ripplegw.cw.pulsar_signal import (  # noqa: E402
+from ripplegw.waveforms.cw.barycenter import roemer_delay
+from ripplegw.waveforms.cw.ephemeris import read_ephemeris_file
+from ripplegw.waveforms.cw.pulsar_signal import (
     _binary_source_phase,
     exact_pulsar_polarizations,
     generate_pulsar_polarizations,
@@ -109,13 +109,13 @@ def test_exact_pulsar_matches_lal_reference():
     phi0, psi = 1.1, 0.37
     aplus, across = 1.0, 0.64
     dt = 1.0 / fs
-    n_steps = int(math.ceil(fs * duration))
+    n_steps = math.ceil(fs * duration)
 
     # --- LAL detector states + antenna patterns on the sample timestamps ---
     ts = lalpulsar.CreateTimestampVector(n_steps)
     for i in range(n_steps):
         sec = start_gps + int((i * dt) // 1)
-        ns = int(round(((i * dt) % 1) * 1e9))
+        ns = round(((i * dt) % 1) * 1e9)
         if ns == 1_000_000_000:
             sec, ns = sec + 1, 0
         ts.data[i] = lal.LIGOTimeGPS(sec, ns)
@@ -167,9 +167,21 @@ def test_exact_pulsar_matches_lal_reference():
     # --- ripple polarizations + LAL antenna patterns ---
     t_rel = jnp.arange(n_steps, dtype=jnp.float64) * dt
     hp, hc = exact_pulsar_polarizations(
-        t_rel, start_gps, alpha, delta, f0, phi0, aplus, across, loc,
-        eph.gps0, eph.dt, jnp.asarray(eph.pos), jnp.asarray(eph.vel),
-        jnp.asarray(eph.acc), fkdot=(f1, f2),
+        t_rel,
+        start_gps,
+        alpha,
+        delta,
+        f0,
+        phi0,
+        aplus,
+        across,
+        loc,
+        eph.gps0,
+        eph.dt,
+        jnp.asarray(eph.pos),
+        jnp.asarray(eph.vel),
+        jnp.asarray(eph.acc),
+        fkdot=(f1, f2),
     )
     f_plus = sin_zeta * (a * c2 + b * s2)
     f_cross = sin_zeta * (b * c2 - a * s2)
@@ -202,7 +214,7 @@ def test_barycenter_matches_lal_to_microsecond():
 
     lal_dt = []
     for gi, gf in zip(gps_ints, gps_fracs):
-        t = lal.LIGOTimeGPS(int(gi), int(round(gf * 1e9)))
+        t = lal.LIGOTimeGPS(int(gi), round(gf * 1e9))
         bi = lalpulsar.BarycenterInput()
         bi.site = det
         for i in range(3):
@@ -216,9 +228,16 @@ def test_barycenter_matches_lal_to_microsecond():
 
     my_dt = np.asarray(
         roemer_delay(
-            jnp.asarray(gps_ints), jnp.asarray(gps_fracs), alpha, delta,
-            tuple(det.location), eph.gps0, eph.dt, jnp.asarray(eph.pos),
-            jnp.asarray(eph.vel), jnp.asarray(eph.acc),
+            jnp.asarray(gps_ints),
+            jnp.asarray(gps_fracs),
+            alpha,
+            delta,
+            tuple(det.location),
+            eph.gps0,
+            eph.dt,
+            jnp.asarray(eph.pos),
+            jnp.asarray(eph.vel),
+            jnp.asarray(eph.acc),
         )
     )
     assert np.max(np.abs(my_dt - np.array(lal_dt))) < 1e-9
@@ -256,7 +275,7 @@ def test_full_pulsar_matches_lal_barycenter_reference():
     phi_ref = np.empty(n_steps)
     for i in range(n_steps):
         g = start_gps + i * dt
-        tg = lal.LIGOTimeGPS(int(g // 1), int(round((g % 1) * 1e9)))
+        tg = lal.LIGOTimeGPS(int(g // 1), round((g % 1) * 1e9))
         bi.tgps = tg
         es = lalpulsar.EarthState()
         lalpulsar.BarycenterEarth(es, tg, edat)
@@ -271,13 +290,27 @@ def test_full_pulsar_matches_lal_barycenter_reference():
 
     t_rel = jnp.arange(n_steps, dtype=jnp.float64) * dt
     hp, hc = generate_pulsar_polarizations(
-        t_rel, start_gps, alpha, delta, f0, phi0, aplus, across,
+        t_rel,
+        start_gps,
+        alpha,
+        delta,
+        f0,
+        phi0,
+        aplus,
+        across,
         tuple(det.location),
-        eph.gps0, eph.dt, jnp.asarray(eph.pos), jnp.asarray(eph.vel),
+        eph.gps0,
+        eph.dt,
+        jnp.asarray(eph.pos),
+        jnp.asarray(eph.vel),
         jnp.asarray(eph.acc),
-        seph.gps0, seph.dt, jnp.asarray(seph.pos), jnp.asarray(seph.vel),
+        seph.gps0,
+        seph.dt,
+        jnp.asarray(seph.pos),
+        jnp.asarray(seph.vel),
         jnp.asarray(seph.acc),
-        fkdot=(f1,), ref_time_ssb=tref,
+        fkdot=(f1,),
+        ref_time_ssb=tref,
     )
     h_mine = f_plus * np.asarray(hp) + f_cross * np.asarray(hc)
     loss = _overlap_loss(h_mine, h_ref)
@@ -299,7 +332,14 @@ def test_binary_source_phase_matches_lal_spinorbit():
     sp = lalpulsar.SpinOrbitCWParamStruc()
     sp.position.system = lal.COORDINATESYSTEM_EQUATORIAL
     sp.position.longitude, sp.position.latitude = 1.0, 0.4
-    sp.psi, sp.aPlus, sp.aCross, sp.phi0, sp.f0, sp.omega = 0.0, 1.0, 0.5, phi0, f0, argp
+    sp.psi, sp.aPlus, sp.aCross, sp.phi0, sp.f0, sp.omega = (
+        0.0,
+        1.0,
+        0.5,
+        phi0,
+        f0,
+        argp,
+    )
     sp.rPeriNorm = asini * (1.0 - ecc)
     sp.oneMinusEcc = 1.0 - ecc
     sp.angularSpeed = (lal.TWOPI / period) * math.sqrt((1.0 + ecc) / (1.0 - ecc) ** 3)
@@ -318,8 +358,15 @@ def test_binary_source_phase_matches_lal_spinorbit():
     tau = epoch_gps + i * deltaT
     phi_mine = np.asarray(
         _binary_source_phase(
-            jnp.asarray(tau - orbit_epoch), float(orbit_epoch - spin_epoch),
-            f0, phi0, (f1,), asini, ecc, period, argp,
+            jnp.asarray(tau - orbit_epoch),
+            float(orbit_epoch - spin_epoch),
+            f0,
+            phi0,
+            (f1,),
+            asini,
+            ecc,
+            period,
+            argp,
         )
     )
     # Compare as a strain shape cos(φ): overlap loss is the conventional metric.

@@ -10,17 +10,22 @@ jax.config.update("jax_enable_x64", True)
 
 import ripplegw
 from ripplegw.conversions import ms_to_Mc_eta
+from tests.helpers.config import default_config
 from tests.helpers.grids import grid_for
 from tests.helpers.params import canonical_params
 
 ALL_WAVEFORMS = ripplegw.list_waveforms()
 TIDAL_WAVEFORMS = ripplegw.list_waveforms(is_tidal=True)
 PRECESSING_WAVEFORMS = ripplegw.list_waveforms(is_precessing=True)
-ALIGNED_WAVEFORMS = [n for n in ALL_WAVEFORMS if n not in PRECESSING_WAVEFORMS]
+# Positive tagging (not "every non-precessing model"): a family that never sets
+# is_precessing either way (e.g. continuous-wave) has no concept of aligned vs
+# precessing spins and must not be silently swept into either bucket.
+ALIGNED_WAVEFORMS = ripplegw.list_waveforms(is_precessing=False)
 
-# One bare instance per registered model, used only to inspect parameter_names
-# for parametrization -- cheap (no waveform evaluation).
-_INSTANCES = {n: ripplegw.waveform(n) for n in ALL_WAVEFORMS}
+# One instance per registered model, used only to inspect parameter_names for
+# parametrization -- cheap (no waveform evaluation). Some families (e.g.
+# continuous-wave) have no safe zero-argument default, hence default_config.
+_INSTANCES = {n: ripplegw.waveform(n, **default_config(n)) for n in ALL_WAVEFORMS}
 WITH_INCLINATION = [n for n in ALL_WAVEFORMS if "iota" in _INSTANCES[n].parameter_names]
 
 

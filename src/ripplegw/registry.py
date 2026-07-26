@@ -75,7 +75,7 @@ def _infer_source_type(cls) -> Optional[str]:
     """Infer ``source_type`` from where ``cls`` is defined.
 
     A class living in ``ripplegw.waveforms.<type>.*`` (e.g.
-    ``ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD``) gets ``source_type=<type>``
+    ``ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomD``) gets ``source_type=<type>``
     for free -- mirrors how ``domain`` is never passed to ``@register`` either,
     it comes from the ``FrequencyDomainWaveform``/``TimeDomainWaveform`` base.
     Classes registered from outside ``ripplegw.waveforms`` (e.g. user code

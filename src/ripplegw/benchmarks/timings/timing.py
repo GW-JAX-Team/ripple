@@ -354,7 +354,7 @@ def get_waveform_type(waveform):
             for each.
     """
     metadata = ripplegw.get_waveform_metadata(waveform)
-    if metadata.get("source_type") != "CBC":
+    if metadata.get("source_type") != "cbc":
         raise ValueError(
             f"ripple-benchmark only times CBC waveforms (the shared "
             f"M_c/eta/spins/d_L/phase_c/iota parameterisation); {waveform!r} "
@@ -373,7 +373,7 @@ def main():
     parser.add_argument(
         "waveform",
         type=str,
-        choices=sorted(ripplegw.list_waveforms(source_type="CBC")),
+        choices=sorted(ripplegw.list_waveforms(source_type="cbc")),
         help="CBC waveform approximant to time (non-CBC sources, e.g. bursts, aren't supported)",
     )
 

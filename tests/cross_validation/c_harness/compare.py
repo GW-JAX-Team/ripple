@@ -24,12 +24,11 @@ import numpy as np
 
 jax.config.update("jax_enable_x64", True)
 
-import lal  # noqa: E402
-import lalpulsar  # noqa: E402
-
-from ripplegw.cw.detectors import get_detector  # noqa: E402
-from ripplegw.cw.ephemeris import read_ephemeris_file  # noqa: E402
-from ripplegw.cw.pulsar_signal import (  # noqa: E402
+import lal
+import lalpulsar
+from ripplegw.cw.detectors import get_detector
+from ripplegw.cw.ephemeris import read_ephemeris_file
+from ripplegw.cw.pulsar_signal import (
     exact_pulsar_polarizations,
     generate_pulsar_polarizations,
 )
@@ -71,8 +70,20 @@ def main(earth, sun, out_exact, out_gen0, out_genhet):
     loc = get_detector("H1").location
     edat = lalpulsar.InitBarycenter(earth, sun)
     det = lal.CachedDetectors[lal.LALDetectorIndexLHODIFF]
-    eph_e = (eph.gps0, eph.dt, jnp.asarray(eph.pos), jnp.asarray(eph.vel), jnp.asarray(eph.acc))
-    eph_s = (seph.gps0, seph.dt, jnp.asarray(seph.pos), jnp.asarray(seph.vel), jnp.asarray(seph.acc))
+    eph_e = (
+        eph.gps0,
+        eph.dt,
+        jnp.asarray(eph.pos),
+        jnp.asarray(eph.vel),
+        jnp.asarray(eph.acc),
+    )
+    eph_s = (
+        seph.gps0,
+        seph.dt,
+        jnp.asarray(seph.pos),
+        jnp.asarray(seph.vel),
+        jnp.asarray(seph.acc),
+    )
 
     # ---- EXACT: antenna = sinZeta*(a cos2psi + b sin2psi), etc. ----
     n, _, _, dt, _, h_c = _load(out_exact)
@@ -97,8 +108,10 @@ def main(earth, sun, out_exact, out_gen0, out_genhet):
     )
     h_me = fp * np.array(hp) + fc * np.array(hc)
     loss = _overlap_loss(h_me, h_c)
-    print(f"EXACT       vs compiled XLALSimulateExactPulsarSignal: "
-          f"overlap loss = {loss:.2e}  log10 = {_log10_str(loss)}  (n={n})")
+    print(
+        f"EXACT       vs compiled XLALSimulateExactPulsarSignal: "
+        f"overlap loss = {loss:.2e}  log10 = {_log10_str(loss)}  (n={n})"
+    )
 
     # ---- GENERATE: standard ComputeDetAMResponse antenna ----
     for fh, fname in [(0.0, out_gen0), (12.0, out_genhet)]:
@@ -110,16 +123,31 @@ def main(earth, sun, out_exact, out_gen0, out_genhet):
             gmst = lal.GreenwichMeanSiderealTime(
                 lal.LIGOTimeGPS(int(g // 1), int(round((g % 1) * 1e9)))
             )
-            fp[i], fc[i] = lal.ComputeDetAMResponse(det.response, ALPHA, DELTA, PSI, gmst)
+            fp[i], fc[i] = lal.ComputeDetAMResponse(
+                det.response, ALPHA, DELTA, PSI, gmst
+            )
         t = jnp.arange(n, dtype=jnp.float64) * dt
         hp, hc = generate_pulsar_polarizations(
-            t, START_GPS, ALPHA, DELTA, F0, PHI0, APLUS, ACROSS, loc,
-            *eph_e, *eph_s, fkdot=(F1, F2), f_heterodyne=fh,
+            t,
+            START_GPS,
+            ALPHA,
+            DELTA,
+            F0,
+            PHI0,
+            APLUS,
+            ACROSS,
+            loc,
+            *eph_e,
+            *eph_s,
+            fkdot=(F1, F2),
+            f_heterodyne=fh,
         )
         h_me = fp * np.array(hp) + fc * np.array(hc)
         loss = _overlap_loss(h_me, h_c)
-        print(f"GENERATE fHet={fh:4.1f} vs compiled XLALGeneratePulsarSignal:  "
-              f"overlap loss = {loss:.2e}  log10 = {_log10_str(loss)}  (n={n})")
+        print(
+            f"GENERATE fHet={fh:4.1f} vs compiled XLALGeneratePulsarSignal:  "
+            f"overlap loss = {loss:.2e}  log10 = {_log10_str(loss)}  (n={n})"
+        )
 
 
 if __name__ == "__main__":

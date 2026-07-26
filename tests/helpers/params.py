@@ -49,6 +49,23 @@ _COMMON_DEFAULTS = {
     "f_0": 100.0,
     "hrss": 1e-21,
     "e": 0.3,
+    # Continuous-wave (CW) models: not regime-scoped (bbh/bns doesn't apply),
+    # so these live alongside the other common defaults rather than in
+    # _REGIME_DEFAULTS. tp_ssb is an absolute GPS time and must stay close to
+    # tests/helpers/config.py's default_config()'s start_gps (1_000_000_000).
+    "alpha": 1.3,
+    "delta": -0.5,
+    "f0": 12.3,
+    "phi0": 1.1,
+    "aplus": 1.0,
+    "across": 0.64,
+    "f1": -1.1e-9,
+    "f2": 2.0e-18,
+    "asini": 1.44,
+    "ecc": 0.18,
+    "period": 6.3 * 3600.0,
+    "argp": 1.05,
+    "tp_ssb": 1_000_000_000.0 + 1234.0,
 }
 
 # (m_min, m_max), (chi_min, chi_max), (lambda_min, lambda_max), (d_L_min, d_L_max)
