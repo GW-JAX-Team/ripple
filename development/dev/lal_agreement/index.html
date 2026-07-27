@@ -1704,7 +1704,7 @@
 
 
 <h1 id="lal-agreement-and-overlap-loss-thresholds">LAL Agreement and Overlap Loss Thresholds<a class="headerlink" href="#lal-agreement-and-overlap-loss-thresholds" title="Permanent link">¤</a></h1>
-<p>This document records what's known about each supported waveform's agreement with LALSuite: the accuracy threshold enforced by <code>tests/cross_validation/test_overlap.py</code>, and — for any waveform whose threshold is looser than machine precision — why.
+<p>This document records what's known about each supported waveform's agreement with LALSuite: the accuracy threshold enforced by <code>tests/cross_validation/fd/test_overlap.py</code>, and — for any waveform whose threshold is looser than machine precision — why.
 See <code>tests/cross_validation/tolerances.toml</code> for the enforced values themselves; this page only needs to stay in sync with that file's thresholds, not with any specific measured result (see <a href="../testing/">Testing</a> for how to run the campaign yourself).</p>
 <p>The overlap loss (OL) is <code>1 - Re(&lt;h1|h2&gt;) / sqrt(&lt;h1|h1&gt; * &lt;h2|h2&gt;)</code>, using the ET-D PSD noise weighting.
 A lower OL indicates better agreement.
@@ -1852,11 +1852,13 @@ The threshold has since been tightened to 1e-12 and is no longer under active in
 <code>XLALSimulateExactPulsarSignal</code>/<code>XLALGeneratePulsarSignal</code> cannot be called directly from
 Python, and CW's calling convention (a fixed detector + ephemeris + GPS epoch at
 construction, a time axis, not a frequency grid) doesn't fit the batched
-<code>ReferenceBackend</code>/<code>tolerances.toml</code> campaign the CBC models above use. CW agreement is
-instead checked by <code>tests/cross_validation/test_cw_exact_pulsar.py</code> (<code>accuracy</code>-marked,
-skipped without <code>lalpulsar</code> + an Earth/Sun ephemeris file), which reproduces LAL's own
-reference computation in Python from its SWIG-exposed building blocks
-(<code>XLALGetDetectorStates</code>, <code>XLALComputeAMCoeffs</code>, <code>XLALBarycenter</code>, <code>XLALGenerateSpinOrbitCW</code>):</p>
+<code>ReferenceBackend</code>/<code>tolerances.toml</code> campaign the frequency-domain models above use. CW
+agreement is instead checked by <code>tests/cross_validation/cw/</code> (<code>accuracy</code>-marked, skipped
+without <code>lalpulsar</code> + an Earth/Sun ephemeris file) -- one file per registered class
+(<code>test_exact_pulsar_signal.py</code>, <code>test_pulsar_signal.py</code>, <code>test_binary_pulsar_signal.py</code>),
+each reproducing LAL's own reference computation in Python from its SWIG-exposed building
+blocks (<code>XLALGetDetectorStates</code>, <code>XLALComputeAMCoeffs</code>, <code>XLALBarycenter</code>,
+<code>XLALGenerateSpinOrbitCW</code>):</p>
 <ul>
 <li><strong><code>ExactPulsarSignal</code></strong> — reconstructed detector strain vs. a Python transcription of
   <code>SimulatePulsarSignal.c</code>'s exact (Roemer-only) path: overlap loss &lt; 1e-10 (observed ~3e-13).
