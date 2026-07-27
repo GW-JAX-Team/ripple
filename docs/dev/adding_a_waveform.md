@@ -29,7 +29,7 @@ The existing subpackages:
 | `cbc/IMRPhenomD/` | `IMRPhenomD`, `IMRPhenomPv2`, `IMRPhenomHM` |
 | `cbc/IMRPhenomX/` | `IMRPhenomXAS`, `IMRPhenomXHM`, `IMRPhenomXP`, `IMRPhenomXPHM` |
 | `cbc/IMRPhenom_NRTidal/` | `IMRPhenomD_NRTidalv2`, `IMRPhenomXAS_NRTidalv3` |
-| `cbc/TaylorF2/` | `TaylorF2` |
+| `cbc/Taylor/` | `TaylorF2` |
 | `burst/` | `SineGaussian` |
 
 If your model builds on an existing CBC baseline, add it to that subpackage.
@@ -133,7 +133,7 @@ See the [Waveform Catalogue](../guides/catalogue.md) for how the built-in models
 
 A `@property`, not a method — `wf.parameter_names`, no parentheses.
 The order must match how `__call__` packs `theta`.
-It can depend on construction-time configuration; from [`TaylorF2.py`](https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/cbc/TaylorF2/TaylorF2.py):
+It can depend on construction-time configuration; from [`TaylorF2.py`](https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/cbc/Taylor/TaylorF2.py):
 
 ```python
 @property

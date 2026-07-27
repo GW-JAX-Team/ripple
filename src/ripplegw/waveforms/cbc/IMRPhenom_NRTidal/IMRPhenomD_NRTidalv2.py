@@ -26,7 +26,7 @@ from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomD_utils import (
     get_coeffs,
     get_transition_frequencies,
 )
-from ripplegw.waveforms.cbc.TaylorF2.TaylorF2 import (
+from ripplegw.waveforms.cbc.Taylor.TaylorF2 import (
     get_4PNQM2SCoeff,
     get_4PNQM2SOCoeff,
     get_6PNQM2SCoeff,
