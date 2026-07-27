@@ -15,8 +15,9 @@ By implementing waveform models as differentiable JAX functions, ripple enables 
 - IMRPhenomXAS_NRTidalv3 — tidal corrections for binary neutron star mergers
 - SineGaussian — time-domain burst waveform
 - PulsarSignal — continuous-wave signal from a spinning neutron star
+- etc.
 
-See the [Waveform Catalogue](https://gw-jax-team.github.io/ripple/stable/guides/catalogue/) for the full list of supported models.
+See the [Waveform Catalogue](https://gw-jax-team.github.io/ripple/stable/guides/catalogue/) for the full list of supported waveforms.
 
 For a quick introduction, see the [Quick Start guide](https://gw-jax-team.github.io/ripple/stable/quickstart/).
 
