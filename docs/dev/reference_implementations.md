@@ -1,7 +1,6 @@
 # Reference Implementations and Overlap Loss Thresholds
 
 This document records ripple's agreement with external reference implementations. It currently covers LALSuite: the accuracy threshold enforced by `tests/cross_validation/fd/test_overlap.py`, and — for any waveform whose threshold is looser than machine precision — why.
-See `tests/cross_validation/tolerances.toml` for the enforced values themselves; this page only needs to stay in sync with that file's thresholds, not with any specific measured result (see [Testing](testing.md) for how to run the campaign yourself).
 
 The overlap loss (OL) is `1 - Re(<h1|h2>) / sqrt(<h1|h1> * <h2|h2>)`, using the ET-D PSD noise weighting.
 A lower OL indicates better agreement.
@@ -17,20 +16,18 @@ A lower OL indicates better agreement.
 | IMRPhenomHM | 1e-15 | machine precision |
 | IMRPhenomPv2 | 1e-4 | known cause (LAL-side) |
 | IMRPhenomXAS | 1e-15 | machine precision |
-| IMRPhenomXAS_NRTidalv3 | 1e-12 | resolved |
+| IMRPhenomXAS_NRTidalv3 | 1e-12 | under investigation |
 | IMRPhenomXHM | 1e-6 | known cause |
 | IMRPhenomXP | 1e-6 | known cause |
 | IMRPhenomXPHM | 1e-6 | known cause |
 
-The continuous-wave (CW) models below are validated by a different mechanism (see
-[below](#continuous-wave-cw-models)), not `test_overlap.py`/`tolerances.toml`, so they aren't
-subject to the "stay in sync with `tolerances.toml`" rule above.
+The continuous-wave (CW) models below are validated by a different mechanism (see [below](#continuous-wave-cw-models)), not `test_overlap.py`/`tolerances.toml`, so they aren't subject to the "stay in sync with `tolerances.toml`" rule above.
 
 | Waveform | Threshold | Status |
-|---|---|---|
-| ExactPulsarSignal | 1e-10 | machine precision (component-level, see below) |
-| PulsarSignal | 1e-10 | machine precision (component-level, see below) |
-| BinaryPulsarSignal | 1e-12 | orbital phase only, tight-Kepler regime (see below) |
+| --- | --- | --- |
+| ExactPulsarSignal | 1e-10 | machine precision |
+| PulsarSignal | 1e-10 | machine precision |
+| BinaryPulsarSignal | 1e-12 | orbital phase only, tight-Kepler regime |
 
 ---
 
@@ -94,53 +91,23 @@ Beyond that, high aligned-spin cases pick up a small additional contribution fro
 
 ---
 
-## Waveforms with a resolved history
-
-### IMRPhenomXAS_NRTidalv3
-
-**Threshold: 1e-12**
-
-This model previously carried a 1e-6 holding threshold under a documented high-frequency phase discrepancy that grew with total mass.
-The threshold has since been tightened to 1e-12 and is no longer under active investigation.
-
----
-
 ## Continuous-wave (CW) models
 
-LAL does not SWIG-wrap `PulsarSignalParams` (it has anonymous nested structs), so
-`XLALSimulateExactPulsarSignal`/`XLALGeneratePulsarSignal` cannot be called directly from
-Python, and CW's calling convention (a fixed detector + ephemeris + GPS epoch at
-construction, a time axis, not a frequency grid) doesn't fit the batched
-`ReferenceBackend`/`tolerances.toml` campaign the frequency-domain models above use. CW
-agreement is instead checked by `tests/cross_validation/cw/` (`accuracy`-marked, skipped
-without `lalpulsar` + an Earth/Sun ephemeris file) -- one file per registered class
-(`test_exact_pulsar_signal.py`, `test_pulsar_signal.py`, `test_binary_pulsar_signal.py`),
-each reproducing LAL's own reference computation in Python from its SWIG-exposed building
-blocks (`XLALGetDetectorStates`, `XLALComputeAMCoeffs`, `XLALBarycenter`,
-`XLALGenerateSpinOrbitCW`):
+LAL does not SWIG-wrap `PulsarSignalParams` (it has anonymous nested structs), so `XLALSimulateExactPulsarSignal`/`XLALGeneratePulsarSignal` cannot be called directly from Python, and CW's calling convention (a fixed detector + ephemeris + GPS epoch at construction, a time axis, not a frequency grid) doesn't fit the batched `ReferenceBackend`/`tolerances.toml` campaign the frequency-domain models above use.
+CW agreement is instead checked by `tests/cross_validation/cw/` (`accuracy`-marked, skipped without `lalpulsar` + an Earth/Sun ephemeris file) -- one file per registered class (`test_exact_pulsar_signal.py`, `test_pulsar_signal.py`, `test_binary_pulsar_signal.py`), each reproducing LAL's own reference computation in Python from its SWIG-exposed building blocks (`XLALGetDetectorStates`, `XLALComputeAMCoeffs`, `XLALBarycenter`, `XLALGenerateSpinOrbitCW`):
 
-- **`ExactPulsarSignal`** — reconstructed detector strain vs. a Python transcription of
-  `SimulatePulsarSignal.c`'s exact (Roemer-only) path: overlap loss < 1e-10 (observed ~3e-13).
+- **`ExactPulsarSignal`** — reconstructed detector strain vs. a Python transcription of `SimulatePulsarSignal.c`'s exact (Roemer-only) path: overlap loss < 1e-10 (observed ~3e-13).
   The geometric delay alone agrees with `XLALBarycenter` to << 1 microsecond.
-- **`PulsarSignal`** — same check using the full barycentering delay (Roemer + Earth-rotation
-  with precession/nutation + Einstein − Shapiro), each sample built from `XLALBarycenter`
-  directly: overlap loss < 1e-10 (observed ~1e-9).
-- **`BinaryPulsarSignal`** — only the orbital source-phase model is checked automatically, against
-  `XLALGenerateSpinOrbitCW` in the tight-Kepler regime (`f0=1000 Hz`): overlap loss < 1e-12.
+- **`PulsarSignal`** — same check using the full barycentering delay (Roemer + Earth-rotation with precession/nutation + Einstein − Shapiro), each sample built from `XLALBarycenter` directly: overlap loss < 1e-10 (observed ~1e-9).
+- **`BinaryPulsarSignal`** — only the orbital source-phase model is checked automatically, against `XLALGenerateSpinOrbitCW` in the tight-Kepler regime (`f0=1000 Hz`): overlap loss < 1e-12.
   The full binary waveform end-to-end is not yet part of the automated suite (see below).
 
-In all three cases the residual tracks **LAL's own reference precision, not ripple's** — the
-exact/full floors come from LAL evaluating phase in REAL8 GPS time (`t ≈ 1e9`, resolving
-~0.1 microsecond); ripple's int+frac GPS split is more precise than that floor.
+In all three cases the residual tracks **LAL's own reference precision, not ripple's** — the exact/full floors come from LAL evaluating phase in REAL8 GPS time (`t ≈ 1e9`, resolving ~0.1 microsecond); ripple's int+frac GPS split is more precise than that floor.
 
 ### Supplementary: compiled-function comparison
 
-The actual *compiled* `XLALSimulateExactPulsarSignal`/`XLALGeneratePulsarSignal` entry points
-(not just the SWIG-exposed building blocks above) were also checked manually once, off-repo:
-all three models agree to log10 overlap loss better than −5, limited by LAL's own Kepler
-solver tolerance for `BinaryPulsarSignal`, not ripple's. This needs the unwrapped
-`PulsarSignalParams` struct layout declared in C, so it isn't reproducible from Python alone
-and isn't shipped in-tree — the automated check above is what runs in CI.
+The actual *compiled* `XLALSimulateExactPulsarSignal`/`XLALGeneratePulsarSignal` entry points (not just the SWIG-exposed building blocks above) were also checked manually once, off-repo: all three models agree to log10 overlap loss better than −5, limited by LAL's own Kepler solver tolerance for `BinaryPulsarSignal`, not ripple's.
+This needs the unwrapped `PulsarSignalParams` struct layout declared in C, so it isn't reproducible from Python alone and isn't shipped in-tree — the automated check above is what runs in CI.
 
 ---
 
