@@ -1513,11 +1513,11 @@ Enable 64-bit precision before doing anything else — without it you may see in
 <h2 id="fast-repeated-evaluation-with-jaxjit">Fast repeated evaluation with <code>jax.jit</code><a class="headerlink" href="#fast-repeated-evaluation-with-jaxjit" title="Permanent link">¤</a></h2>
 <div class="highlight"><pre><span></span><code><span class="n">fast_wf</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">wf</span><span class="p">)</span>
 
-<span class="n">_</span> <span class="o">=</span> <span class="n">fast_wf</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>          <span class="c1"># first call traces and compiles — this is slow</span>
-<span class="n">h</span> <span class="o">=</span> <span class="n">fast_wf</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>          <span class="c1"># subsequent calls with the same shapes are fast</span>
-<span class="n">h</span><span class="p">[</span><span class="s2">&quot;p&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">block_until_ready</span><span class="p">()</span>              <span class="c1"># JAX dispatch is async; block before timing</span>
+<span class="n">_</span> <span class="o">=</span> <span class="n">fast_wf</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>  <span class="c1"># first call traces and compiles — this is slow</span>
+<span class="n">h</span> <span class="o">=</span> <span class="n">fast_wf</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>  <span class="c1"># subsequent calls with the same shapes are fast</span>
+<span class="n">h</span><span class="p">[</span><span class="s2">&quot;p&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">block_until_ready</span><span class="p">()</span>      <span class="c1"># JAX dispatch is async; block before timing</span>
 </code></pre></div>
-<p>The first call to a <code>jit</code>-compiled waveform triggers XLA compilation, which can take several seconds.
+<p>The first call to a <code>jit</code>-compiled waveform triggers XLA compilation, which will be slow for large models.
 If you're timing ripple, always discard the first call and call <code>.block_until_ready()</code> before stopping your timer — see <a href="../benchmarking/">Benchmarking</a> for a ready-made CLI that already does this correctly.</p>
 <h2 id="batch-evaluation-with-jaxvmap">Batch evaluation with <code>jax.vmap</code><a class="headerlink" href="#batch-evaluation-with-jaxvmap" title="Permanent link">¤</a></h2>
 <div class="highlight"><pre><span></span><code><span class="n">Mc_values</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">20.0</span><span class="p">,</span> <span class="mf">40.0</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
@@ -1530,7 +1530,7 @@ If you're timing ripple, always discard the first call and call <code>.block_unt
 <p>Prefer <code>jax.vmap</code> over a Python loop when evaluating many parameter sets — a Python loop retraces (or re-dispatches) once per iteration, while <code>vmap</code> compiles a single batched kernel.</p>
 <h2 id="compilation-time-for-large-models">Compilation time for large models<a class="headerlink" href="#compilation-time-for-large-models" title="Permanent link">¤</a></h2>
 <p>Some models (particularly the higher-mode and precessing families) have long JIT compile times on first call because of their size.
-If you only need to evaluate once, <code>jax.config.update("jax_disable_jit", True)</code> skips compilation entirely at some runtime cost; if you need many evaluations, <code>jax.jit</code> still wins overall — just budget for the first-call cost, or use <code>jax.lax.scan</code> / <code>jax.vmap</code> rather than a Python loop so you only pay it once per distinct input shape.</p>
+If you only need to evaluate once, <code>jax.config.update("jax_disable_jit", True)</code> skips compilation entirely at some runtime cost; if you need many evaluations, <code>jax.jit</code> still wins overall.</p>
 
 
 
