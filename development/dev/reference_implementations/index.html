@@ -1649,8 +1649,12 @@
 
 <h1 id="reference-implementations-and-overlap-loss-thresholds">Reference Implementations and Overlap Loss Thresholds<a class="headerlink" href="#reference-implementations-and-overlap-loss-thresholds" title="Permanent link">¤</a></h1>
 <p>This document records ripple's agreement with external reference implementations. It currently covers LALSuite: the accuracy threshold enforced by <code>tests/cross_validation/fd/test_overlap.py</code>, and — for any waveform whose threshold is looser than machine precision — why.</p>
-<p>The overlap loss (OL) is <code>1 - Re(&lt;h1|h2&gt;) / sqrt(&lt;h1|h1&gt; * &lt;h2|h2&gt;)</code>, using the ET-D PSD noise weighting.
-A lower OL indicates better agreement.
+<p>The overlap loss (OL), using the ET-D PSD noise weighting, is</p>
+<div class="arithmatex">\[
+\mathrm{OL} = 1 - \frac{\operatorname{Re}\langle h_1 \mid h_2 \rangle}
+{\sqrt{\langle h_1 \mid h_1 \rangle \langle h_2 \mid h_2 \rangle}}\,.
+\]</div>
+<p>A lower OL indicates better agreement.
 "Machine precision" means a threshold consistent with floating-point rounding (a few times eps_machine, typically 1e-15 to 1e-16), not a real physical discrepancy.</p>
 <h2 id="summary-table">Summary table<a class="headerlink" href="#summary-table" title="Permanent link">¤</a></h2>
 <table>
