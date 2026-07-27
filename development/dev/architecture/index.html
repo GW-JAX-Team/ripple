@@ -1509,8 +1509,7 @@ See <a href="../adding_a_waveform/">Adding a Waveform</a> for the registration a
 </code></pre></div>
 <ul>
 <li><strong><code>Waveform</code></strong> — every model implements <code>parameter_names</code> (the ordered <code>params</code> keys it needs) and <code>__call__(axis, params)</code> (returns <code>{"p": ..., "c": ...}</code>, or model-specific keys).</li>
-<li><strong><code>AmplitudePhaseWaveform</code></strong> — for single-mode, aligned-spin models, where amplitude and phase as functions of frequency are individually well-defined.
-  Multimode and precessing models can't use it: <code>|hp|</code> beats between modes, so there's no single well-defined amplitude.</li>
+<li><strong><code>AmplitudePhaseWaveform</code></strong> — for single-mode, aligned-spin models, where amplitude and phase as functions of frequency are individually well-defined.</li>
 <li><strong><code>DistanceScaledWaveform</code></strong> — a mixin, not a <code>Waveform</code> on its own.
   It must be combined with a domain base, or the registry rejects the class.</li>
 </ul>
