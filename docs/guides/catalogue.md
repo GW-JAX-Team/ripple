@@ -20,7 +20,7 @@ These models describe radiation from two compact objects in a quasi-circular orb
 ### Earlier IMRPhenom models
 
 | Model | Spin treatment | Higher-order modes | Tidal effects |
-| --- | --- | --- | --- | --- |
+| --- | --- | --- | --- |
 | `IMRPhenomD` | Aligned-spin | No | No |
 | `IMRPhenomHM` | Aligned-spin | Yes | No |
 | `IMRPhenomPv2` | Precessing | No | No |
