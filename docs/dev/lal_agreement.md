@@ -131,27 +131,20 @@ In all three cases the residual tracks **LAL's own reference precision, not ripp
 exact/full floors come from LAL evaluating phase in REAL8 GPS time (`t ≈ 1e9`, resolving
 ~0.1 microsecond); ripple's int+frac GPS split is more precise than that floor.
 
-### Supplementary: compiled-function comparison (`c_harness/`)
+### Supplementary: compiled-function comparison
 
-`tests/cross_validation/c_harness/` additionally compares against the actual *compiled*
-`XLALSimulateExactPulsarSignal`/`XLALGeneratePulsarSignal` entry points (not just the
-SWIG-exposed building blocks above), by declaring the unwrapped struct layout in C and calling
-them directly. This is a manual, environment-dependent recipe (see its `README.md`), not
-collected as a pytest test, run once to corroborate the automated result above:
-
-| Comparison | log10 overlap loss |
-|---|---|
-| `ExactPulsarSignal` vs. compiled `XLALSimulateExactPulsarSignal` | −12.46 |
-| `PulsarSignal` vs. compiled `XLALGeneratePulsarSignal` (fHet = 0) | −12.00 |
-| `PulsarSignal` vs. compiled `XLALGeneratePulsarSignal` (fHet = 12 Hz) | −12.00 |
-
-A 400-point random parameter sweep (`make_figs.py`, H1, `f0 ∈ [10, 500] Hz`) against the same
-compiled functions gives median/max log10 overlap loss of −9.2/−7.9 (`ExactPulsarSignal`),
-−11.3/−10.5 (`PulsarSignal`), and −5.5/−4.8 (`BinaryPulsarSignal`, full end-to-end incl. orbital
-modulation). The binary floor is set by LAL `GenerateSpinOrbitCW`'s own Kepler solver tolerance
-(`dxMax = 0.01/(f0·P)`); ripple solves Kepler to machine precision, so this is LAL's limitation,
-not ripple's — at `f0 = 1000 Hz` (where LAL's tolerance is tightest) the two agree to
-log10(1−O) ≈ −15.2.
+Beyond the SWIG-exposed building blocks above, the actual *compiled*
+`XLALSimulateExactPulsarSignal`/`XLALGeneratePulsarSignal` entry points were also checked
+manually once, off-repo, against ripple: `ExactPulsarSignal` and `PulsarSignal` agree to
+log10 overlap loss ≈ −12; a 400-point random parameter sweep (H1, `f0 ∈ [10, 500] Hz`) gives
+median/max log10 overlap loss of −9.2/−7.9 (`ExactPulsarSignal`), −11.3/−10.5 (`PulsarSignal`),
+and −5.5/−4.8 (`BinaryPulsarSignal`, full end-to-end incl. orbital modulation). The binary floor
+is set by LAL `GenerateSpinOrbitCW`'s own Kepler solver tolerance (`dxMax = 0.01/(f0·P)`);
+ripple solves Kepler to machine precision, so this is LAL's limitation, not ripple's — at
+`f0 = 1000 Hz` (where LAL's tolerance is tightest) the two agree to log10(1−O) ≈ −15.2. This
+recipe needs the unwrapped `PulsarSignalParams` struct layout declared in C, so it isn't
+reproducible from Python alone and isn't shipped in-tree; the automated check above is the
+one that runs in CI.
 
 ---
 

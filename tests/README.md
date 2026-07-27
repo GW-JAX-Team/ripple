@@ -13,7 +13,9 @@ tests/
 ├── helpers/                 # importable test utilities, never collected
 │   ├── grids.py             # frequency/time axis construction
 │   ├── params.py            # canonical_params / random_params_batch
-│   └── metrics.py           # overlap, overlap loss, phase
+│   ├── metrics.py           # overlap, overlap loss, phase
+│   └── config.py            # default_config() constructor kwargs for waveforms
+│                             # that can't be built with zero args (CW)
 ├── unit/                    # fast, pure; no waveform evaluation
 ├── integration/             # every registered waveform: output format, jit/vmap/grad,
 │                             # amplitude/phase + distance, edge cases
@@ -26,6 +28,8 @@ tests/
     ├── test_phase_convention.py
     ├── test_reference_constants.py  # unmarked; 0 cases if no backend is installed
     ├── test_tolerance_table.py      # unmarked; no backend needed to run
+    ├── test_cw_exact_pulsar.py      # CW vs. LAL's SWIG-exposed building blocks --
+    │                                # doesn't fit the ReferenceBackend campaign above
     └── submit_slurm.sh / submit_condor.sh
 ```
 

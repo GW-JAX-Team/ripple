@@ -8,7 +8,6 @@ from jaxtyping import Array, Float
 from ripplegw.interfaces import TimeDomainWaveform
 from ripplegw.registry import register
 from ripplegw.typing import FloatLike
-from ripplegw.waveforms.cw.detectors import Detector, get_detector
 from ripplegw.waveforms.cw.ephemeris import read_ephemeris_file
 from ripplegw.waveforms.cw.pulsar_signal import generate_pulsar_polarizations
 
@@ -23,7 +22,9 @@ class PulsarSignal(TimeDomainWaveform):
     Requires both Earth and Sun ephemerides.
 
     Attributes:
-        detector (Detector): Detector defining the arrival-time grid.
+        detector_location (tuple[float, float, float]): Geocentric Cartesian
+            vertex location of the detector (metres) defining the
+            arrival-time grid.
         start_gps (int): Integer GPS second of ``t == 0`` / heterodyne epoch.
         n_spindowns (int): Number of spindown parameters.
         ref_time_ssb (float | None): SSB spin reference epoch (default: full
@@ -31,7 +32,7 @@ class PulsarSignal(TimeDomainWaveform):
         f_heterodyne (float): Heterodyne frequency (Hz).
     """
 
-    detector: Detector
+    detector_location: tuple[float, float, float]
     start_gps: int
     n_spindowns: int
     ref_time_ssb: float | None
@@ -39,7 +40,7 @@ class PulsarSignal(TimeDomainWaveform):
 
     def __init__(
         self,
-        detector: str | Detector,
+        detector_location: tuple[float, float, float],
         earth_ephemeris_file: str,
         sun_ephemeris_file: str,
         start_gps: int,
@@ -49,7 +50,9 @@ class PulsarSignal(TimeDomainWaveform):
     ) -> None:
         """
         Args:
-            detector: Detector name or :class:`Detector`.
+            detector_location (tuple[float, float, float]): Geocentric
+                Cartesian vertex location of the detector (metres), e.g. the
+                ``LALDetectors.h`` values for H1/L1/V1.
             earth_ephemeris_file (str): Earth ephemeris path, or a standard
                 LALPulsar name (e.g. ``"earth00-40-DE405.dat.gz"``) to
                 download and cache automatically -- see
@@ -61,9 +64,8 @@ class PulsarSignal(TimeDomainWaveform):
             ref_time_ssb (float | None): SSB spin reference epoch.
             f_heterodyne (float): Heterodyne frequency (Hz).
         """
-        self.detector = (
-            detector if isinstance(detector, Detector) else get_detector(detector)
-        )
+        x, y, z = detector_location
+        self.detector_location = (float(x), float(y), float(z))
         self.start_gps = int(start_gps)
         self.n_spindowns = int(n_spindowns)
         self.ref_time_ssb = ref_time_ssb
@@ -120,7 +122,7 @@ class PulsarSignal(TimeDomainWaveform):
             params["phi0"],
             params["aplus"],
             params["across"],
-            self.detector.location,
+            self.detector_location,
             *self._e,
             *self._s,
             fkdot=fkdot,
@@ -131,7 +133,7 @@ class PulsarSignal(TimeDomainWaveform):
 
     def __repr__(self) -> str:
         return (
-            f"PulsarSignal(detector={self.detector.name!r}, "
+            f"PulsarSignal(detector_location={self.detector_location!r}, "
             f"start_gps={self.start_gps}, n_spindowns={self.n_spindowns}, "
             f"f_heterodyne={self.f_heterodyne})"
         )

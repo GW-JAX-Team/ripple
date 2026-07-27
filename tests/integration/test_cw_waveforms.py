@@ -30,7 +30,7 @@ import pytest
 jax.config.update("jax_enable_x64", True)
 
 import ripplegw
-from tests.helpers.config import synthetic_ephemeris_files
+from tests.helpers.config import H1_LOCATION, synthetic_ephemeris_files
 
 START_GPS = 1_000_000_000
 
@@ -107,7 +107,7 @@ class TestExactPulsarSignal:
         earth, _ = ephemeris_files
         return ripplegw.waveform(
             "ExactPulsarSignal",
-            detector="H1",
+            detector_location=H1_LOCATION,
             earth_ephemeris_file=earth,
             start_gps=START_GPS,
             n_spindowns=1,
@@ -139,7 +139,8 @@ class TestExactPulsarSignal:
 
     def test_repr(self, model):
         assert repr(model) == (
-            f"ExactPulsarSignal(detector='H1', start_gps={START_GPS}, n_spindowns=1)"
+            f"ExactPulsarSignal(detector_location={H1_LOCATION!r}, "
+            f"start_gps={START_GPS}, n_spindowns=1)"
         )
 
 
@@ -151,7 +152,7 @@ class TestPulsarSignal:
         earth, sun = ephemeris_files
         return ripplegw.waveform(
             "PulsarSignal",
-            detector="H1",
+            detector_location=H1_LOCATION,
             earth_ephemeris_file=earth,
             sun_ephemeris_file=sun,
             start_gps=START_GPS,
@@ -184,7 +185,7 @@ class TestPulsarSignal:
         earth, sun = ephemeris_files
         model = ripplegw.waveform(
             "PulsarSignal",
-            detector="H1",
+            detector_location=H1_LOCATION,
             earth_ephemeris_file=earth,
             sun_ephemeris_file=sun,
             start_gps=START_GPS,
@@ -198,7 +199,7 @@ class TestPulsarSignal:
 
     def test_repr(self, model):
         assert repr(model) == (
-            f"PulsarSignal(detector='H1', start_gps={START_GPS}, "
+            f"PulsarSignal(detector_location={H1_LOCATION!r}, start_gps={START_GPS}, "
             f"n_spindowns=1, f_heterodyne=0.0)"
         )
 
@@ -211,7 +212,7 @@ class TestBinaryPulsarSignal:
         earth, sun = ephemeris_files
         return ripplegw.waveform(
             "BinaryPulsarSignal",
-            detector="H1",
+            detector_location=H1_LOCATION,
             earth_ephemeris_file=earth,
             sun_ephemeris_file=sun,
             start_gps=START_GPS,
@@ -257,7 +258,8 @@ class TestBinaryPulsarSignal:
 
     def test_repr(self, model):
         assert repr(model) == (
-            f"BinaryPulsarSignal(detector='H1', start_gps={START_GPS}, n_spindowns=0)"
+            f"BinaryPulsarSignal(detector_location={H1_LOCATION!r}, "
+            f"start_gps={START_GPS}, n_spindowns=0)"
         )
 
 

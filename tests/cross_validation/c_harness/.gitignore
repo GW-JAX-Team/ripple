@@ -1,9 +1,0 @@
-# Generated artifacts — regenerate with make_figs.py (see README.md).
-# Source files (harness*.c, compare.py, make_figs.py, run_macmini.sh) are tracked.
-cw_sweep_results.csv
-sweep_params.csv
-*.bin
-
-# Compiled harness binaries
-/harness
-/harness_sweep

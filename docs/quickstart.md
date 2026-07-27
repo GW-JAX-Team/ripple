@@ -50,17 +50,20 @@ ripplegw.get_waveform_metadata("IMRPhenomD")
 ## Continuous-wave (pulsar) waveforms
 
 ripple also generates continuous-wave (CW) waveforms from spinning neutron stars, ported from LALPulsar.
-These share the `{"p", "c"}` return convention, but the axis is **time** (seconds relative to a GPS start epoch), and the detector, ephemeris, and start time are fixed at construction.
-A JPL ephemeris file is required; standard names like the ones below are fetched and cached automatically the first time they're used (see the [Installation](installation.md#continuous-wave-ephemeris-files) page):
+These share the `{"p", "c"}` return convention, but the axis is **time** (seconds relative to a GPS start epoch), and the detector location, ephemeris, and start time are fixed at construction.
+A JPL ephemeris file is required; standard names like the ones below are fetched and cached automatically the first time they're used (see the [Installation](installation.md#continuous-wave-ephemeris-files) page).
+ripple doesn't ship a detector-name registry -- pass the detector's geocentric vertex location directly (e.g. from `lal.CachedDetectors` or `LALDetectors.h`):
 
 ```python
 import jax.numpy as jnp
 import ripplegw
 
-# Detector, ephemerides, observation start (GPS), and number of spindowns
+H1_LOCATION = (-2.16141492636e06, -3.83469517889e06, 4.60035022664e06)  # LALDetectors.h
+
+# Detector location, ephemerides, observation start (GPS), and number of spindowns
 waveform = ripplegw.waveform(
     "PulsarSignal",
-    detector="H1",
+    detector_location=H1_LOCATION,
     earth_ephemeris_file="earth00-40-DE405.dat.gz",
     sun_ephemeris_file="sun00-40-DE405.dat.gz",
     start_gps=1_000_000_000,

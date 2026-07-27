@@ -19,7 +19,6 @@ from jaxtyping import Array, Float
 from ripplegw.interfaces import TimeDomainWaveform
 from ripplegw.registry import register
 from ripplegw.typing import FloatLike
-from ripplegw.waveforms.cw.detectors import Detector, get_detector
 from ripplegw.waveforms.cw.ephemeris import read_ephemeris_file
 from ripplegw.waveforms.cw.pulsar_signal import exact_pulsar_polarizations
 
@@ -35,7 +34,9 @@ class ExactPulsarSignal(TimeDomainWaveform):
     ephemeris and matches ``XLALBarycenter`` to ~1e-13 s.
 
     Attributes:
-        detector (Detector): Detector whose arrival times define the grid.
+        detector_location (tuple[float, float, float]): Geocentric Cartesian
+            vertex location of the detector (metres) whose arrival times
+            define the grid.
         start_gps (int): Integer GPS second of ``t == 0`` on the call axis.
         n_spindowns (int): Number of spindown terms expected in ``params``
             (``f1`` … ``f{n}``).
@@ -44,14 +45,14 @@ class ExactPulsarSignal(TimeDomainWaveform):
             is used (LAL's default).
     """
 
-    detector: Detector
+    detector_location: tuple[float, float, float]
     start_gps: int
     n_spindowns: int
     ref_time_ssb: float | None
 
     def __init__(
         self,
-        detector: str | Detector,
+        detector_location: tuple[float, float, float],
         earth_ephemeris_file: str,
         start_gps: int,
         sun_ephemeris_file: str | None = None,
@@ -60,8 +61,9 @@ class ExactPulsarSignal(TimeDomainWaveform):
     ) -> None:
         """
         Args:
-            detector (str | Detector): Detector name (``"H1"``, ``"L1"``,
-                ``"V1"``) or a :class:`Detector` instance.
+            detector_location (tuple[float, float, float]): Geocentric
+                Cartesian vertex location of the detector (metres), e.g. the
+                ``LALDetectors.h`` values for H1/L1/V1.
             earth_ephemeris_file (str): Path to a LALPulsar Earth ephemeris
                 file, or a standard name (e.g. ``"earth00-40-DE405.dat.gz"``)
                 to download and cache automatically -- see
@@ -73,9 +75,8 @@ class ExactPulsarSignal(TimeDomainWaveform):
             n_spindowns (int): Number of spindown parameters (``f1`` …).
             ref_time_ssb (float | None): SSB reference epoch for the spins.
         """
-        self.detector = (
-            detector if isinstance(detector, Detector) else get_detector(detector)
-        )
+        x, y, z = detector_location
+        self.detector_location = (float(x), float(y), float(z))
         self.start_gps = int(start_gps)
         self.n_spindowns = int(n_spindowns)
         self.ref_time_ssb = ref_time_ssb
@@ -126,7 +127,7 @@ class ExactPulsarSignal(TimeDomainWaveform):
             params["phi0"],
             params["aplus"],
             params["across"],
-            self.detector.location,
+            self.detector_location,
             self._eph_gps0,
             self._eph_dt,
             self._eph_pos,
@@ -139,6 +140,6 @@ class ExactPulsarSignal(TimeDomainWaveform):
 
     def __repr__(self) -> str:
         return (
-            f"ExactPulsarSignal(detector={self.detector.name!r}, "
+            f"ExactPulsarSignal(detector_location={self.detector_location!r}, "
             f"start_gps={self.start_gps}, n_spindowns={self.n_spindowns})"
         )

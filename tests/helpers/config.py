@@ -18,6 +18,10 @@ _CW_NAMES = {"ExactPulsarSignal", "PulsarSignal", "BinaryPulsarSignal"}
 _START_GPS = 1_000_000_000
 _CACHE: tuple[str, str] | None = None
 
+# H1 geocentric vertex location (metres), from LALDetectors.h. ripple's CW
+# waveforms take a raw location rather than looking up a detector by name.
+H1_LOCATION = (-2.16141492636e06, -3.83469517889e06, 4.60035022664e06)
+
 
 def _write_synthetic_ephemeris(path, pos, vel, acc, *, gps0, dt=7200.0, n=4):
     """Write a minimal, valid LALPulsar-format ephemeris table to ``path``."""
@@ -68,7 +72,11 @@ def default_config(name: str) -> dict:
     if name not in _CW_NAMES:
         return {}
     earth, sun = synthetic_ephemeris_files()
-    config = {"detector": "H1", "earth_ephemeris_file": earth, "start_gps": _START_GPS}
+    config = {
+        "detector_location": H1_LOCATION,
+        "earth_ephemeris_file": earth,
+        "start_gps": _START_GPS,
+    }
     if name != "ExactPulsarSignal":
         config["sun_ephemeris_file"] = sun
     return config

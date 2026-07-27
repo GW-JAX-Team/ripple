@@ -66,7 +66,7 @@ class BinaryPulsarSignal(PulsarSignal):
             params["period"],
             params["argp"],
             params["tp_ssb"],
-            self.detector.location,
+            self.detector_location,
             *self._e,
             *self._s,
             fkdot=fkdot,
@@ -77,6 +77,6 @@ class BinaryPulsarSignal(PulsarSignal):
 
     def __repr__(self) -> str:
         return (
-            f"BinaryPulsarSignal(detector={self.detector.name!r}, "
+            f"BinaryPulsarSignal(detector_location={self.detector_location!r}, "
             f"start_gps={self.start_gps}, n_spindowns={self.n_spindowns})"
         )
