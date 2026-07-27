@@ -45,12 +45,12 @@ This same pattern differentiates with respect to any parameter, or several at on
 ```python
 fast_wf = jax.jit(wf)
 
-_ = fast_wf(frequency, params)          # first call traces and compiles — this is slow
-h = fast_wf(frequency, params)          # subsequent calls with the same shapes are fast
-h["p"].block_until_ready()              # JAX dispatch is async; block before timing
+_ = fast_wf(frequency, params)  # first call traces and compiles — this is slow
+h = fast_wf(frequency, params)  # subsequent calls with the same shapes are fast
+h["p"].block_until_ready()      # JAX dispatch is async; block before timing
 ```
 
-The first call to a `jit`-compiled waveform triggers XLA compilation, which can take several seconds.
+The first call to a `jit`-compiled waveform triggers XLA compilation, which will be slow for large models.
 If you're timing ripple, always discard the first call and call `.block_until_ready()` before stopping your timer — see [Benchmarking](benchmarking.md) for a ready-made CLI that already does this correctly.
 
 ## Batch evaluation with `jax.vmap`
@@ -69,4 +69,4 @@ Prefer `jax.vmap` over a Python loop when evaluating many parameter sets — a P
 ## Compilation time for large models
 
 Some models (particularly the higher-mode and precessing families) have long JIT compile times on first call because of their size.
-If you only need to evaluate once, `jax.config.update("jax_disable_jit", True)` skips compilation entirely at some runtime cost; if you need many evaluations, `jax.jit` still wins overall — just budget for the first-call cost, or use `jax.lax.scan` / `jax.vmap` rather than a Python loop so you only pay it once per distinct input shape.
+If you only need to evaluate once, `jax.config.update("jax_disable_jit", True)` skips compilation entirely at some runtime cost; if you need many evaluations, `jax.jit` still wins overall.
