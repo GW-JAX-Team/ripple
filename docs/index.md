@@ -5,7 +5,7 @@
 ripple is a JAX-based package for differentiable gravitational-wave waveform generation.
 By implementing waveform models as differentiable JAX functions, ripple enables gradient-based inference and runs natively on GPU, making it well-suited for use within modern probabilistic inference pipelines such as [Jim](https://github.com/GW-JAX-Team/jim).
 
-See the [Waveform Catalogue](guides/catalogue.md) for the full, always-up-to-date list of supported waveforms.
+See the [Waveform Catalogue](guides/catalogue.md) for the list of supported waveforms.
 
 !!! warning
     ripple has not yet reached v1.0.0 and the API may change.
