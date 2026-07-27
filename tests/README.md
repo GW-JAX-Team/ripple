@@ -63,7 +63,8 @@ uv run pytest -m accuracy --reference lal \
 Useful flags (see `tests/conftest.py` for the full list): `--reference` (default `lal`), `--n-samples`, `--T` (segment duration override), `--outdir`, `--cache-reference`, `--plots`.
 Results land under `accuracy-results/n<N>_T<T>/<backend>_<waveform>.json` (`accuracy-results/` is gitignored).
 
-On a cluster: `bash tests/cross_validation/submit_slurm.sh` or `bash tests/cross_validation/submit_condor.sh`, both single-GPU jobs (`N_SAMPLES`/`OUTDIR` env vars override the defaults).
+On a Slurm cluster, run `bash tests/cross_validation/submit_slurm.sh`; on an HTCondor cluster, run `bash tests/cross_validation/submit_condor.sh`.
+Each is a single-GPU job; `N_SAMPLES` and `OUTDIR` environment variables override the defaults.
 
 ## Adding a reference backend
 
