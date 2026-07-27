@@ -1,7 +1,7 @@
 # Working with Waveforms
 
 ripple provides a set of gravitational-wave waveform models, each identified by a registered name and constructed via `ripplegw.waveform(name, **config)`.
-Every model takes an evaluation grid (a frequency or time array) and a dictionary of physical parameters, and returns the gravitational-wave polarizations as JAX arrays — so every waveform is **differentiable**, **JIT-compilable**, and **vectorisable**.
+Every model takes an evaluation grid (a frequency or time array) and a dictionary of parameters, and returns the gravitational-wave polarizations as JAX arrays — so every waveform is **differentiable**, **JIT-compilable**, and **vectorisable**.
 See [JAX Transformations](jax.md) for `jax.grad` / `jax.jit` / `jax.vmap` in depth.
 
 ## Discovering waveforms
@@ -10,12 +10,12 @@ See [JAX Transformations](jax.md) for `jax.grad` / `jax.jit` / `jax.vmap` in dep
 import ripplegw
 
 ripplegw.list_waveforms()                       # every registered model name
-ripplegw.list_waveforms(domain="FD")             # filter by metadata
+ripplegw.list_waveforms(domain="FD")            # filter by metadata
 ripplegw.list_waveforms(is_precessing=True)
-ripplegw.get_waveform_metadata("IMRPhenomD")     # {"domain": "FD", "is_tidal": False, "is_precessing": False}
+ripplegw.get_waveform_metadata("IMRPhenomD")    # {"domain": "FD", "is_tidal": False, "is_precessing": False}
 ```
 
-See the [Waveform Catalogue](catalogue.md) for the full list with each model's domain, capabilities, and constructor configuration.
+See the [Waveform Catalogue](catalogue.md) for the full list with each waveform's domain and capabilities.
 
 !!! note
     An unrecognized filter key doesn't raise — it just matches nothing.
@@ -27,8 +27,8 @@ See the [Waveform Catalogue](catalogue.md) for the full list with each model's d
 waveform = ripplegw.waveform("IMRPhenomD", f_ref=20.0)
 ```
 
-`ripplegw.waveform(name, **config)` is the **only** construction path — there is no `ripplegw.IMRPhenomD` or similar top-level shortcut.
-`**config` is forwarded to the model's constructor; for most models this is just `f_ref`, the reference frequency in Hz (see the catalogue for exceptions like `TaylorF2`'s `use_lambda_tildes`).
+`ripplegw.waveform(name, **config)` is the **only** construction path.
+`**config` is forwarded to the model's constructor; for most models this is just `f_ref`, the reference frequency in Hz.
 
 !!! warning "`name` is positional-only"
     `ripplegw.waveform(name="IMRPhenomD")` raises `TypeError` — always pass the name as the first positional argument, `ripplegw.waveform("IMRPhenomD", ...)`.
@@ -57,8 +57,9 @@ hp, hc = polarizations["p"], polarizations["c"]
 ```
 
 Every model returns a `dict` with exactly two keys: `"p"` (plus polarization, $h_+$) and `"c"` (cross polarization, $h_\times$), each the same length as the input axis.
-**Frequency-domain models return complex arrays; time-domain models return real arrays** — check `domain` in the catalogue before assuming a dtype.
-ripple never performs an FFT internally: a frequency-domain model builds its strain analytically as $A(f) e^{i\psi(f)}$, and converting between domains, if you need it, is your responsibility.
+
+**Frequency-domain models return complex arrays; time-domain models return real arrays**.
+ripple never performs an FFT internally: a frequency-domain model builds its strain analytically as $A(f) e^{i\psi(f)}$.
 
 See [Parameters and Conventions](parameters.md) for what each parameter name means and its units.
 
@@ -77,7 +78,7 @@ plt.show()
 
 ## Amplitude and phase
 
-For single-mode, aligned-spin models — where an amplitude and phase as a function of frequency are individually well-defined — you can evaluate them separately instead of always getting both polarizations at once:
+For single-mode, aligned-spin models — where an amplitude and phase as a function of frequency are individually well-defined — you can evaluate them separately:
 
 ```python
 wf = ripplegw.waveform("IMRPhenomD", f_ref=20.0)
@@ -87,8 +88,7 @@ strain = wf.strain(frequency, params)      # == amp * exp(1j * phase), the pre-p
 ```
 
 `amplitude(f, p) * exp(1j * phase(f, p))` reproduces `strain(f, p)` exactly; `__call__` then applies the inclination-dependent plus/cross prefactors on top of `strain` to build `hp`/`hc`.
-Not every model supports this — check the "`amplitude`/`phase`" column in the [catalogue](catalogue.md), or test directly: `isinstance(wf, ripplegw.AmplitudePhaseWaveform)`.
-It is unavailable for multimode or precessing models (`IMRPhenomHM`, `IMRPhenomXPHM`, ...), because the polarizations mix multiple modes — there is no single well-defined amplitude for `|hp|` to follow.
+Not every model supports this — check directly via `isinstance(wf, ripplegw.AmplitudePhaseWaveform)`.
 
 ## Evaluating at a fixed distance
 
@@ -98,9 +98,8 @@ Any model whose parameters include `d_L` can be evaluated at 1 Mpc directly, ign
 h_at_1mpc = wf.at_unit_distance(frequency, params)
 ```
 
-This is exact by construction — `at_unit_distance(axis, params) == wf(axis, {**params, "d_L": 1.0})` — not a cheaper factored computation; it's a full re-evaluation.
+This is exact by construction — `at_unit_distance(axis, params) == wf(axis, {**params, "d_L": 1.0})`.
 Check availability the same way: `isinstance(wf, ripplegw.DistanceScaledWaveform)`.
-`SineGaussian` is the one built-in model without it, since it has no `d_L` parameter at all.
 
 ## Switching between models
 
@@ -112,4 +111,4 @@ for name in ["IMRPhenomD", "IMRPhenomXAS"]:
     print(f"{name}: max|h+| = {jnp.max(jnp.abs(h['p'])):.3e}")
 ```
 
-This only works cleanly when the models share `parameter_names` — check the catalogue before assuming the same `params` dict works across two arbitrary models (e.g. precessing models need `s1_x`/`s1_y` in addition to `s1_z`, and tidal models need `lambda_1`/`lambda_2`).
+This only works cleanly when the models share `parameter_names` (e.g. precessing models need `s1_x`/`s1_y` in addition to `s1_z`, and tidal models need `lambda_1`/`lambda_2`).
