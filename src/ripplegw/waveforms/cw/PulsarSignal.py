@@ -1,6 +1,7 @@
 """ripple ``Waveform``-compatible interface for the full isolated pulsar signal."""
 
 from collections.abc import Mapping
+from typing import Optional
 
 import jax.numpy as jnp
 from jaxtyping import Array, Float
@@ -27,7 +28,7 @@ class PulsarSignal(TimeDomainWaveform):
             arrival-time grid.
         start_gps (int): Integer GPS second of ``t == 0`` / heterodyne epoch.
         n_spindowns (int): Number of spindown parameters.
-        ref_time_ssb (float | None): SSB spin reference epoch (default: full
+        ref_time_ssb (Optional[float]): SSB spin reference epoch (default: full
             SSB time of the first sample).
         f_heterodyne (float): Heterodyne frequency (Hz).
     """
@@ -35,7 +36,7 @@ class PulsarSignal(TimeDomainWaveform):
     detector_location: tuple[float, float, float]
     start_gps: int
     n_spindowns: int
-    ref_time_ssb: float | None
+    ref_time_ssb: Optional[float]
     f_heterodyne: float
 
     def __init__(
@@ -45,7 +46,7 @@ class PulsarSignal(TimeDomainWaveform):
         sun_ephemeris_file: str,
         start_gps: int,
         n_spindowns: int = 0,
-        ref_time_ssb: float | None = None,
+        ref_time_ssb: Optional[float] = None,
         f_heterodyne: float = 0.0,
     ) -> None:
         """
@@ -61,7 +62,7 @@ class PulsarSignal(TimeDomainWaveform):
                 (for the Shapiro term), same rules as ``earth_ephemeris_file``.
             start_gps (int): GPS second of ``t == 0`` (also the heterodyne epoch).
             n_spindowns (int): Number of spindown parameters.
-            ref_time_ssb (float | None): SSB spin reference epoch.
+            ref_time_ssb (Optional[float]): SSB spin reference epoch.
             f_heterodyne (float): Heterodyne frequency (Hz).
         """
         x, y, z = detector_location

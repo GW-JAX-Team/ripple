@@ -93,6 +93,7 @@ class LALBackend:
             "PI": lal.PI,
             "TWO_PI": lal.TWOPI,
             "MPC": 1e6 * lal.PC_SI,
+            "AU": lal.AU_SI,
             "EULERGAMMA": lal.GAMMA,
         }
 

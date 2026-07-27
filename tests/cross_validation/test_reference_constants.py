@@ -13,7 +13,18 @@ import pytest
 import ripplegw.constants as const
 from tests.cross_validation.reference import REFERENCE_BACKENDS, get_backend
 
-CONST_NAMES = ["MSUN", "MRSUN", "MTSUN", "G", "C", "PI", "TWO_PI", "MPC", "EULERGAMMA"]
+CONST_NAMES = [
+    "MSUN",
+    "MRSUN",
+    "MTSUN",
+    "G",
+    "C",
+    "PI",
+    "TWO_PI",
+    "MPC",
+    "AU",
+    "EULERGAMMA",
+]
 
 AVAILABLE_BACKENDS = [
     name for name, cls in REFERENCE_BACKENDS.items() if cls.available()

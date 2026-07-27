@@ -13,10 +13,11 @@ runs in CI with no LAL/ephemeris-data dependency.
 
 import tempfile
 from pathlib import Path
+from typing import Optional
 
 _CW_NAMES = {"ExactPulsarSignal", "PulsarSignal", "BinaryPulsarSignal"}
 _START_GPS = 1_000_000_000
-_CACHE: tuple[str, str] | None = None
+_CACHE: Optional[tuple[str, str]] = None
 
 # H1 geocentric vertex location (metres), from LALDetectors.h. ripple's CW
 # waveforms take a raw location rather than looking up a detector by name.

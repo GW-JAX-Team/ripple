@@ -22,6 +22,8 @@ are neglected (the delay is the purely geometric ``n·rDetector``), and the wave
 phase is evaluated in REAL8 GPS time.
 """
 
+from typing import Optional
+
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
@@ -78,7 +80,7 @@ def exact_pulsar_polarizations(
     eph_vel: Float[Array, "m 3"],
     eph_acc: Float[Array, "m 3"],
     fkdot: Float[Array, " k"] | tuple = (),
-    ref_time_ssb: float | None = None,
+    ref_time_ssb: Optional[float] = None,
 ) -> tuple[Float[Array, " n"], Float[Array, " n"]]:
     """Plus/cross polarizations of an isolated pulsar, evaluated at the detector.
 
@@ -97,7 +99,7 @@ def exact_pulsar_polarizations(
         eph_gps0, eph_dt, eph_pos, eph_vel, eph_acc: Earth ephemeris table.
         fkdot (Float[Array, " k"] | tuple): Spindown terms ``(f1, f2, ...)``
             (Hz/s, …). Up to any order; defaults to none.
-        ref_time_ssb (float | None): SSB reference time for the spin parameters
+        ref_time_ssb (Optional[float]): SSB reference time for the spin parameters
             (seconds). If ``None``, uses the SSB time of the first sample,
             matching LAL's default ``refTime == startTime → SSB``.
 
@@ -159,7 +161,7 @@ def generate_pulsar_polarizations(
     sun_vel: Float[Array, "k 3"],
     sun_acc: Float[Array, "k 3"],
     fkdot: Float[Array, " j"] | tuple = (),
-    ref_time_ssb: float | None = None,
+    ref_time_ssb: Optional[float] = None,
     f_heterodyne: float = 0.0,
 ) -> tuple[Float[Array, " n"], Float[Array, " n"]]:
     """Plus/cross polarizations of an isolated pulsar (full ``XLALGeneratePulsarSignal``).
@@ -182,7 +184,7 @@ def generate_pulsar_polarizations(
         earth_*: Earth ephemeris table.
         sun_*: Sun ephemeris table (for the Shapiro delay).
         fkdot (Float[Array, " j"] | tuple): Spindown terms ``(f1, f2, ...)``.
-        ref_time_ssb (float | None): SSB reference epoch for the spins. If
+        ref_time_ssb (Optional[float]): SSB reference epoch for the spins. If
             ``None``, uses the *full* SSB time of the first sample
             (``start_gps + emit.deltaT(start_gps)``), matching LAL's default.
         f_heterodyne (float): Heterodyne frequency (Hz). ``0`` disables it.
@@ -304,7 +306,7 @@ def generate_binary_pulsar_polarizations(
     sun_vel: Float[Array, "p 3"],
     sun_acc: Float[Array, "p 3"],
     fkdot: Float[Array, " j"] | tuple = (),
-    ref_time_ssb: float | None = None,
+    ref_time_ssb: Optional[float] = None,
     f_heterodyne: float = 0.0,
 ) -> tuple[Float[Array, " n"], Float[Array, " n"]]:
     """Plus/cross polarizations of a pulsar in a binary orbit.
@@ -324,7 +326,7 @@ def generate_binary_pulsar_polarizations(
         tp_ssb (FloatLike): Time of periapsis passage in the SSB frame (GPS seconds).
         det_location_m, earth_*, sun_*: Detector and ephemerides.
         fkdot (Float[Array, " j"] | tuple): Spindown terms.
-        ref_time_ssb (float | None): SSB spin reference epoch (default: full SSB
+        ref_time_ssb (Optional[float]): SSB spin reference epoch (default: full SSB
             time of the first sample).
         f_heterodyne (float): Heterodyne frequency (Hz).
 

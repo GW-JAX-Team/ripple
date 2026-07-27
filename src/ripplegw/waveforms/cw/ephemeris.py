@@ -35,6 +35,7 @@ import tempfile
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
+from typing import Optional
 
 import jax.numpy as jnp
 from jaxtyping import Array, Float
@@ -270,8 +271,8 @@ def read_ephemeris_file(path: str) -> Ephemeris:
 
 
 def load_ephemeris(
-    earth_file: str, sun_file: str | None = None
-) -> tuple[Ephemeris, Ephemeris | None]:
+    earth_file: str, sun_file: Optional[str] = None
+) -> tuple[Ephemeris, Optional[Ephemeris]]:
     """Load an Earth ephemeris and (optionally) a Sun ephemeris.
 
     The Sun ephemeris is only required for the Shapiro-delay term, which the
@@ -279,10 +280,10 @@ def load_ephemeris(
 
     Args:
         earth_file (str): Path to the Earth ephemeris file.
-        sun_file (str | None): Path to the Sun ephemeris file, or ``None``.
+        sun_file (Optional[str]): Path to the Sun ephemeris file, or ``None``.
 
     Returns:
-        tuple[Ephemeris, Ephemeris | None]: ``(earth, sun)`` where ``sun`` is
+        tuple[Ephemeris, Optional[Ephemeris]]: ``(earth, sun)`` where ``sun`` is
             ``None`` if ``sun_file`` was not provided.
     """
     earth = read_ephemeris_file(earth_file)

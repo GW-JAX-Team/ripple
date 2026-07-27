@@ -12,6 +12,7 @@ the per-call time axis is measured in seconds relative to that start.
 """
 
 from collections.abc import Mapping
+from typing import Optional
 
 import jax.numpy as jnp
 from jaxtyping import Array, Float
@@ -40,7 +41,7 @@ class ExactPulsarSignal(TimeDomainWaveform):
         start_gps (int): Integer GPS second of ``t == 0`` on the call axis.
         n_spindowns (int): Number of spindown terms expected in ``params``
             (``f1`` … ``f{n}``).
-        ref_time_ssb (float | None): SSB reference epoch for the spin
+        ref_time_ssb (Optional[float]): SSB reference epoch for the spin
             parameters (seconds). If ``None``, the SSB time of the first sample
             is used (LAL's default).
     """
@@ -48,16 +49,16 @@ class ExactPulsarSignal(TimeDomainWaveform):
     detector_location: tuple[float, float, float]
     start_gps: int
     n_spindowns: int
-    ref_time_ssb: float | None
+    ref_time_ssb: Optional[float]
 
     def __init__(
         self,
         detector_location: tuple[float, float, float],
         earth_ephemeris_file: str,
         start_gps: int,
-        sun_ephemeris_file: str | None = None,
+        sun_ephemeris_file: Optional[str] = None,
         n_spindowns: int = 0,
-        ref_time_ssb: float | None = None,
+        ref_time_ssb: Optional[float] = None,
     ) -> None:
         """
         Args:
@@ -70,10 +71,10 @@ class ExactPulsarSignal(TimeDomainWaveform):
                 :func:`~ripplegw.waveforms.cw.ephemeris.resolve_ephemeris_path`.
             start_gps (int): Integer GPS second corresponding to ``t == 0`` on
                 the time axis passed to :meth:`__call__`.
-            sun_ephemeris_file (str | None): Unused by the exact model (the
+            sun_ephemeris_file (Optional[str]): Unused by the exact model (the
                 Shapiro term is neglected); accepted for interface symmetry.
             n_spindowns (int): Number of spindown parameters (``f1`` …).
-            ref_time_ssb (float | None): SSB reference epoch for the spins.
+            ref_time_ssb (Optional[float]): SSB reference epoch for the spins.
         """
         x, y, z = detector_location
         self.detector_location = (float(x), float(y), float(z))
