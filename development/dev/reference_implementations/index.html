@@ -12,7 +12,7 @@
         <meta name="author" content="GW JAX Team">
       
       
-        <link rel="canonical" href="https://gw-jax-team.github.io/ripple/development/dev/lal_agreement/">
+        <link rel="canonical" href="https://gw-jax-team.github.io/ripple/development/dev/reference_implementations/">
       
       
         <link rel="prev" href="../testing/">
@@ -29,7 +29,7 @@
     
     
       
-        <title>LAL Agreement and Overlap Loss Thresholds - ripple</title>
+        <title>Reference Implementations and Overlap Loss Thresholds - ripple</title>
       
     
     
@@ -85,7 +85,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#lal-agreement-and-overlap-loss-thresholds" class="md-skip">
+        <a href="#reference-implementations-and-overlap-loss-thresholds" class="md-skip">
           Skip to content
         </a>
       
@@ -123,7 +123,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              LAL Agreement and Overlap Loss Thresholds
+              Reference Implementations and Overlap Loss Thresholds
             
           </span>
         </div>
@@ -902,7 +902,7 @@
   <span class="md-ellipsis">
     
   
-  LAL Agreement
+  Reference Implementations
 
     
   </span>
@@ -919,7 +919,7 @@
   <span class="md-ellipsis">
     
   
-  LAL Agreement
+  Reference Implementations
 
     
   </span>
@@ -1703,8 +1703,8 @@
   
 
 
-<h1 id="lal-agreement-and-overlap-loss-thresholds">LAL Agreement and Overlap Loss Thresholds<a class="headerlink" href="#lal-agreement-and-overlap-loss-thresholds" title="Permanent link">¤</a></h1>
-<p>This document records what's known about each supported waveform's agreement with LALSuite: the accuracy threshold enforced by <code>tests/cross_validation/fd/test_overlap.py</code>, and — for any waveform whose threshold is looser than machine precision — why.
+<h1 id="reference-implementations-and-overlap-loss-thresholds">Reference Implementations and Overlap Loss Thresholds<a class="headerlink" href="#reference-implementations-and-overlap-loss-thresholds" title="Permanent link">¤</a></h1>
+<p>This document records ripple's agreement with external reference implementations. It currently covers LALSuite: the accuracy threshold enforced by <code>tests/cross_validation/fd/test_overlap.py</code>, and — for any waveform whose threshold is looser than machine precision — why.
 See <code>tests/cross_validation/tolerances.toml</code> for the enforced values themselves; this page only needs to stay in sync with that file's thresholds, not with any specific measured result (see <a href="../testing/">Testing</a> for how to run the campaign yourself).</p>
 <p>The overlap loss (OL) is <code>1 - Re(&lt;h1|h2&gt;) / sqrt(&lt;h1|h1&gt; * &lt;h2|h2&gt;)</code>, using the ET-D PSD noise weighting.
 A lower OL indicates better agreement.

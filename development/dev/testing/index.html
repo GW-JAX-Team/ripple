@@ -18,7 +18,7 @@
         <link rel="prev" href="../adding_a_waveform/">
       
       
-        <link rel="next" href="../lal_agreement/">
+        <link rel="next" href="../reference_implementations/">
       
       
         
@@ -994,14 +994,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../lal_agreement/" class="md-nav__link">
+      <a href="../reference_implementations/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  LAL Agreement
+  Reference Implementations
 
     
   </span>
@@ -1527,7 +1527,7 @@ uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </sp
 It compares numeric literals in <code>ripplegw.constants</code> against a reference backend, not waveform output, so it is cheap enough to run unconditionally wherever a backend happens to be installed -- it lives under <code>cross_validation/</code> because it is the one CI-tier test that touches a reference backend at all, and every file that does so is kept there.
 It contributes zero test cases, not a failure, when no backend is installed.</p>
 <h2 id="ci-tier-unit-and-integration">CI tier: <code>unit/</code> and <code>integration/</code><a class="headerlink" href="#ci-tier-unit-and-integration" title="Permanent link">¤</a></h2>
-<p>These never import a reference backend and never evaluate against one -- LAL/lalsimulation usage anywhere in the suite is confined to <code>tests/cross_validation/</code> (the <code>reference/</code> subpackage and its <code>fd/</code> consumers below, plus <code>cw/</code>, which imports <code>lalpulsar</code> directly since CW's calling convention doesn't fit the <code>ReferenceBackend</code> protocol -- see <a href="../lal_agreement/">LAL Agreement</a>), so <code>unit/</code> and <code>integration/</code> work with no CPU-based reference package installed at all.
+<p>These never import a reference backend and never evaluate against one -- LAL/lalsimulation usage anywhere in the suite is confined to <code>tests/cross_validation/</code> (the <code>reference/</code> subpackage and its <code>fd/</code> consumers below, plus <code>cw/</code>, which imports <code>lalpulsar</code> directly since CW's calling convention doesn't fit the <code>ReferenceBackend</code> protocol -- see <a href="../reference_implementations/">Reference Implementations</a>), so <code>unit/</code> and <code>integration/</code> work with no CPU-based reference package installed at all.
 <code>unit/</code> covers the registry and <code>ripplegw.conversions</code>.
 <code>integration/</code> is parametrized directly off <code>ripplegw.list_waveforms()</code>, so a newly registered model is covered the moment it appears, with no test-file edits:</p>
 <ul>
@@ -1543,11 +1543,11 @@ Both raise immediately on a parameter name they don't recognise, naming themselv
 <p>Organised by <em>how</em> a family can be validated, not by source type — because that's what actually determines whether a test can be generic or has to be hand-built:</p>
 <ul>
 <li><strong><code>cross_validation/fd/</code></strong> — the <code>ReferenceBackend</code>-driven campaign, for any frequency-domain, stateless-per-call model (<code>domain="FD"</code>; every CBC model today, but scoped by domain rather than <code>source_type="cbc"</code> since that's the actual constraint the campaign's calling convention imposes — see <code>fd/test_overlap.py</code>'s docstring). <code>test_overlap.py</code> draws random parameter sets (<code>tests/helpers/params.py::random_params_batch</code>), generates both sides — ripple via a batched <code>vmap</code> call (falling back to <code>jax.lax.map</code>, then a sequential loop, on GPU OOM) and the reference backend via a thread pool — and asserts the noise-weighted overlap loss stays under a threshold. <code>test_phase_convention.py</code> checks a single fixed configuration to catch a constant phase offset that the overlap test alone cannot see. Both use the Einstein Telescope D-design PSD (<code>tests/psds/ET_D_psd.txt</code>) for the noise weighting; the documented thresholds are calibrated against that specific weighting, not a flat spectrum.</li>
-<li><strong><code>cross_validation/cw/</code></strong> — continuous-wave models, which are time-domain with a detector/ephemeris/epoch fixed at construction and have no <code>ReferenceBackend</code> (LAL doesn't SWIG-wrap the struct their compiled generator needs — see <a href="../lal_agreement/">LAL Agreement</a>). One file per registered class (<code>test_exact_pulsar_signal.py</code>, <code>test_pulsar_signal.py</code>, <code>test_binary_pulsar_signal.py</code>), each reproducing LAL's own reference computation in Python from SWIG-exposed building blocks; shared, non-test helpers live in <code>cw/_lal_helpers.py</code>.</li>
+<li><strong><code>cross_validation/cw/</code></strong> — continuous-wave models, which are time-domain with a detector/ephemeris/epoch fixed at construction and have no <code>ReferenceBackend</code> (LAL doesn't SWIG-wrap the struct their compiled generator needs — see <a href="../reference_implementations/">Reference Implementations</a>). One file per registered class (<code>test_exact_pulsar_signal.py</code>, <code>test_pulsar_signal.py</code>, <code>test_binary_pulsar_signal.py</code>), each reproducing LAL's own reference computation in Python from SWIG-exposed building blocks; shared, non-test helpers live in <code>cw/_lal_helpers.py</code>.</li>
 <li><strong>Burst</strong> (<code>SineGaussian</code>) has no reference backend and no directory here yet — it's time-domain like CW, but doesn't share CW's LAL building-block methodology either, so it would need its own approach if/when one is added.</li>
 </ul>
 <p>Thresholds live in <code>tests/cross_validation/tolerances.toml</code>, one <code>[&lt;backend&gt;.&lt;waveform&gt;]</code> block per model, falling back to <code>[&lt;backend&gt;.defaults]</code> per key.
-<code>cross_validation/test_tolerance_table.py</code> checks two things without needing a reference backend installed: every waveform a backend claims to support has an entry, and the overlap-loss column matches the table in <a href="../lal_agreement/">LAL Agreement</a>.</p>
+<code>cross_validation/test_tolerance_table.py</code> checks two things without needing a reference backend installed: every waveform a backend claims to support has an entry, and the overlap-loss column matches the table in <a href="../reference_implementations/">Reference Implementations</a>.</p>
 <p><code>tests/cross_validation/campaign.py</code> holds everything that is not the assertion itself for the <code>fd/</code> campaign: batch generation, the on-disk reference cache (<code>--cache-reference</code>), the OOM-retry ladder, and JSON/figure output (<code>--plots</code>, matplotlib-gated so it is never a hard dependency).
 Results land under <code>--outdir</code> (default <code>accuracy-results/</code>, gitignored) as <code>n&lt;N&gt;_T&lt;T&gt;/&lt;backend&gt;_&lt;waveform&gt;.json</code>.</p>
 <p>Run it locally:</p>

@@ -1087,14 +1087,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../lal_agreement/" class="md-nav__link">
+      <a href="../reference_implementations/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  LAL Agreement
+  Reference Implementations
 
     
   </span>
@@ -1685,13 +1685,13 @@ Read <a href="../architecture/">Architecture</a> first if you haven't — this p
 <div class="highlight"><pre><span></span><code>uv<span class="w"> </span>sync<span class="w"> </span>--group<span class="w"> </span><span class="nb">test</span><span class="w"> </span>--group<span class="w"> </span>doc
 uv<span class="w"> </span>run<span class="w"> </span>pre-commit<span class="w"> </span>install
 </code></pre></div>
-<p>If you're unsure whether a feature fits ripple's scope, open an issue first — see <a href="../../contributing/">Contributing</a> for the principles new features are expected to follow (JIT-friendliness, modular implementation, machine-precision agreement with any LAL counterpart or a written explanation of the discrepancy).</p>
+<p>If you're unsure whether a feature fits ripple's scope, open an issue first — see <a href="../../contributing/">Contributing</a> for the principles new features are expected to follow.</p>
 <h2 id="2-where-it-lives">2. Where it lives<a class="headerlink" href="#2-where-it-lives" title="Permanent link">¤</a></h2>
 <p>New waveforms are added in-tree: the model lives in <code>src/ripplegw/waveforms/</code>, and implements the <code>Waveform</code> interface with <code>@register</code> as described below.</p>
 <h2 id="3-choose-the-subpackage">3. Choose the subpackage<a class="headerlink" href="#3-choose-the-subpackage" title="Permanent link">¤</a></h2>
 <p>CBC subpackages live under <code>src/ripplegw/waveforms/cbc/</code>, split by <strong>lineage, not class name</strong> — <code>IMRPhenomHM</code>/<code>IMRPhenomPv2</code> live under <code>cbc/IMRPhenomD/</code> because they build on the D baseline.
 Non-CBC source types (e.g. <code>burst/</code>) are their own top-level subpackage under <code>waveforms/</code>, not nested under <code>cbc/</code>, since they don't share the CBC parameterisation.
-The existing subpackages:</p>
+Some existing subpackages:</p>
 <table>
 <thead>
 <tr>
@@ -1713,17 +1713,13 @@ The existing subpackages:</p>
 <td><code>IMRPhenomD_NRTidalv2</code>, <code>IMRPhenomXAS_NRTidalv3</code></td>
 </tr>
 <tr>
-<td><code>cbc/Taylor/</code></td>
-<td><code>TaylorF2</code></td>
-</tr>
-<tr>
 <td><code>burst/</code></td>
 <td><code>SineGaussian</code></td>
 </tr>
 </tbody>
 </table>
 <p>If your model builds on an existing CBC baseline, add it to that subpackage.
-A genuinely new source type (not CBC, not burst) gets its own top-level subpackage alongside them, with its own <code>source_type</code> tag.
+A genuinely new source type gets its own top-level subpackage alongside them, with its own <code>source_type</code> tag.
 If it's a genuinely new family, create a new subpackage — it needs nothing but a one-line docstring in its <code>__init__.py</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;One-line description of the family.&quot;&quot;&quot;</span>
 </code></pre></div>
@@ -1746,7 +1742,7 @@ The complete reference is <a href="https://github.com/GW-JAX-Team/ripple/blob/ma
 <p>Taking one packed array rather than separate keyword arguments keeps this function directly <code>jit</code>/<code>grad</code>/<code>vmap</code>-friendly and easy to compare line-by-line against a LAL/lalinference source if you're porting one.</p>
 <p><strong>(b) A module-level <code>_split_params(params)</code> helper</strong> converting the <code>params</code> mapping into that packed array.
 This is per-module — there's no shared framework helper.
-<code>SineGaussian</code> folds it directly into <code>__call__</code> since it's a single 5-element pack with no config-dependent shape; when there's real work to share between <code>amplitude()</code>/<code>phase()</code>/<code>__call__()</code> (see step 9), it's worth its own function — the pattern from <a href="https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/cbc/IMRPhenomD/IMRPhenomD.py#L739-L750"><code>IMRPhenomD.py:739-750</code></a>:</p>
+<code>SineGaussian</code> folds it directly into <code>__call__</code> since it's a single 5-element pack with no config-dependent shape; when there's real work to share between <code>amplitude()</code>/<code>phase()</code>/<code>__call__()</code> (see step 9), it's worth its own function — the pattern from <a href="https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/cbc/IMRPhenomD/IMRPhenomD.py"><code>IMRPhenomD.py</code></a>:</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_split_params</span><span class="p">(</span>
     <span class="n">params</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;4&quot;</span><span class="p">],</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;3&quot;</span><span class="p">]]:</span>
@@ -1782,8 +1778,8 @@ This is per-module — there's no shared framework helper.
 <div class="admonition note">
 <p class="admonition-title">Configuration vs. parameters</p>
 <p><strong>Configuration</strong> lives on <code>self</code>, set once at construction (<code>self.f_ref</code>, or nothing at all for <code>SineGaussian</code>) — this is the one part that <em>is</em> required, regardless of internal structure.
-<strong>Physics parameters</strong> arrive fresh on every call, in the <code>params</code> mapping.
-Never read configuration out of <code>params</code>, and never accept physics parameters through <code>__init__</code>.</p>
+<strong>Parameters</strong> arrive fresh on every call, in the <code>params</code> mapping.
+Never read configuration out of <code>params</code>, and never accept parameters through <code>__init__</code>.</p>
 </div>
 <h2 id="5-choose-base-classes">5. Choose base classes<a class="headerlink" href="#5-choose-base-classes" title="Permanent link">¤</a></h2>
 <table>
@@ -1803,12 +1799,8 @@ Never read configuration out of <code>params</code>, and never accept physics pa
 <td><code>TimeDomainWaveform</code></td>
 </tr>
 <tr>
-<td>FD <strong>and</strong> single-mode aligned-spin — is a single <span class="arithmatex">\(A(f)\)</span>, <span class="arithmatex">\(\psi(f)\)</span> well-defined?</td>
-<td><code>AmplitudePhaseWaveform</code> <strong>instead of</strong> <code>FrequencyDomainWaveform</code> (it already subclasses it — never list both)</td>
-</tr>
-<tr>
-<td>Multiple modes mixed into the polarizations (higher harmonics, precession)?</td>
-<td>plain <code>FrequencyDomainWaveform</code> — <code>\|hp\|</code> beats between modes, so there's no single amplitude</td>
+<td>Is a single <span class="arithmatex">\(A(f)\)</span>, <span class="arithmatex">\(\psi(f)\)</span> well-defined?</td>
+<td><code>AmplitudePhaseWaveform</code> <strong>instead of</strong> <code>FrequencyDomainWaveform</code></td>
 </tr>
 <tr>
 <td>Does <code>params</code> include <code>d_L</code>?</td>
@@ -1823,7 +1815,6 @@ Never read configuration out of <code>params</code>, and never accept physics pa
   Every built-in model that has it puts the domain base first and the mixin last: <code>class IMRPhenomD(AmplitudePhaseWaveform, DistanceScaledWaveform):</code>.</li>
 <li><code>domain</code> metadata comes from the base class's <code>ClassVar</code>, <strong>not</strong> from <code>@register</code> — never pass <code>domain=</code> to the decorator.</li>
 </ul>
-<p>See the <a href="../../guides/catalogue/">Waveform Catalogue</a> for how the built-in models are classified — find the closest precedent to your model.</p>
 <h2 id="6-parameter_names">6. <code>parameter_names</code><a class="headerlink" href="#6-parameter_names" title="Permanent link">¤</a></h2>
 <p>A <code>@property</code>, not a method — <code>wf.parameter_names</code>, no parentheses.
 The order must match how <code>__call__</code> packs <code>theta</code>.
@@ -1846,7 +1837,7 @@ It can depend on construction-time configuration; from <a href="https://github.c
 </code></pre></div>
 <p>The first argument is the registry key — the exact string users pass to <code>ripplegw.waveform(...)</code> (defaults to the class name if omitted).
 Keyword arguments become <code>waveform_metadata</code>, which <code>list_waveforms(**filters)</code> filters on and <code>get_waveform_metadata(name)</code> returns.
-<code>source_type</code> (the GW source category — <code>"cbc"</code>, <code>"burst"</code>, <code>"cw"</code> for continuous waves) is inferred automatically from where the class lives (<code>ripplegw.waveforms.&lt;type&gt;.*</code>), the same way <code>domain</code> is inferred from the <code>FrequencyDomainWaveform</code>/<code>TimeDomainWaveform</code> base rather than passed to <code>@register</code> — placing your model's subpackage correctly (step 3) is all that's needed.
+<code>source_type</code> (the GW source category — <code>"cbc"</code>, <code>"burst"</code>, etc.) is inferred automatically from where the class lives (<code>ripplegw.waveforms.&lt;type&gt;.*</code>), the same way <code>domain</code> is inferred from the <code>FrequencyDomainWaveform</code>/<code>TimeDomainWaveform</code> base rather than passed to <code>@register</code> — placing your model's subpackage correctly (step 3) is all that's needed.
 Pass <code>source_type=</code> explicitly only to override the inferred value (e.g. registering a model from outside <code>ripplegw.waveforms</code> entirely).
 <code>is_tidal</code> and <code>is_precessing</code> are the two conventional CBC-only tags; add your own free-form keys if useful, but each one is a new public filter, so pick deliberately.
 Registering a name that already exists raises <code>ValueError</code> unless you pass <code>override=True</code>.</p>
@@ -1866,16 +1857,18 @@ Frequency-domain models return <strong>complex</strong> arrays; time-domain mode
 Output length matches the input axis.
 ripple's <code>src/</code> never performs an FFT — if your model is naturally time-domain, return a time series; don't convert to frequency domain internally.</p>
 <p>If your model qualifies for <code>AmplitudePhaseWaveform</code> (step 5), implement <code>amplitude(f, params)</code> and <code>phase(f, params)</code> such that <code>amplitude(f, p) * exp(1j * phase(f, p))</code> reproduces the pre-polarization strain <code>h0</code> — <code>strain()</code> (concrete on the base class) computes exactly that product for you.
-<code>__call__</code> then applies whatever inclination-dependent plus/cross prefactor your model needs on top of <code>strain()</code>, the way <a href="https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/cbc/IMRPhenomD/IMRPhenomD.py#L782-L825"><code>IMRPhenomD.py:782-825</code></a> does.</p>
+<code>__call__</code> then applies whatever inclination-dependent plus/cross prefactor your model needs on top of <code>strain()</code>.</p>
 <h2 id="10-numerical-requirements">10. Numerical requirements<a class="headerlink" href="#10-numerical-requirements" title="Permanent link">¤</a></h2>
-<ul>
-<li><strong>JIT-friendly</strong>: no data-dependent Python branching on traced values — use <code>jnp.where</code>, <code>lax.cond</code>, or <code>lax.select</code> instead of <code>if traced_value &gt; 0:</code>.</li>
-<li><strong>float64-aware</strong>: assume callers enable <code>jax.config.update("jax_enable_x64", True)</code> (see <a href="../../guides/jax/">JAX Transformations</a>); don't rely on float32 rounding.</li>
-<li><strong>LAL agreement</strong>: if you're porting an existing approximant, it should match its reference to machine precision, or the discrepancy needs a written explanation — see <a href="../lal_agreement/">LAL Agreement</a> for the format existing entries use.</li>
-</ul>
+<p>Every top-level, user-facing evaluation function must be compatible with JAX transformations: callers must be able to apply <code>jax.jit</code> and <code>jax.vmap</code> directly, and use <code>jax.grad</code> on a scalar function of its result.
+This applies to <code>__call__</code> and to any additional public evaluation methods a waveform provides.</p>
+<p>Do not use Python control flow whose condition depends on a JAX array or a waveform parameter.
+Use <code>jnp.where</code>, <code>lax.cond</code>, or <code>lax.select</code> instead of <code>if traced_value &gt; 0:</code>.</p>
+<p>When an existing reference implementation is available, test the waveform with float64.
+The implementation should ideally agree with the reference to machine precision.
+If it cannot, document the reason for the discrepancy in <a href="../reference_implementations/">Reference Implementations</a>.</p>
 <h2 id="11-worked-example">11. Worked example<a class="headerlink" href="#11-worked-example" title="Permanent link">¤</a></h2>
 <p>Read <a href="https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/burst/SineGaussian.py"><code>SineGaussian.py</code></a> top to bottom for the complete minimal shape (step 4).
-Read <a href="https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/cbc/IMRPhenomD/IMRPhenomD.py#L739-L828"><code>IMRPhenomD.py:739-828</code></a> for the same shape extended with <code>f_ref</code> configuration, <code>amplitude</code>/<code>phase</code>, and the distance mixin.</p>
+Read <a href="https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/cbc/IMRPhenomD/IMRPhenomD.py"><code>IMRPhenomD.py</code></a> for the same shape extended with <code>f_ref</code> configuration, <code>amplitude</code>/<code>phase</code>, and the distance mixin.</p>
 <p>A skeleton for a new frequency-domain, single-mode, aligned-spin model with a distance parameter, combining both:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Mapping</span>
 
@@ -1951,14 +1944,13 @@ Read <a href="https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/wavef
 <span class="k">assert</span> <span class="n">jnp</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">wf</span><span class="o">.</span><span class="n">amplitude</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span> <span class="o">*</span> <span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">wf</span><span class="o">.</span><span class="n">phase</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">params</span><span class="p">)),</span> <span class="n">wf</span><span class="o">.</span><span class="n">strain</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">params</span><span class="p">))</span>
 <span class="k">assert</span> <span class="n">jnp</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">wf</span><span class="o">.</span><span class="n">at_unit_distance</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">params</span><span class="p">)[</span><span class="s2">&quot;p&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;d_L&quot;</span><span class="p">],</span> <span class="n">h</span><span class="p">[</span><span class="s2">&quot;p&quot;</span><span class="p">],</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">)</span>
 </code></pre></div>
-<p>Then: <code>uv run ruff check src/</code>, <code>uv run pyright</code>, <code>uv run pre-commit run --all-files</code>.</p>
+<p>Then: <code>uv run pre-commit run --all-files</code>.</p>
 <h2 id="13-what-else-to-update">13. What else to update<a class="headerlink" href="#13-what-else-to-update" title="Permanent link">¤</a></h2>
 <ul>
-<li><strong><code>README.md</code></strong> — its "Supported waveforms" list is a curated set of highlights, not exhaustive; update it only if your model represents a genuinely new capability.
-  <code>docs/index.md</code> links to the <a href="../../guides/catalogue/">catalogue</a> instead of listing models, so it needs no edit.</li>
+<li><strong><code>README.md</code></strong> — its "Supported waveforms" list is a curated set of highlights, not exhaustive; update it only if your model represents a genuinely new capability.</li>
 <li><strong>Benchmarks</strong> — usually nothing: <code>timing.py</code> and the two <code>timings/submit_*.sh</code> scripts all derive their model list from <code>ripplegw.list_waveforms(source_type="cbc")</code>, so a new CBC model is picked up automatically.
   You'll only need to touch <code>timing.py</code> if your model's parameter set doesn't match an existing <code>_prepare_*_params</code> builder.</li>
-<li><strong><a href="../lal_agreement/">LAL Agreement</a></strong> — add a row if you cross-validated against LALSuite; keep it in sync with <code>tests/cross_validation/tolerances.toml</code> (<code>cross_validation/test_tolerance_table.py</code> checks the two match).</li>
+<li><strong><a href="../reference_implementations/">Reference Implementations</a></strong> — add a row if you cross-validated against a reference implementation; keep it in sync with <code>tests/cross_validation/tolerances.toml</code> (<code>cross_validation/test_tolerance_table.py</code> checks the two match).</li>
 <li><strong>Jim</strong> (separate repository, separate PR) — <code>src/jimgw/core/single_event/waveform.py</code>, <code>src/jimgw/cli/_waveform.py</code>, <code>src/jimgw/cli/_config.py</code>.
   See that repo's own <code>CONTRIBUTING.md</code>.</li>
 <li><strong>Tests</strong> — usually nothing: <code>integration/</code> and the accuracy campaign both parametrize off <code>ripplegw.list_waveforms()</code>, so a registered model is covered automatically.
