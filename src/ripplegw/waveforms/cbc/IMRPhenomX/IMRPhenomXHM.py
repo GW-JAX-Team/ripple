@@ -31,14 +31,14 @@ from ripplegw.utils.spherical_harmonics import (
     compute_sminus2_l3,
     compute_sminus2_l4,
 )
-from ripplegw.waveforms.CBC.IMRPhenomX import IMRPhenomX_utils
-from ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomXAS import (
+from ripplegw.waveforms.cbc.IMRPhenomX import IMRPhenomX_utils
+from ripplegw.waveforms.cbc.IMRPhenomX.IMRPhenomXAS import (
     Amp as IMRPhenomXAS_Amp,
 )
-from ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomXAS import (
+from ripplegw.waveforms.cbc.IMRPhenomX.IMRPhenomXAS import (
     Phase as IMRPhenomXAS_Phase,
 )
-from ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomXAS import (
+from ripplegw.waveforms.cbc.IMRPhenomX.IMRPhenomXAS import (
     get_inspiral_phase,
     get_mergerringdown_Amp,
 )

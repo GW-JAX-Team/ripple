@@ -103,16 +103,8 @@ known-first-party = ["tests"]
 
 [tool.ruff.lint.extend-per-file-ignores]
 "notebooks/*" = ["E402"]
-# jax.config.update("jax_enable_x64", True) must run before any jax-dependent
-# import, so these deliberately import after it.
-"tests/conftest.py" = ["E402"]
-"tests/unit/test_conversions.py" = ["E402"]
-"tests/unit/test_registry.py" = ["E402"]
-"tests/integration/test_amplitude_and_distance.py" = ["E402"]
-"tests/integration/test_edge_cases.py" = ["E402"]
-"tests/integration/test_output_format.py" = ["E402"]
-"tests/integration/test_transforms.py" = ["E402"]
-"tests/cross_validation/reference/__init__.py" = ["E402"]
+# jax.config.update("jax_enable_x64", True) must run before any jax-dependent imports
+"tests/*" = ["E402"]
 # Waveform module names intentionally mirror established LAL waveform names and
 # form part of ripple's public import paths.
 "src/ripplegw/waveforms/**/*.py" = ["N999"]

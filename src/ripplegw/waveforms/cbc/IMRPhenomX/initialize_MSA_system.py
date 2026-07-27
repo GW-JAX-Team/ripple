@@ -4,7 +4,7 @@ from jaxtyping import Array, Float
 
 from ripplegw.constants import EULERGAMMA, MSUN, C, G
 from ripplegw.typing import FloatLike
-from ripplegw.waveforms.CBC.IMRPhenomX.elliptic_integrals import (
+from ripplegw.waveforms.cbc.IMRPhenomX.elliptic_integrals import (
     ellint_F,
     gsl_sf_elljac_e,
 )

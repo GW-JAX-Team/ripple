@@ -14,6 +14,7 @@ import pytest
 jax.config.update("jax_enable_x64", True)
 
 import ripplegw
+from tests.helpers.config import default_config
 
 
 def pytest_addoption(parser):
@@ -88,7 +89,7 @@ def make_plots(request) -> bool:
 
 @cache
 def _waveform_instance(name: str, config: tuple):
-    return ripplegw.waveform(name, **dict(config))
+    return ripplegw.waveform(name, **{**default_config(name), **dict(config)})
 
 
 @cache

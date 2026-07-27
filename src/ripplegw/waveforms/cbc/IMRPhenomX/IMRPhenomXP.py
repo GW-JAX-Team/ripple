@@ -4,23 +4,23 @@ import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Complex, Float
 
-import ripplegw.waveforms.CBC.IMRPhenomX.LALSimIMRPhenomX_precession as pPrec
+import ripplegw.waveforms.cbc.IMRPhenomX.LALSimIMRPhenomX_precession as pPrec
 from ripplegw.constants import MPC, MRSUN, MTSUN, PI
 from ripplegw.conversions import Mc_eta_to_ms
 from ripplegw.interfaces import DistanceScaledWaveform, FrequencyDomainWaveform
 from ripplegw.registry import register
 from ripplegw.typing import FloatLike
-from ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomXHM import (
+from ripplegw.waveforms.cbc.IMRPhenomX.IMRPhenomXHM import (
     XLALSimIMRPhenomXHMGethlmModes,
     build_pWF22,
 )
-from ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomXPHM import (
+from ripplegw.waveforms.cbc.IMRPhenomX.IMRPhenomXPHM import (
     BetaPowers,
     IMRPhenomXWignerdCoefficients_cosbeta,
     apply_polarization_rotation,
     twist_22,
 )  # spaghetti code! FIXME
-from ripplegw.waveforms.CBC.IMRPhenomX.initialize_MSA_system import (
+from ripplegw.waveforms.cbc.IMRPhenomX.initialize_MSA_system import (
     IMRPhenomX_Initialize_MSA_System,
 )
 

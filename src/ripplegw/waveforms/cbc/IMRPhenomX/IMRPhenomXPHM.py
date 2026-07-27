@@ -5,7 +5,7 @@ import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Complex, Float
 
-import ripplegw.waveforms.CBC.IMRPhenomX.LALSimIMRPhenomX_precession as pPrec
+import ripplegw.waveforms.cbc.IMRPhenomX.LALSimIMRPhenomX_precession as pPrec
 from ripplegw.constants import MPC, MRSUN, MTSUN
 from ripplegw.conversions import Mc_eta_to_ms
 from ripplegw.interfaces import DistanceScaledWaveform, FrequencyDomainWaveform
@@ -16,11 +16,11 @@ from ripplegw.utils.spherical_harmonics import (
     compute_sminus2_l3,
     compute_sminus2_l4,
 )
-from ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomXHM import (
+from ripplegw.waveforms.cbc.IMRPhenomX.IMRPhenomXHM import (
     XLALSimIMRPhenomXHMGethlmModes,
     build_pWF22,
 )
-from ripplegw.waveforms.CBC.IMRPhenomX.initialize_MSA_system import (
+from ripplegw.waveforms.cbc.IMRPhenomX.initialize_MSA_system import (
     IMRPhenomX_Initialize_MSA_System,
 )
 

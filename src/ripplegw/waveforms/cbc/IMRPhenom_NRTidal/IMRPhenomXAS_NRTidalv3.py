@@ -12,10 +12,10 @@ from ripplegw.interfaces import AmplitudePhaseWaveform, DistanceScaledWaveform
 from ripplegw.registry import register
 from ripplegw.typing import FloatLike
 from ripplegw.utils.tidal import get_kappa
-from ripplegw.waveforms.CBC.IMRPhenom_NRTidal.IMRPhenomD_NRTidalv2 import (
+from ripplegw.waveforms.cbc.IMRPhenom_NRTidal.IMRPhenomD_NRTidalv2 import (
     get_tidal_amplitude,
 )  # Same between v2 and v3
-from ripplegw.waveforms.CBC.IMRPhenom_NRTidal.NRTidalv3_utils import (
+from ripplegw.waveforms.cbc.IMRPhenom_NRTidal.NRTidalv3_utils import (
     _get_merger_frequency,
     _get_phenomx_spin_coefficients,
     changePhase_if_min,
@@ -26,8 +26,8 @@ from ripplegw.waveforms.CBC.IMRPhenom_NRTidal.NRTidalv3_utils import (
     get_tidal_phase_PN,
     get_tidalphasePN_coeffs,
 )
-from ripplegw.waveforms.CBC.IMRPhenomX import IMRPhenomX_utils
-from ripplegw.waveforms.CBC.IMRPhenomX.IMRPhenomXAS import Amp, Phase, PhaseDerivative
+from ripplegw.waveforms.cbc.IMRPhenomX import IMRPhenomX_utils
+from ripplegw.waveforms.cbc.IMRPhenomX.IMRPhenomXAS import Amp, Phase, PhaseDerivative
 
 
 def _amplitude_of(

@@ -4,11 +4,11 @@ from jaxtyping import Array, Float
 
 from ripplegw.constants import MTSUN
 from ripplegw.typing import ComplexScalar, FloatLike
-from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_QNMdata import (
+from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomD_QNMdata import (
     QNMData_fdamp,
     QNMData_fRD,
 )
-from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_utils import (
+from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomD_utils import (
     EradRational0815,
     FinalSpin0815_s,
     _qnm_interp,

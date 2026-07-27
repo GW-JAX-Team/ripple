@@ -10,7 +10,7 @@ from ripplegw.conversions import Mc_eta_to_ms
 from ripplegw.interfaces import AmplitudePhaseWaveform, DistanceScaledWaveform
 from ripplegw.registry import register
 from ripplegw.typing import FloatLike
-from ripplegw.waveforms.CBC.IMRPhenomX import IMRPhenomX_utils
+from ripplegw.waveforms.cbc.IMRPhenomX import IMRPhenomX_utils
 
 eqspin_indx = 10
 uneqspin_indx = 39

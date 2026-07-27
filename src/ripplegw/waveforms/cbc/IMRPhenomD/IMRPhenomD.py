@@ -9,8 +9,8 @@ from ripplegw.conversions import Mc_eta_to_ms
 from ripplegw.interfaces import AmplitudePhaseWaveform, DistanceScaledWaveform
 from ripplegw.registry import register
 from ripplegw.typing import FloatLike
-from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_QNMdata import fM_CUT
-from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_utils import (
+from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomD_QNMdata import fM_CUT
+from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomD_utils import (
     get_coeffs,
     get_delta0,
     get_delta1,

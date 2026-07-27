@@ -15,22 +15,22 @@ from ripplegw.utils.spherical_harmonics import (
     compute_sminus2_l3,
     compute_sminus2_l4,
 )
-from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD import (
+from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomD import (
     IMRPhenDAmplitude_NoCut,
     get_IIb_raw_phase,
 )
-from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD import Phase as IMRPhenomD_Phase
-from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_QNMdata import (
+from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomD import Phase as IMRPhenomD_Phase
+from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomD_QNMdata import (
     QNMData_a,
     QNMData_fdamp,
     QNMData_fRD,
 )
-from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_utils import (
+from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomD_utils import (
     EradRational0815,
     get_coeffs,
     get_transition_frequencies_from_fRD_fdamp,
 )
-from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomPv2_utils import FinalSpin0815
+from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomPv2_utils import FinalSpin0815
 
 # Phase shift due to leading order complex amplitude
 # [L.Blancet, arXiv:1310.1528 (Sec. 9.5)]

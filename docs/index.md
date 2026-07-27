@@ -5,8 +5,9 @@
 ripple is a JAX-based package for differentiable gravitational-wave waveform generation.
 By implementing waveform models as differentiable JAX functions, ripple enables gradient-based inference and runs natively on GPU, making it well-suited for use within modern probabilistic inference pipelines such as [Jim](https://github.com/GW-JAX-Team/jim).
 
-**Supported waveforms:** a range of frequency- and time-domain compact-binary and burst models, covering aligned-spin, precessing, and tidal physics.
+**Supported waveforms:** a range of frequency- and time-domain compact-binary, burst, and continuous-wave (pulsar) models, covering aligned-spin, precessing, and tidal physics.
 See the [Waveform Catalogue](guides/catalogue.md) for the full, always-up-to-date list with each model's parameters and capabilities.
+The continuous-wave models additionally require a JPL ephemeris file (e.g. `earth00-40-DE405.dat.gz`); see the [Installation](installation.md#continuous-wave-ephemeris-files) page.
 
 !!! warning
     ripple has not yet reached v1.0.0 and the API may change.

@@ -15,18 +15,18 @@ from ripplegw.interfaces import AmplitudePhaseWaveform, DistanceScaledWaveform
 from ripplegw.registry import register
 from ripplegw.typing import FloatLike
 from ripplegw.utils.tidal import get_kappa, get_quadparam_octparam
-from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD import (
+from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomD import (
     Amp,
     get_IIa_raw_phase,
     get_IIb_raw_phase,
     get_inspiral_phase,
 )
-from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_QNMdata import fM_CUT
-from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_utils import (
+from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomD_QNMdata import fM_CUT
+from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomD_utils import (
     get_coeffs,
     get_transition_frequencies,
 )
-from ripplegw.waveforms.CBC.TaylorF2.TaylorF2 import (
+from ripplegw.waveforms.cbc.TaylorF2.TaylorF2 import (
     get_4PNQM2SCoeff,
     get_4PNQM2SOCoeff,
     get_6PNQM2SCoeff,

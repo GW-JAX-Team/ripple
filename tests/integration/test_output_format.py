@@ -13,6 +13,7 @@ import pytest
 jax.config.update("jax_enable_x64", True)
 
 import ripplegw
+from tests.helpers.config import default_config
 from tests.helpers.grids import grid_for
 from tests.helpers.params import canonical_params
 
@@ -73,7 +74,7 @@ def test_parameter_names_are_unique_and_nonempty(name, compiled_model):
 @pytest.mark.parametrize("name", ALL_WAVEFORMS)
 def test_in_registry(name):
     cls = ripplegw.WAVEFORM_REGISTRY[name]
-    assert isinstance(ripplegw.waveform(name), cls)
+    assert isinstance(ripplegw.waveform(name, **default_config(name)), cls)
 
 
 @pytest.mark.parametrize("name", ALL_WAVEFORMS)

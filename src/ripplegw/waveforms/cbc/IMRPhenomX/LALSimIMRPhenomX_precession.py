@@ -6,7 +6,7 @@ from jaxtyping import Array, Float
 
 from ripplegw.constants import MTSUN
 from ripplegw.typing import FloatLike
-from ripplegw.waveforms.CBC.IMRPhenomX.initialize_MSA_system import (
+from ripplegw.waveforms.cbc.IMRPhenomX.initialize_MSA_system import (
     IMRPhenomX_Initialize_MSA_System,
     IMRPhenomX_Return_phi_zeta_costhetaL_MSA,
 )

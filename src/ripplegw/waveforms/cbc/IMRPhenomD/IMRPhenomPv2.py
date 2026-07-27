@@ -9,10 +9,10 @@ from ripplegw.conversions import Mc_eta_to_ms
 from ripplegw.interfaces import DistanceScaledWaveform, FrequencyDomainWaveform
 from ripplegw.registry import register
 from ripplegw.typing import FloatLike
-from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD import Amp as PhDAmp
-from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD import Phase as PhDPhase
-from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomD_utils import get_coeffs
-from ripplegw.waveforms.CBC.IMRPhenomD.IMRPhenomPv2_utils import (
+from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomD import Amp as PhDAmp
+from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomD import Phase as PhDPhase
+from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomD_utils import get_coeffs
+from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomPv2_utils import (
     ComputeNNLOanglecoeffs,
     SpinWeightedY,
     WignerdCoefficients,

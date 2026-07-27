@@ -210,7 +210,7 @@ def test_metadata_does_not_clobber_real_attributes(registry_sandbox):
 
 @pytest.mark.parametrize("name", sorted(BUILTINS - {"SineGaussian"}))
 def test_cbc_source_type_inferred(name):
-    assert ripplegw.get_waveform_metadata(name)["source_type"] == "CBC"
+    assert ripplegw.get_waveform_metadata(name)["source_type"] == "cbc"
 
 
 def test_burst_source_type_inferred():
