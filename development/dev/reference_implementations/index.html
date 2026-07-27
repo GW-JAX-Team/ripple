@@ -1652,7 +1652,7 @@
 <p>The overlap loss (OL), using the ET-D PSD noise weighting, is</p>
 <div class="arithmatex">\[
 \mathrm{OL} = 1 - \frac{\operatorname{Re}\langle h_1 \mid h_2 \rangle}
-{\sqrt{\langle h_1 \mid h_1 \rangle \langle h_2 \mid h_2 \rangle}}\,.
+{\bigl(\langle h_1 \mid h_1 \rangle \langle h_2 \mid h_2 \rangle\bigr)^{1/2}}\,.
 \]</div>
 <p>A lower OL indicates better agreement.
 "Machine precision" means a threshold consistent with floating-point rounding (a few times eps_machine, typically 1e-15 to 1e-16), not a real physical discrepancy.</p>
