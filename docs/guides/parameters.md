@@ -3,7 +3,9 @@
 Every waveform's `params` dict uses a name from this glossary.
 Consult a model's `parameter_names` for the ordered set a specific model expects — not every model uses every parameter below.
 
-## Mass
+## Compact-binary coalescences
+
+### Mass
 
 | Name | Meaning | Units |
 | --- | --- | --- |
@@ -25,7 +27,7 @@ Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))    # -> chirp mass, symmetric mass r
 
 `ripplegw.conversions` and `ripplegw.constants` are not re-exported at the top level; import them explicitly.
 
-## Spin
+### Spin
 
 Aligned-spin models use only the spin components along the orbital angular momentum:
 
@@ -39,7 +41,7 @@ Precessing models (`IMRPhenomPv2`, `IMRPhenomXP`, `IMRPhenomXPHM`) additionally 
 | --- | --- | --- |
 | `s1_x`, `s1_y`, `s2_x`, `s2_y` | In-plane dimensionless spin components | $[-1, 1]$ |
 
-## Tidal deformability
+### Tidal deformability
 
 Tidal models (`TaylorF2`, `IMRPhenomD_NRTidalv2`, `IMRPhenomXAS_NRTidalv3`) take the dimensionless tidal deformability of each body, in one of two parameterisations selected by the model's `use_lambda_tildes` constructor argument:
 
@@ -50,7 +52,7 @@ Tidal models (`TaylorF2`, `IMRPhenomD_NRTidalv2`, `IMRPhenomXAS_NRTidalv3`) take
 
 Convert between them with `ripplegw.conversions.lambdas_to_lambda_tildes` / `lambda_tildes_to_lambdas` (also packed-array signatures, `(lambda_1, lambda_2, mass_1, mass_2)`).
 
-## Extrinsic parameters
+### Extrinsic parameters
 
 | Name | Meaning | Units |
 | --- | --- | --- |
@@ -61,7 +63,9 @@ Convert between them with `ripplegw.conversions.lambdas_to_lambda_tildes` / `lam
 `d_L` is what [`at_unit_distance`](waveforms.md#evaluating-at-a-fixed-distance) sets to 1.0.
 There is no `t_c` (time of coalescence) parameter — see the [FAQ](../FAQ.md) for why.
 
-## Burst parameters (`SineGaussian`)
+## Bursts
+
+### `SineGaussian`
 
 | Name | Meaning | Units |
 | --- | --- | --- |
@@ -72,6 +76,43 @@ There is no `t_c` (time of coalescence) parameter — see the [FAQ](../FAQ.md) f
 | `e` | Eccentricity — controls the relative $h_+$/$h_\times$ amplitude | $[0, 1]$ |
 
 `SineGaussian`'s axis is a **time** grid centred at zero, not a frequency grid: `t = jnp.arange(-duration/2, duration/2, 1/fs)`.
+
+## Continuous waves
+
+The pulsar models use a time axis and share the following source parameters.
+The detector location, ephemerides, observation start time, and number of spin-down terms are set when constructing the waveform, rather than in `params`.
+
+### Sky position and polarization
+
+| Name | Meaning | Units |
+| --- | --- | --- |
+| `alpha` | Right ascension (α) | radians |
+| `delta` | Declination (δ) | radians |
+| `aplus` | Plus-polarization amplitude $A_+$ | dimensionless (strain) |
+| `across` | Cross-polarization amplitude $A_\times$ | dimensionless (strain) |
+
+### Phase evolution
+
+| Name | Meaning | Units |
+| --- | --- | --- |
+| `f0` | Gravitational-wave frequency at the reference epoch | Hz |
+| `phi0` | Phase at the reference epoch | radians |
+| `f1`, `f2`, ..., `fN` | First through $N$th frequency derivatives | Hz/s, Hz/s$^2$, ..., Hz/s$^N$ |
+
+The waveform includes `f1` through `fN` when it is constructed with `n_spindowns=N`.
+With the default `n_spindowns=0`, only `f0` is used.
+
+### Binary-pulsar orbit (`BinaryPulsarSignal`)
+
+`BinaryPulsarSignal` uses all the parameters above and adds the orbital elements below.
+
+| Name | Meaning | Units |
+| --- | --- | --- |
+| `asini` | Projected semi-major axis, $a\sin i$ | light-seconds |
+| `ecc` | Orbital eccentricity | dimensionless |
+| `period` | Orbital period | seconds |
+| `argp` | Argument of periapsis | radians |
+| `tp_ssb` | Time of periapsis at the Solar System barycentre | GPS seconds |
 
 ## Physical constants
 

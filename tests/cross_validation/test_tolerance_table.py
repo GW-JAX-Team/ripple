@@ -18,7 +18,9 @@ from tests.cross_validation.reference import REFERENCE_BACKENDS, get_backend
 
 _TOLERANCES = load_tolerances()
 _REPO_ROOT = Path(__file__).parents[2]
-_REFERENCE_IMPLEMENTATIONS_MD = _REPO_ROOT / "docs" / "dev" / "reference_implementations.md"
+_REFERENCE_IMPLEMENTATIONS_MD = (
+    _REPO_ROOT / "docs" / "dev" / "reference_implementations.md"
+)
 
 
 @pytest.mark.parametrize("backend_name", sorted(REFERENCE_BACKENDS))
