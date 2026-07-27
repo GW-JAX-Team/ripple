@@ -14,7 +14,7 @@ on for zero-arg-construction call sites) is used so this runs in CI with no
 LAL/ephemeris-data dependency.
 
 ``default_config`` (and so ``tests/integration/test_output_format.py`` /
-``test_transforms.py``, which parametrize off the registry generically) always
+``test_jax.py``, which parametrize off the registry generically) always
 builds the ``n_spindowns=0`` configuration -- that already exercises the
 output-contract/jit/vmap/grad properties once per class. What's dedicated here
 instead: the ``n_spindowns=1`` and binary-orbital-parameter configurations

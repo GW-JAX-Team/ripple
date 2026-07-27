@@ -29,7 +29,7 @@ These tests neither import nor evaluate a reference backend.
 `integration/` is parametrized directly from `ripplegw.list_waveforms()`, so newly registered models are included automatically:
 
 - `test_output_format.py` — output keys, shape, dtype, finiteness, `repr`, registry round-trip.
-- `test_transforms.py` — `jit` matches eager evaluation, `vmap` over a batch of parameters, `grad` is finite for every parameter.
+- `test_jax.py` — `jit` matches eager evaluation, `vmap` over a batch of parameters, `grad` is finite for every parameter.
 - `test_amplitude_and_distance.py` — `AmplitudePhaseWaveform.strain == amplitude * exp(i * phase)`; `DistanceScaledWaveform.at_unit_distance` matches `d_L=1.0` exactly, and scales as `1/d_L`.
 - `test_edge_cases.py` — equal mass, zero/near-extremal spin, face-on/edge-on, zero tidal deformability, aligned-spins-only and fully-precessing limits, burst shape-parameter boundaries — each parametrized by the relevant registry metadata (`is_tidal`, `is_precessing`, `parameter_names`), not by waveform name.
 
