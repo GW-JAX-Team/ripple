@@ -11,7 +11,7 @@ This catalogue lists the waveform models available in ripple and the physical as
 
 ## Compact-binary coalescences
 
-These models describe radiation from two compact objects in a quasi-circular orbit. All compact-binary-coalescence waveforms in ripple are provided in the frequency domain.
+These models describe radiation from two compact objects in a quasi-circular orbit. All compact-binary-coalescence waveforms in ripple are provided in the frequency domain at the moment.
 
 ### TaylorF2
 
