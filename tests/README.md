@@ -32,13 +32,6 @@ tests/
     ├── cw/                   # continuous-wave: no ReferenceBackend (see lal_agreement.md);
     │   │                     # one file per registered class, reproducing LAL's own
     │   │                     # reference computation from its SWIG-exposed building blocks
-    │   ├── _lal_helpers.py            # shared, not collected by pytest
-    │   ├── test_exact_pulsar_signal.py
-    │   ├── test_full_pulsar_signal.py  # named test_full_* (not test_pulsar_signal.py) --
-    │   │                               # would collide with unit/waveforms/cw's basename
-    │   │                               # (neither tree uses __init__.py, so pytest needs
-    │   │                               # every test module's basename to be globally unique)
-    │   └── test_binary_pulsar_signal.py
     └── submit_slurm.sh / submit_condor.sh
 ```
 
