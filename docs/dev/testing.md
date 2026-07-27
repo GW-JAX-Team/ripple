@@ -1,57 +1,55 @@
 # Testing
 
-ripple's tests run in two different places with two different goals.
-CI runs on every pull request and needs to be fast: it should prove the package still works, not exhaustively re-verify waveform accuracy.
-An HPC run, typically on a single high-end GPU, does the opposite: it exists specifically to check waveform accuracy against a CPU-based reference implementation, at a scale CI cannot afford.
+ripple has two complementary test tiers.
+CI runs on every pull request and provides fast feedback on the package interface and JAX compatibility.
+More expensive accuracy campaigns compare waveform outputs with a reference implementation at a scale that is impractical in CI.
 
-The suite is organised around that split.
-Two pytest markers, not directory paths, decide what runs where.
+Two pytest markers, rather than directory paths, select the tier to run.
 
 ## The two tiers
 
 | Marker | What it checks | Where it runs |
 | --- | --- | --- |
-| *(none)* | Every registered waveform's output format, `jit`/`vmap`/`grad`, amplitude/phase + distance, and edge cases | Every PR, every supported Python version |
-| `accuracy` | ripple's output against a reference backend (LAL today) | The `smoke` subset on PRs/pushes to `main`; the full campaign on HPC |
+| *(none)* | Every registered waveform's output format, JAX transformations, amplitude/phase and distance behaviour, and edge cases | Every PR, every supported Python version |
+| `accuracy` | ripple's output against a reference backend (currently LAL) | The `smoke` subset on PRs and pushes to `main`; the full campaign outside CI |
 
 ```bash
-uv run pytest -m "not accuracy"                                       # what CI runs
-uv run pytest -m "accuracy and smoke" --reference lal --n-samples 3   # CI's accuracy check
-uv run pytest -m accuracy --reference lal --n-samples 1000     # the real campaign
+uv run pytest -m "not accuracy"                                         # what CI runs
+uv run pytest -m "accuracy and smoke" --reference lal --n-samples 3     # CI's accuracy check
+uv run pytest -m accuracy --reference lal --n-samples 1000              # full accuracy campaign
 ```
 
-`cross_validation/test_reference_constants.py` sits outside this table on purpose.
-It compares numeric literals in `ripplegw.constants` against a reference backend, not waveform output, so it is cheap enough to run unconditionally wherever a backend happens to be installed -- it lives under `cross_validation/` because it is the one CI-tier test that touches a reference backend at all, and every file that does so is kept there.
-It contributes zero test cases, not a failure, when no backend is installed.
+`cross_validation/test_reference_constants.py` compares numeric literals in `ripplegw.constants` with a reference backend rather than waveform output.
+It is inexpensive enough to run whenever a backend is installed; otherwise it contributes no test cases.
 
 ## CI tier: `unit/` and `integration/`
 
-These never import a reference backend and never evaluate against one -- LAL/lalsimulation usage anywhere in the suite is confined to `tests/cross_validation/` (the `reference/` subpackage and its `fd/` consumers below, plus `cw/`, which imports `lalpulsar` directly since CW's calling convention doesn't fit the `ReferenceBackend` protocol -- see [Reference Implementations](reference_implementations.md)), so `unit/` and `integration/` work with no CPU-based reference package installed at all.
+These tests neither import nor evaluate a reference backend, so they run without a CPU-based reference package installed. Reference comparisons are confined to `tests/cross_validation/`: the `reference/` subpackage and its frequency-domain consumers, plus `cw/`, which uses `lalpulsar` directly because its calling convention does not fit the `ReferenceBackend` protocol. See [Reference Implementations](reference_implementations.md).
 `unit/` covers the registry and `ripplegw.conversions`.
-`integration/` is parametrized directly off `ripplegw.list_waveforms()`, so a newly registered model is covered the moment it appears, with no test-file edits:
+`integration/` is parametrized directly from `ripplegw.list_waveforms()`, so newly registered models are included automatically:
 
 - `test_output_format.py` — output keys, shape, dtype, finiteness, `repr`, registry round-trip.
 - `test_transforms.py` — `jit` matches eager evaluation, `vmap` over a batch of parameters, `grad` is finite for every parameter.
 - `test_amplitude_and_distance.py` — `AmplitudePhaseWaveform.strain == amplitude * exp(i * phase)`; `DistanceScaledWaveform.at_unit_distance` matches `d_L=1.0` exactly, and scales as `1/d_L`.
 - `test_edge_cases.py` — equal mass, zero/near-extremal spin, face-on/edge-on, zero tidal deformability, aligned-spins-only and fully-precessing limits, burst shape-parameter boundaries — each parametrized by the relevant registry metadata (`is_tidal`, `is_precessing`, `parameter_names`), not by waveform name.
 
-Parameter dicts come from `tests/helpers/params.py::canonical_params`, keyed by physical regime (BBH vs BNS) rather than by model name; evaluation grids come from `tests/helpers/grids.py::grid_for`.
-Both raise immediately on a parameter name they don't recognise, naming themselves as the place to extend.
+Parameter dictionaries come from `tests/helpers/params.py::canonical_params`, keyed by physical regime (BBH or BNS) rather than model name. Evaluation grids come from `tests/helpers/grids.py::grid_for`.
+Both helpers raise an informative error for an unrecognised parameter name.
 
-A session-scoped cache in `tests/conftest.py` (`compiled_model`) jit-compiles each `(waveform, config, method)` combination once and reuses it across every test module — load-bearing for the higher-mode and precessing models, whose eager evaluation is dispatch-bound and tens of times slower than the compiled call.
+A session-scoped cache in `tests/conftest.py` (`compiled_model`) JIT-compiles each `(waveform, config, method)` combination once and reuses it across test modules. This keeps the higher-mode and precessing-model tests practical to run.
 
 ## Accuracy tier: `cross_validation/`
 
-Organised by *how* a family can be validated, not by source type — because that's what actually determines whether a test can be generic or has to be hand-built:
+The accuracy tests are organised by validation method rather than source type:
 
-- **`cross_validation/fd/`** — the `ReferenceBackend`-driven campaign, for any frequency-domain, stateless-per-call model (`domain="FD"`; every CBC model today, but scoped by domain rather than `source_type="cbc"` since that's the actual constraint the campaign's calling convention imposes — see `fd/test_overlap.py`'s docstring). `test_overlap.py` draws random parameter sets (`tests/helpers/params.py::random_params_batch`), generates both sides — ripple via a batched `vmap` call (falling back to `jax.lax.map`, then a sequential loop, on GPU OOM) and the reference backend via a thread pool — and asserts the noise-weighted overlap loss stays under a threshold. `test_phase_convention.py` checks a single fixed configuration to catch a constant phase offset that the overlap test alone cannot see. Both use the Einstein Telescope D-design PSD (`tests/psds/ET_D_psd.txt`) for the noise weighting; the documented thresholds are calibrated against that specific weighting, not a flat spectrum.
-- **`cross_validation/cw/`** — continuous-wave models, which are time-domain with a detector/ephemeris/epoch fixed at construction and have no `ReferenceBackend` (LAL doesn't SWIG-wrap the struct their compiled generator needs — see [Reference Implementations](reference_implementations.md)). One file per registered class (`test_exact_pulsar_signal.py`, `test_pulsar_signal.py`, `test_binary_pulsar_signal.py`), each reproducing LAL's own reference computation in Python from SWIG-exposed building blocks; shared, non-test helpers live in `cw/_lal_helpers.py`.
-- **Burst** (`SineGaussian`) has no reference backend and no directory here yet — it's time-domain like CW, but doesn't share CW's LAL building-block methodology either, so it would need its own approach if/when one is added.
+- **`cross_validation/fd/`** — the `ReferenceBackend` campaign for frequency-domain, stateless-per-call models (`domain="FD"`). Every CBC model currently qualifies, but the campaign is selected by domain because that is its actual interface requirement. `test_overlap.py` draws random parameter sets (`tests/helpers/params.py::random_params_batch`), evaluates ripple and the reference backend, and checks that the noise-weighted overlap loss remains below the configured threshold. `test_phase_convention.py` uses a fixed configuration to detect a constant phase offset that an overlap alone would not detect. Both use the Einstein Telescope D-design PSD (`tests/psds/ET_D_psd.txt`); the documented thresholds use this weighting.
+- **`cross_validation/cw/`** — continuous-wave models. These are time-domain models with a detector, ephemeris, and epoch fixed at construction, so they do not fit `ReferenceBackend`. Each registered class has a dedicated test that reconstructs LAL's reference calculation from SWIG-exposed building blocks; shared helpers live in `cw/_lal_helpers.py`. See [Reference Implementations](reference_implementations.md).
+- **Burst** (`SineGaussian`) has no reference backend yet. Its time-domain calling convention differs from the CW approach, so a comparison will need its own validation method when a suitable reference is available.
 
-Thresholds live in `tests/cross_validation/tolerances.toml`, one `[<backend>.<waveform>]` block per model, falling back to `[<backend>.defaults]` per key.
-`cross_validation/test_tolerance_table.py` checks two things without needing a reference backend installed: every waveform a backend claims to support has an entry, and the overlap-loss column matches the table in [Reference Implementations](reference_implementations.md).
+Thresholds live in `tests/cross_validation/tolerances.toml`: one `[<backend>.<waveform>]` block per model, with `[<backend>.defaults]` providing fallback values.
+`cross_validation/test_tolerance_table.py` runs without a reference backend. It checks that each supported waveform has an entry and that the overlap-loss values match [Reference Implementations](reference_implementations.md).
 
-`tests/cross_validation/campaign.py` holds everything that is not the assertion itself for the `fd/` campaign: batch generation, the on-disk reference cache (`--cache-reference`), the OOM-retry ladder, and JSON/figure output (`--plots`, matplotlib-gated so it is never a hard dependency).
+`tests/cross_validation/campaign.py` provides the frequency-domain campaign's batch generation, on-disk reference cache (`--cache-reference`), OOM retry handling, and JSON/figure output (`--plots`; matplotlib remains optional).
 Results land under `--outdir` (default `accuracy-results/`, gitignored) as `n<N>_T<T>/<backend>_<waveform>.json`.
 
 Run it locally:
@@ -66,8 +64,7 @@ On a cluster, `bash tests/cross_validation/submit_slurm.sh` or `bash tests/cross
 
 ### Adding a reference backend
 
-The comment in the issue that started this — "there is only LAL, but later on we may need other CPU-based comparisons for new waveform families" — is why this is an extension point, not a hardcoded LAL call.
-A backend is a class in `tests/cross_validation/reference/` implementing the `ReferenceBackend` protocol:
+The `ReferenceBackend` protocol supports additional frequency-domain reference implementations. A backend is a class in `tests/cross_validation/reference/` implementing:
 
 ```python
 class ReferenceBackend(Protocol):
@@ -79,13 +76,13 @@ class ReferenceBackend(Protocol):
     def generate(self, waveform: str, params: dict, grid: Grid) -> dict: ...  # {"p", "c"}
 ```
 
-`params` is always ripple's own dict, keyed by `parameter_names` — the backend owns translating that into its own convention, so `fd/test_overlap.py` and `fd/test_phase_convention.py` never need to know it exists.
+`params` is always ripple's parameter dictionary, keyed by `parameter_names`. Each backend translates it into the reference implementation's convention, leaving `fd/test_overlap.py` and `fd/test_phase_convention.py` independent of those details.
 Register with `@register_backend`, add a `[<name>.<waveform>]` block per supported model to `tolerances.toml`, and select it with `--reference <name>`.
-`supports()` gates which models a partial backend is asked to generate, so covering only some models is fine.
-This only applies to frequency-domain, stateless-per-call models (`fd/`) — a family whose calling convention doesn't fit `ReferenceBackend.generate(name, params, grid)` (like CW) needs its own directory and its own hand-built comparison instead, same as `cw/`.
+`supports()` lets a backend declare the subset of models it can generate.
+This protocol applies only to frequency-domain, stateless-per-call models. A family whose calling convention does not fit `ReferenceBackend.generate(name, params, grid)`, such as CW, needs its own validation method.
 
 ## Adding a waveform
 
-If the new model introduces no parameter name the suite doesn't already know, it is covered automatically: `integration/` parametrizes off `ripplegw.list_waveforms()`, and `fd/test_overlap.py` off `ripplegw.list_waveforms(domain="FD")` if the model is frequency-domain and a reference backend supports it.
-If it does introduce a new name, add a default to `tests/helpers/params.py` and, if a reference backend supports the model, a tolerance row in `tolerances.toml`.
+If a new model uses only existing parameter names, it is included automatically: `integration/` uses `ripplegw.list_waveforms()`, and `fd/test_overlap.py` uses `ripplegw.list_waveforms(domain="FD")` when the model is frequency-domain and supported by a reference backend.
+For a new parameter name, add a default to `tests/helpers/params.py` and, when a reference backend supports the model, a tolerance row in `tolerances.toml`.
 See step 13 of [Adding a Waveform](adding_a_waveform.md) for the full checklist.
