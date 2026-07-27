@@ -12,7 +12,7 @@ uv sync --group test --group doc
 uv run pre-commit install
 ```
 
-`uv run ruff check src/` and `uv run pyright` should both pass cleanly before you open a PR; `pre-commit` runs them (and formatting) automatically on commit.
+`pre-commit` should pass cleanly before you open a PR.
 
 ## In this guide
 
