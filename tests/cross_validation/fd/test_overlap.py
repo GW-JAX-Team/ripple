@@ -1,12 +1,21 @@
-"""Waveform-accuracy campaign: ripple vs a reference backend, by overlap loss.
+"""Frequency-domain waveform-accuracy campaign: ripple vs a reference backend, by overlap loss.
 
-This is the actual pass/fail criterion for "does ripple still agree with
-LAL" (or a future reference). It is marked ``accuracy`` throughout, and the
-three models judged most representative of the code paths in play (aligned
-tidal, aligned BBH, precessing+HM) are additionally marked ``smoke`` so CI can
-run a cheap subset on every push to ``main`` without running the full
-campaign. See ``docs/dev/lal_agreement.md`` for the documented cause of every
-non-machine-precision threshold in ``tolerances.toml``.
+Scoped to ``domain="FD"`` -- the campaign calls the model with just ``f_ref`` and a
+frequency grid (see ``run_overlap_campaign``), which only a frequency-domain,
+stateless-per-call model supports. Every registered CBC model happens to be FD today, so
+this scope is currently "all CBC models" in practice, but that's incidental: a future
+frequency-domain model outside CBC is picked up automatically, while a CBC-only scope
+would have missed it. (Burst and continuous-wave are both time-domain, and CW's
+constructor additionally requires a detector/ephemeris/epoch, so neither fits this
+campaign regardless of domain -- see ``cross_validation/cw/`` for CW's methodology; burst
+has no reference backend yet.)
+
+This is the actual pass/fail criterion for "does ripple still agree with LAL" (or a future
+reference). It is marked ``accuracy`` throughout, and the three models judged most
+representative of the code paths in play (aligned tidal, aligned BBH, precessing+HM) are
+additionally marked ``smoke`` so CI can run a cheap subset on every push to ``main``
+without running the full campaign. See ``docs/dev/lal_agreement.md`` for the documented
+cause of every non-machine-precision threshold in ``tolerances.toml``.
 """
 
 from pathlib import Path
@@ -30,7 +39,7 @@ _PARAMS = [
     pytest.param(name, marks=pytest.mark.smoke)
     if name in _SMOKE
     else pytest.param(name)
-    for name in ripplegw.list_waveforms()
+    for name in ripplegw.list_waveforms(domain="FD")
 ]
 
 

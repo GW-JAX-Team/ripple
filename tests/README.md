@@ -19,17 +19,23 @@ tests/
 ├── unit/                    # fast, pure; no waveform evaluation
 ├── integration/             # every registered waveform: output format, jit/vmap/grad,
 │                             # amplitude/phase + distance, edge cases
-└── cross_validation/
+└── cross_validation/         # organised by *how* a family is validated, not source type
     ├── reference/            # ReferenceBackend protocol + backends (lal.py, ...) -- the
-    │                         # only place LAL/lalsimulation is imported anywhere in tests/
-    ├── campaign.py           # batch runner (not a test module)
+    │                         # only place LAL/lalsimulation is imported outside cw/
+    ├── campaign.py           # fd/'s batch runner (not a test module)
     ├── tolerances.toml       # per-(backend, waveform) thresholds
-    ├── test_overlap.py       # the accuracy campaign
-    ├── test_phase_convention.py
     ├── test_reference_constants.py  # unmarked; 0 cases if no backend is installed
     ├── test_tolerance_table.py      # unmarked; no backend needed to run
-    ├── test_cw_exact_pulsar.py      # CW vs. LAL's SWIG-exposed building blocks --
-    │                                # doesn't fit the ReferenceBackend campaign above
+    ├── fd/                   # frequency-domain, stateless-per-call models (domain="FD")
+    │   ├── test_overlap.py           # the accuracy campaign, via ReferenceBackend
+    │   └── test_phase_convention.py
+    ├── cw/                   # continuous-wave: no ReferenceBackend (see lal_agreement.md);
+    │   │                     # one file per registered class, reproducing LAL's own
+    │   │                     # reference computation from its SWIG-exposed building blocks
+    │   ├── _lal_helpers.py            # shared, not collected by pytest
+    │   ├── test_exact_pulsar_signal.py
+    │   ├── test_pulsar_signal.py
+    │   └── test_binary_pulsar_signal.py
     └── submit_slurm.sh / submit_condor.sh
 ```
 
@@ -65,12 +71,12 @@ On a cluster: `bash tests/cross_validation/submit_slurm.sh` or `bash tests/cross
 
 ## Adding a reference backend
 
-Currently only LAL.
-A future CPU-based reference for a new waveform family is one file in `tests/cross_validation/reference/` implementing the `ReferenceBackend` protocol (`available`, `supports`, `constants`, `generate`), registered with `@register_backend`, plus a `[<name>.<waveform>]` block per supported model in `tests/cross_validation/tolerances.toml`.
-No existing test file changes.
+Currently only LAL, for frequency-domain models (`fd/`).
+A future CPU-based reference for another FD family is one file in `tests/cross_validation/reference/` implementing the `ReferenceBackend` protocol (`available`, `supports`, `constants`, `generate`), registered with `@register_backend`, plus a `[<name>.<waveform>]` block per supported model in `tests/cross_validation/tolerances.toml` -- no existing test file changes, `fd/` picks it up via `--reference <name>`.
+A family whose calling convention doesn't fit `ReferenceBackend.generate(name, params, grid)` (time-domain, construction-time state, etc. -- like CW) needs its own directory and its own comparison instead, same as `cw/`.
 
 ## Adding a waveform
 
-If it introduces no new parameter name, the test suite covers it automatically -- `integration/` and `test_overlap.py` both parametrize off `ripplegw.list_waveforms()`.
+If it introduces no new parameter name, the test suite covers it automatically -- `integration/` parametrizes off `ripplegw.list_waveforms()`, and `fd/test_overlap.py` off `ripplegw.list_waveforms(domain="FD")` if the model is frequency-domain and a reference backend supports it.
 If it does, add the default to `tests/helpers/params.py` (`canonical_params`/`random_params_batch`) and a tolerance row in `tests/cross_validation/tolerances.toml` if a reference backend supports it.
 See [`docs/dev/adding_a_waveform.md`](https://gw-jax-team.github.io/ripple/latest/dev/adding_a_waveform/).

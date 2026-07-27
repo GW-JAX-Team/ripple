@@ -1,6 +1,6 @@
 # LAL Agreement and Overlap Loss Thresholds
 
-This document records what's known about each supported waveform's agreement with LALSuite: the accuracy threshold enforced by `tests/cross_validation/test_overlap.py`, and — for any waveform whose threshold is looser than machine precision — why.
+This document records what's known about each supported waveform's agreement with LALSuite: the accuracy threshold enforced by `tests/cross_validation/fd/test_overlap.py`, and — for any waveform whose threshold is looser than machine precision — why.
 See `tests/cross_validation/tolerances.toml` for the enforced values themselves; this page only needs to stay in sync with that file's thresholds, not with any specific measured result (see [Testing](testing.md) for how to run the campaign yourself).
 
 The overlap loss (OL) is `1 - Re(<h1|h2>) / sqrt(<h1|h1> * <h2|h2>)`, using the ET-D PSD noise weighting.
@@ -111,11 +111,13 @@ LAL does not SWIG-wrap `PulsarSignalParams` (it has anonymous nested structs), s
 `XLALSimulateExactPulsarSignal`/`XLALGeneratePulsarSignal` cannot be called directly from
 Python, and CW's calling convention (a fixed detector + ephemeris + GPS epoch at
 construction, a time axis, not a frequency grid) doesn't fit the batched
-`ReferenceBackend`/`tolerances.toml` campaign the CBC models above use. CW agreement is
-instead checked by `tests/cross_validation/test_cw_exact_pulsar.py` (`accuracy`-marked,
-skipped without `lalpulsar` + an Earth/Sun ephemeris file), which reproduces LAL's own
-reference computation in Python from its SWIG-exposed building blocks
-(`XLALGetDetectorStates`, `XLALComputeAMCoeffs`, `XLALBarycenter`, `XLALGenerateSpinOrbitCW`):
+`ReferenceBackend`/`tolerances.toml` campaign the frequency-domain models above use. CW
+agreement is instead checked by `tests/cross_validation/cw/` (`accuracy`-marked, skipped
+without `lalpulsar` + an Earth/Sun ephemeris file) -- one file per registered class
+(`test_exact_pulsar_signal.py`, `test_pulsar_signal.py`, `test_binary_pulsar_signal.py`),
+each reproducing LAL's own reference computation in Python from its SWIG-exposed building
+blocks (`XLALGetDetectorStates`, `XLALComputeAMCoeffs`, `XLALBarycenter`,
+`XLALGenerateSpinOrbitCW`):
 
 - **`ExactPulsarSignal`** — reconstructed detector strain vs. a Python transcription of
   `SimulatePulsarSignal.c`'s exact (Roemer-only) path: overlap loss < 1e-10 (observed ~3e-13).

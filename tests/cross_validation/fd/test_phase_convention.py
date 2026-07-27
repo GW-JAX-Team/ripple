@@ -1,6 +1,8 @@
-"""Phase-convention check: ripple's h_+ matches the reference's h_+ in
+"""Frequency-domain phase-convention check: ripple's h_+ matches the reference's h_+ in
 absolute phase, not just overlap.
 
+Scoped to ``domain="FD"`` -- see ``test_overlap.py``'s module docstring for why that's
+the right scope (not ``source_type="cbc"``, even though they're identical today).
 ``test_overlap.py`` is insensitive to a *constant* phase offset between
 ripple and the reference -- ``|<e^{i phi} h1|h2>|^2 = |<h1|h2>|^2`` for any
 real ``phi`` -- so a spurious ``+pi`` somewhere in ``phi_ref`` would pass the
@@ -28,10 +30,13 @@ from tests.helpers.params import canonical_params, regime
 
 _TOLERANCES = load_tolerances()
 
-# Positive tagging (not "every non-precessing model"): a family that never sets
-# is_precessing either way (e.g. burst, continuous-wave) has no concept of
-# aligned vs. precessing spins and must not be silently swept in here.
-NON_PRECESSING = ripplegw.list_waveforms(is_precessing=False)
+# domain="FD" scopes this to models the campaign can call at all (see
+# test_overlap.py); is_precessing=False (positive tagging, not "every
+# non-precessing model") then drops the precessing subset, which needs a
+# separate analysis. Burst/CW never set is_precessing either way, so they're
+# already excluded by that filter alone -- domain="FD" is belt-and-suspenders
+# for a future non-CBC FD model that isn't precessing-tagged.
+NON_PRECESSING = ripplegw.list_waveforms(domain="FD", is_precessing=False)
 
 
 def _fiducial_params(wf) -> dict:
