@@ -19,8 +19,8 @@ These models describe radiation from two compact objects in a quasi-circular orb
 
 ### Earlier IMRPhenom models
 
-| Model | Spin treatment | Higher-order modes | Tidal effects |
-| ----- | --- | --- | --- |
+| Waveform | Spin treatment | Higher-order modes | Tidal effects |
+| --- | --- | --- | --- |
 | `IMRPhenomD` | Aligned-spin | No | No |
 | `IMRPhenomHM` | Aligned-spin | Yes | No |
 | `IMRPhenomPv2` | Precessing | No | No |
@@ -30,8 +30,8 @@ These models describe radiation from two compact objects in a quasi-circular orb
 
 The IMRPhenomX models are the newer IMRPhenom models.
 
-| Model | Spin treatment | Higher-order modes | Tidal effects |
-| ----- | --- | --- | --- |
+| Waveform | Spin treatment | Higher-order modes | Tidal effects |
+| --- | --- | --- | --- |
 | `IMRPhenomXAS` | Aligned-spin | No | No |
 | `IMRPhenomXHM` | Aligned-spin | Yes | No |
 | `IMRPhenomXP` | Precessing | No | No |
@@ -46,8 +46,8 @@ The IMRPhenomX models are the newer IMRPhenom models.
 
 These models describe long-lived, nearly periodic signals from pulsars.
 
-| Model | Source | Binary orbit | Timing treatment |
-| ----- | --- | --- | --- |
-| `ExactPulsarSignal` | Isolated pulsar | No | Geometric barycentric corrections |
-| `PulsarSignal` | Isolated pulsar | No | Full barycentric corrections |
-| `BinaryPulsarSignal` | Pulsar in a binary | Yes | Full barycentric corrections and orbital modulation |
+| Waveform | Source | Timing treatment |
+| --- | --- | --- |
+| `ExactPulsarSignal` | Isolated pulsar | Geometric barycentric corrections |
+| `PulsarSignal` | Isolated pulsar | Full barycentric corrections |
+| `BinaryPulsarSignal` | Pulsar in a binary | Full barycentric corrections and orbital modulation |
