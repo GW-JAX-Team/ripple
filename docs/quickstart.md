@@ -25,7 +25,7 @@ params = {
 # Construct the waveform model by its registered name
 waveform = ripplegw.waveform("IMRPhenomD", f_ref=20.0)
 
-# Evaluate: returns a dict with keys "p" (h+) and "c" (hx)
+# Evaluate: returns a dict with keys "p" (h_+) and "c" (h_x)
 polarizations = waveform(frequency, params)
 hp = polarizations["p"]
 hc = polarizations["c"]
@@ -46,40 +46,6 @@ ripplegw.list_waveforms()                # every registered model name
 ripplegw.list_waveforms(domain="FD")     # filter by metadata
 ripplegw.get_waveform_metadata("IMRPhenomD")
 ```
-
-## Continuous-wave (pulsar) waveforms
-
-ripple also generates continuous-wave (CW) waveforms from spinning neutron stars, ported from LALPulsar.
-These share the `{"p", "c"}` return convention, but the axis is **time** (seconds relative to a GPS start epoch), and the detector location, ephemeris, and start time are fixed at construction.
-A JPL ephemeris file is required; standard names like the ones below are fetched and cached automatically on first use (see [Installation](installation.md#continuous-wave-ephemeris-files)):
-
-```python
-import jax.numpy as jnp
-import ripplegw
-
-H1_LOCATION = (-2.16141492636e06, -3.83469517889e06, 4.60035022664e06)  # LALDetectors.h
-
-waveform = ripplegw.waveform(
-    "PulsarSignal",
-    detector_location=H1_LOCATION,
-    earth_ephemeris_file="earth00-40-DE405.dat.gz",
-    sun_ephemeris_file="sun00-40-DE405.dat.gz",
-    start_gps=1_000_000_000,
-    n_spindowns=1,
-)
-
-t = jnp.arange(0, 1800, 1 / 16)   # seconds since start_gps
-params = {
-    "alpha": 1.3, "delta": -0.5,  # sky position [rad]
-    "f0": 12.3, "f1": -1.1e-9,    # frequency [Hz] and spindown [Hz/s]
-    "phi0": 1.1,                  # initial phase [rad]
-    "aplus": 1.0, "across": 0.64, # polarization amplitudes
-}
-polarizations = waveform(t, params)   # {"p": h+, "c": hx}
-```
-
-Use `ExactPulsarSignal` for the exact geometric reference (isolated, Earth ephemeris only) or `BinaryPulsarSignal` to add orbital modulation.
-Like the compact-binary-coalescence waveforms, all three are `jit`/`grad`/`vmap`-compatible.
 
 ## GPU and Gradient Support
 
