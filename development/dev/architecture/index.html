@@ -1498,7 +1498,7 @@ For the practical steps, see <a href="../adding_a_waveform/">Adding a Waveform</
 <p>Two modules are usable but not re-exported at the top level — import them explicitly: <code>ripplegw.conversions</code> (mass and tidal-parameter conversions) and <code>ripplegw.constants</code> (physical constants).</p>
 <h2 id="the-registry">The registry<a class="headerlink" href="#the-registry" title="Permanent link">¤</a></h2>
 <p>Waveform classes self-register with <code>@register</code> when their module is imported — there's no central list mapping names to classes to maintain.
-Metadata like <code>domain</code> and <code>source_type</code> (the GW source category — CBC, burst, ...) is inferred from the class itself — its base class, its location on disk — rather than declared, so it can't drift from what the class actually is.
+Metadata like <code>domain</code> and <code>source_type</code> (the GW source category — <code>cbc</code>, <code>burst</code>, <code>cw</code>, ...) is inferred from the class itself — its base class, its location on disk — rather than declared, so it can't drift from what the class actually is.
 See <a href="../adding_a_waveform/">Adding a Waveform</a> for the registration and discovery mechanics.</p>
 <h2 id="the-class-hierarchy">The class hierarchy<a class="headerlink" href="#the-class-hierarchy" title="Permanent link">¤</a></h2>
 <div class="highlight"><pre><span></span><code>Waveform (ABC)                        parameter_names, __call__

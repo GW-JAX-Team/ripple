@@ -1410,8 +1410,9 @@
 <h2 id="a-jax-based-package-for-differentiable-gravitational-wave-waveform-generation">A JAX-based package for differentiable gravitational-wave waveform generation<a class="headerlink" href="#a-jax-based-package-for-differentiable-gravitational-wave-waveform-generation" title="Permanent link">¤</a></h2>
 <p>ripple is a JAX-based package for differentiable gravitational-wave waveform generation.
 By implementing waveform models as differentiable JAX functions, ripple enables gradient-based inference and runs natively on GPU, making it well-suited for use within modern probabilistic inference pipelines such as <a href="https://github.com/GW-JAX-Team/jim">Jim</a>.</p>
-<p><strong>Supported waveforms:</strong> a range of frequency- and time-domain compact-binary and burst models, covering aligned-spin, precessing, and tidal physics.
-See the <a href="guides/catalogue/">Waveform Catalogue</a> for the full, always-up-to-date list with each model's parameters and capabilities.</p>
+<p><strong>Supported waveforms:</strong> a range of frequency- and time-domain compact-binary, burst, and continuous-wave (pulsar) models, covering aligned-spin, precessing, and tidal physics.
+See the <a href="guides/catalogue/">Waveform Catalogue</a> for the full, always-up-to-date list with each model's parameters and capabilities.
+The continuous-wave models additionally require a JPL ephemeris file (e.g. <code>earth00-40-DE405.dat.gz</code>); see the <a href="installation/#continuous-wave-ephemeris-files">Installation</a> page.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>ripple has not yet reached v1.0.0 and the API may change.

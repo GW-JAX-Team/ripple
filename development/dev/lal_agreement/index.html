@@ -1073,6 +1073,34 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#continuous-wave-cw-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Continuous-wave (CW) models
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Continuous-wave (CW) models">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#supplementary-compiled-function-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Supplementary: compiled-function comparison
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#notes" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1619,6 +1647,34 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#continuous-wave-cw-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Continuous-wave (CW) models
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Continuous-wave (CW) models">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#supplementary-compiled-function-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Supplementary: compiled-function comparison
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#notes" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1715,6 +1771,35 @@ A lower OL indicates better agreement.
 </tr>
 </tbody>
 </table>
+<p>The continuous-wave (CW) models below are validated by a different mechanism (see
+<a href="#continuous-wave-cw-models">below</a>), not <code>test_overlap.py</code>/<code>tolerances.toml</code>, so they aren't
+subject to the "stay in sync with <code>tolerances.toml</code>" rule above.</p>
+<table>
+<thead>
+<tr>
+<th>Waveform</th>
+<th>Threshold</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ExactPulsarSignal</td>
+<td>1e-10</td>
+<td>machine precision (component-level, see below)</td>
+</tr>
+<tr>
+<td>PulsarSignal</td>
+<td>1e-10</td>
+<td>machine precision (component-level, see below)</td>
+</tr>
+<tr>
+<td>BinaryPulsarSignal</td>
+<td>1e-12</td>
+<td>orbital phase only, tight-Kepler regime (see below)</td>
+</tr>
+</tbody>
+</table>
 <hr />
 <h2 id="waveforms-at-machine-precision">Waveforms at machine precision<a class="headerlink" href="#waveforms-at-machine-precision" title="Permanent link">¤</a></h2>
 <h3 id="taylorf2-imrphenomd-imrphenomd_nrtidalv2-imrphenomhm-imrphenomxas">TaylorF2, IMRPhenomD, IMRPhenomD_NRTidalv2, IMRPhenomHM, IMRPhenomXAS<a class="headerlink" href="#taylorf2-imrphenomd-imrphenomd_nrtidalv2-imrphenomhm-imrphenomxas" title="Permanent link">¤</a></h3>
@@ -1761,6 +1846,38 @@ Beyond that, high aligned-spin cases pick up a small additional contribution fro
 <p><strong>Threshold: 1e-12</strong></p>
 <p>This model previously carried a 1e-6 holding threshold under a documented high-frequency phase discrepancy that grew with total mass.
 The threshold has since been tightened to 1e-12 and is no longer under active investigation.</p>
+<hr />
+<h2 id="continuous-wave-cw-models">Continuous-wave (CW) models<a class="headerlink" href="#continuous-wave-cw-models" title="Permanent link">¤</a></h2>
+<p>LAL does not SWIG-wrap <code>PulsarSignalParams</code> (it has anonymous nested structs), so
+<code>XLALSimulateExactPulsarSignal</code>/<code>XLALGeneratePulsarSignal</code> cannot be called directly from
+Python, and CW's calling convention (a fixed detector + ephemeris + GPS epoch at
+construction, a time axis, not a frequency grid) doesn't fit the batched
+<code>ReferenceBackend</code>/<code>tolerances.toml</code> campaign the CBC models above use. CW agreement is
+instead checked by <code>tests/cross_validation/test_cw_exact_pulsar.py</code> (<code>accuracy</code>-marked,
+skipped without <code>lalpulsar</code> + an Earth/Sun ephemeris file), which reproduces LAL's own
+reference computation in Python from its SWIG-exposed building blocks
+(<code>XLALGetDetectorStates</code>, <code>XLALComputeAMCoeffs</code>, <code>XLALBarycenter</code>, <code>XLALGenerateSpinOrbitCW</code>):</p>
+<ul>
+<li><strong><code>ExactPulsarSignal</code></strong> — reconstructed detector strain vs. a Python transcription of
+  <code>SimulatePulsarSignal.c</code>'s exact (Roemer-only) path: overlap loss &lt; 1e-10 (observed ~3e-13).
+  The geometric delay alone agrees with <code>XLALBarycenter</code> to &lt;&lt; 1 microsecond.</li>
+<li><strong><code>PulsarSignal</code></strong> — same check using the full barycentering delay (Roemer + Earth-rotation
+  with precession/nutation + Einstein − Shapiro), each sample built from <code>XLALBarycenter</code>
+  directly: overlap loss &lt; 1e-10 (observed ~1e-9).</li>
+<li><strong><code>BinaryPulsarSignal</code></strong> — only the orbital source-phase model is checked automatically, against
+  <code>XLALGenerateSpinOrbitCW</code> in the tight-Kepler regime (<code>f0=1000 Hz</code>): overlap loss &lt; 1e-12.
+  The full binary waveform end-to-end is not yet part of the automated suite (see below).</li>
+</ul>
+<p>In all three cases the residual tracks <strong>LAL's own reference precision, not ripple's</strong> — the
+exact/full floors come from LAL evaluating phase in REAL8 GPS time (<code>t ≈ 1e9</code>, resolving
+~0.1 microsecond); ripple's int+frac GPS split is more precise than that floor.</p>
+<h3 id="supplementary-compiled-function-comparison">Supplementary: compiled-function comparison<a class="headerlink" href="#supplementary-compiled-function-comparison" title="Permanent link">¤</a></h3>
+<p>The actual <em>compiled</em> <code>XLALSimulateExactPulsarSignal</code>/<code>XLALGeneratePulsarSignal</code> entry points
+(not just the SWIG-exposed building blocks above) were also checked manually once, off-repo:
+all three models agree to log10 overlap loss better than −5, limited by LAL's own Kepler
+solver tolerance for <code>BinaryPulsarSignal</code>, not ripple's. This needs the unwrapped
+<code>PulsarSignalParams</code> struct layout declared in C, so it isn't reproducible from Python alone
+and isn't shipped in-tree — the automated check above is what runs in CI.</p>
 <hr />
 <h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">¤</a></h2>
 <ul>
