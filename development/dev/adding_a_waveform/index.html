@@ -1713,7 +1713,7 @@ The existing subpackages:</p>
 <td><code>IMRPhenomD_NRTidalv2</code>, <code>IMRPhenomXAS_NRTidalv3</code></td>
 </tr>
 <tr>
-<td><code>cbc/TaylorF2/</code></td>
+<td><code>cbc/Taylor/</code></td>
 <td><code>TaylorF2</code></td>
 </tr>
 <tr>
@@ -1827,7 +1827,7 @@ Never read configuration out of <code>params</code>, and never accept physics pa
 <h2 id="6-parameter_names">6. <code>parameter_names</code><a class="headerlink" href="#6-parameter_names" title="Permanent link">¤</a></h2>
 <p>A <code>@property</code>, not a method — <code>wf.parameter_names</code>, no parentheses.
 The order must match how <code>__call__</code> packs <code>theta</code>.
-It can depend on construction-time configuration; from <a href="https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/cbc/TaylorF2/TaylorF2.py"><code>TaylorF2.py</code></a>:</p>
+It can depend on construction-time configuration; from <a href="https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/cbc/Taylor/TaylorF2.py"><code>TaylorF2.py</code></a>:</p>
 <div class="highlight"><pre><span></span><code><span class="nd">@property</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">parameter_names</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
     <span class="k">return</span> <span class="p">(</span>
