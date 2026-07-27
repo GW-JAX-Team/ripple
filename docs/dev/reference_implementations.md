@@ -6,7 +6,7 @@ The overlap loss (OL), using the ET-D PSD noise weighting, is
 
 $$
 \mathrm{OL} = 1 - \frac{\operatorname{Re}\langle h_1 \mid h_2 \rangle}
-{\sqrt{\langle h_1 \mid h_1 \rangle \langle h_2 \mid h_2 \rangle}}\,.
+{\bigl(\langle h_1 \mid h_1 \rangle \langle h_2 \mid h_2 \rangle\bigr)^{1/2}}\,.
 $$
 
 A lower OL indicates better agreement.
