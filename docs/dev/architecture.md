@@ -36,7 +36,6 @@ Waveform (ABC)                        parameter_names, __call__
 
 - **`Waveform`** — every model implements `parameter_names` (the ordered `params` keys it needs) and `__call__(axis, params)` (returns `{"p": ..., "c": ...}`, or model-specific keys).
 - **`AmplitudePhaseWaveform`** — for single-mode, aligned-spin models, where amplitude and phase as functions of frequency are individually well-defined.
-  Multimode and precessing models can't use it: `|hp|` beats between modes, so there's no single well-defined amplitude.
 - **`DistanceScaledWaveform`** — a mixin, not a `Waveform` on its own.
   It must be combined with a domain base, or the registry rejects the class.
 
