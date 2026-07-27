@@ -1530,7 +1530,7 @@ It is inexpensive enough to run whenever a backend is installed; otherwise it co
 <code>integration/</code> is parametrized directly from <code>ripplegw.list_waveforms()</code>, so newly registered models are included automatically:</p>
 <ul>
 <li><code>test_output_format.py</code> — output keys, shape, dtype, finiteness, <code>repr</code>, registry round-trip.</li>
-<li><code>test_transforms.py</code> — <code>jit</code> matches eager evaluation, <code>vmap</code> over a batch of parameters, <code>grad</code> is finite for every parameter.</li>
+<li><code>test_jax.py</code> — <code>jit</code> matches eager evaluation, <code>vmap</code> over a batch of parameters, <code>grad</code> is finite for every parameter.</li>
 <li><code>test_amplitude_and_distance.py</code> — <code>AmplitudePhaseWaveform.strain == amplitude * exp(i * phase)</code>; <code>DistanceScaledWaveform.at_unit_distance</code> matches <code>d_L=1.0</code> exactly, and scales as <code>1/d_L</code>.</li>
 <li><code>test_edge_cases.py</code> — equal mass, zero/near-extremal spin, face-on/edge-on, zero tidal deformability, aligned-spins-only and fully-precessing limits, burst shape-parameter boundaries — each parametrized by the relevant registry metadata (<code>is_tidal</code>, <code>is_precessing</code>, <code>parameter_names</code>), not by waveform name.</li>
 </ul>
