@@ -465,23 +465,6 @@
         
       
       
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Installation
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
       <a href="././" class="md-nav__link md-nav__link--active">
         
   
@@ -497,37 +480,6 @@
   
 
       </a>
-      
-        
-
-
-<nav class="md-nav md-nav--secondary" aria-label="On this page">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      On this page
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#continuous-wave-ephemeris-files" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Continuous-wave ephemeris files
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
       
     </li>
   
@@ -1334,11 +1286,6 @@
                       
                     
                     
-                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-                      <div class="md-sidebar-button__wrapper">
-                        <label class="md-sidebar-button" for="__toc"></label>
-                      </div>
-                    
                   
                   <div class="md-sidebar__inner">
                     
@@ -1350,25 +1297,6 @@
   
     
   
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      On this page
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#continuous-wave-ephemeris-files" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Continuous-wave ephemeris files
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
   
 </nav>
                   </div>
@@ -1403,11 +1331,6 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
 </code></pre></div>
 <p>We recommend using <a href="https://docs.astral.sh/uv/">uv</a> to manage your Python environment.
 After cloning the repository, run <code>uv sync</code> to create a virtual environment with all dependencies installed.</p>
-<h2 id="continuous-wave-ephemeris-files">Continuous-wave ephemeris files<a class="headerlink" href="#continuous-wave-ephemeris-files" title="Permanent link">¤</a></h2>
-<p>The continuous-wave models (<code>ExactPulsarSignal</code>, <code>PulsarSignal</code>, <code>BinaryPulsarSignal</code>) need a JPL solar-system ephemeris to barycenter the signal, e.g. <code>earth00-40-DE405.dat.gz</code> (and <code>sun00-40-DE405.dat.gz</code> for the full and binary models).
-<strong>You don't need to fetch these yourself:</strong> pass a standard LALPulsar name and ripple downloads and caches it on first use, in <code>$XDG_CACHE_HOME/ripplegw/ephemeris</code> (<code>$RIPPLEGW_CACHE_DIR</code> if set — point this at shared/project storage on HPC systems so every job reuses the same cache).
-If you already have a copy (e.g. from an installed LALSuite), pass its path directly instead, with no network access.
-Make sure your observation span lies within the file's coverage (the standard <code>earth00-40-*</code>/<code>sun00-40-*</code> files cover GPS years 2000–2040).</p>
 
 
 
