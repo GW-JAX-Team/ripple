@@ -1,5 +1,6 @@
 ci:
   autoupdate_branch: ripple-dev
+  autoupdate_schedule: quarterly
   # ty-pre-commit requires network access, which pre-commit.ci does not provide.
   skip: [uv-lock, pyright, ty]
 
