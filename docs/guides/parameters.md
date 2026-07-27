@@ -1,7 +1,7 @@
 # Parameters and Conventions
 
 Every waveform's `params` dict uses a name from this glossary.
-Consult a model's `parameter_names` (or the [Waveform Catalogue](catalogue.md)) for the ordered set a specific model expects — not every model uses every parameter below.
+Consult a model's `parameter_names` for the ordered set a specific model expects — not every model uses every parameter below.
 
 ## Mass
 
