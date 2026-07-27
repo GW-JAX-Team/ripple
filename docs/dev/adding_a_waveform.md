@@ -12,7 +12,7 @@ uv sync --group test --group doc
 uv run pre-commit install
 ```
 
-If you're unsure whether a feature fits ripple's scope, open an issue first — see [Contributing](../contributing.md) for the principles new features are expected to follow (JIT-friendliness, modular implementation, machine-precision agreement with any LAL counterpart or a written explanation of the discrepancy).
+If you're unsure whether a feature fits ripple's scope, open an issue first — see [Contributing](../contributing.md) for the principles new features are expected to follow.
 
 ## 2. Where it lives
 
@@ -22,18 +22,17 @@ New waveforms are added in-tree: the model lives in `src/ripplegw/waveforms/`, a
 
 CBC subpackages live under `src/ripplegw/waveforms/cbc/`, split by **lineage, not class name** — `IMRPhenomHM`/`IMRPhenomPv2` live under `cbc/IMRPhenomD/` because they build on the D baseline.
 Non-CBC source types (e.g. `burst/`) are their own top-level subpackage under `waveforms/`, not nested under `cbc/`, since they don't share the CBC parameterisation.
-The existing subpackages:
+Some existing subpackages:
 
 | Subpackage | Contains |
 | --- | --- |
 | `cbc/IMRPhenomD/` | `IMRPhenomD`, `IMRPhenomPv2`, `IMRPhenomHM` |
 | `cbc/IMRPhenomX/` | `IMRPhenomXAS`, `IMRPhenomXHM`, `IMRPhenomXP`, `IMRPhenomXPHM` |
 | `cbc/IMRPhenom_NRTidal/` | `IMRPhenomD_NRTidalv2`, `IMRPhenomXAS_NRTidalv3` |
-| `cbc/Taylor/` | `TaylorF2` |
 | `burst/` | `SineGaussian` |
 
 If your model builds on an existing CBC baseline, add it to that subpackage.
-A genuinely new source type (not CBC, not burst) gets its own top-level subpackage alongside them, with its own `source_type` tag.
+A genuinely new source type gets its own top-level subpackage alongside them, with its own `source_type` tag.
 If it's a genuinely new family, create a new subpackage — it needs nothing but a one-line docstring in its `__init__.py`:
 
 ```python
@@ -66,7 +65,7 @@ Taking one packed array rather than separate keyword arguments keeps this functi
 
 **(b) A module-level `_split_params(params)` helper** converting the `params` mapping into that packed array.
 This is per-module — there's no shared framework helper.
-`SineGaussian` folds it directly into `__call__` since it's a single 5-element pack with no config-dependent shape; when there's real work to share between `amplitude()`/`phase()`/`__call__()` (see step 9), it's worth its own function — the pattern from [`IMRPhenomD.py:739-750`](https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/cbc/IMRPhenomD/IMRPhenomD.py#L739-L750):
+`SineGaussian` folds it directly into `__call__` since it's a single 5-element pack with no config-dependent shape; when there's real work to share between `amplitude()`/`phase()`/`__call__()` (see step 9), it's worth its own function — the pattern from [`IMRPhenomD.py`](https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/cbc/IMRPhenomD/IMRPhenomD.py):
 
 ```python
 def _split_params(
@@ -107,8 +106,8 @@ class SineGaussian(TimeDomainWaveform):
 
 !!! note "Configuration vs. parameters"
     **Configuration** lives on `self`, set once at construction (`self.f_ref`, or nothing at all for `SineGaussian`) — this is the one part that *is* required, regardless of internal structure.
-    **Physics parameters** arrive fresh on every call, in the `params` mapping.
-    Never read configuration out of `params`, and never accept physics parameters through `__init__`.
+    **Parameters** arrive fresh on every call, in the `params` mapping.
+    Never read configuration out of `params`, and never accept parameters through `__init__`.
 
 ## 5. Choose base classes
 
@@ -116,8 +115,7 @@ class SineGaussian(TimeDomainWaveform):
 | --- | --- |
 | Is `axis` a frequency array? | `FrequencyDomainWaveform` |
 | Is `axis` a time array? | `TimeDomainWaveform` |
-| FD **and** single-mode aligned-spin — is a single $A(f)$, $\psi(f)$ well-defined? | `AmplitudePhaseWaveform` **instead of** `FrequencyDomainWaveform` (it already subclasses it — never list both) |
-| Multiple modes mixed into the polarizations (higher harmonics, precession)? | plain `FrequencyDomainWaveform` — `\|hp\|` beats between modes, so there's no single amplitude |
+| Is a single $A(f)$, $\psi(f)$ well-defined? | `AmplitudePhaseWaveform` **instead of** `FrequencyDomainWaveform` |
 | Does `params` include `d_L`? | additionally inherit `DistanceScaledWaveform` |
 
 Two rules that are easy to get wrong:
@@ -126,8 +124,6 @@ Two rules that are easy to get wrong:
   Inheriting only it is rejected by the registry with `TypeError` — always combine it with a domain base.
   Every built-in model that has it puts the domain base first and the mixin last: `class IMRPhenomD(AmplitudePhaseWaveform, DistanceScaledWaveform):`.
 - `domain` metadata comes from the base class's `ClassVar`, **not** from `@register` — never pass `domain=` to the decorator.
-
-See the [Waveform Catalogue](../guides/catalogue.md) for how the built-in models are classified — find the closest precedent to your model.
 
 ## 6. `parameter_names`
 
@@ -159,7 +155,7 @@ Reuse the established names (`M_c`, `eta`, `s1_z`, `d_L`, `phase_c`, `iota`, ...
 
 The first argument is the registry key — the exact string users pass to `ripplegw.waveform(...)` (defaults to the class name if omitted).
 Keyword arguments become `waveform_metadata`, which `list_waveforms(**filters)` filters on and `get_waveform_metadata(name)` returns.
-`source_type` (the GW source category — `"cbc"`, `"burst"`, `"cw"` for continuous waves) is inferred automatically from where the class lives (`ripplegw.waveforms.<type>.*`), the same way `domain` is inferred from the `FrequencyDomainWaveform`/`TimeDomainWaveform` base rather than passed to `@register` — placing your model's subpackage correctly (step 3) is all that's needed.
+`source_type` (the GW source category — `"cbc"`, `"burst"`, etc.) is inferred automatically from where the class lives (`ripplegw.waveforms.<type>.*`), the same way `domain` is inferred from the `FrequencyDomainWaveform`/`TimeDomainWaveform` base rather than passed to `@register` — placing your model's subpackage correctly (step 3) is all that's needed.
 Pass `source_type=` explicitly only to override the inferred value (e.g. registering a model from outside `ripplegw.waveforms` entirely).
 `is_tidal` and `is_precessing` are the two conventional CBC-only tags; add your own free-form keys if useful, but each one is a new public filter, so pick deliberately.
 Registering a name that already exists raises `ValueError` unless you pass `override=True`.
@@ -183,18 +179,24 @@ Output length matches the input axis.
 ripple's `src/` never performs an FFT — if your model is naturally time-domain, return a time series; don't convert to frequency domain internally.
 
 If your model qualifies for `AmplitudePhaseWaveform` (step 5), implement `amplitude(f, params)` and `phase(f, params)` such that `amplitude(f, p) * exp(1j * phase(f, p))` reproduces the pre-polarization strain `h0` — `strain()` (concrete on the base class) computes exactly that product for you.
-`__call__` then applies whatever inclination-dependent plus/cross prefactor your model needs on top of `strain()`, the way [`IMRPhenomD.py:782-825`](https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/cbc/IMRPhenomD/IMRPhenomD.py#L782-L825) does.
+`__call__` then applies whatever inclination-dependent plus/cross prefactor your model needs on top of `strain()`.
 
 ## 10. Numerical requirements
 
-- **JIT-friendly**: no data-dependent Python branching on traced values — use `jnp.where`, `lax.cond`, or `lax.select` instead of `if traced_value > 0:`.
-- **float64-aware**: assume callers enable `jax.config.update("jax_enable_x64", True)` (see [JAX Transformations](../guides/jax.md)); don't rely on float32 rounding.
-- **LAL agreement**: if you're porting an existing approximant, it should match its reference to machine precision, or the discrepancy needs a written explanation — see [LAL Agreement](lal_agreement.md) for the format existing entries use.
+Every top-level, user-facing evaluation function must be compatible with JAX transformations: callers must be able to apply `jax.jit` and `jax.vmap` directly, and use `jax.grad` on a scalar function of its result.
+This applies to `__call__` and to any additional public evaluation methods a waveform provides.
+
+Do not use Python control flow whose condition depends on a JAX array or a waveform parameter.
+Use `jnp.where`, `lax.cond`, or `lax.select` instead of `if traced_value > 0:`.
+
+When an existing reference implementation is available, test the waveform with float64.
+The implementation should ideally agree with the reference to machine precision.
+If it cannot, document the reason for the discrepancy in [Reference Implementations](reference_implementations.md).
 
 ## 11. Worked example
 
 Read [`SineGaussian.py`](https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/burst/SineGaussian.py) top to bottom for the complete minimal shape (step 4).
-Read [`IMRPhenomD.py:739-828`](https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/cbc/IMRPhenomD/IMRPhenomD.py#L739-L828) for the same shape extended with `f_ref` configuration, `amplitude`/`phase`, and the distance mixin.
+Read [`IMRPhenomD.py`](https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/waveforms/cbc/IMRPhenomD/IMRPhenomD.py) for the same shape extended with `f_ref` configuration, `amplitude`/`phase`, and the distance mixin.
 
 A skeleton for a new frequency-domain, single-mode, aligned-spin model with a distance parameter, combining both:
 
@@ -277,15 +279,14 @@ assert jnp.allclose(wf.amplitude(f, params) * jnp.exp(1j * wf.phase(f, params)),
 assert jnp.allclose(wf.at_unit_distance(f, params)["p"] / params["d_L"], h["p"], rtol=1e-6)
 ```
 
-Then: `uv run ruff check src/`, `uv run pyright`, `uv run pre-commit run --all-files`.
+Then: `uv run pre-commit run --all-files`.
 
 ## 13. What else to update
 
 - **`README.md`** — its "Supported waveforms" list is a curated set of highlights, not exhaustive; update it only if your model represents a genuinely new capability.
-  `docs/index.md` links to the [catalogue](../guides/catalogue.md) instead of listing models, so it needs no edit.
 - **Benchmarks** — usually nothing: `timing.py` and the two `timings/submit_*.sh` scripts all derive their model list from `ripplegw.list_waveforms(source_type="cbc")`, so a new CBC model is picked up automatically.
   You'll only need to touch `timing.py` if your model's parameter set doesn't match an existing `_prepare_*_params` builder.
-- **[LAL Agreement](lal_agreement.md)** — add a row if you cross-validated against LALSuite; keep it in sync with `tests/cross_validation/tolerances.toml` (`cross_validation/test_tolerance_table.py` checks the two match).
+- **[Reference Implementations](reference_implementations.md)** — add a row if you cross-validated against a reference implementation; keep it in sync with `tests/cross_validation/tolerances.toml` (`cross_validation/test_tolerance_table.py` checks the two match).
 - **Jim** (separate repository, separate PR) — `src/jimgw/core/single_event/waveform.py`, `src/jimgw/cli/_waveform.py`, `src/jimgw/cli/_config.py`.
   See that repo's own `CONTRIBUTING.md`.
 - **Tests** — usually nothing: `integration/` and the accuracy campaign both parametrize off `ripplegw.list_waveforms()`, so a registered model is covered automatically.
