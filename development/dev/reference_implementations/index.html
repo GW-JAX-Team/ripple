@@ -1045,34 +1045,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#waveforms-with-a-resolved-history" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Waveforms with a resolved history
-      </span>
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Waveforms with a resolved history">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#imrphenomxas_nrtidalv3" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        IMRPhenomXAS_NRTidalv3
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#continuous-wave-cw-models" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1619,34 +1591,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#waveforms-with-a-resolved-history" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Waveforms with a resolved history
-      </span>
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Waveforms with a resolved history">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#imrphenomxas_nrtidalv3" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        IMRPhenomXAS_NRTidalv3
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#continuous-wave-cw-models" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1704,8 +1648,7 @@
 
 
 <h1 id="reference-implementations-and-overlap-loss-thresholds">Reference Implementations and Overlap Loss Thresholds<a class="headerlink" href="#reference-implementations-and-overlap-loss-thresholds" title="Permanent link">¤</a></h1>
-<p>This document records ripple's agreement with external reference implementations. It currently covers LALSuite: the accuracy threshold enforced by <code>tests/cross_validation/fd/test_overlap.py</code>, and — for any waveform whose threshold is looser than machine precision — why.
-See <code>tests/cross_validation/tolerances.toml</code> for the enforced values themselves; this page only needs to stay in sync with that file's thresholds, not with any specific measured result (see <a href="../testing/">Testing</a> for how to run the campaign yourself).</p>
+<p>This document records ripple's agreement with external reference implementations. It currently covers LALSuite: the accuracy threshold enforced by <code>tests/cross_validation/fd/test_overlap.py</code>, and — for any waveform whose threshold is looser than machine precision — why.</p>
 <p>The overlap loss (OL) is <code>1 - Re(&lt;h1|h2&gt;) / sqrt(&lt;h1|h1&gt; * &lt;h2|h2&gt;)</code>, using the ET-D PSD noise weighting.
 A lower OL indicates better agreement.
 "Machine precision" means a threshold consistent with floating-point rounding (a few times eps_machine, typically 1e-15 to 1e-16), not a real physical discrepancy.</p>
@@ -1752,7 +1695,7 @@ A lower OL indicates better agreement.
 <tr>
 <td>IMRPhenomXAS_NRTidalv3</td>
 <td>1e-12</td>
-<td>resolved</td>
+<td>under investigation</td>
 </tr>
 <tr>
 <td>IMRPhenomXHM</td>
@@ -1771,9 +1714,7 @@ A lower OL indicates better agreement.
 </tr>
 </tbody>
 </table>
-<p>The continuous-wave (CW) models below are validated by a different mechanism (see
-<a href="#continuous-wave-cw-models">below</a>), not <code>test_overlap.py</code>/<code>tolerances.toml</code>, so they aren't
-subject to the "stay in sync with <code>tolerances.toml</code>" rule above.</p>
+<p>The continuous-wave (CW) models below are validated by a different mechanism (see <a href="#continuous-wave-cw-models">below</a>), not <code>test_overlap.py</code>/<code>tolerances.toml</code>, so they aren't subject to the "stay in sync with <code>tolerances.toml</code>" rule above.</p>
 <table>
 <thead>
 <tr>
@@ -1786,17 +1727,17 @@ subject to the "stay in sync with <code>tolerances.toml</code>" rule above.</p>
 <tr>
 <td>ExactPulsarSignal</td>
 <td>1e-10</td>
-<td>machine precision (component-level, see below)</td>
+<td>machine precision</td>
 </tr>
 <tr>
 <td>PulsarSignal</td>
 <td>1e-10</td>
-<td>machine precision (component-level, see below)</td>
+<td>machine precision</td>
 </tr>
 <tr>
 <td>BinaryPulsarSignal</td>
 <td>1e-12</td>
-<td>orbital phase only, tight-Kepler regime (see below)</td>
+<td>orbital phase only, tight-Kepler regime</td>
 </tr>
 </tbody>
 </table>
@@ -1841,45 +1782,20 @@ Near that resonance, <code>d0+d2+d4</code> is a difference of large, nearly-equa
 <p>Dominated by the same MSA resonance mechanism as XP.
 Beyond that, high aligned-spin cases pick up a small additional contribution from the (3,2) mode (see IMRPhenomXHM above), diluted by the other modes.</p>
 <hr />
-<h2 id="waveforms-with-a-resolved-history">Waveforms with a resolved history<a class="headerlink" href="#waveforms-with-a-resolved-history" title="Permanent link">¤</a></h2>
-<h3 id="imrphenomxas_nrtidalv3">IMRPhenomXAS_NRTidalv3<a class="headerlink" href="#imrphenomxas_nrtidalv3" title="Permanent link">¤</a></h3>
-<p><strong>Threshold: 1e-12</strong></p>
-<p>This model previously carried a 1e-6 holding threshold under a documented high-frequency phase discrepancy that grew with total mass.
-The threshold has since been tightened to 1e-12 and is no longer under active investigation.</p>
-<hr />
 <h2 id="continuous-wave-cw-models">Continuous-wave (CW) models<a class="headerlink" href="#continuous-wave-cw-models" title="Permanent link">¤</a></h2>
-<p>LAL does not SWIG-wrap <code>PulsarSignalParams</code> (it has anonymous nested structs), so
-<code>XLALSimulateExactPulsarSignal</code>/<code>XLALGeneratePulsarSignal</code> cannot be called directly from
-Python, and CW's calling convention (a fixed detector + ephemeris + GPS epoch at
-construction, a time axis, not a frequency grid) doesn't fit the batched
-<code>ReferenceBackend</code>/<code>tolerances.toml</code> campaign the frequency-domain models above use. CW
-agreement is instead checked by <code>tests/cross_validation/cw/</code> (<code>accuracy</code>-marked, skipped
-without <code>lalpulsar</code> + an Earth/Sun ephemeris file) -- one file per registered class
-(<code>test_exact_pulsar_signal.py</code>, <code>test_pulsar_signal.py</code>, <code>test_binary_pulsar_signal.py</code>),
-each reproducing LAL's own reference computation in Python from its SWIG-exposed building
-blocks (<code>XLALGetDetectorStates</code>, <code>XLALComputeAMCoeffs</code>, <code>XLALBarycenter</code>,
-<code>XLALGenerateSpinOrbitCW</code>):</p>
+<p>LAL does not SWIG-wrap <code>PulsarSignalParams</code> (it has anonymous nested structs), so <code>XLALSimulateExactPulsarSignal</code>/<code>XLALGeneratePulsarSignal</code> cannot be called directly from Python, and CW's calling convention (a fixed detector + ephemeris + GPS epoch at construction, a time axis, not a frequency grid) doesn't fit the batched <code>ReferenceBackend</code>/<code>tolerances.toml</code> campaign the frequency-domain models above use.
+CW agreement is instead checked by <code>tests/cross_validation/cw/</code> (<code>accuracy</code>-marked, skipped without <code>lalpulsar</code> + an Earth/Sun ephemeris file) -- one file per registered class (<code>test_exact_pulsar_signal.py</code>, <code>test_pulsar_signal.py</code>, <code>test_binary_pulsar_signal.py</code>), each reproducing LAL's own reference computation in Python from its SWIG-exposed building blocks (<code>XLALGetDetectorStates</code>, <code>XLALComputeAMCoeffs</code>, <code>XLALBarycenter</code>, <code>XLALGenerateSpinOrbitCW</code>):</p>
 <ul>
-<li><strong><code>ExactPulsarSignal</code></strong> — reconstructed detector strain vs. a Python transcription of
-  <code>SimulatePulsarSignal.c</code>'s exact (Roemer-only) path: overlap loss &lt; 1e-10 (observed ~3e-13).
+<li><strong><code>ExactPulsarSignal</code></strong> — reconstructed detector strain vs. a Python transcription of <code>SimulatePulsarSignal.c</code>'s exact (Roemer-only) path: overlap loss &lt; 1e-10 (observed ~3e-13).
   The geometric delay alone agrees with <code>XLALBarycenter</code> to &lt;&lt; 1 microsecond.</li>
-<li><strong><code>PulsarSignal</code></strong> — same check using the full barycentering delay (Roemer + Earth-rotation
-  with precession/nutation + Einstein − Shapiro), each sample built from <code>XLALBarycenter</code>
-  directly: overlap loss &lt; 1e-10 (observed ~1e-9).</li>
-<li><strong><code>BinaryPulsarSignal</code></strong> — only the orbital source-phase model is checked automatically, against
-  <code>XLALGenerateSpinOrbitCW</code> in the tight-Kepler regime (<code>f0=1000 Hz</code>): overlap loss &lt; 1e-12.
+<li><strong><code>PulsarSignal</code></strong> — same check using the full barycentering delay (Roemer + Earth-rotation with precession/nutation + Einstein − Shapiro), each sample built from <code>XLALBarycenter</code> directly: overlap loss &lt; 1e-10 (observed ~1e-9).</li>
+<li><strong><code>BinaryPulsarSignal</code></strong> — only the orbital source-phase model is checked automatically, against <code>XLALGenerateSpinOrbitCW</code> in the tight-Kepler regime (<code>f0=1000 Hz</code>): overlap loss &lt; 1e-12.
   The full binary waveform end-to-end is not yet part of the automated suite (see below).</li>
 </ul>
-<p>In all three cases the residual tracks <strong>LAL's own reference precision, not ripple's</strong> — the
-exact/full floors come from LAL evaluating phase in REAL8 GPS time (<code>t ≈ 1e9</code>, resolving
-~0.1 microsecond); ripple's int+frac GPS split is more precise than that floor.</p>
+<p>In all three cases the residual tracks <strong>LAL's own reference precision, not ripple's</strong> — the exact/full floors come from LAL evaluating phase in REAL8 GPS time (<code>t ≈ 1e9</code>, resolving ~0.1 microsecond); ripple's int+frac GPS split is more precise than that floor.</p>
 <h3 id="supplementary-compiled-function-comparison">Supplementary: compiled-function comparison<a class="headerlink" href="#supplementary-compiled-function-comparison" title="Permanent link">¤</a></h3>
-<p>The actual <em>compiled</em> <code>XLALSimulateExactPulsarSignal</code>/<code>XLALGeneratePulsarSignal</code> entry points
-(not just the SWIG-exposed building blocks above) were also checked manually once, off-repo:
-all three models agree to log10 overlap loss better than −5, limited by LAL's own Kepler
-solver tolerance for <code>BinaryPulsarSignal</code>, not ripple's. This needs the unwrapped
-<code>PulsarSignalParams</code> struct layout declared in C, so it isn't reproducible from Python alone
-and isn't shipped in-tree — the automated check above is what runs in CI.</p>
+<p>The actual <em>compiled</em> <code>XLALSimulateExactPulsarSignal</code>/<code>XLALGeneratePulsarSignal</code> entry points (not just the SWIG-exposed building blocks above) were also checked manually once, off-repo: all three models agree to log10 overlap loss better than −5, limited by LAL's own Kepler solver tolerance for <code>BinaryPulsarSignal</code>, not ripple's.
+This needs the unwrapped <code>PulsarSignalParams</code> struct layout declared in C, so it isn't reproducible from Python alone and isn't shipped in-tree — the automated check above is what runs in CI.</p>
 <hr />
 <h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">¤</a></h2>
 <ul>
