@@ -1525,7 +1525,7 @@ uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </sp
 <p><code>cross_validation/test_reference_constants.py</code> compares numeric literals in <code>ripplegw.constants</code> with a reference backend rather than waveform output.
 It is inexpensive enough to run whenever a backend is installed; otherwise it contributes no test cases.</p>
 <h2 id="ci-tier-unit-and-integration">CI tier: <code>unit/</code> and <code>integration/</code><a class="headerlink" href="#ci-tier-unit-and-integration" title="Permanent link">¤</a></h2>
-<p>These tests neither import nor evaluate a reference backend, so they run without a CPU-based reference package installed. Reference comparisons are confined to <code>tests/cross_validation/</code>: the <code>reference/</code> subpackage and its frequency-domain consumers, plus <code>cw/</code>, which uses <code>lalpulsar</code> directly because its calling convention does not fit the <code>ReferenceBackend</code> protocol. See <a href="../reference_implementations/">Reference Implementations</a>.
+<p>These tests neither import nor evaluate a reference backend.
 <code>unit/</code> covers the registry and <code>ripplegw.conversions</code>.
 <code>integration/</code> is parametrized directly from <code>ripplegw.list_waveforms()</code>, so newly registered models are included automatically:</p>
 <ul>
@@ -1534,18 +1534,27 @@ It is inexpensive enough to run whenever a backend is installed; otherwise it co
 <li><code>test_amplitude_and_distance.py</code> — <code>AmplitudePhaseWaveform.strain == amplitude * exp(i * phase)</code>; <code>DistanceScaledWaveform.at_unit_distance</code> matches <code>d_L=1.0</code> exactly, and scales as <code>1/d_L</code>.</li>
 <li><code>test_edge_cases.py</code> — equal mass, zero/near-extremal spin, face-on/edge-on, zero tidal deformability, aligned-spins-only and fully-precessing limits, burst shape-parameter boundaries — each parametrized by the relevant registry metadata (<code>is_tidal</code>, <code>is_precessing</code>, <code>parameter_names</code>), not by waveform name.</li>
 </ul>
-<p>Parameter dictionaries come from <code>tests/helpers/params.py::canonical_params</code>, keyed by physical regime (BBH or BNS) rather than model name. Evaluation grids come from <code>tests/helpers/grids.py::grid_for</code>.
+<p>Parameter dictionaries come from <code>tests/helpers/params.py::canonical_params</code>, keyed by physical regime (BBH or BNS) rather than model name.
+Evaluation grids come from <code>tests/helpers/grids.py::grid_for</code>.
 Both helpers raise an informative error for an unrecognised parameter name.</p>
-<p>A session-scoped cache in <code>tests/conftest.py</code> (<code>compiled_model</code>) JIT-compiles each <code>(waveform, config, method)</code> combination once and reuses it across test modules. This keeps the higher-mode and precessing-model tests practical to run.</p>
+<p>A session-scoped cache in <code>tests/conftest.py</code> (<code>compiled_model</code>) JIT-compiles each <code>(waveform, config, method)</code> combination once and reuses it across test modules.
+This keeps the higher-mode and precessing-model tests practical to run.</p>
 <h2 id="accuracy-tier-cross_validation">Accuracy tier: <code>cross_validation/</code><a class="headerlink" href="#accuracy-tier-cross_validation" title="Permanent link">¤</a></h2>
 <p>The accuracy tests are organised by validation method rather than source type:</p>
 <ul>
-<li><strong><code>cross_validation/fd/</code></strong> — the <code>ReferenceBackend</code> campaign for frequency-domain, stateless-per-call models (<code>domain="FD"</code>). Every CBC model currently qualifies, but the campaign is selected by domain because that is its actual interface requirement. <code>test_overlap.py</code> draws random parameter sets (<code>tests/helpers/params.py::random_params_batch</code>), evaluates ripple and the reference backend, and checks that the noise-weighted overlap loss remains below the configured threshold. <code>test_phase_convention.py</code> uses a fixed configuration to detect a constant phase offset that an overlap alone would not detect. Both use the Einstein Telescope D-design PSD (<code>tests/psds/ET_D_psd.txt</code>); the documented thresholds use this weighting.</li>
-<li><strong><code>cross_validation/cw/</code></strong> — continuous-wave models. These are time-domain models with a detector, ephemeris, and epoch fixed at construction, so they do not fit <code>ReferenceBackend</code>. Each registered class has a dedicated test that reconstructs LAL's reference calculation from SWIG-exposed building blocks; shared helpers live in <code>cw/_lal_helpers.py</code>. See <a href="../reference_implementations/">Reference Implementations</a>.</li>
-<li><strong>Burst</strong> (<code>SineGaussian</code>) has no reference backend yet. Its time-domain calling convention differs from the CW approach, so a comparison will need its own validation method when a suitable reference is available.</li>
+<li><strong><code>cross_validation/fd/</code></strong> — the <code>ReferenceBackend</code> campaign for frequency-domain, stateless-per-call models (<code>domain="FD"</code>).
+  Every CBC model currently qualifies, but the campaign is selected by domain because that is its actual interface requirement.</li>
+<li><code>test_overlap.py</code> draws random parameter sets (<code>tests/helpers/params.py::random_params_batch</code>), evaluates ripple and the reference backend, and checks that the noise-weighted overlap loss remains below the configured threshold.</li>
+<li><code>test_phase_convention.py</code> uses a fixed configuration to detect a constant phase offset that an overlap alone would not detect
+  Both use the Einstein Telescope D-design PSD (<code>tests/psds/ET_D_psd.txt</code>); the documented thresholds use this weighting.</li>
+<li><strong><code>cross_validation/cw/</code></strong> — continuous-wave models.
+  These are time-domain models with a detector, ephemeris, and epoch fixed at construction, so they do not fit <code>ReferenceBackend</code>.
+  Each registered class has a dedicated test that reconstructs LAL's reference calculation from SWIG-exposed building blocks; shared helpers live in <code>cw/_lal_helpers.py</code>.
+  See <a href="../reference_implementations/">Reference Implementations</a>.</li>
 </ul>
 <p>Thresholds live in <code>tests/cross_validation/tolerances.toml</code>: one <code>[&lt;backend&gt;.&lt;waveform&gt;]</code> block per model, with <code>[&lt;backend&gt;.defaults]</code> providing fallback values.
-<code>cross_validation/test_tolerance_table.py</code> runs without a reference backend. It checks that each supported waveform has an entry and that the overlap-loss values match <a href="../reference_implementations/">Reference Implementations</a>.</p>
+<code>cross_validation/test_tolerance_table.py</code> runs without a reference backend.
+It checks that each supported waveform has an entry and that the overlap-loss values match <a href="../reference_implementations/">Reference Implementations</a>.</p>
 <p><code>tests/cross_validation/campaign.py</code> provides the frequency-domain campaign's batch generation, on-disk reference cache (<code>--cache-reference</code>), OOM retry handling, and JSON/figure output (<code>--plots</code>; matplotlib remains optional).
 Results land under <code>--outdir</code> (default <code>accuracy-results/</code>, gitignored) as <code>n&lt;N&gt;_T&lt;T&gt;/&lt;backend&gt;_&lt;waveform&gt;.json</code>.</p>
 <p>Run it locally:</p>
@@ -1553,21 +1562,26 @@ Results land under <code>--outdir</code> (default <code>accuracy-results/</code>
 uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>-m<span class="w"> </span>accuracy<span class="w"> </span>--reference<span class="w"> </span>lal<span class="w"> </span>--n-samples<span class="w"> </span><span class="m">1000</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--outdir<span class="w"> </span>accuracy-results<span class="w"> </span>--cache-reference<span class="w"> </span>--plots
 </code></pre></div>
-<p>On a cluster, <code>bash tests/cross_validation/submit_slurm.sh</code> or <code>bash tests/cross_validation/submit_condor.sh</code> submit the same campaign as a single GPU job (<code>N_SAMPLES</code>/<code>OUTDIR</code> environment variables override the defaults).</p>
+<p>On a Slurm cluster, run <code>bash tests/cross_validation/submit_slurm.sh</code>; on an HTCondor cluster, run <code>bash tests/cross_validation/submit_condor.sh</code>.
+Each submits the campaign as a single GPU job.
+<code>N_SAMPLES</code> and <code>OUTDIR</code> environment variables override the defaults.</p>
 <h3 id="adding-a-reference-backend">Adding a reference backend<a class="headerlink" href="#adding-a-reference-backend" title="Permanent link">¤</a></h3>
-<p>The <code>ReferenceBackend</code> protocol supports additional frequency-domain reference implementations. A backend is a class in <code>tests/cross_validation/reference/</code> implementing:</p>
+<p>The <code>ReferenceBackend</code> protocol supports additional frequency-domain reference implementations.
+A backend is a class in <code>tests/cross_validation/reference/</code> implementing:</p>
 <div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">ReferenceBackend</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
     <span class="n">name</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">available</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span> <span class="o">...</span>             <span class="c1"># is the dependency importable?</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">available</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span> <span class="o">...</span>  <span class="c1"># is the dependency importable?</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">supports</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">waveform</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span> <span class="o">...</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">constants</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span> <span class="o">...</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">generate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">waveform</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">grid</span><span class="p">:</span> <span class="n">Grid</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span> <span class="o">...</span>  <span class="c1"># {&quot;p&quot;, &quot;c&quot;}</span>
 </code></pre></div>
-<p><code>params</code> is always ripple's parameter dictionary, keyed by <code>parameter_names</code>. Each backend translates it into the reference implementation's convention, leaving <code>fd/test_overlap.py</code> and <code>fd/test_phase_convention.py</code> independent of those details.
+<p><code>params</code> is always ripple's parameter dictionary, keyed by <code>parameter_names</code>.
+Each backend translates it into the reference implementation's convention, leaving <code>fd/test_overlap.py</code> and <code>fd/test_phase_convention.py</code> independent of those details.
 Register with <code>@register_backend</code>, add a <code>[&lt;name&gt;.&lt;waveform&gt;]</code> block per supported model to <code>tolerances.toml</code>, and select it with <code>--reference &lt;name&gt;</code>.
 <code>supports()</code> lets a backend declare the subset of models it can generate.
-This protocol applies only to frequency-domain, stateless-per-call models. A family whose calling convention does not fit <code>ReferenceBackend.generate(name, params, grid)</code>, such as CW, needs its own validation method.</p>
+This protocol applies only to frequency-domain, stateless-per-call models.
+A family whose calling convention does not fit <code>ReferenceBackend.generate(name, params, grid)</code>, such as CW, needs its own validation method.</p>
 <h2 id="adding-a-waveform">Adding a waveform<a class="headerlink" href="#adding-a-waveform" title="Permanent link">¤</a></h2>
 <p>If a new model uses only existing parameter names, it is included automatically: <code>integration/</code> uses <code>ripplegw.list_waveforms()</code>, and <code>fd/test_overlap.py</code> uses <code>ripplegw.list_waveforms(domain="FD")</code> when the model is frequency-domain and supported by a reference backend.
 For a new parameter name, add a default to <code>tests/helpers/params.py</code> and, when a reference backend supports the model, a tolerance row in <code>tolerances.toml</code>.
