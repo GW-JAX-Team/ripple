@@ -1,6 +1,6 @@
-# LAL Agreement and Overlap Loss Thresholds
+# Reference Implementations and Overlap Loss Thresholds
 
-This document records what's known about each supported waveform's agreement with LALSuite: the accuracy threshold enforced by `tests/cross_validation/fd/test_overlap.py`, and — for any waveform whose threshold is looser than machine precision — why.
+This document records ripple's agreement with external reference implementations. It currently covers LALSuite: the accuracy threshold enforced by `tests/cross_validation/fd/test_overlap.py`, and — for any waveform whose threshold is looser than machine precision — why.
 See `tests/cross_validation/tolerances.toml` for the enforced values themselves; this page only needs to stay in sync with that file's thresholds, not with any specific measured result (see [Testing](testing.md) for how to run the campaign yourself).
 
 The overlap loss (OL) is `1 - Re(<h1|h2>) / sqrt(<h1|h1> * <h2|h2>)`, using the ET-D PSD noise weighting.
@@ -10,7 +10,7 @@ A lower OL indicates better agreement.
 ## Summary table
 
 | Waveform | Threshold | Status |
-|---|---|---|
+| --- | --- | --- |
 | TaylorF2 | 1e-15 | machine precision |
 | IMRPhenomD | 1e-15 | machine precision |
 | IMRPhenomD_NRTidalv2 | 1e-15 | machine precision |

@@ -6,7 +6,7 @@ directory instead reproduces the relevant LAL reference computation in Python fr
 SWIG-exposed building blocks (``XLALGetDetectorStates``, ``XLALComputeAMCoeffs``,
 ``XLALBarycenter``, ``XLALGenerateSpinOrbitCW``) -- this is why CW has its own directory
 here instead of a ``ReferenceBackend`` in ``reference/`` like the campaign in
-``cross_validation/fd/``. See ``docs/dev/lal_agreement.md`` for the per-model methodology
+``cross_validation/fd/``. See ``docs/dev/reference_implementations.md`` for the per-model methodology
 and accuracy numbers.
 
 Not itself a test module (no ``test_`` prefix, not collected by pytest) -- just the

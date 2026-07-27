@@ -14,7 +14,7 @@ This is the actual pass/fail criterion for "does ripple still agree with LAL" (o
 reference). It is marked ``accuracy`` throughout, and the three models judged most
 representative of the code paths in play (aligned tidal, aligned BBH, precessing+HM) are
 additionally marked ``smoke`` so CI can run a cheap subset on every push to ``main``
-without running the full campaign. See ``docs/dev/lal_agreement.md`` for the documented
+without running the full campaign. See ``docs/dev/reference_implementations.md`` for the documented
 cause of every non-machine-precision threshold in ``tolerances.toml``.
 """
 

@@ -28,7 +28,7 @@ nav = [
         {"Architecture" = "dev/architecture.md"},
         {"Adding a Waveform" = "dev/adding_a_waveform.md"},
         {"Testing" = "dev/testing.md"},
-        {"LAL Agreement" = "dev/lal_agreement.md"},
+        {"Reference Implementations" = "dev/reference_implementations.md"},
     ]},
     {"FAQ" = "FAQ.md"},
     {"Citing ripple" = "citing.md"},

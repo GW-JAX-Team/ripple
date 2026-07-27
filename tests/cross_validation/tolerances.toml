@@ -6,7 +6,7 @@
 # phase_offset: max allowed |arg(<h_p,ripple | h_p,ref>)| in radians, at
 #   tc = phi_c = 0 (see test_phase_convention.py).
 #
-# See docs/dev/lal_agreement.md for the documented cause of each
+# See docs/dev/reference_implementations.md for the documented cause of each
 # non-machine-precision threshold. cross_validation/test_tolerance_table.py
 # checks this file stays consistent with that table.
 

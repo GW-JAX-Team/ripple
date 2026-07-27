@@ -29,7 +29,7 @@ tests/
     ├── fd/                   # frequency-domain, stateless-per-call models (domain="FD")
     │   ├── test_overlap.py           # the accuracy campaign, via ReferenceBackend
     │   └── test_phase_convention.py
-    ├── cw/                   # continuous-wave: no ReferenceBackend (see lal_agreement.md);
+    ├── cw/                   # continuous-wave: no ReferenceBackend (see reference_implementations.md);
     │   │                     # one file per registered class, reproducing LAL's own
     │   │                     # reference computation from its SWIG-exposed building blocks
     └── submit_slurm.sh / submit_condor.sh

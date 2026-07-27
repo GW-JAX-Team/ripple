@@ -33,7 +33,7 @@ PSD_PATH = Path(__file__).parent.parent / "psds" / "ET_D_psd.txt"
 def load_psd() -> tuple[np.ndarray, np.ndarray]:
     """Einstein Telescope D-design PSD used for the noise-weighted overlap loss.
 
-    All documented thresholds in ``tolerances.toml`` / ``docs/dev/lal_agreement.md``
+    All documented thresholds in ``tolerances.toml`` / ``docs/dev/reference_implementations.md``
     are calibrated against this specific weighting -- the error magnitude for
     the non-machine-precision models depends on which frequencies dominate the
     inner product, so a different PSD (or none) would not reproduce them.
