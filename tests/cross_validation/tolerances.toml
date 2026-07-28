@@ -1,4 +1,4 @@
-# Per-(reference backend, waveform) accuracy thresholds for the campaign in
+# Per-(reference backend, waveform) accuracy thresholds for the large-scale test in
 # test_overlap.py / test_phase_convention.py.
 #
 # overlap_loss: max allowed 1 - noise-weighted overlap between ripple and the

@@ -4,7 +4,7 @@
 every name in ``wf.parameter_names``. The union of parameter names across all
 built-in models is 20, so one small table below covers every registered
 waveform. ``random_params_batch`` draws ``n`` such dicts (as batched arrays)
-for the accuracy campaign in ``cross_validation/``.
+for the accuracy test in ``cross_validation/``.
 
 Both raise ``KeyError`` immediately on an unrecognised parameter name, naming
 this file as the place to extend -- that is the entire test-side cost of

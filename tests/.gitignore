@@ -1,4 +1,4 @@
 *_dev/
 
-# Cross-validation accuracy campaign output (see tests/cross_validation/)
+# Cross-validation accuracy test output (see tests/cross_validation/)
 /accuracy-results/

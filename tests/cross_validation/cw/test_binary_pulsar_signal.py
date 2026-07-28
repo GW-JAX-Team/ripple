@@ -82,7 +82,7 @@ def test_binary_source_phase_matches_lal_spinorbit():
             argp,
         )
     )
-    # Compare as a strain shape cos(phi): overlap loss is the conventional metric.
+    # Compare the phase-induced strain shape with the normalized time-domain mismatch.
     # At f0=1000 LAL solves Kepler tightly, so this reaches the float floor
     # (~log10 -15); at lower f0 LAL's dxMax = 0.01/(f0*P) tolerance dominates.
     loss = overlap_loss(np.cos(phi_mine), np.cos(phi_lal))

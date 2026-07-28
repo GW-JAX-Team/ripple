@@ -80,7 +80,7 @@ raw-options = { local_scheme = "no-local-version" }
 pythonpath = ["."]
 testpaths = ["tests"]
 markers = [
-    "accuracy: compares waveform output against a CPU reference backend",
+    "accuracy: compares waveform output against its registered reference calculation",
     "smoke: minimal accuracy subset cheap enough for CI",
 ]
 

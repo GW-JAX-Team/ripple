@@ -1,8 +1,8 @@
 """Cross-validation session summary.
 
-Collects one summary dict per completed campaign (from ``cross_val_results``)
+Collects one summary dict per completed large-scale test (from ``cross_val_results``)
 and prints a hardware block + results table at the end of the session.
-Per-sample data and run metadata are written by ``campaign.write_results``
+Per-sample data and run metadata are written by ``runner.write_results``
 under ``--outdir``; this hook is display-only.
 """
 
@@ -37,7 +37,7 @@ def reference(reference_name):
 
 @pytest.fixture(scope="session")
 def cross_val_results(request):
-    """Session-scoped list of summary dicts, one per completed campaign::
+    """Session-scoped list of summary dicts, one per completed large-scale test::
 
     {"waveform": str, "reference": str, "n_samples": int, "n_failed": int,
      "mean": float, "median": float, "max": float, "threshold": float,

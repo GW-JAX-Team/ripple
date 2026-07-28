@@ -18,8 +18,10 @@ antenna-pattern projection — which also fixes the polarization angle ψ and th
 arm-opening factor sin ζ — is left to the caller.
 
 Like LAL's exact reference, the Einstein and Shapiro relativistic timing terms
-are neglected (the delay is the purely geometric ``n·rDetector``), and the wave
-phase is evaluated in REAL8 GPS time.
+are neglected (the delay is the purely geometric ``n·rDetector``). Unlike LAL's
+REAL8 GPS phase path, ripple preserves an integer GPS anchor plus relative sample
+times. This avoids collapsing a large GPS timestamp and a sub-second offset into one
+imprecise floating-point time.
 """
 
 from typing import Optional

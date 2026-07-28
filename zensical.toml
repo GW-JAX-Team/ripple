@@ -28,6 +28,7 @@ nav = [
         {"Architecture" = "dev/architecture.md"},
         {"Adding a Waveform" = "dev/adding_a_waveform.md"},
         {"Testing" = "dev/testing.md"},
+        {"Cross-validation Tests" = "dev/cross_validation.md"},
         {"Reference Implementations" = "dev/reference_implementations.md"},
     ]},
     {"FAQ" = "FAQ.md"},

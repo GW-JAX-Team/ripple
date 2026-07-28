@@ -1,45 +1,35 @@
-"""Batch machinery for the CW-vs-``CWMakeFakeData`` large-scale accuracy campaign.
+"""Batch machinery for the CW-vs-``CWMakeFakeData`` large-scale accuracy test.
 
-Not a test module: this is what ``test_makefakedata_v5_campaign.py`` needs beyond
+Not a test module: this is what ``test_makefakedata_v5_large_scale.py`` needs beyond
 the assertion itself. ``test_makefakedata_v5.py`` checks ``PulsarSignal``/
 ``BinaryPulsarSignal`` against ``XLALCWMakeFakeData`` at a single, fixed point in
-parameter space (f0=12.3 Hz) -- enough to catch regressions cheaply in CI, but not
-enough to characterize the floor's actual behavior. This module runs the same
+parameter space (f0=12.3 Hz) -- enough for a small regression check, but not enough
+to characterize the floor's actual behavior. This module runs the same
 comparison over a random Monte Carlo sweep (sky position, amplitude parameters,
 frequency, spindown, detector site, binary orbital elements) and fits how the
-overlap loss scales with ``f0``, so the threshold can be set from an observed
+normalized time-domain mismatch scales with ``f0``, so the threshold can be set from an observed
 *distribution and trend* instead of one point. Reuses ``_lal_helpers.py``'s
 ``make_fake_data_v5``/``detector_strain_from_am_response``/``overlap_loss`` --
 same methodology, more coverage.
 
-**The overlap loss is not a flat ~1e-7 floor -- it scales as roughly f0**2**,
-confirmed both analytically (traced through ``CWMakeFakeData.c`` ->
-``XLALGenerateCWSignalTS`` -> ``XLALGeneratePulsarSignal`` ->
-``XLALPulsarSimulateCoherentGW`` in the local LALSuite checkout) and by four
-targeted differential experiments:
+The metric is a direct, white, normalized time-domain mismatch on identical,
+uniformly sampled detector-time grids. The common ``delta_t`` factor cancels;
+there is no FFT, whitening, or time/phase maximization. It measures shape and
+phase, not a global amplitude scale.
 
-- Band/sampling-rate invariant (10/31/100 Hz bands at fixed f0: identical loss).
-- Duration invariant (16s-3600s at fixed f0: flat/slightly decreasing, not growing).
-- ``sourceDeltaT``-invariant (60s down to 0.01s source-table cadence: zero effect,
-  ruling out phase-table linear-interpolation error).
-- **f0-driven, not heterodyne-driven**: decoupling the heterodyne frequency from f0
-  (fHet=495 vs fHet=1, both at f0=500) gives identical loss (1.360e-4 vs 1.359e-4).
-  This proves the error tracks the pulsar's absolute f0, not the residual/heterodyned
-  frequency, i.e. it's baked into the source phase-table computation itself.
-- Ruled out as a ripple-side effect: casting ripple's own float64 output through a
-  float32 round-trip gives ~1e-16 loss with zero f0-dependence -- 12 orders of
-  magnitude too small and flat, so this is not "ripple needs more precision".
+The mismatch against ``CWMakeFakeData`` is not a flat ~1e-7 floor: it grows roughly
+as ``f0**2``. The LAL path ends in ``XLALPulsarSimulateCoherentGW``, which uses a
+hard-coded 400-second delay-table half interval (800 seconds between table nodes) and
+linearly interpolates it. Its documented microsecond-scale timing error becomes a
+phase error proportional to ``f0`` and hence a normalized mismatch proportional to
+``f0**2``.
+This explains the observed invariance to output band/sampling rate, ``sourceDeltaT``,
+and heterodyne frequency. The test characterizes that reference-pipeline
+approximation across sky position, frequency, site, and orbit; it is not evidence
+that ripple needs lower-precision arithmetic.
 
-The mechanism is consistent with what ``docs/dev/reference_implementations.md``
-already documents for the building-block tests -- LAL evaluating phase from REAL8
-GPS-second-scale times (~1e9) without ripple's own int+frac split -- just far more
-prominent in this code path (``XLALGenerateSpinOrbitCW``'s source phase table,
-consumed via a ``REAL4TimeSeries`` pipeline throughout ``CWMakeFakeData.c``) than in
-the direct-``XLALBarycenter`` building-block tests' ~1e-9 to ~1e-13.
-
-Duration is *not* swept past 1hr here: confirmed duration-independent (see above);
-this campaign's value is breadth across sky position/frequency/site/orbital
-parameters, not pushing duration further.
+Duration is not swept past one hour: the observed mismatch is duration-independent,
+so the test prioritizes parameter breadth instead.
 """
 
 import json
@@ -65,10 +55,12 @@ from tests.cross_validation.cw._lal_helpers import (
     make_fake_data_v5,
     overlap_loss,
 )
+from tests.helpers.metrics import relative_norm_error
 
 _SITES = ("H1", "L1", "V1")
 _DURATIONS = (16.0, 100.0, 1000.0, 3600.0)  # seconds -- see module docstring
 _START_GPS = 1_000_000_000
+_SELECTABLE_WAVEFORMS = ("PulsarSignal", "BinaryPulsarSignal")
 
 
 @dataclass
@@ -95,17 +87,26 @@ class Trial:
 _F0_MIN, _F0_MAX = 10.0, 2000.0  # spans the typical CW all-sky search band
 
 
-def sample_trials(n: int, seed: int = 42) -> list[Trial]:
+def sample_trials(
+    n: int, seed: int = 42, *, waveform: str | None = None
+) -> list[Trial]:
     """Random draw of ``n`` trials spanning sky position, amplitude parameters
     (via ``cos(iota)``/``h0`` so ``aplus >= |across|`` always holds), frequency,
-    spindown, detector site, duration, and -- for roughly half the trials --
-    binary orbital elements.
+    spindown, detector site, duration, and orbital elements when selected.
+
+    ``waveform=None`` preserves the direct-pytest large-scale test's mixed isolated/binary
+    sweep. A selected ``PulsarSignal`` or ``BinaryPulsarSignal`` instead produces
+    exactly ``n`` trials for that model, which is what the unified HPC launcher needs.
 
     ``f0`` is drawn log-uniform over ``[_F0_MIN, _F0_MAX]`` (10-2000 Hz, the
-    typical CW all-sky search band) rather than linear-uniform: the overlap loss
+    typical CW all-sky search band) rather than linear-uniform: the mismatch
     follows a power law in f0 (see module docstring), and log-uniform sampling
     gives even leverage across decades for fitting that law's exponent.
     """
+    if waveform is not None and waveform not in _SELECTABLE_WAVEFORMS:
+        available = ", ".join(_SELECTABLE_WAVEFORMS)
+        raise ValueError(f"Unknown CW test waveform {waveform!r}; choose {available}")
+
     rng = np.random.default_rng(seed)
     trials = []
     for i in range(n):
@@ -121,7 +122,9 @@ def sample_trials(n: int, seed: int = 42) -> list[Trial]:
         f1 = float(rng.uniform(-1e-8, 0.0))
         site = _SITES[i % len(_SITES)]
         duration = _DURATIONS[i % len(_DURATIONS)]
-        is_binary = bool(i % 2)
+        is_binary = (
+            bool(i % 2) if waveform is None else waveform == "BinaryPulsarSignal"
+        )
 
         kwargs = {
             "index": i,
@@ -152,12 +155,14 @@ def sample_trials(n: int, seed: int = 42) -> list[Trial]:
 
 def run_trial(
     trial: Trial, *, lal, lalpulsar, edat, eph, seph
-) -> tuple[float, str | None]:
-    """Run one trial: ``CWMakeFakeData`` vs. ripple, return ``(overlap_loss, error)``.
+) -> tuple[float, float, str | None]:
+    """Run one trial and return ``(mismatch, relative_norm_error, error)``.
 
-    ``error`` is ``None`` on success, else a string and ``overlap_loss`` is ``nan``
-    -- mirrors ``campaign.generate_reference_batch``'s convention of never letting
-    one bad sample kill the whole sweep.
+    The mismatch is the FFT-free, white, normalized inner-product loss implemented
+    by :func:`tests.cross_validation.cw._lal_helpers.overlap_loss`. ``error`` is
+    ``None`` on success; otherwise both metrics are ``nan`` so one bad sample cannot
+    kill the sweep. ``relative_norm_error`` separately detects a global amplitude
+    scale regression that normalized mismatch intentionally cannot see.
     """
     det_index = {
         "H1": lal.LALDetectorIndexLHODIFF,
@@ -276,17 +281,19 @@ def run_trial(
             lal, det, trial.alpha, trial.delta, trial.psi, tseries, hp, hc
         )
         h_ref = tseries.data.data
-        return overlap_loss(h_mine, h_ref), None
+        return overlap_loss(h_mine, h_ref), relative_norm_error(h_mine, h_ref), None
     except Exception as exc:  # noqa: BLE001 - one bad trial must not kill the sweep
-        return float("nan"), str(exc)
+        return float("nan"), float("nan"), str(exc)
 
 
 @dataclass
-class CampaignResult:
+class LargeScaleTestResult:
     n_samples: int
     trials: list[Trial]
     losses: np.ndarray
+    relative_norm_errors: np.ndarray
     errors: dict = field(default_factory=dict)
+    waveform: str | None = None
 
     @property
     def valid_mask(self) -> np.ndarray:
@@ -301,14 +308,26 @@ class CampaignResult:
         t = self.testable
         return float(np.max(t)) if t.size else float("nan")
 
+    @property
+    def max_relative_norm_error(self) -> float:
+        errors = self.relative_norm_errors[self.valid_mask]
+        return float(np.max(errors)) if errors.size else float("nan")
 
-def run_campaign(n_samples: int, *, lal, lalpulsar, seed: int = 42) -> CampaignResult:
-    """Sample ``n_samples`` trials and run them in parallel.
+
+def run_large_scale_test(
+    n_samples: int,
+    *,
+    lal,
+    lalpulsar,
+    seed: int = 42,
+    waveform: str | None = None,
+) -> LargeScaleTestResult:
+    """Sample ``n_samples`` trials for one model (or both) and run them in parallel.
 
     Uses a thread pool (not a process pool): LAL's C extension releases the GIL
     during ``CWMakeFakeData``/``ComputeDetAMResponse``, so threads give real
     parallelism here without the pickling overhead of ``multiprocessing`` --
-    same rationale as ``cross_validation/campaign.py::generate_reference_batch``.
+    same rationale as ``cross_validation/runner.py::generate_reference_batch``.
     """
     earth_file, sun_file = find_ephemeris()
     if earth_file is None or sun_file is None:
@@ -318,7 +337,7 @@ def run_campaign(n_samples: int, *, lal, lalpulsar, seed: int = 42) -> CampaignR
     eph = read_ephemeris_file(earth_file)
     seph = read_ephemeris_file(sun_file)
 
-    trials = sample_trials(n_samples, seed=seed)
+    trials = sample_trials(n_samples, seed=seed, waveform=waveform)
 
     def _one(trial: Trial):
         return trial.index, *run_trial(
@@ -332,15 +351,22 @@ def run_campaign(n_samples: int, *, lal, lalpulsar, seed: int = 42) -> CampaignR
     n_workers = max(1, min(n_samples, n_cpu))
 
     losses = np.full(n_samples, np.nan)
+    norm_errors = np.full(n_samples, np.nan)
     errors: dict = {}
     with ThreadPoolExecutor(max_workers=n_workers) as pool:
-        for i, loss, err in pool.map(_one, trials):
+        for i, loss, norm_error, err in pool.map(_one, trials):
             losses[i] = loss
+            norm_errors[i] = norm_error
             if err is not None:
                 errors[i] = err
 
-    return CampaignResult(
-        n_samples=n_samples, trials=trials, losses=losses, errors=errors
+    return LargeScaleTestResult(
+        n_samples=n_samples,
+        trials=trials,
+        losses=losses,
+        relative_norm_errors=norm_errors,
+        errors=errors,
+        waveform=waveform,
     )
 
 
@@ -393,15 +419,18 @@ def fit_power_law(f0: np.ndarray, loss: np.ndarray) -> dict:
     }
 
 
-def summarize(result: CampaignResult) -> dict:
+def summarize(result: LargeScaleTestResult) -> dict:
     """Per-population (isolated/binary/overall) percentile summary plus a fitted
     ``loss ~= C * (f0/f0_ref)**exponent`` power law (see module docstring -- the
-    overlap loss scales with f0, not a flat floor)."""
+    time-domain mismatch scales with f0, not a flat floor). Also reports the maximum
+    relative norm error, which checks global amplitude scale independently of shape.
+    """
     f0 = np.array([t.f0 for t in result.trials])
 
     def _stats(mask: np.ndarray) -> dict:
         sel = mask & result.valid_mask
         vals = result.losses[sel]
+        norm_errors = result.relative_norm_errors[sel]
         if vals.size == 0:
             return {"n": 0}
         return {
@@ -410,6 +439,7 @@ def summarize(result: CampaignResult) -> dict:
             "median": float(np.median(vals)),
             "p99": float(np.percentile(vals, 99)),
             "max": float(vals.max()),
+            "max_relative_norm_error": float(norm_errors.max()),
             "power_law_fit": fit_power_law(f0[sel], vals),
         }
 
@@ -422,17 +452,27 @@ def summarize(result: CampaignResult) -> dict:
     }
 
 
-def write_results(result: CampaignResult, outdir: Path) -> Path:
-    """Persist per-trial parameters/losses, the summary, and run metadata as JSON."""
+def write_results(result: LargeScaleTestResult, outdir: Path) -> Path:
+    """Persist per-trial mismatch/norm diagnostics, summary, and metadata as JSON."""
     outdir.mkdir(parents=True, exist_ok=True)
-    out_file = outdir / f"cw_makefakedata_v5_campaign_n{result.n_samples}.json"
+    label = result.waveform or "mixed"
+    out_file = (
+        outdir / f"cw_makefakedata_v5_{label}_large_scale_test_n{result.n_samples}.json"
+    )
     payload = {
+        "waveform": result.waveform,
+        "metric": "white_time_domain_mismatch",
         "n_samples": result.n_samples,
         "n_failed": len(result.errors),
         "errors": result.errors,
         "summary": summarize(result),
         "trials": [
-            {**asdict(t), "overlap_loss": result.losses[t.index]} for t in result.trials
+            {
+                **asdict(t),
+                "overlap_loss": result.losses[t.index],
+                "relative_norm_error": result.relative_norm_errors[t.index],
+            }
+            for t in result.trials
         ],
         "hardware": _hardware_info(),
     }
@@ -440,15 +480,18 @@ def write_results(result: CampaignResult, outdir: Path) -> Path:
     return out_file
 
 
-def plot_results(result: CampaignResult, outdir: Path) -> Path:
-    """Log-log overlap-loss vs. f0 scatter (isolated vs. binary) with the fitted
+def plot_results(result: LargeScaleTestResult, outdir: Path) -> Path:
+    """Log-log time-domain-mismatch vs. f0 scatter with the fitted
     power law overlaid -- the informative view here is the f0-scaling itself, not
     just the loss distribution (see module docstring). Only imports matplotlib
     when called."""
     import matplotlib.pyplot as plt
 
     outdir.mkdir(parents=True, exist_ok=True)
-    fig_file = outdir / f"cw_makefakedata_v5_campaign_n{result.n_samples}.png"
+    label = result.waveform or "mixed"
+    fig_file = (
+        outdir / f"cw_makefakedata_v5_{label}_large_scale_test_n{result.n_samples}.png"
+    )
 
     f0 = np.array([t.f0 for t in result.trials])
     is_binary = np.array([t.is_binary for t in result.trials])
@@ -467,8 +510,8 @@ def plot_results(result: CampaignResult, outdir: Path) -> Path:
             ax.scatter(
                 f0_pop[keep], loss_pop[keep], s=12, alpha=0.6, label=label, color=color
             )
-        fit = summary[label]["power_law_fit"]
-        if np.isfinite(fit["exponent"]):
+        fit = summary[label].get("power_law_fit")
+        if fit is not None and np.isfinite(fit["exponent"]):
             f0_line = np.geomspace(_F0_MIN, _F0_MAX, 100)
             loss_line = (
                 fit["coefficient_at_f0_ref"]
@@ -484,8 +527,9 @@ def plot_results(result: CampaignResult, outdir: Path) -> Path:
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.set_xlabel("f0 (Hz)")
-    ax.set_ylabel(r"overlap loss $1 - \mathcal{O}$")
-    ax.set_title(f"CW vs CWMakeFakeData: loss vs f0 (n={result.n_samples})")
+    ax.set_ylabel(r"normalized time-domain mismatch $1 - \mathcal{O}$")
+    title = result.waveform or "mixed CW"
+    ax.set_title(f"{title} vs CWMakeFakeData: mismatch vs f0 (n={result.n_samples})")
     ax.legend(fontsize=8)
     fig.tight_layout()
     fig.savefig(str(fig_file), dpi=150)

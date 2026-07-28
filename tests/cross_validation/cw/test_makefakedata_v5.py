@@ -19,16 +19,16 @@ looser precision. (LALPulsar's other Python-native option,
 ``test_full_pulsar_signal.py``'s docstring -- and reaches only ~1e-3 due to its own
 internal interpolation; ``CWMakeFakeData`` is a meaningfully tighter independent check.)
 
-**The overlap loss against this pipeline is not a flat floor -- it scales as roughly
-f0**2** (fitted exponent ~1.5-1.9 depending on population), a REAL8-GPS-time precision
-effect inside ``XLALGenerateSpinOrbitCW``'s source phase table that's far more
-prominent here than in the building-block tests above (see
-``tests/cross_validation/cw/campaign.py``'s module docstring for the full analysis --
-traced through the LALSuite source plus four differential experiments ruling out
-sampling rate, duration, source-table cadence, and a ripple-side bug). ``_threshold()``
-below is therefore frequency-dependent, calibrated from a 500-trial HPC campaign
-(``test_makefakedata_v5_campaign.py``, f0 log-uniform 10-2000 Hz) rather than a single
-point.
+**The normalized time-domain mismatch against this pipeline is not a flat floor -- it
+scales as roughly f0**2** (fitted exponent ~1.5-1.9 depending on population). The
+dominant known LAL approximation is its 400-second barycentric-delay-table half
+interval (800-second node spacing), linearly interpolated by
+``XLALPulsarSimulateCoherentGW``: a microsecond-scale delay residual becomes a phase
+residual proportional to ``f0``. ``_threshold()`` is therefore
+frequency-dependent, calibrated from a 500-trial HPC large-scale test
+(``test_makefakedata_v5_large_scale.py``, f0 log-uniform 10-2000 Hz) rather than a single
+point. The comparison is direct in time domain; it uses no FFT and no time/phase
+maximization.
 
 Covers ``PulsarSignal`` and ``BinaryPulsarSignal`` -- both use the full barycentering
 delay that ``XLALGeneratePulsarSignal`` implements. **Not** ``ExactPulsarSignal``:
@@ -40,7 +40,8 @@ the full waveform (barycentering + orbital modulation + antenna response combine
 previously this was only checked "manually once, off-repo" against the compiled
 ``XLALGeneratePulsarSignal`` entry point directly (see
 ``docs/dev/reference_implementations.md``); ``CWMakeFakeData``'s SWIG-friendly wrapper
-structs make that check reproducible from Python alone, in-tree, in CI.
+structs make that check reproducible from Python alone, in-tree, without a compiled
+helper program.
 
 Skipped unless both ``lalpulsar`` and an Earth/Sun ephemeris file are available -- point
 ``RIPPLE_EARTH_EPHEMERIS`` (and optionally ``RIPPLE_SUN_EPHEMERIS``) at a LALPulsar
@@ -68,6 +69,7 @@ from tests.cross_validation.cw._lal_helpers import (
     make_fake_data_v5,
     overlap_loss,
 )
+from tests.helpers.metrics import relative_norm_error
 
 EARTH_FILE, SUN_FILE = find_ephemeris()
 pytestmark = [
@@ -79,19 +81,25 @@ pytestmark = [
 ]
 
 
-# Overlap-loss threshold vs. f0 (Hz), calibrated from a 500-trial HPC campaign
-# (test_makefakedata_v5_campaign.py, 2026-07-28, n=250 per population, f0 log-uniform
+# Overlap-loss threshold vs. f0 (Hz), calibrated from a 500-trial HPC large-scale test
+# (test_makefakedata_v5_large_scale.py, 2026-07-28, n=250 per population, f0 log-uniform
 # 10-2000 Hz -- see docs/dev/reference_implementations.md). Not a flat floor: the
-# loss scales as roughly f0**2 (a REAL8-GPS-time precision effect inside
-# XLALGenerateSpinOrbitCW, see module docstring), plus an additive floor dominating
-# at low f0 (binary's floor is set by LAL's own Kepler-solver tolerance, looser than
+# loss scales as roughly f0**2 because LAL linearly interpolates a barycentric-delay
+# table with a 400-second half interval (see module docstring), plus an additive floor
+# dominating at low f0 (binary's floor is set by LAL's own Kepler-solver tolerance, looser than
 # isolated's). Smallest observed margin over any sampled trial: isolated 25x, binary
-# 13x -- a fresh campaign run may want to re-derive these constants rather than
+# 13x -- a fresh large-scale test run may want to re-derive these constants rather than
 # assume they still hold with the same margin at a much larger --n-samples.
 def _threshold(f0: float, *, is_binary: bool) -> float:
     floor = 2e-3 if is_binary else 1e-4
     coeff = 4e-4 if is_binary else 3e-4
     return floor + coeff * (f0 / 100.0) ** 2
+
+
+# ``XLALPulsarSimulateCoherentGW`` documents its interpolated antenna response as
+# accurate to about 0.1%; this 1% ceiling leaves a factor-of-ten reference margin
+# while catching a global amplitude-scale regression that normalized mismatch misses.
+_MAX_RELATIVE_NORM_ERROR = 1e-2
 
 
 _START_GPS = 1_000_000_000
@@ -162,12 +170,18 @@ def test_pulsar_signal_matches_makefakedata_v5():
     h_ref = tseries.data.data
 
     loss = overlap_loss(h_mine, h_ref)
+    norm_error = relative_norm_error(h_mine, h_ref)
     threshold = _threshold(_F0, is_binary=False)
     print(
-        f"\nPulsarSignal vs CWMakeFakeData: overlap loss = {loss:.2e} (log10 = {log10_str(loss)})"
+        f"\nPulsarSignal vs CWMakeFakeData: mismatch = {loss:.2e} "
+        f"(log10 = {log10_str(loss)}), relative norm error = {norm_error:.2e}"
     )
     assert loss < threshold, (
-        f"overlap loss {loss:.2e} (log10={log10_str(loss)}) >= threshold {threshold:.2e}"
+        f"time-domain mismatch {loss:.2e} (log10={log10_str(loss)}) >= "
+        f"threshold {threshold:.2e}"
+    )
+    assert norm_error < _MAX_RELATIVE_NORM_ERROR, (
+        f"relative norm error {norm_error:.2e} >= {_MAX_RELATIVE_NORM_ERROR:.2e}"
     )
 
 
@@ -244,10 +258,16 @@ def test_binary_pulsar_signal_matches_makefakedata_v5():
     h_ref = tseries.data.data
 
     loss = overlap_loss(h_mine, h_ref)
+    norm_error = relative_norm_error(h_mine, h_ref)
     threshold = _threshold(_F0, is_binary=True)
     print(
-        f"\nBinaryPulsarSignal vs CWMakeFakeData: overlap loss = {loss:.2e} (log10 = {log10_str(loss)})"
+        f"\nBinaryPulsarSignal vs CWMakeFakeData: mismatch = {loss:.2e} "
+        f"(log10 = {log10_str(loss)}), relative norm error = {norm_error:.2e}"
     )
     assert loss < threshold, (
-        f"overlap loss {loss:.2e} (log10={log10_str(loss)}) >= threshold {threshold:.2e}"
+        f"time-domain mismatch {loss:.2e} (log10={log10_str(loss)}) >= "
+        f"threshold {threshold:.2e}"
+    )
+    assert norm_error < _MAX_RELATIVE_NORM_ERROR, (
+        f"relative norm error {norm_error:.2e} >= {_MAX_RELATIVE_NORM_ERROR:.2e}"
     )

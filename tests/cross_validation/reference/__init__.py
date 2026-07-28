@@ -1,4 +1,4 @@
-"""Reference-backend abstraction for the accuracy campaign.
+"""Reference-backend abstraction for the accuracy test.
 
 A reference backend wraps an independent, CPU-based implementation (LAL
 today; future waveform families may need others) behind one interface, so

@@ -5,21 +5,22 @@ LAL does not SWIG-wrap ``PulsarSignalParams``, so ``XLALSimulateExactPulsarSigna
 directory instead reproduce the relevant LAL reference computation in Python from its
 SWIG-exposed building blocks (``XLALGetDetectorStates``, ``XLALComputeAMCoeffs``,
 ``XLALBarycenter``, ``XLALGenerateSpinOrbitCW``) -- this is why CW has its own directory
-here instead of a ``ReferenceBackend`` in ``reference/`` like the campaign in
+here instead of a ``ReferenceBackend`` in ``reference/`` like the large-scale test in
 ``cross_validation/fd/``. ``test_makefakedata_v5.py`` instead drives the actual
 ``lalpulsar_Makefakedata_v5`` engine (``XLALCWMakeFakeData``, SWIG-wrapped via the
 "modern" ``PulsarParams``/``CWMFDataParams`` structs, unlike the anonymous-nested-struct
 ``PulsarSignalParams`` those functions wrap internally) -- a genuinely independent code
-path, at that pipeline's own (~1e-7, ``REAL4``-limited) precision rather than the
-``XLALBarycenter``-based tests' ~1e-9 to ~1e-13. See ``docs/dev/reference_implementations.md``
-for the per-model methodology and accuracy numbers.
+path, at that pipeline's own frequency-dependent delay-interpolation bound rather than
+the ``XLALBarycenter``-based tests' ~1e-9 to ~1e-13. See
+``docs/dev/reference_implementations.md`` for the per-model methodology and accuracy
+numbers.
 
 Not itself a test module (no ``test_`` prefix, not collected by pytest) -- just the
 pieces every file in this directory would otherwise duplicate: locating the ephemeris
-files, the white (unweighted) time-domain overlap-loss metric these tests use instead
-of ``tests.helpers.metrics.overlap_loss`` (which requires a PSD and a frequency axis),
-and (for ``test_makefakedata_v5.py``) driving ``CWMakeFakeData`` and combining ripple's
-polarizations into detector strain via LAL's own antenna response.
+files; an FFT-free, white normalized time-domain mismatch for identical sample grids
+(rather than ``tests.helpers.metrics.overlap_loss``, which requires a PSD and a
+frequency axis); and (for ``test_makefakedata_v5.py``) driving ``CWMakeFakeData`` and
+combining ripple's polarizations into detector strain via LAL's own antenna response.
 Each test module still does its own ``pytest.importorskip("lal")`` / ``"lalpulsar"`` and
 ``pytest.mark.skipif`` on the ephemeris files -- a module-level skip in a shared
 ``conftest.py`` does not degrade gracefully when the import itself is what's missing (it
@@ -31,6 +32,8 @@ import math
 import os
 
 import numpy as np
+
+from tests.helpers.metrics import time_domain_overlap_loss
 
 
 def find_ephemeris():
@@ -57,22 +60,8 @@ def find_ephemeris():
 
 
 def overlap_loss(h1, h2) -> float:
-    """1 - normalized overlap between two real time series (white inner product).
-
-    Uses the same numerically stable identity as
-    ``tests.helpers.metrics.overlap_loss`` --
-    ``(AB - C**2) / (sqrt(AB)*(sqrt(AB) + C))`` with ``A=<h1|h1>`` etc. -- but with a flat
-    (white) time-domain inner product, the conventional figure of merit for these
-    quasi-monochromatic continuous-wave strain series. Returns the mismatch; report
-    ``log10`` of it via :func:`log10_str`.
-    """
-    h1 = np.asarray(h1, dtype=float)
-    h2 = np.asarray(h2, dtype=float)
-    a = float(h1 @ h1)
-    b = float(h2 @ h2)
-    c = float(h1 @ h2)
-    denom = math.sqrt(a * b)
-    return max((a * b - c * c) / (denom * (denom + c)), 0.0)
+    """Backward-compatible CW name for the shared time-domain mismatch helper."""
+    return time_domain_overlap_loss(h1, h2)
 
 
 def log10_str(loss: float) -> str:
@@ -138,9 +127,10 @@ def make_fake_data_v5(
             ``fmin``, so the returned series' ``.f0`` must be passed to ripple's own
             ``f_heterodyne`` for a fair comparison.
         source_delta_t (float): ``CWMFDataParams.sourceDeltaT`` (0 = LAL's internal
-            default, 60s isolated / 5s binary). Empirically has no measurable effect
-            on agreement with ripple -- the ~1e-7 floor is ``REAL4`` truncation inside
-            ``XLALGeneratePulsarSignal``, not this tabulation interval.
+            default, 60s isolated / 5s binary). It controls the source table, but not
+            the dominant ``f0``-dependent comparison floor: downstream
+            ``XLALPulsarSimulateCoherentGW`` linearly interpolates barycentric delays
+            from a hard-coded 400-second half-interval table (800-second node spacing).
 
     Returns:
         A LAL ``REAL8TimeSeries``: noise-free detector strain, heterodyned by ``fmin``.

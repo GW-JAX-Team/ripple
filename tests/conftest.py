@@ -41,7 +41,7 @@ def pytest_addoption(parser):
     parser.addoption(
         "--outdir",
         default="accuracy-results",
-        help="Directory for accuracy-campaign CSVs/figures/cache (default: ./accuracy-results).",
+        help="Directory for large-scale test results/figures/cache (default: ./accuracy-results).",
     )
     parser.addoption(
         "--cache-reference",
@@ -54,6 +54,15 @@ def pytest_addoption(parser):
         action="store_true",
         default=False,
         help="Generate per-waveform overlap-loss figures (requires matplotlib).",
+    )
+    parser.addoption(
+        "--cw-waveform",
+        choices=("PulsarSignal", "BinaryPulsarSignal"),
+        default=None,
+        help=(
+            "Run the CW MakeFakeData test for one selected model. Omitting this "
+            "keeps its direct-pytest mixed isolated/binary sweep."
+        ),
     )
 
 
@@ -85,6 +94,13 @@ def cache_reference(request) -> bool:
 @pytest.fixture(scope="session")
 def make_plots(request) -> bool:
     return request.config.getoption("--plots")
+
+
+@pytest.fixture(scope="session")
+def cw_waveform(request) -> str | None:
+    """Optional selected CW model for the large MakeFakeData test."""
+
+    return request.config.getoption("--cw-waveform")
 
 
 @cache

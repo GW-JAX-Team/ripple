@@ -13,8 +13,8 @@ from pathlib import Path
 import pytest
 
 import ripplegw
-from tests.cross_validation.campaign import load_tolerances
 from tests.cross_validation.reference import REFERENCE_BACKENDS, get_backend
+from tests.cross_validation.runner import load_tolerances
 
 _TOLERANCES = load_tolerances()
 _REPO_ROOT = Path(__file__).parents[2]

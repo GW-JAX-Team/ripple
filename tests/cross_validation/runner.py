@@ -1,4 +1,4 @@
-"""Batch machinery for the cross-validation accuracy campaign.
+"""Batch machinery for the large-scale cross-validation test.
 
 Not a test module: this holds everything ``test_overlap.py`` and
 ``test_phase_convention.py`` need that is not the assertion itself -- batch
@@ -61,7 +61,7 @@ def get_tolerance(tolerances: dict, backend: str, waveform: str, kind: str) -> f
 
 
 def default_grid(wf, *, T_override: float | None = None) -> Grid:
-    """The frequency band the campaign generates on, regime-scoped like ``random_params_batch``.
+    """The frequency band the test generates on, regime-scoped like ``random_params_batch``.
 
     BNS (tidal) models get a longer segment and a wider band than BBH models,
     matching the inspiral duration/merger frequency each regime needs.
@@ -73,7 +73,7 @@ def default_grid(wf, *, T_override: float | None = None) -> Grid:
 
 
 @dataclass
-class CampaignResult:
+class TestResult:
     waveform: str
     reference: str
     n_samples: int
@@ -231,7 +231,7 @@ def generate_ripple_batch(wf, params_batch: dict, grid: Grid, valid_mask: np.nda
             batch_size = next_batch
 
 
-def run_overlap_campaign(
+def run_overlap_test(
     name: str,
     reference,
     n_samples: int,
@@ -240,14 +240,14 @@ def run_overlap_campaign(
     T_override: float | None = None,
     seed: int = 42,
     cache_dir: Path | None = None,
-) -> CampaignResult:
+) -> TestResult:
     """End to end: sample parameters, generate both sides, score overlap loss."""
     wf = ripplegw.waveform(name, f_ref=5.0)
     grid = default_grid(wf, T_override=T_override)
     params_batch = random_params_batch(wf, n_samples, seed=seed)
 
     cache_path = (
-        _reference_cache_path(cache_dir, reference.name, name, grid.f_l)
+        _reference_cache_path(cache_dir, reference.name, name, 1.0 / grid.df)
         if cache_dir
         else None
     )
@@ -255,7 +255,7 @@ def run_overlap_campaign(
         reference, name, params_batch, grid, n_samples, cache_path=cache_path
     )
 
-    result = CampaignResult(
+    result = TestResult(
         waveform=name,
         reference=reference.name,
         n_samples=n_samples,
@@ -298,13 +298,13 @@ def _hardware_info() -> dict:
     }
 
 
-def _run_tag(result: CampaignResult) -> str:
+def _run_tag(result: TestResult) -> str:
     T = round(1.0 / result.grid.df, 6)
     T_str = f"T{int(T)}" if T == int(T) else f"T{T}"
     return f"n{result.n_samples}_{T_str}"
 
 
-def write_results(result: CampaignResult, outdir: Path) -> Path:
+def write_results(result: TestResult, outdir: Path) -> Path:
     """Persist per-sample overlap losses and run metadata as JSON under ``outdir``."""
     run_dir = outdir / _run_tag(result)
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -326,7 +326,7 @@ def write_results(result: CampaignResult, outdir: Path) -> Path:
     return out_file
 
 
-def plot_results(result: CampaignResult, outdir: Path) -> Path:
+def plot_results(result: TestResult, outdir: Path) -> Path:
     """Per-waveform overlap-loss histogram; only imports matplotlib when called."""
     import matplotlib.pyplot as plt
 

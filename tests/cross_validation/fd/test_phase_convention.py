@@ -19,7 +19,7 @@ import pytest
 
 import ripplegw
 from ripplegw.conversions import ms_to_Mc_eta
-from tests.cross_validation.campaign import (
+from tests.cross_validation.runner import (
     default_grid,
     get_tolerance,
     load_psd,
@@ -30,7 +30,7 @@ from tests.helpers.params import canonical_params, regime
 
 _TOLERANCES = load_tolerances()
 
-# domain="FD" scopes this to models the campaign can call at all (see
+# domain="FD" scopes this to models the test can call at all (see
 # test_overlap.py); is_precessing=False (positive tagging, not "every
 # non-precessing model") then drops the precessing subset, which needs a
 # separate analysis. Burst/CW never set is_precessing either way, so they're

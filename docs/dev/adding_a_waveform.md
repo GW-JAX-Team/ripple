@@ -286,12 +286,14 @@ Then: `uv run pre-commit run --all-files`.
 - **`README.md`** — its "Supported waveforms" list is a curated set of highlights, not exhaustive; update it only if your model represents a genuinely new capability.
 - **Benchmarks** — usually nothing: `timing.py` and the two `timings/submit_*.sh` scripts all derive their model list from `ripplegw.list_waveforms(source_type="cbc")`, so a new CBC model is picked up automatically.
   You'll only need to touch `timing.py` if your model's parameter set doesn't match an existing `_prepare_*_params` builder.
-- **[Reference Implementations](reference_implementations.md)** — add a row if you cross-validated against a reference implementation; keep it in sync with `tests/cross_validation/tolerances.toml` (`cross_validation/test_tolerance_table.py` checks the two match).
+- **[Reference Implementations](reference_implementations.md)** — record the reference method and threshold when you add a cross-validation test.
+  Frequency-domain models also need a matching entry in `tests/cross_validation/tolerances.toml`; time-domain models need their own direct comparison.
 - **Jim** (separate repository, separate PR) — `src/jimgw/core/single_event/waveform.py`, `src/jimgw/cli/_waveform.py`, `src/jimgw/cli/_config.py`.
   See that repo's own `CONTRIBUTING.md`.
-- **Tests** — usually nothing: `integration/` and the accuracy campaign both parametrize off `ripplegw.list_waveforms()`, so a registered model is covered automatically.
-  If your model introduces a parameter name the suite doesn't already know, add a default to `tests/helpers/params.py`; if a reference backend supports it, add the tolerance row mentioned above.
-  See [Testing](testing.md).
+- **Tests** — a registered model is covered automatically by `integration/`, but not automatically by a cross-validation test.
+  If it introduces a parameter name the suite does not know, add a default to `tests/helpers/params.py`.
+  Add the appropriate reference validation: an adapter/tolerance for a supported frequency-domain reference, or a waveform-specific, direct, FFT-free time-domain comparison with an amplitude diagnostic for a time-domain model.
+  See [Testing](testing.md) and [Cross-validation tests](cross_validation.md).
 
 ## 14. Opening the PR
 

@@ -1,20 +1,20 @@
-"""Frequency-domain waveform-accuracy campaign: ripple vs a reference backend, by overlap loss.
+"""Frequency-domain waveform-accuracy test: ripple vs a reference backend, by overlap loss.
 
-Scoped to ``domain="FD"`` -- the campaign calls the model with just ``f_ref`` and a
-frequency grid (see ``run_overlap_campaign``), which only a frequency-domain,
+Scoped to ``domain="FD"`` -- the test calls the model with just ``f_ref`` and a
+frequency grid (see ``run_overlap_test``), which only a frequency-domain,
 stateless-per-call model supports. Every registered CBC model happens to be FD today, so
 this scope is currently "all CBC models" in practice, but that's incidental: a future
 frequency-domain model outside CBC is picked up automatically, while a CBC-only scope
 would have missed it. (Burst and continuous-wave are both time-domain, and CW's
 constructor additionally requires a detector/ephemeris/epoch, so neither fits this
-campaign regardless of domain -- see ``cross_validation/cw/`` for CW's methodology; burst
+test regardless of domain -- see ``cross_validation/cw/`` for CW's methodology; burst
 has no reference backend yet.)
 
 This is the actual pass/fail criterion for "does ripple still agree with LAL" (or a future
 reference). It is marked ``accuracy`` throughout, and the three models judged most
 representative of the code paths in play (aligned tidal, aligned BBH, precessing+HM) are
 additionally marked ``smoke`` so CI can run a cheap subset on every push to ``main``
-without running the full campaign. See ``docs/dev/reference_implementations.md`` for the documented
+without running the full large-scale test. See ``docs/dev/reference_implementations.md`` for the documented
 cause of every non-machine-precision threshold in ``tolerances.toml``.
 """
 
@@ -24,11 +24,11 @@ import numpy as np
 import pytest
 
 import ripplegw
-from tests.cross_validation.campaign import (
+from tests.cross_validation.runner import (
     get_tolerance,
     load_tolerances,
     plot_results,
-    run_overlap_campaign,
+    run_overlap_test,
     write_results,
 )
 
@@ -62,7 +62,7 @@ def test_reference_overlap(
         _TOLERANCES, reference.name, waveform_name, "overlap_loss"
     )
     outdir = Path(accuracy_outdir)
-    result = run_overlap_campaign(
+    result = run_overlap_test(
         waveform_name,
         reference,
         n_samples,

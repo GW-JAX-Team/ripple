@@ -64,6 +64,6 @@ class Grid:
 def accuracy_grid(
     f_l: float, f_u: float, f_sampling: float, T: float, f_ref: float
 ) -> Grid:
-    """``Grid`` for the cross-validation campaign, built the same way ``freq_grid`` is."""
+    """``Grid`` for the cross-validation test, built the same way ``freq_grid`` is."""
     axis = freq_grid(f_l, f_u, f_sampling, T)
     return Grid(axis=axis, f_l=f_l, f_u=f_u, df=1.0 / T, f_ref=f_ref)

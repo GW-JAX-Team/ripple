@@ -18,5 +18,6 @@ uv run pre-commit install
 
 - **[Architecture](architecture.md)** — Why ripple is organised the way it is: the design goals, the registry, and the `Waveform` class hierarchy.
 - **[Adding a Waveform](adding_a_waveform.md)** — Step-by-step: implement, register, and validate a new model, with a full worked example.
-- **[Testing](testing.md)** — The two test tiers (CI, accuracy), how to run each, and what a new waveform needs.
+- **[Testing](testing.md)** — What the test suite protects and what a new waveform needs.
+- **[Cross-validation tests](cross_validation.md)** — Select one waveform and run its reference validation locally, on Slurm, or on HTCondor.
 - **[Reference Implementations](reference_implementations.md)** — Agreement with external reference implementations for each supported waveform.

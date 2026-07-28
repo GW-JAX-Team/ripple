@@ -1,6 +1,8 @@
-# Reference Implementations and Overlap Loss Thresholds
+# Reference Implementations and Accuracy Bounds
 
-This document records ripple's agreement with external reference implementations. It currently covers LALSuite: the accuracy threshold enforced by `tests/cross_validation/fd/test_overlap.py`, and — for any waveform whose threshold is looser than machine precision — why.
+This is the developer record of ripple's agreement with external reference implementations.
+It currently covers LALSuite, the thresholds enforced by cross-validation, and the reason for any bound looser than machine precision.
+To submit a test, see [Cross-validation tests](cross_validation.md).
 
 The overlap loss (OL), using the ET-D PSD noise weighting, is
 
@@ -27,15 +29,16 @@ A lower OL indicates better agreement.
 | IMRPhenomXP | 1e-6 | known cause |
 | IMRPhenomXPHM | 1e-6 | known cause |
 
-The continuous-wave (CW) models below are validated by a different mechanism (see [below](#continuous-wave-cw-models)), not `test_overlap.py`/`tolerances.toml`, so they aren't subject to the "stay in sync with `tolerances.toml`" rule above.
+The time-domain models below use waveform-specific direct comparisons, not the frequency-domain tolerance table.
 
 | Waveform | Threshold | Status |
 | --- | --- | --- |
-| ExactPulsarSignal | 1e-10 | machine precision |
+| SineGaussian vs LALSimulation | mismatch < 1e-10; relative norm error < 1e-8 | direct centered time series |
+| ExactPulsarSignal vs direct LALPulsar building blocks | mismatch < 1e-9; relative norm error < 1e-8 | randomized 512 Hz aligned time series |
 | PulsarSignal | 1e-10 | machine precision |
 | BinaryPulsarSignal | 1e-12 | orbital phase only, tight-Kepler regime |
-| PulsarSignal vs `CWMakeFakeData` | `1e-4 + 3e-4·(f0/100Hz)²` | frequency-dependent, see below |
-| BinaryPulsarSignal vs `CWMakeFakeData` | `2e-3 + 4e-4·(f0/100Hz)²` | frequency-dependent, see below |
+| PulsarSignal vs `CWMakeFakeData` | `1e-4 + 3e-4·(f0/100Hz)²` | LAL reference-interpolation bound, see below |
+| BinaryPulsarSignal vs `CWMakeFakeData` | `2e-3 + 4e-4·(f0/100Hz)²` | LAL reference-interpolation bound, see below |
 
 ---
 
@@ -99,39 +102,57 @@ Beyond that, high aligned-spin cases pick up a small additional contribution fro
 
 ---
 
-## Continuous-wave (CW) models
+## Time-domain waveform models
 
-LAL does not SWIG-wrap `PulsarSignalParams` (it has anonymous nested structs), so `XLALSimulateExactPulsarSignal`/`XLALGeneratePulsarSignal` cannot be called directly from Python, and CW's calling convention (an ephemeris + GPS epoch fixed at construction, plus a per-call site location and a time axis rather than a frequency grid) doesn't fit the batched `ReferenceBackend`/`tolerances.toml` campaign the frequency-domain models above use.
-CW agreement is checked by `tests/cross_validation/cw/` (`accuracy`-marked, skipped without `lalpulsar` + an Earth/Sun ephemeris file), by two independent methods that deliberately do not overlap:
+Time-domain validation compares directly generated, aligned real samples.
+It never uses an FFT simply to reuse the frequency-domain test setup.
+The white normalized mismatch
 
-**Building-block reconstruction** — one file per registered class (`test_exact_pulsar_signal.py`, `test_full_pulsar_signal.py`, `test_binary_pulsar_signal.py`), each reproducing LAL's own reference computation in Python from its SWIG-exposed building blocks (`XLALGetDetectorStates`, `XLALComputeAMCoeffs`, `XLALBarycenter`, `XLALGenerateSpinOrbitCW`) -- a translation-fidelity check against the same low-level routines ripple's own `barycenter.py`/`earth.py` were ported from:
+$$
+m = 1 - \frac{h_1 \mathbin{\cdot} h_2}{\lVert h_1 \rVert\lVert h_2 \rVert}
+$$
 
-- **`ExactPulsarSignal`** — reconstructed detector strain vs. a Python transcription of `SimulatePulsarSignal.c`'s exact (Roemer-only) path: overlap loss < 1e-10 (observed ~3e-13).
-  The geometric delay alone agrees with `XLALBarycenter` to << 1 microsecond.
-- **`PulsarSignal`** — same check using the full barycentering delay (Roemer + Earth-rotation with precession/nutation + Einstein − Shapiro), each sample built from `XLALBarycenter` directly: overlap loss < 1e-10 (observed ~1e-9).
-- **`BinaryPulsarSignal`** — only the orbital source-phase model is checked here, against `XLALGenerateSpinOrbitCW` in the tight-Kepler regime (`f0=1000 Hz`): overlap loss < 1e-12. (The full end-to-end binary waveform is covered by the independent method below instead.)
+has no whitening or time/phase maximization.
+It checks phase and shape but is unchanged by a global positive amplitude scale, so the SineGaussian, ExactPulsarSignal, and `CWMakeFakeData` tests also check a relative-norm amplitude error.
 
-In all three cases the residual tracks **LAL's own reference precision, not ripple's** — the exact/full floors come from LAL evaluating phase in REAL8 GPS time (`t ≈ 1e9`, resolving ~0.1 microsecond); ripple's int+frac GPS split is more precise than that floor.
+### SineGaussian
 
-**`lalpulsar_Makefakedata_v5` engine** — `test_makefakedata_v5.py` instead drives `XLALCWMakeFakeData` (the literal engine behind the `lalpulsar_Makefakedata_v5` CLI real CW searches use for injections/MDCs), via its SWIG-wrapped "modern" `PulsarParams`/`CWMFDataParams` structs. `XLALCWMakeFakeData` is a thin wrapper around `XLALGeneratePulsarSignal` (the same function the anonymous-nested-struct `PulsarSignalParams` above blocks direct SWIG access to), so this is a genuinely independent code path from the building-block tests. Covers `PulsarSignal` and `BinaryPulsarSignal` (both use the full barycentering delay this pipeline implements); not `ExactPulsarSignal`, since LAL has no toggle to disable the Einstein/Shapiro terms here.
+`SineGaussian` is compared with `lalsimulation.SimBurstSineGaussian`.
+The adapter uses LAL's centered sample convention directly; recreating the axis from a floating-point GPS epoch would lose sub-nanosecond information and introduce an artificial high-frequency phase error.
+It compares both polarizations on the reference samples with the FFT-free mismatch and relative-norm diagnostics.
 
-LALPulsar's other Python-native option, `lalpulsar.simulateCW.CWSimulator`, was tried first and rejected: it reaches only ~1e-3 due to its own internal interpolation, too loose to be useful here.
+### Continuous-wave (CW) models
 
-This `Makefakedata_v5`-based check is also the first automated, in-repo, end-to-end validation of `BinaryPulsarSignal`'s full waveform (barycentering + orbital modulation + antenna response combined) — previously this was only checked manually, off-repo, against the compiled `XLALGeneratePulsarSignal` entry point directly (all three models agreed to log10 overlap loss better than −5, limited by LAL's own Kepler solver tolerance for `BinaryPulsarSignal`, not ripple's). `CWMakeFakeData`'s SWIG-friendly wrapper structs make that same check reproducible from Python alone, in-tree, in CI.
+CW uses a time axis, an ephemeris, an epoch, and a per-call detector site, so it does not fit the stateless frequency-domain reference-backend interface.
+The `CWMakeFakeData` regression and large-scale test use the shared mismatch and relative-norm amplitude diagnostics above.
 
-**The overlap loss against this pipeline is not a flat floor — it scales as roughly f0².** The fixed single-point regression test above (f0=12.3 Hz) originally reported this as a flat ~1e-7 `REAL4` floor. An HPC-scale Monte Carlo campaign (`test_makefakedata_v5_campaign.py`, sky position/amplitude/f0/spindown/site/orbital-element sweep, f0 log-uniform 10–2000 Hz — the typical CW all-sky search band) instead found:
+Two independent LALPulsar comparisons provide coverage:
 
-- Overlap loss vs. `f0` fits `loss(f0) ≈ C·(f0/100 Hz)^p` with `p ≈ 1.9` for isolated pulsars and `p ≈ 1.5` for binaries (500-trial run, 2026-07-28), reaching up to ~3e-3 (isolated) and ~6e-3 (binary) at f0 ≈ 2000 Hz — three to four orders of magnitude looser than the single-point f0=12.3 measurement suggested.
-- Traced to source: `CWMakeFakeData.c` → `XLALGenerateCWSignalTS` → `XLALGeneratePulsarSignal` → `XLALPulsarSimulateCoherentGW`, whose source phase table comes from `XLALGenerateSpinOrbitCW` using plain REAL8 GPS-second-scale time representations (~1e9 magnitude) rather than ripple's own int+frac split — the same class of floor already noted above for the building-block tests, just far more prominent in this code path.
-- Four differential experiments confirm this is a genuine LAL-side effect, not a ripple bug or test artifact: the loss is invariant to `Band`/sampling rate and to `sourceDeltaT` (60s down to 0.01s — ruling out phase-table interpolation error), tracks the pulsar's absolute f0 rather than the heterodyne/residual frequency (tested by decoupling fHet from f0: identical loss whether fHet≈f0 or fHet≪f0), and is *not* reproduced by casting ripple's own float64 output through a float32 round-trip (~1e-16, flat in f0 — twelve orders of magnitude too small to explain the observed effect).
-- `_threshold()` in `test_makefakedata_v5.py` is a floor-plus-power-law fit calibrated from that 500-trial campaign, with ≥13x (binary) / ≥25x (isolated) margin over every sampled trial. A larger `--n-samples` re-run may want to re-derive these constants rather than assume the same margin holds.
+- **Building-block reconstruction** compares each model with a reference built from SWIG-exposed LAL routines (`XLALGetDetectorStates`, `XLALComputeAMCoeffs`, `XLALBarycenter`, and `XLALGenerateSpinOrbitCW`).
+  It covers `ExactPulsarSignal`, `PulsarSignal`, and the binary orbital source phase in its tight-Kepler regime.
+- **`CWMakeFakeData`** compares `PulsarSignal` and `BinaryPulsarSignal` with the engine behind `lalpulsar_Makefakedata_v5`, including detector response, barycentering, and orbital modulation.
+  `ExactPulsarSignal` is intentionally excluded because this LAL path cannot disable the Einstein/Shapiro terms.
 
-See `tests/cross_validation/cw/campaign.py`'s module docstring for the full writeup, and `test_makefakedata_v5_campaign.py` / `submit_slurm.sh` to reproduce or extend the campaign.
+`ExactPulsarSignal` also has a randomized large-scale test built from the first reference path.
+It faithfully follows LAL's `XLALGPSGetREAL8` phase convention on a 512 Hz grid whose timestamps are exactly representable in that format, sampling 10–200 Hz without introducing a grid-created phase floor.
+It checks the direct FFT-free mismatch and the relative-norm amplitude diagnostic.
+
+### Frequency-dependent `CWMakeFakeData` bound
+
+The `CWMakeFakeData` mismatch is not a flat numerical floor: the large-scale test finds it grows approximately as $f_0^2$.
+This is a limitation of the LAL reference path.
+`PulsarSimulateCoherentGW.c`, reached through `CWMakeFakeData`, uses a hard-coded 400-second delay-table half interval (800 seconds between tabulated delay values) and linearly interpolates at each output sample.
+Its source comments estimate a delay error of order microseconds.
+A delay-induced phase error scales with $f_0$, so the normalized mismatch naturally scales approximately as $f_0^2$.
+
+The frequency-dependent bounds above are calibrated to that reference approximation, not evidence that ripple should add the same interpolation.
+Recalibrate them after changing the sampled parameter range or LAL version.
+Run the selected CW test through [Cross-validation tests](cross_validation.md); it requires LALPulsar and Earth/Sun ephemerides visible to the worker.
 
 ---
 
 ## Notes
 
 - A different random seed or parameter range may give different extreme values; thresholds carry margin over what's been observed to allow for that variation.
-- OL is not maximised over time or phase shifts — it is the raw, un-maximised overlap between ripple and LAL waveforms with identical input parameters.
-- IMRPhenomXAS_NRTidalv3's BNS-band frequency grid can exceed available host memory at large `--n-samples` on GPU; the OOM-retry ladder in `campaign.py` only handles GPU/JAX OOM, not host-side array allocation.
+- The frequency-domain overlap loss is not maximised over time or phase shifts; it is the raw comparison between ripple and LAL waveforms with identical input parameters.
+- IMRPhenomXAS_NRTidalv3's BNS-band frequency grid can exceed available host memory at large `--n-samples` on GPU; the OOM-retry ladder in the frequency-domain test runner only handles GPU/JAX OOM, not host-side array allocation.

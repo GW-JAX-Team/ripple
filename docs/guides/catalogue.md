@@ -1,6 +1,7 @@
 # Waveform Catalogue
 
-This catalogue lists the waveform models available in ripple and the physical assumptions that distinguish them. The model names below are the names used by ripple.
+This catalogue lists the waveform models available in ripple and the physical assumptions that distinguish them.
+The model names below are the names used by ripple.
 
 ## Terminology
 
@@ -11,11 +12,13 @@ This catalogue lists the waveform models available in ripple and the physical as
 
 ## Compact-binary coalescences
 
-These models describe radiation from two compact objects in a quasi-circular orbit. All compact-binary-coalescence waveforms in ripple are provided in the frequency domain at the moment.
+These models describe radiation from two compact objects in a quasi-circular orbit.
+All compact-binary-coalescence waveforms in ripple are provided in the frequency domain at the moment.
 
 ### TaylorF2
 
-`TaylorF2` is a post-Newtonian, aligned-spin waveform with tidal effects. It models the inspiral only and does not include merger or ringdown.
+`TaylorF2` is a post-Newtonian, aligned-spin waveform with tidal effects.
+It models the inspiral only and does not include merger or ringdown.
 
 ### Earlier IMRPhenom models
 
