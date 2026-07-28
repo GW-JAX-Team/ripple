@@ -100,20 +100,22 @@ Beyond that, high aligned-spin cases pick up a small additional contribution fro
 ## Continuous-wave (CW) models
 
 LAL does not SWIG-wrap `PulsarSignalParams` (it has anonymous nested structs), so `XLALSimulateExactPulsarSignal`/`XLALGeneratePulsarSignal` cannot be called directly from Python, and CW's calling convention (an ephemeris + GPS epoch fixed at construction, plus a per-call site location and a time axis rather than a frequency grid) doesn't fit the batched `ReferenceBackend`/`tolerances.toml` campaign the frequency-domain models above use.
-CW agreement is instead checked by `tests/cross_validation/cw/` (`accuracy`-marked, skipped without `lalpulsar` + an Earth/Sun ephemeris file) -- one file per registered class (`test_exact_pulsar_signal.py`, `test_pulsar_signal.py`, `test_binary_pulsar_signal.py`), each reproducing LAL's own reference computation in Python from its SWIG-exposed building blocks (`XLALGetDetectorStates`, `XLALComputeAMCoeffs`, `XLALBarycenter`, `XLALGenerateSpinOrbitCW`):
+CW agreement is checked by `tests/cross_validation/cw/` (`accuracy`-marked, skipped without `lalpulsar` + an Earth/Sun ephemeris file), by two independent methods that deliberately do not overlap:
+
+**Building-block reconstruction** — one file per registered class (`test_exact_pulsar_signal.py`, `test_full_pulsar_signal.py`, `test_binary_pulsar_signal.py`), each reproducing LAL's own reference computation in Python from its SWIG-exposed building blocks (`XLALGetDetectorStates`, `XLALComputeAMCoeffs`, `XLALBarycenter`, `XLALGenerateSpinOrbitCW`) -- a translation-fidelity check against the same low-level routines ripple's own `barycenter.py`/`earth.py` were ported from:
 
 - **`ExactPulsarSignal`** — reconstructed detector strain vs. a Python transcription of `SimulatePulsarSignal.c`'s exact (Roemer-only) path: overlap loss < 1e-10 (observed ~3e-13).
   The geometric delay alone agrees with `XLALBarycenter` to << 1 microsecond.
 - **`PulsarSignal`** — same check using the full barycentering delay (Roemer + Earth-rotation with precession/nutation + Einstein − Shapiro), each sample built from `XLALBarycenter` directly: overlap loss < 1e-10 (observed ~1e-9).
-- **`BinaryPulsarSignal`** — only the orbital source-phase model is checked automatically, against `XLALGenerateSpinOrbitCW` in the tight-Kepler regime (`f0=1000 Hz`): overlap loss < 1e-12.
-  The full binary waveform end-to-end is not yet part of the automated suite (see below).
+- **`BinaryPulsarSignal`** — only the orbital source-phase model is checked here, against `XLALGenerateSpinOrbitCW` in the tight-Kepler regime (`f0=1000 Hz`): overlap loss < 1e-12. (The full end-to-end binary waveform is covered by the independent method below instead.)
 
 In all three cases the residual tracks **LAL's own reference precision, not ripple's** — the exact/full floors come from LAL evaluating phase in REAL8 GPS time (`t ≈ 1e9`, resolving ~0.1 microsecond); ripple's int+frac GPS split is more precise than that floor.
 
-### Supplementary: compiled-function comparison
+**`lalpulsar_Makefakedata_v5` engine** — `test_makefakedata_v5.py` instead drives `XLALCWMakeFakeData` (the literal engine behind the `lalpulsar_Makefakedata_v5` CLI real CW searches use for injections/MDCs), via its SWIG-wrapped "modern" `PulsarParams`/`CWMFDataParams` structs. `XLALCWMakeFakeData` is a thin wrapper around `XLALGeneratePulsarSignal` (the same function the anonymous-nested-struct `PulsarSignalParams` above blocks direct SWIG access to), so this is a genuinely independent code path from the building-block tests, at that pipeline's own looser precision: overlap loss < 1e-6 (observed ~1e-7, a hard `REAL4`/float32 floor inside `XLALGeneratePulsarSignal`/`XLALPulsarSimulateCoherentGW` -- empirically unaffected by `sourceDeltaT` or signal duration from 16s to 1hr). Covers `PulsarSignal` and `BinaryPulsarSignal` (both use the full barycentering delay this pipeline implements); not `ExactPulsarSignal`, since LAL has no toggle to disable the Einstein/Shapiro terms here.
 
-The actual *compiled* `XLALSimulateExactPulsarSignal`/`XLALGeneratePulsarSignal` entry points (not just the SWIG-exposed building blocks above) were also checked manually once, off-repo: all three models agree to log10 overlap loss better than −5, limited by LAL's own Kepler solver tolerance for `BinaryPulsarSignal`, not ripple's.
-This needs the unwrapped `PulsarSignalParams` struct layout declared in C, so it isn't reproducible from Python alone and isn't shipped in-tree — the automated check above is what runs in CI.
+LALPulsar's other Python-native option, `lalpulsar.simulateCW.CWSimulator`, was tried first and rejected: it reaches only ~1e-3 due to its own internal interpolation, too loose to be useful here.
+
+This `Makefakedata_v5`-based check is also the first automated, in-repo, end-to-end validation of `BinaryPulsarSignal`'s full waveform (barycentering + orbital modulation + antenna response combined) — previously this was only checked manually, off-repo, against the compiled `XLALGeneratePulsarSignal` entry point directly (all three models agreed to log10 overlap loss better than −5, limited by LAL's own Kepler solver tolerance for `BinaryPulsarSignal`, not ripple's). `CWMakeFakeData`'s SWIG-friendly wrapper structs make that same check reproducible from Python alone, in-tree, in CI.
 
 ---
 

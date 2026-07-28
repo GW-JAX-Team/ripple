@@ -4,8 +4,8 @@ Only the orbital source-phase model (:func:`ripplegw.waveforms.cw.pulsar_signal.
 is checked here, against ``XLALGenerateSpinOrbitCW`` in the tight-Kepler regime
 (``f0=1000 Hz``, where LAL's own Kepler-solver tolerance is tightest). The full binary
 waveform end-to-end (combined with the barycentering delay ``PulsarSignal`` already
-validates in ``test_pulsar_signal.py``) is not part of the automated suite -- see
-``docs/dev/reference_implementations.md`` for the supplementary manual check that covers it.
+validates in ``test_full_pulsar_signal.py``) is checked separately in
+``test_makefakedata_v5.py``, against the ``lalpulsar_Makefakedata_v5`` engine.
 
 Skipped unless ``lalpulsar`` is available. Unlike the other two files in this directory,
 this test needs no ephemeris -- ``XLALGenerateSpinOrbitCW`` is a pure orbital-phase

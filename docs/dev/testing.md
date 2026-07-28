@@ -51,7 +51,7 @@ The accuracy tests are organised by validation method rather than source type:
   Both use the Einstein Telescope D-design PSD (`tests/psds/ET_D_psd.txt`); the documented thresholds use this weighting.
 - **`cross_validation/cw/`** — continuous-wave models.
   These are time-domain models with an ephemeris and epoch fixed at construction (the observing site's location is a per-call parameter), so they do not fit `ReferenceBackend`.
-  Each registered class has a dedicated test that reconstructs LAL's reference calculation from SWIG-exposed building blocks; shared helpers live in `cw/_lal_helpers.py`.
+  Each registered class has a dedicated test that reconstructs LAL's reference calculation from SWIG-exposed building blocks, plus an independent end-to-end check (`test_makefakedata_v5.py`) against the `lalpulsar_Makefakedata_v5` engine for the classes it can validate; shared helpers live in `cw/_lal_helpers.py`.
   See [Reference Implementations](reference_implementations.md).
 
 Thresholds live in `tests/cross_validation/tolerances.toml`: one `[<backend>.<waveform>]` block per model, with `[<backend>.defaults]` providing fallback values.
