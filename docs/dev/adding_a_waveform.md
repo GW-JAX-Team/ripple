@@ -1,6 +1,7 @@
 # Adding a Waveform
 
-Read [Architecture](architecture.md) first. This page explains what a public waveform class must provide, how it is registered, and how it is validated; use an existing nearby model as the implementation reference.
+Read [Architecture](architecture.md) first.
+This page explains what a public waveform class must provide, how it is registered, and how it is validated; use an existing nearby model as the implementation reference.
 
 ## Set up
 
@@ -61,7 +62,9 @@ Implement:
 
 - `parameter_names` as a property returning the parameter names in the order your implementation packs or consumes them.
   Reuse established names for the same physical quantity.
-- `__call__(axis, params)`, returning a dictionary of polarization arrays. Built-in models conventionally return `{"p": plus, "c": cross}`. Frequency domain arrays are complex; time domain arrays are real; each matches `axis`.
+- `__call__(axis, params)`, returning a dictionary of polarization arrays.
+  Built-in models conventionally return `{"p": plus, "c": cross}`.
+  Frequency domain arrays are complex; time domain arrays are real; each matches `axis`.
 - Any public evaluation method so it works under `jax.jit`, `jax.vmap`, and `jax.grad`.
   Use JAX control flow when a branch depends on an array value.
 

@@ -38,7 +38,8 @@ The overlap-loss values mirror `tests/cross_validation/tolerances.toml`.
 
 ### Reference limits
 
-- **IMRPhenomPv2:** LAL and ripple use different procedures for the coalescence-time correction. The resulting comparison is dominated by a linear phase ramp rather than an amplitude discrepancy.
+- **IMRPhenomPv2:** LAL and ripple use different procedures for the coalescence-time correction.
+  The resulting comparison is dominated by a linear phase ramp rather than an amplitude discrepancy.
 - **IMRPhenomXAS_NRTidalv3:** the non-machine-precision threshold remains under investigation.
 - **IMRPhenomXHM:** the threshold covers sensitivity of the `(3, 2)` mode near ringdown, where spheroidal-to-spherical mixing makes the phase derivative numerically delicate.
 - **IMRPhenomXP** and **IMRPhenomXPHM:** the MSA precession correction is sensitive near angular-momentum resonances, where floating-point differences are amplified.

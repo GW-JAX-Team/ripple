@@ -70,4 +70,5 @@ Replace the name with any registered waveform.
 - A change to any registered waveform should pass the fast suite.
 - A numerical or reference-adapter change should also run that waveform's launcher sweep.
 - A new parameter name needs a canonical value in `tests/helpers/params.py`; a waveform with required constructor arguments needs a test configuration in `tests/helpers/config.py`.
-- A new waveform needs a focused reference comparison and a launcher adapter before it is described as cross-validated. See [Adding a Waveform](adding_a_waveform.md).
+- A new waveform needs a focused reference comparison and a launcher adapter before it is described as cross-validated.
+  See [Adding a Waveform](adding_a_waveform.md).
