@@ -37,13 +37,13 @@
         <loc>https://gw-jax-team.github.io/ripple/development/dev/adding_a_waveform/</loc>
       </url>
       <url>
-        <loc>https://gw-jax-team.github.io/ripple/development/dev/testing/</loc>
+        <loc>https://gw-jax-team.github.io/ripple/development/dev/test_coverage/</loc>
       </url>
       <url>
-        <loc>https://gw-jax-team.github.io/ripple/development/dev/cross_validation/</loc>
+        <loc>https://gw-jax-team.github.io/ripple/development/dev/run_reference_checks/</loc>
       </url>
       <url>
-        <loc>https://gw-jax-team.github.io/ripple/development/dev/reference_implementations/</loc>
+        <loc>https://gw-jax-team.github.io/ripple/development/dev/reference_comparisons_and_limits/</loc>
       </url>
       <url>
         <loc>https://gw-jax-team.github.io/ripple/development/FAQ/</loc>

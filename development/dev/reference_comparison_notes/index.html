@@ -12,13 +12,9 @@
         <meta name="author" content="GW JAX Team">
       
       
-        <link rel="canonical" href="https://gw-jax-team.github.io/ripple/development/dev/testing/">
+        <link rel="canonical" href="https://gw-jax-team.github.io/ripple/development/dev/reference_comparison_notes/">
       
       
-        <link rel="prev" href="../adding_a_waveform/">
-      
-      
-        <link rel="next" href="../cross_validation/">
       
       
         
@@ -29,7 +25,7 @@
     
     
       
-        <title>Testing - ripple</title>
+        <title>Reference-Comparison Notes - ripple</title>
       
     
     
@@ -85,7 +81,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#testing" class="md-skip">
+        <a href="#reference-comparison-notes" class="md-skip">
           Skip to content
         </a>
       
@@ -123,7 +119,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Testing
+              Reference-Comparison Notes
             
           </span>
         </div>
@@ -275,15 +271,13 @@
   
   
   
-    
-  
   
     
       
     
     
     
-      <li class="md-tabs__item md-tabs__item--active">
+      <li class="md-tabs__item">
         <a href="../" class="md-tabs__link">
           
   
@@ -722,29 +716,24 @@
       
   
   
-    
   
   
-  
     
     
     
     
       
-        
-        
-      
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   
@@ -761,7 +750,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -856,124 +845,17 @@
                 
   
   
-    
-  
-  
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Testing
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="././" class="md-nav__link md-nav__link--active">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Testing
-
-    
-  </span>
-  
-  
-
-      </a>
-      
-        
-
-
-<nav class="md-nav md-nav--secondary" aria-label="On this page">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      On this page
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#what-the-suite-covers" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        What the suite covers
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#cross-validation" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Cross-validation
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#when-adding-a-waveform" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        When adding a waveform
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
   
   
     <li class="md-nav__item">
-      <a href="../cross_validation/" class="md-nav__link">
+      <a href="../test_coverage/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Cross-validation Tests
+  Test Coverage
 
     
   </span>
@@ -993,14 +875,41 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference_implementations/" class="md-nav__link">
+      <a href="../run_reference_checks/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Reference Implementations
+  Run Reference Checks
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference_comparisons_and_limits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Reference Comparisons and Limits
 
     
   </span>
@@ -1412,32 +1321,60 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-the-suite-covers" class="md-nav__link">
+  <a href="#frequency-domain-comparisons" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        What the suite covers
+        Frequency-domain comparisons
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Frequency-domain comparisons">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#imrphenompv2" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        IMRPhenomPv2
       </span>
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#cross-validation" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#imrphenomxhm" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Cross-validation
+        IMRPhenomXHM
       </span>
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#when-adding-a-waveform" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#imrphenomxp-and-imrphenomxphm" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        When adding a waveform
+        IMRPhenomXP and IMRPhenomXPHM
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#continuous-wave-comparisons" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Continuous-wave comparisons
       </span>
     </span>
   </a>
@@ -1462,53 +1399,35 @@
   
 
 
-<h1 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">¤</a></h1>
-<p>This page is for developers changing ripple.
-The fast Tier 1 suite is run by CI on each pull request; use it as the interface and JAX-regression safety net, rather than as a manual release procedure.</p>
-<h2 id="what-the-suite-covers">What the suite covers<a class="headerlink" href="#what-the-suite-covers" title="Permanent link">¤</a></h2>
-<table>
-<thead>
-<tr>
-<th>Layer</th>
-<th>Purpose</th>
-<th>Coverage</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Unit tests</td>
-<td>Registry and conversion utilities</td>
-<td>Focused, fast checks</td>
-</tr>
-<tr>
-<td>Integration tests</td>
-<td>Public waveform behaviour</td>
-<td>Every registered waveform: output contract, JAX transformations, amplitude/phase and distance relations, and physical edge cases</td>
-</tr>
-<tr>
-<td>Cross-validation</td>
-<td>Agreement with a reference calculation</td>
-<td>A selected waveform at a useful sample scale; launched locally or on HPC</td>
-</tr>
-</tbody>
-</table>
-<p>Integration parametrization comes from <code>ripplegw.list_waveforms()</code>, so registering a waveform adds it to the fast coverage automatically.
-If it introduces a new parameter name, add a suitable default in <code>tests/helpers/params.py</code>.</p>
-<h2 id="cross-validation">Cross-validation<a class="headerlink" href="#cross-validation" title="Permanent link">¤</a></h2>
-<p>Cross-validation is the developer-owned accuracy check.
-It deliberately has one launcher for every supported waveform and scheduler; see <a href="../cross_validation/">Cross-validation tests</a> for the command, HPC setup, output handling, and plotting.</p>
-<p>The comparison follows the waveform's domain:</p>
-<ul>
-<li>Frequency-domain models use a reference backend on a shared frequency grid, with the ET-D PSD-weighted overlap loss and the tolerance table in <code>tests/cross_validation/tolerances.toml</code>.</li>
-<li>Time-domain models such as CW and SineGaussian use waveform-specific references on aligned samples.
-  They use a white, normalized time-domain mismatch and a relative-norm amplitude diagnostic; no FFT is used.</li>
-</ul>
-<p>The documented thresholds, known limits in the reference code, and CW validation provenance are kept in <a href="../reference_implementations/">Reference Implementations</a>.</p>
-<h2 id="when-adding-a-waveform">When adding a waveform<a class="headerlink" href="#when-adding-a-waveform" title="Permanent link">¤</a></h2>
-<p>Fast integration coverage is automatic after registration.
-Reference validation is not: add a supported reference adapter and tolerance for a frequency-domain model, or a waveform-specific direct time-domain reference comparison plus amplitude diagnostic for a time-domain model.
-Do not convert a time-domain waveform with an FFT merely to reuse the frequency-domain test setup.</p>
-<p>See <a href="../adding_a_waveform/">Adding a Waveform</a> for the complete contribution checklist.</p>
+<h1 id="reference-comparison-notes">Reference-Comparison Notes<a class="headerlink" href="#reference-comparison-notes" title="Permanent link">¤</a></h1>
+<p>This unlisted page records implementation details behind reference-specific limits.
+It intentionally excludes run outputs and historical calibration data.
+For the enforcing thresholds, see <a href="../reference_comparisons_and_limits/">Reference Comparisons and Limits</a>.</p>
+<h2 id="frequency-domain-comparisons">Frequency-domain comparisons<a class="headerlink" href="#frequency-domain-comparisons" title="Permanent link">¤</a></h2>
+<p>The frequency-domain overlap is a raw same-grid comparison at identical inputs.
+It is not maximised over time or phase.</p>
+<h3 id="imrphenompv2">IMRPhenomPv2<a class="headerlink" href="#imrphenompv2" title="Permanent link">¤</a></h3>
+<p>LAL estimates the coalescence-time correction from the derivative of a natural-cubic spline through a small phase grid around ringdown.
+ripple computes the corresponding derivative directly with JAX autodiff.
+The resulting time correction can differ near the merger-ringdown feature, appearing as a linear phase ramp rather than an amplitude error.
+At zero in-plane spin, both implementations remain continuous.
+<code>IMRPhenomPv2</code> is nevertheless not required to reduce to <code>IMRPhenomD</code>: its LAL convention swaps the component masses and spins, changing their assignment in asymmetric phase terms.</p>
+<h3 id="imrphenomxhm">IMRPhenomXHM<a class="headerlink" href="#imrphenomxhm" title="Permanent link">¤</a></h3>
+<p>The phase of the <code>(3, 2)</code> mode is sensitive to spheroidal-to-spherical mixing near ringdown.
+The intermediate phase fit is constrained by the phase derivative at the transition, so small differences there can shift the fitted phase.
+Investigate a discrepancy in this region as a mode-mixing or phase-derivative issue rather than an amplitude discrepancy.</p>
+<h3 id="imrphenomxp-and-imrphenomxphm">IMRPhenomXP and IMRPhenomXPHM<a class="headerlink" href="#imrphenomxp-and-imrphenomxphm" title="Permanent link">¤</a></h3>
+<p>The MSA precession correction is ill-conditioned near angular-momentum resonances, where terms involving <code>d0 + d2 + d4</code> suffer cancellation.
+Small float64 differences in spin-evolution coefficients can then be amplified in the precession angles, particularly at high inclination.
+<code>IMRPhenomXPHM</code> also inherits the <code>(3, 2)</code> mixing sensitivity through its XHM co-precessing seed.
+The LAL reference explicitly requests <code>PhenomXPrecVersion=222</code>, so an MSA-initialization failure is surfaced rather than silently selecting a different precession approximation.</p>
+<h2 id="continuous-wave-comparisons">Continuous-wave comparisons<a class="headerlink" href="#continuous-wave-comparisons" title="Permanent link">¤</a></h2>
+<p><code>ExactPulsarSignal</code> uses direct LALPulsar building blocks because <code>CWMakeFakeData</code> always includes the Einstein and Shapiro delays that the model intentionally omits.
+<code>CWMakeFakeData</code> instead provides the end-to-end comparison for the full pulsar models, including detector response, barycentering, and orbital modulation where applicable.
+That reference path interpolates propagation delays and detector response.
+A delay error produces a phase error that grows with frequency, so its normalized mismatch has a frequency-squared bound.
+Detector-response interpolation has a separate amplitude effect, which is covered by the relative-norm bound.
+The bounds account for those reference approximations; ripple should not reproduce them.</p>
 
 
 

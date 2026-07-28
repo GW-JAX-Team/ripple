@@ -12,13 +12,13 @@
         <meta name="author" content="GW JAX Team">
       
       
-        <link rel="canonical" href="https://gw-jax-team.github.io/ripple/development/dev/cross_validation/">
+        <link rel="canonical" href="https://gw-jax-team.github.io/ripple/development/dev/run_reference_checks/">
       
       
-        <link rel="prev" href="../testing/">
+        <link rel="prev" href="../test_coverage/">
       
       
-        <link rel="next" href="../reference_implementations/">
+        <link rel="next" href="../reference_comparisons_and_limits/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Cross-validation tests - ripple</title>
+        <title>Run Reference Checks - ripple</title>
       
     
     
@@ -85,7 +85,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#cross-validation-tests" class="md-skip">
+        <a href="#run-reference-checks" class="md-skip">
           Skip to content
         </a>
       
@@ -123,7 +123,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Cross-validation tests
+              Run Reference Checks
             
           </span>
         </div>
@@ -859,14 +859,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../testing/" class="md-nav__link">
+      <a href="../test_coverage/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Testing
+  Test Coverage
 
     
   </span>
@@ -902,7 +902,7 @@
   <span class="md-ellipsis">
     
   
-  Cross-validation Tests
+  Run Reference Checks
 
     
   </span>
@@ -919,7 +919,7 @@
   <span class="md-ellipsis">
     
   
-  Cross-validation Tests
+  Run Reference Checks
 
     
   </span>
@@ -945,10 +945,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#before-submitting-a-job" class="md-nav__link">
+  <a href="#set-up-the-environment" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Before submitting a job
+        Set up the environment
       </span>
     </span>
   </a>
@@ -956,10 +956,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#submit-one-waveform" class="md-nav__link">
+  <a href="#preview-and-run-a-target" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Submit one waveform
+        Preview and run a target
       </span>
     </span>
   </a>
@@ -967,10 +967,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-is-compared" class="md-nav__link">
+  <a href="#what-the-sweep-compares" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        What is compared
+        What the sweep compares
       </span>
     </span>
   </a>
@@ -989,10 +989,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#adding-a-test" class="md-nav__link">
+  <a href="#adding-a-sweep" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Adding a test
+        Adding a sweep
       </span>
     </span>
   </a>
@@ -1015,14 +1015,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference_implementations/" class="md-nav__link">
+      <a href="../reference_comparisons_and_limits/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Reference Implementations
+  Reference Comparisons and Limits
 
     
   </span>
@@ -1434,10 +1434,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#before-submitting-a-job" class="md-nav__link">
+  <a href="#set-up-the-environment" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Before submitting a job
+        Set up the environment
       </span>
     </span>
   </a>
@@ -1445,10 +1445,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#submit-one-waveform" class="md-nav__link">
+  <a href="#preview-and-run-a-target" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Submit one waveform
+        Preview and run a target
       </span>
     </span>
   </a>
@@ -1456,10 +1456,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-is-compared" class="md-nav__link">
+  <a href="#what-the-sweep-compares" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        What is compared
+        What the sweep compares
       </span>
     </span>
   </a>
@@ -1478,10 +1478,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#adding-a-test" class="md-nav__link">
+  <a href="#adding-a-sweep" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Adding a test
+        Adding a sweep
       </span>
     </span>
   </a>
@@ -1506,26 +1506,27 @@
   
 
 
-<h1 id="cross-validation-tests">Cross-validation tests<a class="headerlink" href="#cross-validation-tests" title="Permanent link">¤</a></h1>
-<p>Use cross-validation when a waveform implementation or its reference adapter changes.
-Each large-scale test evaluates one named waveform against its registered reference and is intentionally separate from the fast checks run by CI.</p>
-<h2 id="before-submitting-a-job">Before submitting a job<a class="headerlink" href="#before-submitting-a-job" title="Permanent link">¤</a></h2>
-<p>Prepare the environment on a login node, from the repository root:</p>
+<h1 id="run-reference-checks">Run Reference Checks<a class="headerlink" href="#run-reference-checks" title="Permanent link">¤</a></h1>
+<p>Cross-validation runs the large-scale reference sweep for one registered waveform.
+It is separate from the fast suite and from the focused reference regressions listed in <a href="../test_coverage/">Test Coverage</a>.</p>
+<h2 id="set-up-the-environment">Set up the environment<a class="headerlink" href="#set-up-the-environment" title="Permanent link">¤</a></h2>
+<p>From the repository root, prepare the environment before submitting work to a cluster:</p>
 <div class="highlight"><pre><span></span><code>uv<span class="w"> </span>sync<span class="w"> </span>--group<span class="w"> </span><span class="nb">test</span><span class="w"> </span>--group<span class="w"> </span>cross-validation
 <span class="nb">source</span><span class="w"> </span>.venv/bin/activate
 </code></pre></div>
-<p>For a CUDA-enabled JAX installation, use <code>uv sync --extra cuda --group test --group cross-validation</code> instead.
-Do this before submitting: compute nodes commonly cannot reach package indexes.</p>
-<p>Continuous-wave (CW) tests also need LALSuite's Earth and Sun ephemerides on storage visible to the worker
-Set both paths before submitting:</p>
+<p>For CUDA-enabled JAX, add <code>--extra cuda</code> to <code>uv sync</code>.</p>
+<p>Continuous-wave (CW) targets also require LALSuite Earth and Sun ephemerides visible to the worker:</p>
 <div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">RIPPLE_EARTH_EPHEMERIS</span><span class="o">=</span>/shared/path/earth00-40-DE405.dat.gz
 <span class="nb">export</span><span class="w"> </span><span class="nv">RIPPLE_SUN_EPHEMERIS</span><span class="o">=</span>/shared/path/sun00-40-DE405.dat.gz
 </code></pre></div>
-<h2 id="submit-one-waveform">Submit one waveform<a class="headerlink" href="#submit-one-waveform" title="Permanent link">¤</a></h2>
-<p><code>tests.cross_validation.submit</code> is the single entry point for local, Slurm, and HTCondor runs.
-Choose a registered waveform name and scheduler, then set a sample count and an output directory on storage available to the job:</p>
-<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;import ripplegw; print(*ripplegw.list_waveforms(), sep=&quot;\n&quot;)&#39;</span>
+<h2 id="preview-and-run-a-target">Preview and run a target<a class="headerlink" href="#preview-and-run-a-target" title="Permanent link">¤</a></h2>
+<p>The launcher is the entry point for local, Slurm, and HTCondor runs.
+Preview a target first to see the exact pytest node and resource request:</p>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>tests.cross_validation.submit<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--scheduler<span class="w"> </span><span class="nb">local</span><span class="w"> </span>--waveform<span class="w"> </span>IMRPhenomD<span class="w"> </span>--n-samples<span class="w"> </span><span class="m">10</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--outdir<span class="w"> </span>accuracy-results/preflight<span class="w"> </span>--dry-run
 </code></pre></div>
+<p>Submit the same target to Slurm:</p>
 <div class="highlight"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>tests.cross_validation.submit<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--scheduler<span class="w"> </span>slurm<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--waveform<span class="w"> </span>IMRPhenomD<span class="w"> </span><span class="se">\</span>
@@ -1533,60 +1534,45 @@ Choose a registered waveform name and scheduler, then set a sample count and an 
 <span class="w">    </span>--outdir<span class="w"> </span>/shared/scratch/ripple-cross-validation/run-YYYYMMDD<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--plots
 </code></pre></div>
-<p>For HTCondor, change <code>--scheduler slurm</code> to <code>--scheduler condor</code>.
-Use <code>--scheduler local</code> to run the same selected test in the current environment before committing cluster resources.
-<code>--plots</code> is optional; omit it when only machine-readable results are needed.</p>
-<p>For a small local preflight:</p>
-<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>tests.cross_validation.submit<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--scheduler<span class="w"> </span><span class="nb">local</span><span class="w"> </span>--waveform<span class="w"> </span>SineGaussian<span class="w"> </span>--n-samples<span class="w"> </span><span class="m">10</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--outdir<span class="w"> </span>accuracy-results/local-preflight
-</code></pre></div>
-<p>Use <code>--waveform all</code> to submit every waveform with a registered large-scale test.
-The launcher reports models that have no test rather than silently treating them as validated.</p>
-<p>Before a first submission, inspect the rendered job without sending it to the scheduler:</p>
-<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>tests.cross_validation.submit<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--scheduler<span class="w"> </span>slurm<span class="w"> </span>--waveform<span class="w"> </span>IMRPhenomD<span class="w"> </span>--n-samples<span class="w"> </span><span class="m">1000</span><span class="w"> </span>--dry-run
-</code></pre></div>
-<p>The built-in defaults are tuned for the development cluster: frequency-domain tests request a GPU, while time-domain tests request CPU cores.
-Adapt them for your site with <code>--partition</code>, <code>--cpus</code>, <code>--gpus</code>, <code>--memory</code>, and <code>--time</code>.
-<code>--help</code> documents every option.</p>
-<h2 id="what-is-compared">What is compared<a class="headerlink" href="#what-is-compared" title="Permanent link">¤</a></h2>
+<p>Use <code>--scheduler condor</code> for HTCondor, or omit <code>--plots</code> when only the machine-readable result is needed.
+<code>--waveform all</code> makes one independently configured submission per available adapter and reports registered waveforms that have no large-scale test.
+Add <code>--dry-run</code> to inspect all submissions without sending them to the scheduler.</p>
+<p>The launcher chooses resources by test method: frequency-domain targets request a GPU, while SineGaussian and CW targets are CPU jobs.
+Override site-specific defaults with <code>--partition</code>, <code>--cpus</code>, <code>--gpus</code>, <code>--memory</code>, and <code>--time</code>.</p>
+<h2 id="what-the-sweep-compares">What the sweep compares<a class="headerlink" href="#what-the-sweep-compares" title="Permanent link">¤</a></h2>
 <table>
 <thead>
 <tr>
-<th>Waveform family</th>
+<th>Family</th>
 <th>Comparison</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>Frequency-domain models</td>
-<td>ripple and the reference backend are evaluated on the same frequency grid and scored with a PSD-weighted overlap loss.</td>
+<td>ripple and LALSuite on a shared frequency grid, scored by an ET-D PSD-weighted overlap loss. Non-precessing models also check the absolute phase convention.</td>
 </tr>
 <tr>
 <td>Time-domain models</td>
-<td>A waveform-specific adapter produces aligned real time series and scores a white, normalized time-domain mismatch plus a relative-norm amplitude diagnostic. No FFT is introduced.</td>
+<td>A waveform-specific LAL reference on aligned real samples, scored by a normalized time-domain mismatch and a relative-norm amplitude diagnostic. No FFT is introduced.</td>
 </tr>
 </tbody>
 </table>
-<p>The two metrics are intentionally different: a PSD-weighted frequency-domain overlap is meaningful for frequency-domain waveforms, while a time-domain test compares directly generated samples on the same uniform time grid.
-The normalized mismatch is phase- and shape-sensitive, with no time/phase maximization, but is invariant under a global positive amplitude scale.
-The relative-norm diagnostic supplies the corresponding amplitude check.</p>
-<p>Time-domain validation is a framework, not a generic CW fallback.
-Each time-domain waveform needs its own reference adapter, aligned-grid construction, and acceptance criteria.
-Current large-scale tests cover the three CW models and SineGaussian; the launcher runs only registered waveform-specific tests and reports any future exclusions.
-See <a href="../reference_implementations/">Reference Implementations</a> for thresholds, known reference limits, and coverage.</p>
+<p>The current waveform-to-test map, including focused regressions not selected by the launcher, is in <a href="../test_coverage/">Test Coverage</a>.
+<a href="../reference_comparisons_and_limits/">Reference Comparisons and Limits</a> records the acceptance thresholds and any limits of a reference path.</p>
 <h2 id="results-and-failures">Results and failures<a class="headerlink" href="#results-and-failures" title="Permanent link">¤</a></h2>
-<p>The launcher resolves <code>--outdir</code> to an absolute path and creates one subdirectory per selected waveform for the job log and test results; <code>--plots</code> adds figures there.
-Keep each run in a fresh directory so its parameters and outputs remain attributable to one submission.</p>
-<p>A failed test is evidence to investigate, not a reason to loosen a threshold immediately.
-First check that the reference dependency, ephemerides (for CW), waveform configuration, and selected sample range match the documented test.
-Then compare the saved results with the relevant entry in <a href="../reference_implementations/">Reference Implementations</a>.</p>
-<h2 id="adding-a-test">Adding a test<a class="headerlink" href="#adding-a-test" title="Permanent link">¤</a></h2>
-<p>A new waveform is covered by the fast integration suite once it is registered, but reference validation is not automatic.
-Add or extend the waveform's reference comparison before advertising cross-validation support.
-Frequency-domain models use the reference-backend/tolerance mechanism; time-domain models need a direct, aligned-sample time-domain comparison plus an amplitude diagnostic.
-Do not convert a time-domain waveform with an FFT solely to fit the frequency-domain harness.</p>
+<p><code>--outdir</code> is resolved to an absolute path.
+The launcher creates one subdirectory per waveform for logs and results; <code>--plots</code> adds figures there.
+Use a fresh output directory for each submission.</p>
+<p>A failed sweep is a signal to investigate.
+First confirm the selected waveform, reference dependency, ephemerides for CW, and sample configuration.
+Then compare the failure with the applicable threshold and reference notes.
+Do not loosen a threshold based on one run.</p>
+<h2 id="adding-a-sweep">Adding a sweep<a class="headerlink" href="#adding-a-sweep" title="Permanent link">¤</a></h2>
+<p>Reference comparison coverage is not automatic for a new waveform.
+Add a focused, waveform-appropriate comparison, its acceptance threshold, and a launcher adapter.
+Frequency-domain models use the LAL overlap path when supported; time-domain models need an aligned direct comparison plus the amplitude diagnostic.
+Do not transform a time-domain waveform with an FFT merely to use the frequency-domain harness.</p>
 
 
 
