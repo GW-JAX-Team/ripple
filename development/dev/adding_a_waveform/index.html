@@ -1087,6 +1087,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../cross_validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Cross-validation Tests
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../reference_implementations/" class="md-nav__link">
         
   
@@ -1950,12 +1977,14 @@ Read <a href="https://github.com/GW-JAX-Team/ripple/blob/main/src/ripplegw/wavef
 <li><strong><code>README.md</code></strong> — its "Supported waveforms" list is a curated set of highlights, not exhaustive; update it only if your model represents a genuinely new capability.</li>
 <li><strong>Benchmarks</strong> — usually nothing: <code>timing.py</code> and the two <code>timings/submit_*.sh</code> scripts all derive their model list from <code>ripplegw.list_waveforms(source_type="cbc")</code>, so a new CBC model is picked up automatically.
   You'll only need to touch <code>timing.py</code> if your model's parameter set doesn't match an existing <code>_prepare_*_params</code> builder.</li>
-<li><strong><a href="../reference_implementations/">Reference Implementations</a></strong> — add a row if you cross-validated against a reference implementation; keep it in sync with <code>tests/cross_validation/tolerances.toml</code> (<code>cross_validation/test_tolerance_table.py</code> checks the two match).</li>
+<li><strong><a href="../reference_implementations/">Reference Implementations</a></strong> — record the reference method and threshold when you add a cross-validation test.
+  Frequency-domain models also need a matching entry in <code>tests/cross_validation/tolerances.toml</code>; time-domain models need their own direct comparison.</li>
 <li><strong>Jim</strong> (separate repository, separate PR) — <code>src/jimgw/core/single_event/waveform.py</code>, <code>src/jimgw/cli/_waveform.py</code>, <code>src/jimgw/cli/_config.py</code>.
   See that repo's own <code>CONTRIBUTING.md</code>.</li>
-<li><strong>Tests</strong> — usually nothing: <code>integration/</code> and the accuracy campaign both parametrize off <code>ripplegw.list_waveforms()</code>, so a registered model is covered automatically.
-  If your model introduces a parameter name the suite doesn't already know, add a default to <code>tests/helpers/params.py</code>; if a reference backend supports it, add the tolerance row mentioned above.
-  See <a href="../testing/">Testing</a>.</li>
+<li><strong>Tests</strong> — a registered model is covered automatically by <code>integration/</code>, but not automatically by a cross-validation test.
+  If it introduces a parameter name the suite does not know, add a default to <code>tests/helpers/params.py</code>.
+  Add the appropriate reference validation: an adapter/tolerance for a supported frequency-domain reference, or a waveform-specific, direct, FFT-free time-domain comparison with an amplitude diagnostic for a time-domain model.
+  See <a href="../testing/">Testing</a> and <a href="../cross_validation/">Cross-validation tests</a>.</li>
 </ul>
 <h2 id="14-opening-the-pr">14. Opening the PR<a class="headerlink" href="#14-opening-the-pr" title="Permanent link">¤</a></h2>
 <p>See <a href="../../contributing/">Contributing</a> for the process.

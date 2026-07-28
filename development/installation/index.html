@@ -465,6 +465,23 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Installation
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="././" class="md-nav__link md-nav__link--active">
         
   
@@ -480,6 +497,37 @@
   
 
       </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#continuous-wave-ephemeris-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Continuous-wave ephemeris data
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -872,6 +920,33 @@
     
   
   Testing
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dev/cross_validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Cross-validation Tests
 
     
   </span>
@@ -1286,6 +1361,11 @@
                       
                     
                     
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
                   
                   <div class="md-sidebar__inner">
                     
@@ -1297,6 +1377,25 @@
   
     
   
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#continuous-wave-ephemeris-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Continuous-wave ephemeris data
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -1331,6 +1430,14 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
 </code></pre></div>
 <p>We recommend using <a href="https://docs.astral.sh/uv/">uv</a> to manage your Python environment.
 After cloning the repository, run <code>uv sync</code> to create a virtual environment with all dependencies installed.</p>
+<h2 id="continuous-wave-ephemeris-data">Continuous-wave ephemeris data<a class="headerlink" href="#continuous-wave-ephemeris-data" title="Permanent link">¤</a></h2>
+<p>The CW waveform models (<code>PulsarSignal</code>, <code>ExactPulsarSignal</code>, <code>BinaryPulsarSignal</code>) need a LALPulsar Earth/Sun ephemeris file, which isn't bundled with ripple.
+By default this is downloaded automatically and cached locally the first time it's needed, so most users don't need to do anything.</p>
+<p>If you're running on a machine without internet access -- e.g. an HPC compute node -- that automatic download will fail.
+Run this once on a machine that does have internet access (e.g. the cluster's login node):</p>
+<div class="highlight"><pre><span></span><code>ripplegw-fetch-ephemeris
+</code></pre></div>
+<p>The cache directory (<code>$RIPPLEGW_CACHE_DIR</code>, or <code>~/.cache/ripplegw/ephemeris</code> by default) is normally on shared/home storage, so a later job on a node without internet access will find the file already cached and never attempt a download.</p>
 
 
 

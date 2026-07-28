@@ -797,6 +797,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#site-location" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Site location
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#binary-pulsar-orbit-binarypulsarsignal" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1064,6 +1075,33 @@
     
   
   Testing
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dev/cross_validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Cross-validation Tests
 
     
   </span>
@@ -1625,6 +1663,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#site-location" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Site location
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#binary-pulsar-orbit-binarypulsarsignal" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1836,7 +1885,8 @@ There is no <code>t_c</code> (time of coalescence) parameter — see the <a href
 <p><code>SineGaussian</code>'s axis is a <strong>time</strong> grid centred at zero, not a frequency grid: <code>t = jnp.arange(-duration/2, duration/2, 1/fs)</code>.</p>
 <h2 id="continuous-waves">Continuous waves<a class="headerlink" href="#continuous-waves" title="Permanent link">¤</a></h2>
 <p>The pulsar models use a time axis and share the following source parameters.
-The detector location, ephemerides, observation start time, and number of spin-down terms are set when constructing the waveform, rather than in <code>params</code>.</p>
+The ephemerides, observation start time, and number of spin-down terms are set when constructing the waveform, rather than in <code>params</code>.
+The observing site's location, however, <em>is</em> a <code>params</code> entry (see <a href="#site-location">Site location</a> below) -- it needs to vary per call so a single model instance can be <code>jax.vmap</code>ed over multiple sites.</p>
 <h3 id="sky-position-and-polarization">Sky position and polarization<a class="headerlink" href="#sky-position-and-polarization" title="Permanent link">¤</a></h3>
 <table>
 <thead>
@@ -1898,6 +1948,25 @@ The detector location, ephemerides, observation start time, and number of spin-d
 </table>
 <p>The waveform includes <code>f1</code> through <code>fN</code> when it is constructed with <code>n_spindowns=N</code>.
 With the default <code>n_spindowns=0</code>, only <code>f0</code> is used.</p>
+<h3 id="site-location">Site location<a class="headerlink" href="#site-location" title="Permanent link">¤</a></h3>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Meaning</th>
+<th>Units</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>site_x</code>, <code>site_y</code>, <code>site_z</code></td>
+<td>Observing site's geocentric Cartesian location</td>
+<td>metres</td>
+</tr>
+</tbody>
+</table>
+<p>This is fixed instrument/site metadata (e.g. a <code>LALDetectors.h</code> vertex for H1/L1/V1) -- <strong>not</strong> a physical source parameter -- and should never be treated as a quantity to sample or place a prior on.
+It lives in <code>params</code> rather than in the constructor purely so a single model instance can be <code>jax.vmap</code>ed over multiple observing sites in one call, sharing the expensive site-independent part of the barycentering (Earth ephemeris, rotation, precession/nutation, Einstein delay) across sites instead of recomputing it once per site.</p>
 <h3 id="binary-pulsar-orbit-binarypulsarsignal">Binary-pulsar orbit (<code>BinaryPulsarSignal</code>)<a class="headerlink" href="#binary-pulsar-orbit-binarypulsarsignal" title="Permanent link">¤</a></h3>
 <p><code>BinaryPulsarSignal</code> uses all the parameters above and adds the orbital elements below.</p>
 <table>

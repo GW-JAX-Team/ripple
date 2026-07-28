@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://gw-jax-team.github.io/ripple/development/dev/reference_implementations/">
       
       
-        <link rel="prev" href="../testing/">
+        <link rel="prev" href="../cross_validation/">
       
       
         <link rel="next" href="../../FAQ/">
@@ -29,7 +29,7 @@
     
     
       
-        <title>Reference Implementations and Overlap Loss Thresholds - ripple</title>
+        <title>Reference Implementations and Accuracy Bounds - ripple</title>
       
     
     
@@ -85,7 +85,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#reference-implementations-and-overlap-loss-thresholds" class="md-skip">
+        <a href="#reference-implementations-and-accuracy-bounds" class="md-skip">
           Skip to content
         </a>
       
@@ -123,7 +123,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Reference Implementations and Overlap Loss Thresholds
+              Reference Implementations and Accuracy Bounds
             
           </span>
         </div>
@@ -883,6 +883,33 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../cross_validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Cross-validation Tests
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -1045,6 +1072,29 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#time-domain-waveform-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Time-domain waveform models
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Time-domain waveform models">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sinegaussian" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        SineGaussian
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#continuous-wave-cw-models" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1053,14 +1103,13 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Continuous-wave (CW) models">
-      <ul class="md-nav__list">
+</li>
         
           <li class="md-nav__item">
-  <a href="#supplementary-compiled-function-comparison" class="md-nav__link">
+  <a href="#frequency-dependent-cwmakefakedata-bound" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Supplementary: compiled-function comparison
+        Frequency-dependent <code>CWMakeFakeData</code> bound
       </span>
     </span>
   </a>
@@ -1591,6 +1640,29 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#time-domain-waveform-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Time-domain waveform models
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Time-domain waveform models">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sinegaussian" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        SineGaussian
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#continuous-wave-cw-models" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1599,14 +1671,13 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Continuous-wave (CW) models">
-      <ul class="md-nav__list">
+</li>
         
           <li class="md-nav__item">
-  <a href="#supplementary-compiled-function-comparison" class="md-nav__link">
+  <a href="#frequency-dependent-cwmakefakedata-bound" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Supplementary: compiled-function comparison
+        Frequency-dependent <code>CWMakeFakeData</code> bound
       </span>
     </span>
   </a>
@@ -1647,8 +1718,10 @@
   
 
 
-<h1 id="reference-implementations-and-overlap-loss-thresholds">Reference Implementations and Overlap Loss Thresholds<a class="headerlink" href="#reference-implementations-and-overlap-loss-thresholds" title="Permanent link">¤</a></h1>
-<p>This document records ripple's agreement with external reference implementations. It currently covers LALSuite: the accuracy threshold enforced by <code>tests/cross_validation/fd/test_overlap.py</code>, and — for any waveform whose threshold is looser than machine precision — why.</p>
+<h1 id="reference-implementations-and-accuracy-bounds">Reference Implementations and Accuracy Bounds<a class="headerlink" href="#reference-implementations-and-accuracy-bounds" title="Permanent link">¤</a></h1>
+<p>This is the developer record of ripple's agreement with external reference implementations.
+It currently covers LALSuite, the thresholds enforced by cross-validation, and the reason for any bound looser than machine precision.
+To submit a test, see <a href="../cross_validation/">Cross-validation tests</a>.</p>
 <p>The overlap loss (OL), using the ET-D PSD noise weighting, is</p>
 <div class="arithmatex">\[
 \mathrm{OL} = 1 - \frac{\operatorname{Re}\langle h_1 \mid h_2 \rangle}
@@ -1718,7 +1791,7 @@
 </tr>
 </tbody>
 </table>
-<p>The continuous-wave (CW) models below are validated by a different mechanism (see <a href="#continuous-wave-cw-models">below</a>), not <code>test_overlap.py</code>/<code>tolerances.toml</code>, so they aren't subject to the "stay in sync with <code>tolerances.toml</code>" rule above.</p>
+<p>The time-domain models below use waveform-specific direct comparisons, not the frequency-domain tolerance table.</p>
 <table>
 <thead>
 <tr>
@@ -1729,9 +1802,14 @@
 </thead>
 <tbody>
 <tr>
-<td>ExactPulsarSignal</td>
-<td>1e-10</td>
-<td>machine precision</td>
+<td>SineGaussian vs LALSimulation</td>
+<td>mismatch &lt; 1e-10; relative norm error &lt; 1e-8</td>
+<td>direct centered time series</td>
+</tr>
+<tr>
+<td>ExactPulsarSignal vs direct LALPulsar building blocks</td>
+<td>mismatch &lt; 1e-9; relative norm error &lt; 1e-8</td>
+<td>randomized 512 Hz aligned time series</td>
 </tr>
 <tr>
 <td>PulsarSignal</td>
@@ -1742,6 +1820,16 @@
 <td>BinaryPulsarSignal</td>
 <td>1e-12</td>
 <td>orbital phase only, tight-Kepler regime</td>
+</tr>
+<tr>
+<td>PulsarSignal vs <code>CWMakeFakeData</code></td>
+<td><code>1e-4 + 3e-4·(f0/100Hz)²</code></td>
+<td>LAL reference-interpolation bound, see below</td>
+</tr>
+<tr>
+<td>BinaryPulsarSignal vs <code>CWMakeFakeData</code></td>
+<td><code>2e-3 + 4e-4·(f0/100Hz)²</code></td>
+<td>LAL reference-interpolation bound, see below</td>
 </tr>
 </tbody>
 </table>
@@ -1786,26 +1874,47 @@ Near that resonance, <code>d0+d2+d4</code> is a difference of large, nearly-equa
 <p>Dominated by the same MSA resonance mechanism as XP.
 Beyond that, high aligned-spin cases pick up a small additional contribution from the (3,2) mode (see IMRPhenomXHM above), diluted by the other modes.</p>
 <hr />
-<h2 id="continuous-wave-cw-models">Continuous-wave (CW) models<a class="headerlink" href="#continuous-wave-cw-models" title="Permanent link">¤</a></h2>
-<p>LAL does not SWIG-wrap <code>PulsarSignalParams</code> (it has anonymous nested structs), so <code>XLALSimulateExactPulsarSignal</code>/<code>XLALGeneratePulsarSignal</code> cannot be called directly from Python, and CW's calling convention (a fixed detector + ephemeris + GPS epoch at construction, a time axis, not a frequency grid) doesn't fit the batched <code>ReferenceBackend</code>/<code>tolerances.toml</code> campaign the frequency-domain models above use.
-CW agreement is instead checked by <code>tests/cross_validation/cw/</code> (<code>accuracy</code>-marked, skipped without <code>lalpulsar</code> + an Earth/Sun ephemeris file) -- one file per registered class (<code>test_exact_pulsar_signal.py</code>, <code>test_pulsar_signal.py</code>, <code>test_binary_pulsar_signal.py</code>), each reproducing LAL's own reference computation in Python from its SWIG-exposed building blocks (<code>XLALGetDetectorStates</code>, <code>XLALComputeAMCoeffs</code>, <code>XLALBarycenter</code>, <code>XLALGenerateSpinOrbitCW</code>):</p>
+<h2 id="time-domain-waveform-models">Time-domain waveform models<a class="headerlink" href="#time-domain-waveform-models" title="Permanent link">¤</a></h2>
+<p>Time-domain validation compares directly generated, aligned real samples.
+It never uses an FFT simply to reuse the frequency-domain test setup.
+The white normalized mismatch</p>
+<div class="arithmatex">\[
+m = 1 - \frac{h_1 \mathbin{\cdot} h_2}{\lVert h_1 \rVert\lVert h_2 \rVert}
+\]</div>
+<p>has no whitening or time/phase maximization.
+It checks phase and shape but is unchanged by a global positive amplitude scale, so the SineGaussian, ExactPulsarSignal, and <code>CWMakeFakeData</code> tests also check a relative-norm amplitude error.</p>
+<h3 id="sinegaussian">SineGaussian<a class="headerlink" href="#sinegaussian" title="Permanent link">¤</a></h3>
+<p><code>SineGaussian</code> is compared with <code>lalsimulation.SimBurstSineGaussian</code>.
+The adapter uses LAL's centered sample convention directly; recreating the axis from a floating-point GPS epoch would lose sub-nanosecond information and introduce an artificial high-frequency phase error.
+It compares both polarizations on the reference samples with the FFT-free mismatch and relative-norm diagnostics.</p>
+<h3 id="continuous-wave-cw-models">Continuous-wave (CW) models<a class="headerlink" href="#continuous-wave-cw-models" title="Permanent link">¤</a></h3>
+<p>CW uses a time axis, an ephemeris, an epoch, and a per-call detector site, so it does not fit the stateless frequency-domain reference-backend interface.
+The <code>CWMakeFakeData</code> regression and large-scale test use the shared mismatch and relative-norm amplitude diagnostics above.</p>
+<p>Two independent LALPulsar comparisons provide coverage:</p>
 <ul>
-<li><strong><code>ExactPulsarSignal</code></strong> — reconstructed detector strain vs. a Python transcription of <code>SimulatePulsarSignal.c</code>'s exact (Roemer-only) path: overlap loss &lt; 1e-10 (observed ~3e-13).
-  The geometric delay alone agrees with <code>XLALBarycenter</code> to &lt;&lt; 1 microsecond.</li>
-<li><strong><code>PulsarSignal</code></strong> — same check using the full barycentering delay (Roemer + Earth-rotation with precession/nutation + Einstein − Shapiro), each sample built from <code>XLALBarycenter</code> directly: overlap loss &lt; 1e-10 (observed ~1e-9).</li>
-<li><strong><code>BinaryPulsarSignal</code></strong> — only the orbital source-phase model is checked automatically, against <code>XLALGenerateSpinOrbitCW</code> in the tight-Kepler regime (<code>f0=1000 Hz</code>): overlap loss &lt; 1e-12.
-  The full binary waveform end-to-end is not yet part of the automated suite (see below).</li>
+<li><strong>Building-block reconstruction</strong> compares each model with a reference built from SWIG-exposed LAL routines (<code>XLALGetDetectorStates</code>, <code>XLALComputeAMCoeffs</code>, <code>XLALBarycenter</code>, and <code>XLALGenerateSpinOrbitCW</code>).
+  It covers <code>ExactPulsarSignal</code>, <code>PulsarSignal</code>, and the binary orbital source phase in its tight-Kepler regime.</li>
+<li><strong><code>CWMakeFakeData</code></strong> compares <code>PulsarSignal</code> and <code>BinaryPulsarSignal</code> with the engine behind <code>lalpulsar_Makefakedata_v5</code>, including detector response, barycentering, and orbital modulation.
+  <code>ExactPulsarSignal</code> is intentionally excluded because this LAL path cannot disable the Einstein/Shapiro terms.</li>
 </ul>
-<p>In all three cases the residual tracks <strong>LAL's own reference precision, not ripple's</strong> — the exact/full floors come from LAL evaluating phase in REAL8 GPS time (<code>t ≈ 1e9</code>, resolving ~0.1 microsecond); ripple's int+frac GPS split is more precise than that floor.</p>
-<h3 id="supplementary-compiled-function-comparison">Supplementary: compiled-function comparison<a class="headerlink" href="#supplementary-compiled-function-comparison" title="Permanent link">¤</a></h3>
-<p>The actual <em>compiled</em> <code>XLALSimulateExactPulsarSignal</code>/<code>XLALGeneratePulsarSignal</code> entry points (not just the SWIG-exposed building blocks above) were also checked manually once, off-repo: all three models agree to log10 overlap loss better than −5, limited by LAL's own Kepler solver tolerance for <code>BinaryPulsarSignal</code>, not ripple's.
-This needs the unwrapped <code>PulsarSignalParams</code> struct layout declared in C, so it isn't reproducible from Python alone and isn't shipped in-tree — the automated check above is what runs in CI.</p>
+<p><code>ExactPulsarSignal</code> also has a randomized large-scale test built from the first reference path.
+It faithfully follows LAL's <code>XLALGPSGetREAL8</code> phase convention on a 512 Hz grid whose timestamps are exactly representable in that format, sampling 10–200 Hz without introducing a grid-created phase floor.
+It checks the direct FFT-free mismatch and the relative-norm amplitude diagnostic.</p>
+<h3 id="frequency-dependent-cwmakefakedata-bound">Frequency-dependent <code>CWMakeFakeData</code> bound<a class="headerlink" href="#frequency-dependent-cwmakefakedata-bound" title="Permanent link">¤</a></h3>
+<p>The <code>CWMakeFakeData</code> mismatch is not a flat numerical floor: the large-scale test finds it grows approximately as <span class="arithmatex">\(f_0^2\)</span>.
+This is a limitation of the LAL reference path.
+<code>PulsarSimulateCoherentGW.c</code>, reached through <code>CWMakeFakeData</code>, uses a hard-coded 400-second delay-table half interval (800 seconds between tabulated delay values) and linearly interpolates at each output sample.
+Its source comments estimate a delay error of order microseconds.
+A delay-induced phase error scales with <span class="arithmatex">\(f_0\)</span>, so the normalized mismatch naturally scales approximately as <span class="arithmatex">\(f_0^2\)</span>.</p>
+<p>The frequency-dependent bounds above are calibrated to that reference approximation, not evidence that ripple should add the same interpolation.
+Recalibrate them after changing the sampled parameter range or LAL version.
+Run the selected CW test through <a href="../cross_validation/">Cross-validation tests</a>; it requires LALPulsar and Earth/Sun ephemerides visible to the worker.</p>
 <hr />
 <h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">¤</a></h2>
 <ul>
 <li>A different random seed or parameter range may give different extreme values; thresholds carry margin over what's been observed to allow for that variation.</li>
-<li>OL is not maximised over time or phase shifts — it is the raw, un-maximised overlap between ripple and LAL waveforms with identical input parameters.</li>
-<li>IMRPhenomXAS_NRTidalv3's BNS-band frequency grid can exceed available host memory at large <code>--n-samples</code> on GPU; the OOM-retry ladder in <code>campaign.py</code> only handles GPU/JAX OOM, not host-side array allocation.</li>
+<li>The frequency-domain overlap loss is not maximised over time or phase shifts; it is the raw comparison between ripple and LAL waveforms with identical input parameters.</li>
+<li>IMRPhenomXAS_NRTidalv3's BNS-band frequency grid can exceed available host memory at large <code>--n-samples</code> on GPU; the OOM-retry ladder in the frequency-domain test runner only handles GPU/JAX OOM, not host-side array allocation.</li>
 </ul>
 
 
