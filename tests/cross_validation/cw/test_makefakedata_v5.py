@@ -14,13 +14,21 @@ directly, which is why that function "cannot be called directly from Python", pe
 ``docs/dev/reference_implementations.md``). ``XLALCWMakeFakeData`` is a thin wrapper
 around exactly that function (see ``CWMakeFakeData.c``), so this is a genuinely
 independent code path from what the other two files check, at that pipeline's own,
-looser precision: empirically, ~1e-7 regardless of ``sourceDeltaT`` or signal duration
-(16s to 1hr tested) -- a hard ``REAL4`` (float32) floor inside ``XLALGeneratePulsarSignal``
-/``XLALPulsarSimulateCoherentGW``, not a tunable interpolation artifact. (LALPulsar's
-other Python-native option, ``lalpulsar.simulateCW.CWSimulator``, was already tried for
-this purpose -- see ``test_full_pulsar_signal.py``'s docstring -- and reaches only ~1e-3
-due to its own internal interpolation; ``CWMakeFakeData`` is a meaningfully tighter
-independent check.)
+looser precision. (LALPulsar's other Python-native option,
+``lalpulsar.simulateCW.CWSimulator``, was already tried for this purpose -- see
+``test_full_pulsar_signal.py``'s docstring -- and reaches only ~1e-3 due to its own
+internal interpolation; ``CWMakeFakeData`` is a meaningfully tighter independent check.)
+
+**The overlap loss against this pipeline is not a flat floor -- it scales as roughly
+f0**2** (fitted exponent ~1.5-1.9 depending on population), a REAL8-GPS-time precision
+effect inside ``XLALGenerateSpinOrbitCW``'s source phase table that's far more
+prominent here than in the building-block tests above (see
+``tests/cross_validation/cw/campaign.py``'s module docstring for the full analysis --
+traced through the LALSuite source plus four differential experiments ruling out
+sampling rate, duration, source-table cadence, and a ripple-side bug). ``_threshold()``
+below is therefore frequency-dependent, calibrated from a 500-trial HPC campaign
+(``test_makefakedata_v5_campaign.py``, f0 log-uniform 10-2000 Hz) rather than a single
+point.
 
 Covers ``PulsarSignal`` and ``BinaryPulsarSignal`` -- both use the full barycentering
 delay that ``XLALGeneratePulsarSignal`` implements. **Not** ``ExactPulsarSignal``:
@@ -70,10 +78,21 @@ pytestmark = [
     ),
 ]
 
-# Overlap-loss threshold: empirically observed ~1e-7 (REAL4 floor inside
-# XLALGeneratePulsarSignal/XLALPulsarSimulateCoherentGW), stable across sourceDeltaT
-# and signal duration -- this leaves ~1 order of magnitude of margin.
-_THRESHOLD = 1e-6
+
+# Overlap-loss threshold vs. f0 (Hz), calibrated from a 500-trial HPC campaign
+# (test_makefakedata_v5_campaign.py, 2026-07-28, n=250 per population, f0 log-uniform
+# 10-2000 Hz -- see docs/dev/reference_implementations.md). Not a flat floor: the
+# loss scales as roughly f0**2 (a REAL8-GPS-time precision effect inside
+# XLALGenerateSpinOrbitCW, see module docstring), plus an additive floor dominating
+# at low f0 (binary's floor is set by LAL's own Kepler-solver tolerance, looser than
+# isolated's). Smallest observed margin over any sampled trial: isolated 25x, binary
+# 13x -- a fresh campaign run may want to re-derive these constants rather than
+# assume they still hold with the same margin at a much larger --n-samples.
+def _threshold(f0: float, *, is_binary: bool) -> float:
+    floor = 2e-3 if is_binary else 1e-4
+    coeff = 4e-4 if is_binary else 3e-4
+    return floor + coeff * (f0 / 100.0) ** 2
+
 
 _START_GPS = 1_000_000_000
 _ALPHA, _DELTA, _PSI = 1.3, -0.5, 0.37
@@ -143,8 +162,13 @@ def test_pulsar_signal_matches_makefakedata_v5():
     h_ref = tseries.data.data
 
     loss = overlap_loss(h_mine, h_ref)
-    print(f"\nPulsarSignal vs CWMakeFakeData: overlap loss = {loss:.2e} (log10 = {log10_str(loss)})")
-    assert loss < _THRESHOLD, f"overlap loss {loss:.2e} (log10={log10_str(loss)})"
+    threshold = _threshold(_F0, is_binary=False)
+    print(
+        f"\nPulsarSignal vs CWMakeFakeData: overlap loss = {loss:.2e} (log10 = {log10_str(loss)})"
+    )
+    assert loss < threshold, (
+        f"overlap loss {loss:.2e} (log10={log10_str(loss)}) >= threshold {threshold:.2e}"
+    )
 
 
 def test_binary_pulsar_signal_matches_makefakedata_v5():
@@ -220,5 +244,10 @@ def test_binary_pulsar_signal_matches_makefakedata_v5():
     h_ref = tseries.data.data
 
     loss = overlap_loss(h_mine, h_ref)
-    print(f"\nBinaryPulsarSignal vs CWMakeFakeData: overlap loss = {loss:.2e} (log10 = {log10_str(loss)})")
-    assert loss < _THRESHOLD, f"overlap loss {loss:.2e} (log10={log10_str(loss)})"
+    threshold = _threshold(_F0, is_binary=True)
+    print(
+        f"\nBinaryPulsarSignal vs CWMakeFakeData: overlap loss = {loss:.2e} (log10 = {log10_str(loss)})"
+    )
+    assert loss < threshold, (
+        f"overlap loss {loss:.2e} (log10={log10_str(loss)}) >= threshold {threshold:.2e}"
+    )

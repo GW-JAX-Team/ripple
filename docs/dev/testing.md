@@ -52,6 +52,7 @@ The accuracy tests are organised by validation method rather than source type:
 - **`cross_validation/cw/`** — continuous-wave models.
   These are time-domain models with an ephemeris and epoch fixed at construction (the observing site's location is a per-call parameter), so they do not fit `ReferenceBackend`.
   Each registered class has a dedicated test that reconstructs LAL's reference calculation from SWIG-exposed building blocks, plus an independent end-to-end check (`test_makefakedata_v5.py`) against the `lalpulsar_Makefakedata_v5` engine for the classes it can validate; shared helpers live in `cw/_lal_helpers.py`.
+  `test_makefakedata_v5_campaign.py` (batch machinery in `cw/campaign.py`) runs the same comparison over a random sky-position/frequency/site/orbital-element sweep at HPC scale (`cw/submit_slurm.sh`) to calibrate `test_makefakedata_v5.py`'s frequency-dependent threshold from real evidence rather than a single point; not run by default (expensive at a useful `--n-samples`).
   See [Reference Implementations](reference_implementations.md).
 
 Thresholds live in `tests/cross_validation/tolerances.toml`: one `[<backend>.<waveform>]` block per model, with `[<backend>.defaults]` providing fallback values.

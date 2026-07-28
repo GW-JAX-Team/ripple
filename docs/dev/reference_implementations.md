@@ -34,6 +34,8 @@ The continuous-wave (CW) models below are validated by a different mechanism (se
 | ExactPulsarSignal | 1e-10 | machine precision |
 | PulsarSignal | 1e-10 | machine precision |
 | BinaryPulsarSignal | 1e-12 | orbital phase only, tight-Kepler regime |
+| PulsarSignal vs `CWMakeFakeData` | `1e-4 + 3e-4·(f0/100Hz)²` | frequency-dependent, see below |
+| BinaryPulsarSignal vs `CWMakeFakeData` | `2e-3 + 4e-4·(f0/100Hz)²` | frequency-dependent, see below |
 
 ---
 
@@ -111,11 +113,20 @@ CW agreement is checked by `tests/cross_validation/cw/` (`accuracy`-marked, skip
 
 In all three cases the residual tracks **LAL's own reference precision, not ripple's** — the exact/full floors come from LAL evaluating phase in REAL8 GPS time (`t ≈ 1e9`, resolving ~0.1 microsecond); ripple's int+frac GPS split is more precise than that floor.
 
-**`lalpulsar_Makefakedata_v5` engine** — `test_makefakedata_v5.py` instead drives `XLALCWMakeFakeData` (the literal engine behind the `lalpulsar_Makefakedata_v5` CLI real CW searches use for injections/MDCs), via its SWIG-wrapped "modern" `PulsarParams`/`CWMFDataParams` structs. `XLALCWMakeFakeData` is a thin wrapper around `XLALGeneratePulsarSignal` (the same function the anonymous-nested-struct `PulsarSignalParams` above blocks direct SWIG access to), so this is a genuinely independent code path from the building-block tests, at that pipeline's own looser precision: overlap loss < 1e-6 (observed ~1e-7, a hard `REAL4`/float32 floor inside `XLALGeneratePulsarSignal`/`XLALPulsarSimulateCoherentGW` -- empirically unaffected by `sourceDeltaT` or signal duration from 16s to 1hr). Covers `PulsarSignal` and `BinaryPulsarSignal` (both use the full barycentering delay this pipeline implements); not `ExactPulsarSignal`, since LAL has no toggle to disable the Einstein/Shapiro terms here.
+**`lalpulsar_Makefakedata_v5` engine** — `test_makefakedata_v5.py` instead drives `XLALCWMakeFakeData` (the literal engine behind the `lalpulsar_Makefakedata_v5` CLI real CW searches use for injections/MDCs), via its SWIG-wrapped "modern" `PulsarParams`/`CWMFDataParams` structs. `XLALCWMakeFakeData` is a thin wrapper around `XLALGeneratePulsarSignal` (the same function the anonymous-nested-struct `PulsarSignalParams` above blocks direct SWIG access to), so this is a genuinely independent code path from the building-block tests. Covers `PulsarSignal` and `BinaryPulsarSignal` (both use the full barycentering delay this pipeline implements); not `ExactPulsarSignal`, since LAL has no toggle to disable the Einstein/Shapiro terms here.
 
 LALPulsar's other Python-native option, `lalpulsar.simulateCW.CWSimulator`, was tried first and rejected: it reaches only ~1e-3 due to its own internal interpolation, too loose to be useful here.
 
 This `Makefakedata_v5`-based check is also the first automated, in-repo, end-to-end validation of `BinaryPulsarSignal`'s full waveform (barycentering + orbital modulation + antenna response combined) — previously this was only checked manually, off-repo, against the compiled `XLALGeneratePulsarSignal` entry point directly (all three models agreed to log10 overlap loss better than −5, limited by LAL's own Kepler solver tolerance for `BinaryPulsarSignal`, not ripple's). `CWMakeFakeData`'s SWIG-friendly wrapper structs make that same check reproducible from Python alone, in-tree, in CI.
+
+**The overlap loss against this pipeline is not a flat floor — it scales as roughly f0².** The fixed single-point regression test above (f0=12.3 Hz) originally reported this as a flat ~1e-7 `REAL4` floor. An HPC-scale Monte Carlo campaign (`test_makefakedata_v5_campaign.py`, sky position/amplitude/f0/spindown/site/orbital-element sweep, f0 log-uniform 10–2000 Hz — the typical CW all-sky search band) instead found:
+
+- Overlap loss vs. `f0` fits `loss(f0) ≈ C·(f0/100 Hz)^p` with `p ≈ 1.9` for isolated pulsars and `p ≈ 1.5` for binaries (500-trial run, 2026-07-28), reaching up to ~3e-3 (isolated) and ~6e-3 (binary) at f0 ≈ 2000 Hz — three to four orders of magnitude looser than the single-point f0=12.3 measurement suggested.
+- Traced to source: `CWMakeFakeData.c` → `XLALGenerateCWSignalTS` → `XLALGeneratePulsarSignal` → `XLALPulsarSimulateCoherentGW`, whose source phase table comes from `XLALGenerateSpinOrbitCW` using plain REAL8 GPS-second-scale time representations (~1e9 magnitude) rather than ripple's own int+frac split — the same class of floor already noted above for the building-block tests, just far more prominent in this code path.
+- Four differential experiments confirm this is a genuine LAL-side effect, not a ripple bug or test artifact: the loss is invariant to `Band`/sampling rate and to `sourceDeltaT` (60s down to 0.01s — ruling out phase-table interpolation error), tracks the pulsar's absolute f0 rather than the heterodyne/residual frequency (tested by decoupling fHet from f0: identical loss whether fHet≈f0 or fHet≪f0), and is *not* reproduced by casting ripple's own float64 output through a float32 round-trip (~1e-16, flat in f0 — twelve orders of magnitude too small to explain the observed effect).
+- `_threshold()` in `test_makefakedata_v5.py` is a floor-plus-power-law fit calibrated from that 500-trial campaign, with ≥13x (binary) / ≥25x (isolated) margin over every sampled trial. A larger `--n-samples` re-run may want to re-derive these constants rather than assume the same margin holds.
+
+See `tests/cross_validation/cw/campaign.py`'s module docstring for the full writeup, and `test_makefakedata_v5_campaign.py` / `submit_slurm.sh` to reproduce or extend the campaign.
 
 ---
 
