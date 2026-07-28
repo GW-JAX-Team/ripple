@@ -1,6 +1,6 @@
 # Adding a Waveform
 
-Read [Architecture](architecture.md) first. This page covers the public model contract, registration, and validation; use an existing nearby model as the implementation reference.
+Read [Architecture](architecture.md) first. This page explains what a public waveform class must provide, how it is registered, and how it is validated; use an existing nearby model as the implementation reference.
 
 ## Set up
 
@@ -52,7 +52,7 @@ class NewWaveform(AmplitudePhaseWaveform, DistanceScaledWaveform):
 
 `AmplitudePhaseWaveform` requires `amplitude()` and `phase()` in addition to `__call__`; its `strain()` method builds their complex product.
 
-## Implement the public contract
+## Implement the public interface
 
 Configuration is fixed at construction; source parameters are supplied on each call in `params`.
 Do not put per-call parameters in `__init__`.

@@ -242,7 +242,7 @@ def test_top_level_unknown_attr_raises():
         ripplegw.DefinitelyNotAWaveform  # noqa: B018 - attribute access is the point of this test
 
 
-# --- ABC contract ------------------------------------------------------------
+# --- ABC requirements --------------------------------------------------------
 
 
 def test_waveform_abc_cannot_instantiate():

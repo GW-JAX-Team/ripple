@@ -2,7 +2,7 @@
 
 ripple has two complementary test layers:
 
-- The fast suite protects the public waveform contract and JAX behaviour.
+- The fast suite checks the registered waveform interface and JAX behaviour.
 - Reference comparisons check numerical agreement against an external implementation.
 
 Registration adds a waveform to the first layer automatically.
@@ -25,9 +25,9 @@ Every registered waveform therefore receives the following baseline coverage.
 
 | Coverage | What is checked |
 | --- | --- |
-| Public contract | Registry construction, `parameter_names`, `repr`, `{"p", "c"}` output, shape, dtype, and finite values. |
+| Waveform interface | Registry construction, `parameter_names`, `repr`, `{"p", "c"}` output, shape, dtype, and finite values. |
 | JAX | Eager and `jax.jit` agreement, parameter batching with `jax.vmap`, and finite gradients. |
-| Declared capabilities | `AmplitudePhaseWaveform` and `DistanceScaledWaveform` contracts, only for models that implement them. |
+| Optional interfaces | `AmplitudePhaseWaveform` methods and `DistanceScaledWaveform` distance scaling, when implemented. |
 | Declared physical features | Edge cases selected by metadata or parameters: aligned/precessing spins, tidal deformability, inclination, and time-domain shape parameters. |
 
 The three built-in continuous-wave models also have dedicated integration tests for their non-default configurations and batches over distinct detector sites.
