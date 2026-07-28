@@ -1,22 +1,9 @@
-"""Large-scale FFT-free validation of ``ExactPulsarSignal`` against LALPulsar.
+"""Large-scale direct-LAL validation of ``ExactPulsarSignal``.
 
-Unlike the full CW models, the exact model intentionally excludes the
-Einstein/Shapiro terms and therefore cannot use ``CWMakeFakeData`` as a
-reference.  ``exact_runner.py`` instead constructs LAL's matching geometric
-model directly from detector states and antenna coefficients over a randomized
-parameter sweep.
-
-Like the ``CWMakeFakeData`` mismatch (see ``runner.py``), this mismatch is not a
-flat floor either -- a 1000-trial run (2026-07-28, f0 in 10-200 Hz) found a clean
-f0**2 scaling (log-log fit exponent ~1.97), just at a ~100x tighter absolute scale
-(~1e-9 vs ~1e-6) since this is the exact-building-block methodology (LAL's own
-REAL8 GPS-time phase evaluation, not the REAL4 CWMakeFakeData floor). The relative
-norm error showed no comparable f0 trend (log-log correlation ~0.13).
-
-Both thresholds below are "just above observed" (rounded up to the nearest power
-of ten from the 2026-07-28 n=1000 run), not generously margined -- a fresh
-large-scale test at a different ``--n-samples`` or parameter range may exceed
-them and require re-deriving these constants.
+``ExactPulsarSignal`` deliberately uses geometric-only timing, so the test
+builds LAL's matching reference from detector states and antenna coefficients
+rather than ``CWMakeFakeData``. Each randomized trial is checked with a
+frequency-scaled time-domain mismatch limit and a relative norm-error limit.
 """
 
 from pathlib import Path
@@ -47,18 +34,17 @@ pytestmark = [
 ]
 
 
-# Pure f0**2 scaling, no additive floor needed -- the power law alone stays above
-# every observed point in the 2026-07-28 n=1000 run (max 2.43e-9 at f0~191 Hz).
+# Frequency-scaled mismatch limit for the direct-LAL comparison.
 def _mismatch_threshold(f0: float) -> float:
     return 1e-9 * (f0 / 100.0) ** 2
 
 
-# Flat: relative norm error showed no comparable f0 trend. Observed max 1.58e-8.
+# Relative amplitude-scale limit for the direct-LAL comparison.
 _NORM_ERROR_THRESHOLD = 1e-7
 
 
 def test_exact_pulsar_signal_lal_large_scale(n_samples, accuracy_outdir, make_plots):
-    """The registered geometric-only waveform agrees with LAL across a sweep."""
+    """Validate the registered geometric-only waveform across a randomized sweep."""
     result = run_large_scale_test(
         n_samples,
         lal=lal,

@@ -1,11 +1,7 @@
-"""Batch machinery for the large-scale cross-validation test.
+"""Shared support for frequency-domain cross-validation tests.
 
-Not a test module: this holds everything ``test_overlap.py`` and
-``test_phase_convention.py`` need that is not the assertion itself -- batch
-generation against a reference backend, an on-disk cache, an OOM-retry
-ladder for the GPU ``vmap`` path, and CSV/figure output. Keeping this out of
-the test files is what keeps them short and keeps matplotlib an optional,
-``--plots``-gated import.
+This module samples parameters, generates reference and ripple waveforms,
+computes PSD-weighted overlap loss, and writes optional JSON results and plots.
 """
 
 import json
@@ -31,12 +27,9 @@ PSD_PATH = Path(__file__).parent.parent / "psds" / "ET_D_psd.txt"
 
 
 def load_psd() -> tuple[np.ndarray, np.ndarray]:
-    """Einstein Telescope D-design PSD used for the noise-weighted overlap loss.
+    """Return the PSD used for frequency-domain overlap loss.
 
-    All documented thresholds in ``tolerances.toml`` / ``docs/dev/reference_implementations.md``
-    are calibrated against this specific weighting -- the error magnitude for
-    the non-machine-precision models depends on which frequencies dominate the
-    inner product, so a different PSD (or none) would not reproduce them.
+    The configured overlap-loss limits apply to this weighting.
     """
     freqs, psd = np.loadtxt(PSD_PATH, unpack=True)
     return freqs, psd
@@ -61,11 +54,7 @@ def get_tolerance(tolerances: dict, backend: str, waveform: str, kind: str) -> f
 
 
 def default_grid(wf, *, T_override: float | None = None) -> Grid:
-    """The frequency band the test generates on, regime-scoped like ``random_params_batch``.
-
-    BNS (tidal) models get a longer segment and a wider band than BBH models,
-    matching the inspiral duration/merger frequency each regime needs.
-    """
+    """Return the regime-appropriate frequency grid for one waveform."""
     is_bns = regime(wf) == "bns"
     T = T_override if T_override is not None else (128.0 if is_bns else 32.0)
     f_u = 4096.0 if is_bns else 2048.0

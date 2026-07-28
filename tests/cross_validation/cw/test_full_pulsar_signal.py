@@ -1,16 +1,9 @@
 """Cross-validation of ``PulsarSignal`` against LALPulsar.
 
-The full (isolated-pulsar) generator uses the complete barycentering delay (Roemer +
-Earth-rotation with precession/nutation + Einstein - Shapiro), unlike
-``ExactPulsarSignal``'s geometric-only delay (see ``test_exact_pulsar_signal.py``). The
-reference strain is built sample-by-sample from ``XLALBarycenter`` (the same routine LAL
-uses internally) and the standard antenna response; LAL's high-level ``CWSimulator`` only
-reaches ~1e-3 here due to its internal interpolation, so this compares against
-``XLALBarycenter`` directly instead.
-
-Skipped unless both ``lalpulsar`` and an Earth/Sun ephemeris file are available -- point
-``RIPPLE_EARTH_EPHEMERIS`` (and optionally ``RIPPLE_SUN_EPHEMERIS``) at a LALPulsar
-``earth*``/``sun*`` file to run it.
+The isolated-pulsar generator includes the full barycentering delay, unlike
+geometric-only ``ExactPulsarSignal``. This test builds a per-sample LAL
+reference from ``XLALBarycenter`` and LAL's antenna response. It requires
+``lalpulsar`` and Earth/Sun ephemerides.
 """
 
 import math

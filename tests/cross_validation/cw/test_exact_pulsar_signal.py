@@ -1,19 +1,10 @@
 """Cross-validation of ``ExactPulsarSignal`` against LALPulsar.
 
-Reproduces the body of ``SimulatePulsarSignal.c`` (lines ~246-284) in Python using LAL's
-*own* building blocks -- the detector states (``XLALGetDetectorStates`` -> ``rDetector``)
-and antenna-pattern coefficients (``XLALComputeAMCoeffs`` -> ``a, b``) -- to form the
-reference detector strain. We then reconstruct that strain from ripple's plus/cross
-polarizations combined with LAL's antenna patterns, and require agreement. This
-simultaneously checks the barycentered geometric delay, the spindown phase polynomial,
-the reference-time handling, the amplitudes, and the ``{p, c}`` <-> (A1...A4)
-decomposition. A second test checks the underlying geometric delay
-(:func:`ripplegw.waveforms.cw.barycenter.roemer_delay`) against ``XLALBarycenter``
-directly, since it is the primitive ``ExactPulsarSignal`` is built on.
-
-Skipped unless both ``lalpulsar`` and an Earth/Sun ephemeris file are available -- point
-``RIPPLE_EARTH_EPHEMERIS`` (and optionally ``RIPPLE_SUN_EPHEMERIS``) at a LALPulsar
-``earth*``/``sun*`` file to run it.
+The test builds LAL's matching geometric-only detector strain from detector
+states and antenna coefficients, then reconstructs it from ripple
+polarizations. It also compares the underlying geometric delay directly with
+``XLALBarycenter``. Both checks require ``lalpulsar`` and Earth/Sun
+ephemerides.
 """
 
 import math
@@ -48,7 +39,7 @@ pytestmark = [
 
 
 def test_exact_pulsar_matches_lal_reference():
-    """ripple {p,c} + LAL antenna patterns reproduces the LAL exact strain."""
+    """Reconstruct LAL's geometric-only strain from ripple polarizations."""
     sun_file = SUN_FILE if SUN_FILE is not None else EARTH_FILE.replace("earth", "sun")
     eph = read_ephemeris_file(EARTH_FILE)
     edat = lalpulsar.InitBarycenter(EARTH_FILE, sun_file)
@@ -63,7 +54,7 @@ def test_exact_pulsar_matches_lal_reference():
     dt = 1.0 / fs
     n_steps = math.ceil(fs * duration)
 
-    # --- LAL detector states + antenna patterns on the sample timestamps ---
+    # LAL detector states and antenna patterns on the sample timestamps.
     ts = lalpulsar.CreateTimestampVector(n_steps)
     for i in range(n_steps):
         sec = start_gps + int((i * dt) // 1)
@@ -95,7 +86,7 @@ def test_exact_pulsar_matches_lal_reference():
         ]
     )
 
-    # --- reference: transcription of SimulatePulsarSignal.c body ---
+    # LAL geometric-model reference strain.
     fr = det.frDetector
     sin_zeta = math.sin(abs(fr.xArmAzimuthRadians - fr.yArmAzimuthRadians))
     a_p, a_c, two_psi = sin_zeta * aplus, sin_zeta * across, 2 * psi
@@ -116,7 +107,7 @@ def test_exact_pulsar_matches_lal_reference():
         + big_a4 * b * np.sin(phase)
     )
 
-    # --- ripple polarizations + LAL antenna patterns ---
+    # Ripple polarizations projected with LAL antenna patterns.
     t_rel = jnp.arange(n_steps, dtype=jnp.float64) * dt
     hp, hc = exact_pulsar_polarizations(
         t_rel,
@@ -141,12 +132,11 @@ def test_exact_pulsar_matches_lal_reference():
 
     loss = overlap_loss(h_ripple, h_lal)
     print(f"\nexact pulsar: overlap loss = {loss:.2e} (log10 = {log10_str(loss)})")
-    # ~log10 -12.5 in practice; the floor is LAL's float64 GPS-time arithmetic.
     assert loss < 1e-10, f"overlap loss {loss:.2e} (log10={log10_str(loss)})"
 
 
 def test_barycenter_matches_lal_to_microsecond():
-    """The geometric delay n.rDetector matches XLALBarycenter to << 1 us."""
+    """Compare ripple's geometric delay with LAL's detector delay."""
     sun_file = SUN_FILE if SUN_FILE is not None else EARTH_FILE.replace("earth", "sun")
     eph = read_ephemeris_file(EARTH_FILE)
     edat = lalpulsar.InitBarycenter(EARTH_FILE, sun_file)

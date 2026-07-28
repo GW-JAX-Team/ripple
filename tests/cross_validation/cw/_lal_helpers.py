@@ -1,31 +1,9 @@
-"""Shared helpers for CW-vs-LALPulsar cross-validation (tests/cross_validation/cw/).
+"""Helpers shared by CW/LALPulsar cross-validation tests.
 
-LAL does not SWIG-wrap ``PulsarSignalParams``, so ``XLALSimulateExactPulsarSignal``/
-``XLALGeneratePulsarSignal`` cannot be called directly from Python. Most tests in this
-directory instead reproduce the relevant LAL reference computation in Python from its
-SWIG-exposed building blocks (``XLALGetDetectorStates``, ``XLALComputeAMCoeffs``,
-``XLALBarycenter``, ``XLALGenerateSpinOrbitCW``) -- this is why CW has its own directory
-here instead of a ``ReferenceBackend`` in ``reference/`` like the large-scale test in
-``cross_validation/fd/``. ``test_makefakedata_v5.py`` instead drives the actual
-``lalpulsar_Makefakedata_v5`` engine (``XLALCWMakeFakeData``, SWIG-wrapped via the
-"modern" ``PulsarParams``/``CWMFDataParams`` structs, unlike the anonymous-nested-struct
-``PulsarSignalParams`` those functions wrap internally) -- a genuinely independent code
-path, at that pipeline's own frequency-dependent delay-interpolation bound rather than
-the ``XLALBarycenter``-based tests' ~1e-9 to ~1e-13. See
-``docs/dev/reference_implementations.md`` for the per-model methodology and accuracy
-numbers.
-
-Not itself a test module (no ``test_`` prefix, not collected by pytest) -- just the
-pieces every file in this directory would otherwise duplicate: locating the ephemeris
-files; an FFT-free, white normalized time-domain mismatch for identical sample grids
-(rather than ``tests.helpers.metrics.overlap_loss``, which requires a PSD and a
-frequency axis); and (for ``test_makefakedata_v5.py``) driving ``CWMakeFakeData`` and
-combining ripple's polarizations into detector strain via LAL's own antenna response.
-Each test module still does its own ``pytest.importorskip("lal")`` / ``"lalpulsar"`` and
-``pytest.mark.skipif`` on the ephemeris files -- a module-level skip in a shared
-``conftest.py`` does not degrade gracefully when the import itself is what's missing (it
-raises during pytest's initial conftest loading instead of being reported as a skip), so
-each module keeps its own skip guard rather than centralizing it there.
+Direct-LAL tests build reference strains from SWIG-exposed LALPulsar routines;
+the MakeFakeData tests use ``XLALCWMakeFakeData``. This module provides
+ephemeris lookup, same-grid time-domain mismatch, detector projection, and
+MakeFakeData setup. Individual tests own their dependency skips.
 """
 
 import math
@@ -37,14 +15,10 @@ from tests.helpers.metrics import time_domain_overlap_loss
 
 
 def find_ephemeris():
-    """Locate Earth and Sun ephemeris files (both must exist), or ``(None, None)``.
-
-    ``lalpulsar.InitBarycenter`` requires both files, so this only returns a pair
-    when both are present (otherwise the caller should skip rather than hard-fail).
-    """
+    """Return existing Earth and Sun ephemeris paths, or ``(None, None)``."""
     earth = os.environ.get("RIPPLE_EARTH_EPHEMERIS")
     if earth and os.path.exists(earth):
-        # Use RIPPLE_SUN_EPHEMERIS if given, else guess the Sun file next to it.
+        # Prefer the explicit Sun path; otherwise infer a sibling file.
         sun = os.environ.get("RIPPLE_SUN_EPHEMERIS") or earth.replace("earth", "sun")
         if os.path.exists(sun):
             return earth, sun
@@ -60,7 +34,7 @@ def find_ephemeris():
 
 
 def overlap_loss(h1, h2) -> float:
-    """Backward-compatible CW name for the shared time-domain mismatch helper."""
+    """CW alias for the shared same-grid time-domain mismatch."""
     return time_domain_overlap_loss(h1, h2)
 
 
@@ -94,46 +68,10 @@ def make_fake_data_v5(
     band: float,
     source_delta_t: float = 0.0,
 ):
-    """Noise-free ``REAL8TimeSeries`` for one pulsar at one site, via LALPulsar's
-    ``CWMakeFakeData`` -- the same ``XLALCWMakeFakeData`` engine ``lalpulsar_Makefakedata_v5``
-    calls, driven entirely from Python (no CLI, no C).
+    """Generate noise-free detector strain through LALPulsar's ``CWMakeFakeData``.
 
-    ``asini=0`` (the default) gives an isolated pulsar, matching
-    ``XLALGeneratePulsarSignal``'s own convention (see ``GeneratePulsarSignal.c``:
-    ``if (params->orbit.asini > 0) {...} else {/* isolated pulsar */}``).
-
-    Args:
-        lal, lalpulsar: The ``lal``/``lalpulsar`` modules, already imported by the
-            caller via ``pytest.importorskip`` (this helper takes no dependency on
-            them existing beyond what's needed when it's actually called).
-        edat: Output of ``lalpulsar.InitBarycenter``.
-        det_prefix (str): Two-character detector prefix, e.g. ``"H1"``.
-        alpha, delta (float): Sky position (radians).
-        psi (float): Polarization angle (radians) -- needed here (unlike ripple's own
-            polarizations-only output) because ``CWMakeFakeData`` returns combined
-            detector strain, not ``{"p", "c"}``.
-        phi0 (float): Initial phase (radians).
-        aplus, across (float): Polarization amplitudes.
-        f0 (float): Wave frequency at ``start_gps`` (Hz).
-        fkdot (tuple): Spindown terms ``(f1, f2, ...)``.
-        asini, ecc, period, argp, tp_ssb: Orbital elements (as in
-            ``generate_binary_pulsar_polarizations``); ``asini=0`` means isolated.
-        start_gps (int): GPS second of the reference time and of the first output
-            sample.
-        duration (float): Requested output duration (seconds).
-        fmin, band (float): Frequency band passed to ``CWMFDataParams`` -- this also
-            determines the output sampling rate, and (see the module docstring in
-            ``test_makefakedata_v5.py``) ``CWMakeFakeData`` heterodynes its output by
-            ``fmin``, so the returned series' ``.f0`` must be passed to ripple's own
-            ``f_heterodyne`` for a fair comparison.
-        source_delta_t (float): ``CWMFDataParams.sourceDeltaT`` (0 = LAL's internal
-            default, 60s isolated / 5s binary). It controls the source table, but not
-            the dominant ``f0``-dependent comparison floor: downstream
-            ``XLALPulsarSimulateCoherentGW`` linearly interpolates barycentric delays
-            from a hard-coded 400-second half-interval table (800-second node spacing).
-
-    Returns:
-        A LAL ``REAL8TimeSeries``: noise-free detector strain, heterodyned by ``fmin``.
+    ``asini=0`` selects an isolated source. ``fmin`` heterodynes the returned
+    series, so its ``.f0`` must be passed to ripple as ``f_heterodyne``.
     """
     data_params = lalpulsar.CWMFDataParams()
     data_params.fMin = fmin
@@ -167,24 +105,7 @@ def make_fake_data_v5(
 
 
 def detector_strain_from_am_response(lal, det, alpha, delta, psi, tseries, hp, hc):
-    """Combine ripple polarizations into detector strain via LAL's antenna response.
-
-    Uses the same per-sample ``GreenwichMeanSiderealTime`` + ``ComputeDetAMResponse``
-    convention as ``test_full_pulsar_signal.py``, evaluated at ``tseries``'s own time
-    grid so it lines up sample-for-sample with a :func:`make_fake_data_v5` reference.
-
-    Args:
-        lal: The ``lal`` module, already imported by the caller via
-            ``pytest.importorskip``.
-        det: A ``lal.CachedDetectors`` entry (for ``det.response``).
-        alpha, delta, psi (float): Sky position and polarization angle (radians).
-        tseries: A LAL ``REAL8TimeSeries`` (only ``.epoch``/``.deltaT``/``.data.length``
-            are used -- e.g. the output of :func:`make_fake_data_v5`).
-        hp, hc (array): Ripple's plus/cross polarizations, sampled on the same grid.
-
-    Returns:
-        numpy.ndarray: Detector strain ``F+ hp + F× hc``.
-    """
+    """Project ripple polarizations through LAL's antenna response on ``tseries``'s grid."""
     n = tseries.data.length
     f_plus = np.empty(n)
     f_cross = np.empty(n)

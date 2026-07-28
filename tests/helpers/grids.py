@@ -29,8 +29,8 @@ def time_grid(duration: float, f_sampling: float) -> jnp.ndarray:
 def grid_for(name: str, *, small: bool = False) -> jnp.ndarray:
     """Evaluation axis appropriate for a registered waveform's domain.
 
-    ``small=True`` returns a ~500-point grid, cheap enough for eager (non-jit)
-    edge-case calls; otherwise a production-sized grid.
+    ``small=True`` returns a reduced grid for eager edge-case calls; otherwise
+    it returns the standard test grid.
     """
     domain = ripplegw.get_waveform_metadata(name)["domain"]
     if domain == "FD":

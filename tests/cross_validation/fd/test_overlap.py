@@ -1,21 +1,9 @@
-"""Frequency-domain waveform-accuracy test: ripple vs a reference backend, by overlap loss.
+"""Compare reference-supported frequency-domain waveforms with a backend.
 
-Scoped to ``domain="FD"`` -- the test calls the model with just ``f_ref`` and a
-frequency grid (see ``run_overlap_test``), which only a frequency-domain,
-stateless-per-call model supports. Every registered CBC model happens to be FD today, so
-this scope is currently "all CBC models" in practice, but that's incidental: a future
-frequency-domain model outside CBC is picked up automatically, while a CBC-only scope
-would have missed it. (Burst and continuous-wave are both time-domain, and CW's
-constructor additionally requires a detector/ephemeris/epoch, so neither fits this
-test regardless of domain -- see ``cross_validation/cw/`` for CW's methodology; burst
-has no reference backend yet.)
-
-This is the actual pass/fail criterion for "does ripple still agree with LAL" (or a future
-reference). It is marked ``accuracy`` throughout, and the three models judged most
-representative of the code paths in play (aligned tidal, aligned BBH, precessing+HM) are
-additionally marked ``smoke`` so CI can run a cheap subset on every push to ``main``
-without running the full large-scale test. See ``docs/dev/reference_implementations.md`` for the documented
-cause of every non-machine-precision threshold in ``tolerances.toml``.
+For every parameter draw, the test computes the PSD-weighted overlap loss of
+both polarizations and requires the worse value to meet that waveform's limit.
+The smoke-marked models provide the small CI subset; time-domain models use
+their own cross-validation adapters.
 """
 
 from pathlib import Path

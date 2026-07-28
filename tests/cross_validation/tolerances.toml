@@ -1,31 +1,10 @@
-# Per-(reference backend, waveform) accuracy thresholds for the large-scale test in
-# test_overlap.py / test_phase_convention.py.
+# Enforced LAL frequency-domain cross-validation limits.
 #
-# overlap_loss: max allowed 1 - noise-weighted overlap between ripple and the
-#   reference, over a Monte Carlo draw of parameter space.
-# phase_offset: max allowed |arg(<h_p,ripple | h_p,ref>)| in radians, at
-#   tc = phi_c = 0 (see test_phase_convention.py).
+# overlap_loss: maximum PSD-weighted ``1 - overlap`` across the sampled points.
+# phase_offset: maximum absolute inner-product phase at ``tc = phi_c = 0``.
 #
-# Most non-default values below are "just above" the max observed in the 2026-07-28
-# n=1000 large-scale campaign, rounded up to the nearest power of ten (see
-# docs/dev/reference_implementations.md's Large-scale campaign results section for
-# the observed values and margin caveats -- several of these carry only a few x
-# margin, tightest for phase_offset since that's a single deterministic point, not
-# a swept statistic).
-#
-# Exception: IMRPhenomXHM/XP/XPHM's overlap_loss is kept at the older 1e-6, NOT
-# rounded up from n=1000 -- these three have a heavy-tailed overlap-loss
-# distribution (driven by the documented near-extremal-spin/mode-mixing corner of
-# parameter space), confirmed by follow-up n=5000 runs the same day: XHM's max grew
-# to 9.75e-6 and XP's to 1.15e-6, both *exceeding* 1e-6 itself. "Round the n=1000 max
-# up to the nearest power of ten" is not a valid calibration strategy for a
-# heavy-tailed statistic; a robust threshold for this family needs a dedicated,
-# much larger campaign (and possibly a different methodology, e.g. explicitly
-# characterizing the bad corner) rather than a quick re-derivation.
-#
-# See docs/dev/reference_implementations.md for the documented cause of each
-# non-machine-precision threshold. cross_validation/test_tolerance_table.py
-# checks this file stays consistent with that table.
+# Waveforms inherit an omitted metric from ``[lal.defaults]``. The tolerance-table
+# test keeps these overlap-loss values aligned with the developer documentation.
 
 [lal.defaults]
 overlap_loss = 1e-6

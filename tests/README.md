@@ -1,7 +1,7 @@
 # ripple test suite
 
 This directory is maintained for contributors.
-For the developer workflow, including the single local/Slurm/HTCondor cross-validation launcher, read [Testing](../docs/dev/testing.md) and [Cross-validation tests](../docs/dev/cross_validation.md).
+For the developer workflow, including the single local/Slurm/HTCondor cross-validation launcher, read [Test Coverage](../docs/dev/test_coverage.md) and [Run Reference Checks](../docs/dev/run_reference_checks.md).
 
 ## Layout
 

@@ -1,9 +1,7 @@
-"""Cross-validation session summary.
+"""Session summary for frequency-domain overlap tests.
 
-Collects one summary dict per completed large-scale test (from ``cross_val_results``)
-and prints a hardware block + results table at the end of the session.
-Per-sample data and run metadata are written by ``runner.write_results``
-under ``--outdir``; this hook is display-only.
+``test_overlap.py`` appends one result per waveform; this hook displays the
+summary while the test runner writes detailed output under ``--outdir``.
 """
 
 import platform
@@ -22,11 +20,7 @@ def pytest_configure(config):
 
 @pytest.fixture(scope="session")
 def reference(reference_name):
-    """The reference backend selected by ``--reference`` (default: lal).
-
-    Skips every test that depends on this fixture -- i.e. the whole module --
-    when the backend's dependency (e.g. LALSuite) is not installed.
-    """
+    """Return the selected reference backend, or skip when it is unavailable."""
     backend = get_backend(reference_name)
     if not backend.available():
         pytest.skip(
@@ -37,7 +31,7 @@ def reference(reference_name):
 
 @pytest.fixture(scope="session")
 def cross_val_results(request):
-    """Session-scoped list of summary dicts, one per completed large-scale test::
+    """Session-scoped FD overlap summaries::
 
     {"waveform": str, "reference": str, "n_samples": int, "n_failed": int,
      "mean": float, "median": float, "max": float, "threshold": float,

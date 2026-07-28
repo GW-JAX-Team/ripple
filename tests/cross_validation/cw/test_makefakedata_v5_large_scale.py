@@ -1,30 +1,13 @@
-"""Large-scale CW-vs-``CWMakeFakeData`` test: fits the mismatch-vs-f0 scaling law.
+"""Large-scale end-to-end CW validation against ``CWMakeFakeData``.
 
-``test_makefakedata_v5.py`` checks agreement at one fixed point (f0=12.3 Hz), enough
-for a small regression check but not enough to characterize the floor's actual
-behavior. The direct, normalized time-domain mismatch vs. ``CWMakeFakeData`` is **not
-a flat floor -- it scales as roughly f0**2** because LAL linearly interpolates a
-barycentric-delay table with a hard-coded 400-second half interval (see
-``runner.py``). This file runs the
-comparison over a random draw of ``--n-samples`` trials spanning sky position,
-amplitude parameters, f0 (log-uniform, 10-2000 Hz -- the typical CW all-sky search
-band), spindown, detector site, and (for roughly half) binary orbital elements, then
-fits ``loss(f0) ~= C * (f0/100Hz)**exponent`` per population. ``runner.py``'s
-``mismatch_threshold(f0, is_binary)`` -- shared with ``test_makefakedata_v5.py``'s
-single fixed point -- is calibrated from this fit (2026-07-28, n=1000 per
-population), checked per trial against every sampled f0/population here, not just
-against the reported max.
+The test samples sky position, amplitudes, frequency, spindown, detector site,
+duration, and binary orbital elements where applicable. Each testable trial
+must meet the shared frequency-scaled mismatch limit and relative norm-error
+limit. Output includes a diagnostic mismatch-frequency fit.
 
-Not run by default CI (expensive at any useful ``--n-samples``). Launch a selected
-CW model through the unified launcher, for example::
-
-    python -m tests.cross_validation.submit --scheduler slurm \\
-        --waveform PulsarSignal --n-samples 500 --outdir accuracy-results/cw --plots
-
-Choose ``BinaryPulsarSignal`` instead to run its separate large-scale test.
-
-Skipped, like every other file in this directory, unless both ``lalpulsar`` and an
-Earth/Sun ephemeris file are available.
+``--cw-waveform`` selects one model; direct pytest uses a mixed isolated/binary
+sweep when it is omitted. The test requires ``lalpulsar`` and Earth/Sun
+ephemerides.
 """
 
 from pathlib import Path
@@ -57,15 +40,10 @@ pytestmark = [
     ),
 ]
 
-# mismatch_threshold and MAX_RELATIVE_NORM_ERROR live in runner.py, shared with
-# test_makefakedata_v5.py's single fixed point -- see that module's docstring for
-# the mechanism (f0**2 delay-table interpolation) and the antenna-response-table
-# mechanism behind the flat norm-error ceiling.
-
-
 def test_makefakedata_v5_large_scale(
     n_samples, accuracy_outdir, make_plots, cw_waveform
 ):
+    """Validate the selected CW model across randomized LALPulsar trials."""
     result = run_large_scale_test(
         n_samples, lal=lal, lalpulsar=lalpulsar, waveform=cw_waveform
     )

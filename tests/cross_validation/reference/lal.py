@@ -7,9 +7,8 @@ convention internally, so callers never need to know LAL's argument order.
 Three families need calls beyond the generic ``SimInspiralChooseFDWaveform``
 path:
 
-- **IMRPhenomXP** sets ``PhenomXPrecVersion=222``, which raises on MSA-init
-  failure instead of silently falling back to NNLO (223) -- callers treat
-  that exception as an MSA fallback, not a real failure.
+- **IMRPhenomXP** sets ``PhenomXPrecVersion=222``, which makes an MSA-init
+  failure explicit instead of silently selecting the NNLO approximation (223).
 - **IMRPhenomXPHM** uses ``SimIMRPhenomXPHM`` directly to configure the mode
   array, ``TwistPhenomHM=0`` (XHM co-precessing seed, matching ripple), and
   the same ``PrecVersion=222``.

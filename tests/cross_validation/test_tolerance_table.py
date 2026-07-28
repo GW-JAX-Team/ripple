@@ -3,7 +3,7 @@
 1. Every waveform an available backend claims to ``supports()`` has a
    tolerance entry -- a new model cannot land with its agreement unrecorded.
 2. The overlap-loss thresholds match the documented table in
-   docs/dev/reference_implementations.md, so that table cannot silently drift from what
+   docs/dev/reference_comparisons_and_limits.md, so that table cannot silently drift from what
    is actually enforced.
 """
 
@@ -19,7 +19,7 @@ from tests.cross_validation.runner import load_tolerances
 _TOLERANCES = load_tolerances()
 _REPO_ROOT = Path(__file__).parents[2]
 _REFERENCE_IMPLEMENTATIONS_MD = (
-    _REPO_ROOT / "docs" / "dev" / "reference_implementations.md"
+    _REPO_ROOT / "docs" / "dev" / "reference_comparisons_and_limits.md"
 )
 
 
@@ -56,7 +56,7 @@ def test_reference_implementations_doc_matches_tolerances_toml():
         if name not in lal_table:
             continue  # non-waveform table rows (there are none today, but be lenient)
         assert lal_table[name]["overlap_loss"] == threshold, (
-            f"docs/dev/reference_implementations.md documents {name} threshold={threshold:.0e}, "
+            f"docs/dev/reference_comparisons_and_limits.md documents {name} threshold={threshold:.0e}, "
             f"but tests/cross_validation/tolerances.toml has "
             f"{lal_table[name]['overlap_loss']:.0e} -- update whichever is stale."
         )

@@ -110,15 +110,7 @@ def _waveform_instance(name: str, config: tuple):
 
 @cache
 def _jit_method(name: str, config: tuple, method: str):
-    """One jit-compiled bound method per ``(name, config, method)`` for the
-    whole session.
-
-    Shared across every test module that needs a model, so repeated
-    parametrization over the same waveform does not re-trace/re-compile --
-    load-bearing for the Phenom-HM/precessing models, whose eager (uncompiled)
-    evaluation is dispatch-bound and tens of times slower than the jit-compiled
-    call.
-    """
+    """Return the session-cached JIT-compiled waveform method and instance."""
     wf = _waveform_instance(name, config)
     return jax.jit(getattr(wf, method)), wf
 

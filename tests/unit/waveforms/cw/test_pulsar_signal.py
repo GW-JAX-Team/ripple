@@ -42,7 +42,7 @@ def _static_ephemeris(n=8, dt=7200.0):
     return gps0, dt, pos, vel, acc
 
 
-# detector ~at geocentre: diurnal term ~1e-14 s, negligible for these tests
+# A geocentric detector makes the diurnal term negligible in these tests.
 TINY_DET = (1e-6, 1e-6, 1e-6)
 
 

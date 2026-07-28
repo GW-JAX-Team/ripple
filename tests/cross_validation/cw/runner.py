@@ -1,35 +1,10 @@
-"""Batch machinery for the CW-vs-``CWMakeFakeData`` large-scale accuracy test.
+"""Support the large-scale CW ``CWMakeFakeData`` cross-validation test.
 
-Not a test module: this is what ``test_makefakedata_v5_large_scale.py`` needs beyond
-the assertion itself. ``test_makefakedata_v5.py`` checks ``PulsarSignal``/
-``BinaryPulsarSignal`` against ``XLALCWMakeFakeData`` at a single, fixed point in
-parameter space (f0=12.3 Hz) -- enough for a small regression check, but not enough
-to characterize the floor's actual behavior. This module runs the same
-comparison over a random Monte Carlo sweep (sky position, amplitude parameters,
-frequency, spindown, detector site, binary orbital elements) and fits how the
-normalized time-domain mismatch scales with ``f0``, so the threshold can be set from an observed
-*distribution and trend* instead of one point. Reuses ``_lal_helpers.py``'s
-``make_fake_data_v5``/``detector_strain_from_am_response``/``overlap_loss`` --
-same methodology, more coverage.
-
-The metric is a direct, white, normalized time-domain mismatch on identical,
-uniformly sampled detector-time grids. The common ``delta_t`` factor cancels;
-there is no FFT, whitening, or time/phase maximization. It measures shape and
-phase, not a global amplitude scale.
-
-The mismatch against ``CWMakeFakeData`` is not a flat ~1e-7 floor: it grows roughly
-as ``f0**2``. The LAL path ends in ``XLALPulsarSimulateCoherentGW``, which uses a
-hard-coded 400-second delay-table half interval (800 seconds between table nodes) and
-linearly interpolates it. Its documented microsecond-scale timing error becomes a
-phase error proportional to ``f0`` and hence a normalized mismatch proportional to
-``f0**2``.
-This explains the observed invariance to output band/sampling rate, ``sourceDeltaT``,
-and heterodyne frequency. The test characterizes that reference-pipeline
-approximation across sky position, frequency, site, and orbit; it is not evidence
-that ripple needs lower-precision arithmetic.
-
-Duration is not swept past one hour: the observed mismatch is duration-independent,
-so the test prioritizes parameter breadth instead.
+The sweep samples ``PulsarSignal`` and ``BinaryPulsarSignal`` parameters,
+generates noise-free LAL detector strain, and compares it with ripple projected
+through the same antenna response. Each trial uses normalized, white,
+same-grid time-domain mismatch and relative norm error. The fixed-point and
+large-scale tests share frequency-scaled mismatch limits.
 """
 
 import json
@@ -58,7 +33,7 @@ from tests.cross_validation.cw._lal_helpers import (
 from tests.helpers.metrics import relative_norm_error
 
 _SITES = ("H1", "L1", "V1")
-_DURATIONS = (16.0, 100.0, 1000.0, 3600.0)  # seconds -- see module docstring
+_DURATIONS = (16.0, 100.0, 1000.0, 3600.0)  # seconds
 _START_GPS = 1_000_000_000
 _SELECTABLE_WAVEFORMS = ("PulsarSignal", "BinaryPulsarSignal")
 
@@ -90,18 +65,14 @@ _F0_MIN, _F0_MAX = 10.0, 2000.0  # spans the typical CW all-sky search band
 def sample_trials(
     n: int, seed: int = 42, *, waveform: str | None = None
 ) -> list[Trial]:
-    """Random draw of ``n`` trials spanning sky position, amplitude parameters
-    (via ``cos(iota)``/``h0`` so ``aplus >= |across|`` always holds), frequency,
-    spindown, detector site, duration, and orbital elements when selected.
+    """Sample physical isolated or binary CW trials.
 
     ``waveform=None`` preserves the direct-pytest large-scale test's mixed isolated/binary
     sweep. A selected ``PulsarSignal`` or ``BinaryPulsarSignal`` instead produces
-    exactly ``n`` trials for that model, which is what the unified HPC launcher needs.
+    exactly ``n`` trials for that model.
 
-    ``f0`` is drawn log-uniform over ``[_F0_MIN, _F0_MAX]`` (10-2000 Hz, the
-    typical CW all-sky search band) rather than linear-uniform: the mismatch
-    follows a power law in f0 (see module docstring), and log-uniform sampling
-    gives even leverage across decades for fitting that law's exponent.
+    Frequencies are log-uniform over ``[_F0_MIN, _F0_MAX]`` to cover the
+    configured band across decades.
     """
     if waveform is not None and waveform not in _SELECTABLE_WAVEFORMS:
         available = ", ".join(_SELECTABLE_WAVEFORMS)
@@ -170,12 +141,7 @@ def run_trial(
         "V1": lal.LALDetectorIndexVIRGODIFF,
     }[trial.site]
     det = lal.CachedDetectors[det_index]
-    # Half-band must cover both Earth's own Doppler modulation (~1e-4 * f0) and, for
-    # binary trials, the orbital radial-velocity swing f0*asini*(2*pi/period) -- at
-    # high f0 with large asini/short period this can reach several Hz, wider than a
-    # fixed 5 Hz margin (XLALCWSignalCoveringBand then rejects the requested band
-    # with XLAL_EINVAL "Invalid argument", empirically ~1% of binary trials at f0
-    # up to 2000 Hz without this).
+    # Request a band that contains terrestrial and binary orbital Doppler shifts.
     doppler = trial.f0 * 1.1e-4
     if trial.is_binary and trial.period > 0:
         doppler += (
@@ -390,35 +356,18 @@ def _hardware_info() -> dict:
 _F0_REF = 100.0  # Hz -- reference frequency for reporting the fitted coefficient
 
 
-# Mismatch threshold vs. f0 (Hz): pure f0**2 scaling, no additive floor (the fitted
-# power law alone stays above every observed point in the calibration run below).
-# Calibrated from a 1000-trial-per-population large-scale test (2026-07-28), rounded
-# up to the nearest power of ten -- see docs/dev/reference_implementations.md. Shared
-# by test_makefakedata_v5.py's single fixed point and
-# test_makefakedata_v5_large_scale.py's full sweep, so both stay in sync. This is a
-# "just above observed" bound, not a generously-margined one -- a fresh large-scale
-# test at a different --n-samples or parameter range may exceed it and require
-# re-deriving these constants.
+# Frequency-scaled mismatch limits shared by the fixed-point and sweep tests.
 def mismatch_threshold(f0: float, *, is_binary: bool) -> float:
     coeff = 1e-2 if is_binary else 1e-3
     return coeff * (f0 / 100.0) ** 2
 
 
-# LAL's coarsely-tabulated antenna response (see module docstring) sets a flat,
-# f0-independent floor on this diagnostic. Rounded up from the observed max (1.42e-2,
-# 1000-trial large-scale test, 2026-07-28) to the nearest power of ten.
+# Relative amplitude-scale limit, checked separately from normalized mismatch.
 MAX_RELATIVE_NORM_ERROR = 1e-1
 
 
 def fit_power_law(f0: np.ndarray, loss: np.ndarray) -> dict:
-    """Least-squares fit of ``log(loss) = log(A) + exponent * log(f0)`` over positive,
-    finite losses.
-
-    Reported as ``loss(f0) ~= coefficient_at_f0_ref * (f0 / _F0_REF)**exponent`` --
-    the raw intercept (``A`` at ``f0=1``) is numerically awkward to interpret since
-    ``f0=1`` is far outside the sampled 10-2000 Hz range; anchoring at ``_F0_REF``
-    keeps the reported coefficient at a representative magnitude.
-    """
+    """Fit log-loss against log-frequency and report the coefficient at ``_F0_REF``."""
     mask = np.isfinite(loss) & (loss > 0)
     if mask.sum() < 3:
         return {
@@ -440,11 +389,7 @@ def fit_power_law(f0: np.ndarray, loss: np.ndarray) -> dict:
 
 
 def summarize(result: LargeScaleTestResult) -> dict:
-    """Per-population (isolated/binary/overall) percentile summary plus a fitted
-    ``loss ~= C * (f0/f0_ref)**exponent`` power law (see module docstring -- the
-    time-domain mismatch scales with f0, not a flat floor). Also reports the maximum
-    relative norm error, which checks global amplitude scale independently of shape.
-    """
+    """Return per-population mismatch, norm-error, and power-law summaries."""
     f0 = np.array([t.f0 for t in result.trials])
 
     def _stats(mask: np.ndarray) -> dict:
@@ -501,10 +446,7 @@ def write_results(result: LargeScaleTestResult, outdir: Path) -> Path:
 
 
 def plot_results(result: LargeScaleTestResult, outdir: Path) -> Path:
-    """Log-log time-domain-mismatch vs. f0 scatter with the fitted
-    power law overlaid -- the informative view here is the f0-scaling itself, not
-    just the loss distribution (see module docstring). Only imports matplotlib
-    when called."""
+    """Plot mismatch against frequency with fitted power laws."""
     import matplotlib.pyplot as plt
 
     outdir.mkdir(parents=True, exist_ok=True)

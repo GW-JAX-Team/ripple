@@ -1,16 +1,8 @@
-"""Cross-validation of ``BinaryPulsarSignal`` against LALPulsar.
+"""Validate ``BinaryPulsarSignal``'s orbital source phase against LALPulsar.
 
-Only the orbital source-phase model (:func:`ripplegw.waveforms.cw.pulsar_signal._binary_source_phase`)
-is checked here, against ``XLALGenerateSpinOrbitCW`` in the tight-Kepler regime
-(``f0=1000 Hz``, where LAL's own Kepler-solver tolerance is tightest). The full binary
-waveform end-to-end (combined with the barycentering delay ``PulsarSignal`` already
-validates in ``test_full_pulsar_signal.py``) is checked separately in
-``test_makefakedata_v5.py``, against the ``lalpulsar_Makefakedata_v5`` engine.
-
-Skipped unless ``lalpulsar`` is available. Unlike the other two files in this directory,
-this test needs no ephemeris -- ``XLALGenerateSpinOrbitCW`` is a pure orbital-phase
-computation with no barycentering involved -- so it only depends on the ``lal``/
-``lalpulsar`` import, not on ``RIPPLE_EARTH_EPHEMERIS``/``RIPPLE_SUN_EPHEMERIS``.
+This test isolates the orbital phase through ``XLALGenerateSpinOrbitCW``. The
+end-to-end binary strain is checked separately through ``CWMakeFakeData``. No
+ephemerides are needed because this comparison does not barycenter the signal.
 """
 
 import math
@@ -32,11 +24,7 @@ pytestmark = pytest.mark.accuracy
 
 
 def test_binary_source_phase_matches_lal_spinorbit():
-    """Binary source phase matches XLALGenerateSpinOrbitCW (tight-Kepler regime).
-
-    LAL solves Kepler only to a phase tolerance ``dxMax = 0.01/(f0*P)``; at high
-    f0 (tight tolerance) our machine-precision solve agrees to ~float level.
-    """
+    """Compare binary source phase with ``XLALGenerateSpinOrbitCW``."""
     f0, phi0, f1 = 1000.0, 0.7, -1.0e-10
     ecc, asini, period, argp = 0.18, 1.44, 6.3 * 3600, 1.05
     epoch_gps, orbit_epoch, spin_epoch = 900_000_000, 900_050_000, 900_040_000
@@ -82,9 +70,7 @@ def test_binary_source_phase_matches_lal_spinorbit():
             argp,
         )
     )
-    # Compare the phase-induced strain shape with the normalized time-domain mismatch.
-    # At f0=1000 LAL solves Kepler tightly, so this reaches the float floor
-    # (~log10 -15); at lower f0 LAL's dxMax = 0.01/(f0*P) tolerance dominates.
+    # Compare phase-induced strain shapes with normalized time-domain mismatch.
     loss = overlap_loss(np.cos(phi_mine), np.cos(phi_lal))
     print(f"\nbinary phase: overlap loss = {loss:.2e} (log10 = {log10_str(loss)})")
     assert loss < 1e-12, f"overlap loss {loss:.2e} (log10={log10_str(loss)})"

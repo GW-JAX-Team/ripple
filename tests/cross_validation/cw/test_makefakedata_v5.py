@@ -1,51 +1,14 @@
-"""Cross-validation of ``PulsarSignal``/``BinaryPulsarSignal`` against ``lalpulsar_Makefakedata_v5``.
+"""End-to-end CW cross-validation through LALPulsar's ``CWMakeFakeData``.
 
-This is deliberately **not** a replacement for ``test_full_pulsar_signal.py`` /
-``test_binary_pulsar_signal.py`` -- it checks something those tests structurally
-cannot. Those tests reconstruct LAL's reference computation in Python from the same
-low-level building block (``XLALBarycenter``) that ripple's own ``barycenter.py``/
-``earth.py`` were ported from, reaching ~1e-9 to ~1e-13: a translation-fidelity check.
+The tests generate noise-free detector strain with LAL and compare it with
+ripple polarizations projected through LAL's antenna response on identical
+timestamps. They cover ``PulsarSignal`` and ``BinaryPulsarSignal``; the latter
+also exercises orbital modulation. This is a separate LAL API path from the
+direct-building-block checks in this directory.
 
-This file instead drives ``XLALCWMakeFakeData`` -- the literal engine behind the
-``lalpulsar_Makefakedata_v5`` CLI real CW searches use to generate injections/MDCs --
-via its SWIG-wrapped "modern" ``PulsarParams``/``CWMFDataParams`` structs (unlike the
-anonymous-nested-struct ``PulsarSignalParams`` that ``XLALGeneratePulsarSignal`` takes
-directly, which is why that function "cannot be called directly from Python", per
-``docs/dev/reference_implementations.md``). ``XLALCWMakeFakeData`` is a thin wrapper
-around exactly that function (see ``CWMakeFakeData.c``), so this is a genuinely
-independent code path from what the other two files check, at that pipeline's own,
-looser precision. (LALPulsar's other Python-native option,
-``lalpulsar.simulateCW.CWSimulator``, was already tried for this purpose -- see
-``test_full_pulsar_signal.py``'s docstring -- and reaches only ~1e-3 due to its own
-internal interpolation; ``CWMakeFakeData`` is a meaningfully tighter independent check.)
-
-**The normalized time-domain mismatch against this pipeline is not a flat floor -- it
-scales as roughly f0**2** (fitted exponent ~1.5-1.9 depending on population). The
-dominant known LAL approximation is its 400-second barycentric-delay-table half
-interval (800-second node spacing), linearly interpolated by
-``XLALPulsarSimulateCoherentGW``: a microsecond-scale delay residual becomes a phase
-residual proportional to ``f0``. ``_threshold()`` (imported from ``runner.py``, shared with the large-scale test) is
-therefore frequency-dependent, calibrated from a 1000-trial-per-population HPC
-large-scale test (``test_makefakedata_v5_large_scale.py``, f0 log-uniform 10-2000 Hz,
-2026-07-28) rather than a single point. The comparison is direct in time domain; it
-uses no FFT and no time/phase maximization.
-
-Covers ``PulsarSignal`` and ``BinaryPulsarSignal`` -- both use the full barycentering
-delay that ``XLALGeneratePulsarSignal`` implements. **Not** ``ExactPulsarSignal``:
-LAL has no toggle to disable the Einstein/Shapiro terms in this pipeline, so a
-comparison would just show the expected, deliberate omission, not a meaningful check.
-
-For ``BinaryPulsarSignal`` this is the first automated, in-repo, end-to-end check of
-the full waveform (barycentering + orbital modulation + antenna response combined) --
-previously this was only checked "manually once, off-repo" against the compiled
-``XLALGeneratePulsarSignal`` entry point directly (see
-``docs/dev/reference_implementations.md``); ``CWMakeFakeData``'s SWIG-friendly wrapper
-structs make that check reproducible from Python alone, in-tree, without a compiled
-helper program.
-
-Skipped unless both ``lalpulsar`` and an Earth/Sun ephemeris file are available -- point
-``RIPPLE_EARTH_EPHEMERIS`` (and optionally ``RIPPLE_SUN_EPHEMERIS``) at a LALPulsar
-``earth*``/``sun*`` file to run it.
+``ExactPulsarSignal`` is excluded because it deliberately omits timing terms
+that ``CWMakeFakeData`` always includes. The tests require ``lalpulsar`` and
+Earth/Sun ephemerides.
 """
 
 import jax
@@ -82,9 +45,7 @@ pytestmark = [
     ),
 ]
 
-# _threshold and MAX_RELATIVE_NORM_ERROR live in runner.py (imported above), shared
-# with test_makefakedata_v5_large_scale.py -- see that module's docstring for the
-# calibration these came from.
+# Limits shared with the large-scale sweep.
 _MAX_RELATIVE_NORM_ERROR = MAX_RELATIVE_NORM_ERROR
 
 
@@ -172,8 +133,7 @@ def test_pulsar_signal_matches_makefakedata_v5():
 
 
 def test_binary_pulsar_signal_matches_makefakedata_v5():
-    """``BinaryPulsarSignal`` (orbital modulation + full barycentering) matches
-    ``CWMakeFakeData`` end to end -- the first automated, in-repo check of this."""
+    """``BinaryPulsarSignal`` matches ``CWMakeFakeData`` end to end."""
     edat = lalpulsar.InitBarycenter(EARTH_FILE, SUN_FILE)
     det = lal.CachedDetectors[lal.LALDetectorIndexLHODIFF]
 

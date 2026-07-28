@@ -1,17 +1,8 @@
-"""Frequency-domain phase-convention check: ripple's h_+ matches the reference's h_+ in
-absolute phase, not just overlap.
+"""Check absolute phase for non-precessing frequency-domain waveforms.
 
-Scoped to ``domain="FD"`` -- see ``test_overlap.py``'s module docstring for why that's
-the right scope (not ``source_type="cbc"``, even though they're identical today).
-``test_overlap.py`` is insensitive to a *constant* phase offset between
-ripple and the reference -- ``|<e^{i phi} h1|h2>|^2 = |<h1|h2>|^2`` for any
-real ``phi`` -- so a spurious ``+pi`` somewhere in ``phi_ref`` would pass the
-overlap test with loss ~= 0. This test explicitly checks
-``arg(<h_p,ripple | h_p,ref>)`` at ``tc = phi_c = 0``, where that angle *is*
-the offset.
-
-Non-precessing models only: for a precessing model the global phase is
-entangled with the spin azimuthal angles and needs a separate analysis.
+Overlap loss is invariant under a constant phase offset. This test therefore
+measures the plus and cross inner-product phases at ``tc = phi_c = 0``.
+Precessing models require a separate phase-convention analysis.
 """
 
 import jax.numpy as jnp
@@ -30,18 +21,12 @@ from tests.helpers.params import canonical_params, regime
 
 _TOLERANCES = load_tolerances()
 
-# domain="FD" scopes this to models the test can call at all (see
-# test_overlap.py); is_precessing=False (positive tagging, not "every
-# non-precessing model") then drops the precessing subset, which needs a
-# separate analysis. Burst/CW never set is_precessing either way, so they're
-# already excluded by that filter alone -- domain="FD" is belt-and-suspenders
-# for a future non-CBC FD model that isn't precessing-tagged.
+# This fiducial phase setup covers only non-precessing FD models.
 NON_PRECESSING = ripplegw.list_waveforms(domain="FD", is_precessing=False)
 
 
 def _fiducial_params(wf) -> dict:
-    """Fixed canonical BBH/BNS parameters: tc = phi_c = 0, so
-    ``arg(<h_p,ripple|h_p,ref>)`` measures the raw phase offset directly."""
+    """Return canonical parameters with zero coalescence time and phase."""
     if regime(wf) == "bns":
         m1, m2 = 1.4, 1.2
         s1_z = s2_z = 0.0  # zero spin/deformability: BBH limit, for a clean phase check

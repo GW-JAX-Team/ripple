@@ -1,11 +1,7 @@
-"""ripplegw's physical constants match every available reference backend.
+"""Compare ripple's physical constants with every available reference backend.
 
-Parametrized over every backend in ``tests/cross_validation/reference/`` whose
-dependency is importable -- a backend that is not installed contributes zero
-test cases rather than failing, so adding a new backend needs no edits here.
-This is deliberately left unmarked (not ``accuracy``): it compares numeric
-literals, not waveform output, so it is cheap enough to run on every PR
-wherever the backend happens to be installed.
+Unavailable backends contribute no cases. The test is unmarked because it
+compares constants rather than waveform output.
 """
 
 import pytest
