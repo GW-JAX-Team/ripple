@@ -44,8 +44,14 @@ jobs:
             exit 0
           fi
 
-          if [ -z "$(git log origin/main..origin/ripple-dev --oneline)" ]; then
+          ahead_count=$(git rev-list --count origin/main..origin/ripple-dev)
+          if [ "$ahead_count" -eq 0 ]; then
             echo "ripple-dev has no commits ahead of main; nothing to merge."
+            exit 0
+          fi
+
+          if git diff --quiet origin/main...origin/ripple-dev; then
+            echo "ripple-dev has commits ahead of main but no net diff; nothing to merge."
             exit 0
           fi
 
