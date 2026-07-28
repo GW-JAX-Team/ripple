@@ -1509,7 +1509,7 @@
 <h1 id="test-coverage">Test Coverage<a class="headerlink" href="#test-coverage" title="Permanent link">¤</a></h1>
 <p>ripple has two complementary test layers:</p>
 <ul>
-<li>The fast suite protects the public waveform contract and JAX behaviour.</li>
+<li>The fast suite checks the registered waveform interface and JAX behaviour.</li>
 <li>Reference comparisons check numerical agreement against an external implementation.</li>
 </ul>
 <p>Registration adds a waveform to the first layer automatically.
@@ -1532,7 +1532,7 @@ Every registered waveform therefore receives the following baseline coverage.</p
 </thead>
 <tbody>
 <tr>
-<td>Public contract</td>
+<td>Waveform interface</td>
 <td>Registry construction, <code>parameter_names</code>, <code>repr</code>, <code>{"p", "c"}</code> output, shape, dtype, and finite values.</td>
 </tr>
 <tr>
@@ -1540,8 +1540,8 @@ Every registered waveform therefore receives the following baseline coverage.</p
 <td>Eager and <code>jax.jit</code> agreement, parameter batching with <code>jax.vmap</code>, and finite gradients.</td>
 </tr>
 <tr>
-<td>Declared capabilities</td>
-<td><code>AmplitudePhaseWaveform</code> and <code>DistanceScaledWaveform</code> contracts, only for models that implement them.</td>
+<td>Optional interfaces</td>
+<td><code>AmplitudePhaseWaveform</code> methods and <code>DistanceScaledWaveform</code> distance scaling, when implemented.</td>
 </tr>
 <tr>
 <td>Declared physical features</td>
@@ -1612,7 +1612,8 @@ The acceptance thresholds and reference-specific limits are in <a href="../refer
 <li>A change to any registered waveform should pass the fast suite.</li>
 <li>A numerical or reference-adapter change should also run that waveform's launcher sweep.</li>
 <li>A new parameter name needs a canonical value in <code>tests/helpers/params.py</code>; a waveform with required constructor arguments needs a test configuration in <code>tests/helpers/config.py</code>.</li>
-<li>A new waveform needs a focused reference comparison and a launcher adapter before it is described as cross-validated. See <a href="../adding_a_waveform/">Adding a Waveform</a>.</li>
+<li>A new waveform needs a focused reference comparison and a launcher adapter before it is described as cross-validated.
+  See <a href="../adding_a_waveform/">Adding a Waveform</a>.</li>
 </ul>
 
 

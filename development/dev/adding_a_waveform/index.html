@@ -924,10 +924,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#implement-the-public-contract" class="md-nav__link">
+  <a href="#implement-the-public-interface" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Implement the public contract
+        Implement the public interface
       </span>
     </span>
   </a>
@@ -1478,10 +1478,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#implement-the-public-contract" class="md-nav__link">
+  <a href="#implement-the-public-interface" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Implement the public contract
+        Implement the public interface
       </span>
     </span>
   </a>
@@ -1529,7 +1529,8 @@
 
 
 <h1 id="adding-a-waveform">Adding a Waveform<a class="headerlink" href="#adding-a-waveform" title="Permanent link">¤</a></h1>
-<p>Read <a href="../architecture/">Architecture</a> first. This page covers the public model contract, registration, and validation; use an existing nearby model as the implementation reference.</p>
+<p>Read <a href="../architecture/">Architecture</a> first.
+This page explains what a public waveform class must provide, how it is registered, and how it is validated; use an existing nearby model as the implementation reference.</p>
 <h2 id="set-up">Set up<a class="headerlink" href="#set-up" title="Permanent link">¤</a></h2>
 <div class="highlight"><pre><span></span><code>uv<span class="w"> </span>sync<span class="w"> </span>--group<span class="w"> </span><span class="nb">test</span><span class="w"> </span>--group<span class="w"> </span>doc
 uv<span class="w"> </span>run<span class="w"> </span>pre-commit<span class="w"> </span>install
@@ -1584,14 +1585,16 @@ Metadata is public: <code>list_waveforms(**filters)</code> exposes it, so add ta
     <span class="o">...</span>
 </code></pre></div>
 <p><code>AmplitudePhaseWaveform</code> requires <code>amplitude()</code> and <code>phase()</code> in addition to <code>__call__</code>; its <code>strain()</code> method builds their complex product.</p>
-<h2 id="implement-the-public-contract">Implement the public contract<a class="headerlink" href="#implement-the-public-contract" title="Permanent link">¤</a></h2>
+<h2 id="implement-the-public-interface">Implement the public interface<a class="headerlink" href="#implement-the-public-interface" title="Permanent link">¤</a></h2>
 <p>Configuration is fixed at construction; source parameters are supplied on each call in <code>params</code>.
 Do not put per-call parameters in <code>__init__</code>.</p>
 <p>Implement:</p>
 <ul>
 <li><code>parameter_names</code> as a property returning the parameter names in the order your implementation packs or consumes them.
   Reuse established names for the same physical quantity.</li>
-<li><code>__call__(axis, params)</code>, returning a dictionary of polarization arrays. Built-in models conventionally return <code>{"p": plus, "c": cross}</code>. Frequency domain arrays are complex; time domain arrays are real; each matches <code>axis</code>.</li>
+<li><code>__call__(axis, params)</code>, returning a dictionary of polarization arrays.
+  Built-in models conventionally return <code>{"p": plus, "c": cross}</code>.
+  Frequency domain arrays are complex; time domain arrays are real; each matches <code>axis</code>.</li>
 <li>Any public evaluation method so it works under <code>jax.jit</code>, <code>jax.vmap</code>, and <code>jax.grad</code>.
   Use JAX control flow when a branch depends on an array value.</li>
 </ul>
