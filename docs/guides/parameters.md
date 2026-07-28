@@ -80,7 +80,8 @@ There is no `t_c` (time of coalescence) parameter — see the [FAQ](../FAQ.md) f
 ## Continuous waves
 
 The pulsar models use a time axis and share the following source parameters.
-The detector location, ephemerides, observation start time, and number of spin-down terms are set when constructing the waveform, rather than in `params`.
+The ephemerides, observation start time, and number of spin-down terms are set when constructing the waveform, rather than in `params`.
+The observing site's location, however, *is* a `params` entry (see [Site location](#site-location) below) -- it needs to vary per call so a single model instance can be `jax.vmap`ed over multiple sites.
 
 ### Sky position and polarization
 
@@ -101,6 +102,15 @@ The detector location, ephemerides, observation start time, and number of spin-d
 
 The waveform includes `f1` through `fN` when it is constructed with `n_spindowns=N`.
 With the default `n_spindowns=0`, only `f0` is used.
+
+### Site location
+
+| Name | Meaning | Units |
+| --- | --- | --- |
+| `site_x`, `site_y`, `site_z` | Observing site's geocentric Cartesian location | metres |
+
+This is fixed instrument/site metadata (e.g. a `LALDetectors.h` vertex for H1/L1/V1) -- **not** a physical source parameter -- and should never be treated as a quantity to sample or place a prior on.
+It lives in `params` rather than in the constructor purely so a single model instance can be `jax.vmap`ed over multiple observing sites in one call, sharing the expensive site-independent part of the barycentering (Earth ephemeris, rotation, precession/nutation, Einstein delay) across sites instead of recomputing it once per site.
 
 ### Binary-pulsar orbit (`BinaryPulsarSignal`)
 

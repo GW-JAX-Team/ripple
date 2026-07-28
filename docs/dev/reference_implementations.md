@@ -99,7 +99,7 @@ Beyond that, high aligned-spin cases pick up a small additional contribution fro
 
 ## Continuous-wave (CW) models
 
-LAL does not SWIG-wrap `PulsarSignalParams` (it has anonymous nested structs), so `XLALSimulateExactPulsarSignal`/`XLALGeneratePulsarSignal` cannot be called directly from Python, and CW's calling convention (a fixed detector + ephemeris + GPS epoch at construction, a time axis, not a frequency grid) doesn't fit the batched `ReferenceBackend`/`tolerances.toml` campaign the frequency-domain models above use.
+LAL does not SWIG-wrap `PulsarSignalParams` (it has anonymous nested structs), so `XLALSimulateExactPulsarSignal`/`XLALGeneratePulsarSignal` cannot be called directly from Python, and CW's calling convention (an ephemeris + GPS epoch fixed at construction, plus a per-call site location and a time axis rather than a frequency grid) doesn't fit the batched `ReferenceBackend`/`tolerances.toml` campaign the frequency-domain models above use.
 CW agreement is instead checked by `tests/cross_validation/cw/` (`accuracy`-marked, skipped without `lalpulsar` + an Earth/Sun ephemeris file) -- one file per registered class (`test_exact_pulsar_signal.py`, `test_pulsar_signal.py`, `test_binary_pulsar_signal.py`), each reproducing LAL's own reference computation in Python from its SWIG-exposed building blocks (`XLALGetDetectorStates`, `XLALComputeAMCoeffs`, `XLALBarycenter`, `XLALGenerateSpinOrbitCW`):
 
 - **`ExactPulsarSignal`** — reconstructed detector strain vs. a Python transcription of `SimulatePulsarSignal.c`'s exact (Roemer-only) path: overlap loss < 1e-10 (observed ~3e-13).

@@ -6,9 +6,12 @@ called with a time grid and a parameter dict and returns
 ``{"p": h_plus, "c": h_cross}``.
 
 Unlike compact-binary waveforms, a continuous-wave signal's polarizations
-depend on the *absolute* GPS epoch (through Earth's ephemeris and rotation), so
-the observation start time, detector and ephemeris are fixed at construction;
-the per-call time axis is measured in seconds relative to that start.
+depend on the *absolute* GPS epoch (through Earth's ephemeris and rotation),
+so the observation start time and ephemeris are fixed at construction. The
+observing site's location is supplied per call instead (``site_x``,
+``site_y``, ``site_z`` in ``params``) precisely so a single instance can be
+``jax.vmap``ed over multiple sites. The per-call time axis is measured in
+seconds relative to that start.
 """
 
 from collections.abc import Mapping
@@ -30,14 +33,11 @@ class ExactPulsarSignal(TimeDomainWaveform):
 
     JAX port of the source model of ``XLALSimulateExactPulsarSignal``: the
     barycentered plus/cross polarizations of an isolated pulsar, evaluated at a
-    ground-based detector. Relativistic timing terms (Einstein/Shapiro) are
+    ground-based site. Relativistic timing terms (Einstein/Shapiro) are
     neglected exactly as in the LAL reference; the barycentering uses the JPL
     ephemeris and matches ``XLALBarycenter`` to ~1e-13 s.
 
     Attributes:
-        detector_location (tuple[float, float, float]): Geocentric Cartesian
-            vertex location of the detector (metres) whose arrival times
-            define the grid.
         start_gps (int): Integer GPS second of ``t == 0`` on the call axis.
         n_spindowns (int): Number of spindown terms expected in ``params``
             (``f1`` … ``f{n}``).
@@ -46,14 +46,12 @@ class ExactPulsarSignal(TimeDomainWaveform):
             is used (LAL's default).
     """
 
-    detector_location: tuple[float, float, float]
     start_gps: int
     n_spindowns: int
     ref_time_ssb: Optional[float]
 
     def __init__(
         self,
-        detector_location: tuple[float, float, float],
         earth_ephemeris_file: str,
         start_gps: int,
         sun_ephemeris_file: Optional[str] = None,
@@ -62,9 +60,6 @@ class ExactPulsarSignal(TimeDomainWaveform):
     ) -> None:
         """
         Args:
-            detector_location (tuple[float, float, float]): Geocentric
-                Cartesian vertex location of the detector (metres), e.g. the
-                ``LALDetectors.h`` values for H1/L1/V1.
             earth_ephemeris_file (str): Path to a LALPulsar Earth ephemeris
                 file, or a standard name (e.g. ``"earth00-40-DE405.dat.gz"``)
                 to download and cache automatically -- see
@@ -75,9 +70,12 @@ class ExactPulsarSignal(TimeDomainWaveform):
                 Shapiro term is neglected); accepted for interface symmetry.
             n_spindowns (int): Number of spindown parameters (``f1`` …).
             ref_time_ssb (Optional[float]): SSB reference epoch for the spins.
+
+        Note:
+            The observing site's location is not a constructor argument --
+            pass it per call as ``site_x``, ``site_y``, ``site_z`` (metres,
+            geocentric Cartesian) in ``params``; see :attr:`parameter_names`.
         """
-        x, y, z = detector_location
-        self.detector_location = (float(x), float(y), float(z))
         self.start_gps = int(start_gps)
         self.n_spindowns = int(n_spindowns)
         self.ref_time_ssb = ref_time_ssb
@@ -98,6 +96,9 @@ class ExactPulsarSignal(TimeDomainWaveform):
             "phi0",
             "aplus",
             "across",
+            "site_x",
+            "site_y",
+            "site_z",
             *(f"f{i}" for i in range(1, self.n_spindowns + 1)),
         )
 
@@ -111,14 +112,18 @@ class ExactPulsarSignal(TimeDomainWaveform):
                 relative to ``start_gps`` (e.g. ``jnp.arange(N) / fs``).
             params: Source parameters with keys ``alpha``,
                 ``delta`` (sky position, rad), ``f0`` (Hz), ``phi0`` (rad),
-                ``aplus``, ``across`` (polarization amplitudes), and ``f1`` …
-                ``f{n_spindowns}`` (spindowns, Hz/s, …).
+                ``aplus``, ``across`` (polarization amplitudes), ``site_x``,
+                ``site_y``, ``site_z`` (observing site's geocentric Cartesian
+                location, metres -- fixed site metadata, not a quantity to
+                sample/infer), and ``f1`` … ``f{n_spindowns}`` (spindowns, Hz/s,
+                …).
 
         Returns:
             dict[str, Float[Array, " n_time"]]: Plus (``"p"``) and cross
                 (``"c"``) polarizations.
         """
         fkdot = tuple(params[f"f{i}"] for i in range(1, self.n_spindowns + 1))
+        det_location_m = (params["site_x"], params["site_y"], params["site_z"])
         hp, hc = exact_pulsar_polarizations(
             t,
             self.start_gps,
@@ -128,7 +133,7 @@ class ExactPulsarSignal(TimeDomainWaveform):
             params["phi0"],
             params["aplus"],
             params["across"],
-            self.detector_location,
+            det_location_m,
             self._eph_gps0,
             self._eph_dt,
             self._eph_pos,
@@ -141,6 +146,6 @@ class ExactPulsarSignal(TimeDomainWaveform):
 
     def __repr__(self) -> str:
         return (
-            f"ExactPulsarSignal(detector_location={self.detector_location!r}, "
-            f"start_gps={self.start_gps}, n_spindowns={self.n_spindowns})"
+            f"ExactPulsarSignal(start_gps={self.start_gps}, "
+            f"n_spindowns={self.n_spindowns})"
         )

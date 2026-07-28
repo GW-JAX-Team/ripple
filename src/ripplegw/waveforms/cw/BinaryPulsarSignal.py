@@ -34,6 +34,9 @@ class BinaryPulsarSignal(PulsarSignal):
             "period",
             "argp",
             "tp_ssb",
+            "site_x",
+            "site_y",
+            "site_z",
             *(f"f{i}" for i in range(1, self.n_spindowns + 1)),
         )
 
@@ -46,12 +49,16 @@ class BinaryPulsarSignal(PulsarSignal):
             t (Float[Array, " n_time"]): Sample times (s) relative to ``start_gps``.
             params: The isolated keys plus orbital elements
                 ``asini`` (light-s), ``ecc``, ``period`` (s), ``argp`` (rad),
-                ``tp_ssb`` (SSB periapsis time, GPS seconds).
+                ``tp_ssb`` (SSB periapsis time, GPS seconds), and ``site_x``,
+                ``site_y``, ``site_z`` (observing site's geocentric Cartesian
+                location, metres -- fixed site metadata, not a quantity to
+                sample/infer).
 
         Returns:
             dict[str, Float[Array, " n_time"]]: ``{"p", "c"}`` polarizations.
         """
         fkdot = tuple(params[f"f{i}"] for i in range(1, self.n_spindowns + 1))
+        det_location_m = (params["site_x"], params["site_y"], params["site_z"])
         hp, hc = generate_binary_pulsar_polarizations(
             t,
             self.start_gps,
@@ -66,7 +73,7 @@ class BinaryPulsarSignal(PulsarSignal):
             params["period"],
             params["argp"],
             params["tp_ssb"],
-            self.detector_location,
+            det_location_m,
             *self._e,
             *self._s,
             fkdot=fkdot,
@@ -77,6 +84,6 @@ class BinaryPulsarSignal(PulsarSignal):
 
     def __repr__(self) -> str:
         return (
-            f"BinaryPulsarSignal(detector_location={self.detector_location!r}, "
-            f"start_gps={self.start_gps}, n_spindowns={self.n_spindowns})"
+            f"BinaryPulsarSignal(start_gps={self.start_gps}, "
+            f"n_spindowns={self.n_spindowns})"
         )

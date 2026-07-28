@@ -50,7 +50,7 @@ The accuracy tests are organised by validation method rather than source type:
   - `test_phase_convention.py` uses a fixed configuration to detect a constant phase offset that an overlap alone would not detect
   Both use the Einstein Telescope D-design PSD (`tests/psds/ET_D_psd.txt`); the documented thresholds use this weighting.
 - **`cross_validation/cw/`** — continuous-wave models.
-  These are time-domain models with a detector, ephemeris, and epoch fixed at construction, so they do not fit `ReferenceBackend`.
+  These are time-domain models with an ephemeris and epoch fixed at construction (the observing site's location is a per-call parameter), so they do not fit `ReferenceBackend`.
   Each registered class has a dedicated test that reconstructs LAL's reference calculation from SWIG-exposed building blocks; shared helpers live in `cw/_lal_helpers.py`.
   See [Reference Implementations](reference_implementations.md).
 

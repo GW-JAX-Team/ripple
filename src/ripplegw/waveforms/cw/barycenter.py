@@ -113,7 +113,7 @@ def earth_pos_now(
 def detector_ssb_position(
     gps_int: Float[Array, " n"],
     gps_frac: Float[Array, " n"],
-    det_location_m: tuple[float, float, float],
+    det_location_m: tuple[FloatLike, FloatLike, FloatLike],
     eph_gps0: float,
     eph_dt: float,
     eph_pos: Float[Array, "m 3"],
@@ -161,7 +161,7 @@ def roemer_delay(
     gps_frac: Float[Array, " n"],
     alpha: FloatLike,
     delta: FloatLike,
-    det_location_m: tuple[float, float, float],
+    det_location_m: tuple[FloatLike, FloatLike, FloatLike],
     eph_gps0: float,
     eph_dt: float,
     eph_pos: Float[Array, "m 3"],
@@ -200,7 +200,7 @@ def emission_delay(
     earth: EarthState,
     alpha: FloatLike,
     delta: FloatLike,
-    det_location_m: tuple[float, float, float],
+    det_location_m: tuple[FloatLike, FloatLike, FloatLike],
 ) -> Float[Array, " n"]:
     """Full barycentering delay ``emit.deltaT`` (seconds), matching XLALBarycenter.
 

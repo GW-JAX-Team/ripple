@@ -4,11 +4,11 @@ Every built-in waveform except the continuous-wave (CW) family accepts
 ``ripplegw.waveform(name)`` with no extra kwargs -- that zero-arg-construction
 assumption is baked into the generic test infrastructure (``conftest.py``,
 ``test_edge_cases.py``, ``test_output_format.py``, ``test_jax.py``,
-``docs/gen_api.py``). CW's constructors need a detector, an ephemeris file, and
-a GPS epoch; there is no safe default epoch to guess (it would silently
-barycenter at the wrong time with no error), so each CW name gets a minimal
-viable config here instead, built against a small synthetic ephemeris so this
-runs in CI with no LAL/ephemeris-data dependency.
+``docs/gen_api.py``). CW's constructors need an ephemeris file and a GPS
+epoch; there is no safe default epoch to guess (it would silently barycenter
+at the wrong time with no error), so each CW name gets a minimal viable config
+here instead, built against a small synthetic ephemeris so this runs in CI
+with no LAL/ephemeris-data dependency.
 """
 
 import tempfile
@@ -74,7 +74,6 @@ def default_config(name: str) -> dict:
         return {}
     earth, sun = synthetic_ephemeris_files()
     config = {
-        "detector_location": H1_LOCATION,
         "earth_ephemeris_file": earth,
         "start_gps": _START_GPS,
     }

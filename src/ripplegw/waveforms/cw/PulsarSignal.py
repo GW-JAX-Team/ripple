@@ -22,10 +22,14 @@ class PulsarSignal(TimeDomainWaveform):
     precession/nutation + Einstein - Shapiro) and optional heterodyning.
     Requires both Earth and Sun ephemerides.
 
+    Unlike compact-binary waveforms, a continuous-wave signal's polarizations
+    depend on the *absolute* GPS epoch, so the observation start time and
+    ephemerides are fixed at construction. The observing site's location is
+    supplied per call instead (``site_x``, ``site_y``, ``site_z`` in
+    ``params``) precisely so a single instance can be ``jax.vmap``ed over
+    multiple sites.
+
     Attributes:
-        detector_location (tuple[float, float, float]): Geocentric Cartesian
-            vertex location of the detector (metres) defining the
-            arrival-time grid.
         start_gps (int): Integer GPS second of ``t == 0`` / heterodyne epoch.
         n_spindowns (int): Number of spindown parameters.
         ref_time_ssb (Optional[float]): SSB spin reference epoch (default: full
@@ -33,7 +37,6 @@ class PulsarSignal(TimeDomainWaveform):
         f_heterodyne (float): Heterodyne frequency (Hz).
     """
 
-    detector_location: tuple[float, float, float]
     start_gps: int
     n_spindowns: int
     ref_time_ssb: Optional[float]
@@ -41,7 +44,6 @@ class PulsarSignal(TimeDomainWaveform):
 
     def __init__(
         self,
-        detector_location: tuple[float, float, float],
         earth_ephemeris_file: str,
         sun_ephemeris_file: str,
         start_gps: int,
@@ -51,9 +53,6 @@ class PulsarSignal(TimeDomainWaveform):
     ) -> None:
         """
         Args:
-            detector_location (tuple[float, float, float]): Geocentric
-                Cartesian vertex location of the detector (metres), e.g. the
-                ``LALDetectors.h`` values for H1/L1/V1.
             earth_ephemeris_file (str): Earth ephemeris path, or a standard
                 LALPulsar name (e.g. ``"earth00-40-DE405.dat.gz"``) to
                 download and cache automatically -- see
@@ -64,9 +63,12 @@ class PulsarSignal(TimeDomainWaveform):
             n_spindowns (int): Number of spindown parameters.
             ref_time_ssb (Optional[float]): SSB spin reference epoch.
             f_heterodyne (float): Heterodyne frequency (Hz).
+
+        Note:
+            The observing site's location is not a constructor argument --
+            pass it per call as ``site_x``, ``site_y``, ``site_z`` (metres,
+            geocentric Cartesian) in ``params``; see :attr:`parameter_names`.
         """
-        x, y, z = detector_location
-        self.detector_location = (float(x), float(y), float(z))
         self.start_gps = int(start_gps)
         self.n_spindowns = int(n_spindowns)
         self.ref_time_ssb = ref_time_ssb
@@ -97,6 +99,9 @@ class PulsarSignal(TimeDomainWaveform):
             "phi0",
             "aplus",
             "across",
+            "site_x",
+            "site_y",
+            "site_z",
             *(f"f{i}" for i in range(1, self.n_spindowns + 1)),
         )
 
@@ -108,12 +113,16 @@ class PulsarSignal(TimeDomainWaveform):
         Args:
             t (Float[Array, " n_time"]): Sample times (s) relative to ``start_gps``.
             params: ``alpha``, ``delta``, ``f0``, ``phi0``,
-                ``aplus``, ``across``, and ``f1`` … ``f{n_spindowns}``.
+                ``aplus``, ``across``, ``site_x``, ``site_y``, ``site_z``
+                (observing site's geocentric Cartesian location, metres --
+                fixed site metadata, not a quantity to sample/infer), and
+                ``f1`` … ``f{n_spindowns}``.
 
         Returns:
             dict[str, Float[Array, " n_time"]]: ``{"p", "c"}`` polarizations.
         """
         fkdot = tuple(params[f"f{i}"] for i in range(1, self.n_spindowns + 1))
+        det_location_m = (params["site_x"], params["site_y"], params["site_z"])
         hp, hc = generate_pulsar_polarizations(
             t,
             self.start_gps,
@@ -123,7 +132,7 @@ class PulsarSignal(TimeDomainWaveform):
             params["phi0"],
             params["aplus"],
             params["across"],
-            self.detector_location,
+            det_location_m,
             *self._e,
             *self._s,
             fkdot=fkdot,
@@ -134,7 +143,6 @@ class PulsarSignal(TimeDomainWaveform):
 
     def __repr__(self) -> str:
         return (
-            f"PulsarSignal(detector_location={self.detector_location!r}, "
-            f"start_gps={self.start_gps}, n_spindowns={self.n_spindowns}, "
-            f"f_heterodyne={self.f_heterodyne})"
+            f"PulsarSignal(start_gps={self.start_gps}, "
+            f"n_spindowns={self.n_spindowns}, f_heterodyne={self.f_heterodyne})"
         )

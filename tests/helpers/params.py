@@ -15,6 +15,7 @@ import jax.numpy as jnp
 import numpy as np
 
 from ripplegw.conversions import lambdas_to_lambda_tildes, ms_to_Mc_eta
+from tests.helpers.config import H1_LOCATION
 
 # ---------------------------------------------------------------------------
 # Regime-scoped defaults (canonical_params) and sampling bounds (random_params_batch)
@@ -66,6 +67,9 @@ _COMMON_DEFAULTS = {
     "period": 6.3 * 3600.0,
     "argp": 1.05,
     "tp_ssb": 1_000_000_000.0 + 1234.0,
+    "site_x": H1_LOCATION[0],
+    "site_y": H1_LOCATION[1],
+    "site_z": H1_LOCATION[2],
 }
 
 # (m_min, m_max), (chi_min, chi_max), (lambda_min, lambda_max), (d_L_min, d_L_max)
