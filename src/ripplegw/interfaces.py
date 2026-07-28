@@ -20,8 +20,8 @@ StrainDict = dict[str, Float[Array, " n"] | Complex[Array, " n"]]
 class Waveform(ABC):
     """Base class for all waveform models.
 
-    A model is configured once at construction (reference frequency, detector,
-    and so on) and then called as ``wf(axis, params)``: ``axis`` is the
+    A model is configured once at construction (reference frequency, and so
+    on) and then called as ``wf(axis, params)``: ``axis`` is the
     evaluation grid, ``params`` maps parameter names to values, and the result
     is a dict keyed by polarization, e.g. ``{"p": ..., "c": ...}``.
 
