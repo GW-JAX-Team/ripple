@@ -2932,8 +2932,8 @@ factoring distance out of a cached result.</p>
 
 
         <p>Base class for all waveform models.</p>
-<p>A model is configured once at construction (reference frequency, detector,
-and so on) and then called as <code>wf(axis, params)</code>: <code>axis</code> is the
+<p>A model is configured once at construction (reference frequency, and so
+on) and then called as <code>wf(axis, params)</code>: <code>axis</code> is the
 evaluation grid, <code>params</code> maps parameter names to values, and the result
 is a dict keyed by polarization, e.g. <code>{"p": ..., "c": ...}</code>.</p>
 <p>Subclass <code>FrequencyDomainWaveform</code> or <code>TimeDomainWaveform</code> rather than
