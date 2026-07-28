@@ -40,6 +40,7 @@ pytestmark = [
     ),
 ]
 
+
 def test_makefakedata_v5_large_scale(
     n_samples, accuracy_outdir, make_plots, cw_waveform
 ):
