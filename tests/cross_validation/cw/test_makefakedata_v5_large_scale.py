@@ -9,8 +9,11 @@ barycentric-delay table with a hard-coded 400-second half interval (see
 comparison over a random draw of ``--n-samples`` trials spanning sky position,
 amplitude parameters, f0 (log-uniform, 10-2000 Hz -- the typical CW all-sky search
 band), spindown, detector site, and (for roughly half) binary orbital elements, then
-fits ``loss(f0) ~= C * (f0/100Hz)**exponent`` per population. ``test_makefakedata_v5.py``'s
-frequency-scaled ``_threshold(f0)`` is calibrated from this fit.
+fits ``loss(f0) ~= C * (f0/100Hz)**exponent`` per population. ``runner.py``'s
+``mismatch_threshold(f0, is_binary)`` -- shared with ``test_makefakedata_v5.py``'s
+single fixed point -- is calibrated from this fit (2026-07-28, n=1000 per
+population), checked per trial against every sampled f0/population here, not just
+against the reported max.
 
 Not run by default CI (expensive at any useful ``--n-samples``). Launch a selected
 CW model through the unified launcher, for example::
@@ -27,6 +30,7 @@ Earth/Sun ephemeris file are available.
 from pathlib import Path
 
 import jax
+import numpy as np
 import pytest
 
 jax.config.update("jax_enable_x64", True)
@@ -36,6 +40,8 @@ lalpulsar = pytest.importorskip("lalpulsar")
 
 from tests.cross_validation.cw._lal_helpers import find_ephemeris
 from tests.cross_validation.cw.runner import (
+    MAX_RELATIVE_NORM_ERROR,
+    mismatch_threshold,
     plot_results,
     run_large_scale_test,
     summarize,
@@ -51,13 +57,10 @@ pytestmark = [
     ),
 ]
 
-# Generous sanity ceiling, *not* the precision floor itself: this test's job is
-# to *measure* the f0-dependent floor (see summary/fit output below), not assert a
-# fixed bound against it. At f0 up to 2000 Hz the floor itself reaches ~1e-3 to
-# ~1e-2 (see runner.py); this only catches genuine blow-ups (bugs, NaNs), not the
-# known, expected interpolation floor.
-_SANITY_CEILING = 0.1
-_NORM_ERROR_CEILING = 1e-2
+# mismatch_threshold and MAX_RELATIVE_NORM_ERROR live in runner.py, shared with
+# test_makefakedata_v5.py's single fixed point -- see that module's docstring for
+# the mechanism (f0**2 delay-table interpolation) and the antenna-response-table
+# mechanism behind the flat norm-error ceiling.
 
 
 def test_makefakedata_v5_large_scale(
@@ -102,12 +105,22 @@ def test_makefakedata_v5_large_scale(
             f"{list(result.errors.items())[:5]}"
         )
     assert result.testable.size > 0, "No testable trials"
-    assert result.max_loss < _SANITY_CEILING, (
-        f"max time-domain mismatch {result.max_loss:.2e} exceeds sanity ceiling "
-        f"{_SANITY_CEILING:.2e} -- this is well beyond the expected f0^2 floor, "
-        f"likely a genuine bug rather than the known precision limit"
+
+    worst_ratio, worst_trial, worst_loss = 0.0, None, 0.0
+    for trial in result.trials:
+        loss = result.losses[trial.index]
+        if not np.isfinite(loss):
+            continue
+        ratio = loss / mismatch_threshold(trial.f0, is_binary=trial.is_binary)
+        if ratio > worst_ratio:
+            worst_ratio, worst_trial, worst_loss = ratio, trial, loss
+    assert worst_ratio < 1.0, (
+        f"time-domain mismatch {worst_loss:.2e} at f0={worst_trial.f0:.1f} Hz "
+        f"(is_binary={worst_trial.is_binary}) exceeds frequency-scaled threshold "
+        f"{mismatch_threshold(worst_trial.f0, is_binary=worst_trial.is_binary):.2e}"
     )
-    assert result.max_relative_norm_error < _NORM_ERROR_CEILING, (
+
+    assert result.max_relative_norm_error < MAX_RELATIVE_NORM_ERROR, (
         f"max relative norm error {result.max_relative_norm_error:.2e} exceeds "
-        f"amplitude-scale ceiling {_NORM_ERROR_CEILING:.2e}"
+        f"amplitude-scale ceiling {MAX_RELATIVE_NORM_ERROR:.2e}"
     )

@@ -20,8 +20,13 @@ from tests.cross_validation.td.sinegaussian import (
 
 pytestmark = pytest.mark.accuracy
 
-_MISMATCH_THRESHOLD = 1e-10
-_NORM_ERROR_THRESHOLD = 1e-8
+# "Just above observed" (rounded up to the nearest power of ten from the
+# 2026-07-28 n=1000 run: max mismatch 2.42e-18, max norm error 8.88e-16), not
+# generously margined -- both are already sub-float64-epsilon, so a different
+# seed, JAX version, or hardware could plausibly exceed these and require
+# re-deriving the constants rather than indicating a real regression.
+_MISMATCH_THRESHOLD = 1e-17
+_NORM_ERROR_THRESHOLD = 1e-15
 
 
 def test_sinegaussian_lalsimulation_large_scale(n_samples, accuracy_outdir, make_plots):

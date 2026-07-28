@@ -24,11 +24,11 @@ scales as roughly f0**2** (fitted exponent ~1.5-1.9 depending on population). Th
 dominant known LAL approximation is its 400-second barycentric-delay-table half
 interval (800-second node spacing), linearly interpolated by
 ``XLALPulsarSimulateCoherentGW``: a microsecond-scale delay residual becomes a phase
-residual proportional to ``f0``. ``_threshold()`` is therefore
-frequency-dependent, calibrated from a 500-trial HPC large-scale test
-(``test_makefakedata_v5_large_scale.py``, f0 log-uniform 10-2000 Hz) rather than a single
-point. The comparison is direct in time domain; it uses no FFT and no time/phase
-maximization.
+residual proportional to ``f0``. ``_threshold()`` (imported from ``runner.py``, shared with the large-scale test) is
+therefore frequency-dependent, calibrated from a 1000-trial-per-population HPC
+large-scale test (``test_makefakedata_v5_large_scale.py``, f0 log-uniform 10-2000 Hz,
+2026-07-28) rather than a single point. The comparison is direct in time domain; it
+uses no FFT and no time/phase maximization.
 
 Covers ``PulsarSignal`` and ``BinaryPulsarSignal`` -- both use the full barycentering
 delay that ``XLALGeneratePulsarSignal`` implements. **Not** ``ExactPulsarSignal``:
@@ -69,6 +69,8 @@ from tests.cross_validation.cw._lal_helpers import (
     make_fake_data_v5,
     overlap_loss,
 )
+from tests.cross_validation.cw.runner import MAX_RELATIVE_NORM_ERROR
+from tests.cross_validation.cw.runner import mismatch_threshold as _threshold
 from tests.helpers.metrics import relative_norm_error
 
 EARTH_FILE, SUN_FILE = find_ephemeris()
@@ -80,26 +82,10 @@ pytestmark = [
     ),
 ]
 
-
-# Overlap-loss threshold vs. f0 (Hz), calibrated from a 500-trial HPC large-scale test
-# (test_makefakedata_v5_large_scale.py, 2026-07-28, n=250 per population, f0 log-uniform
-# 10-2000 Hz -- see docs/dev/reference_implementations.md). Not a flat floor: the
-# loss scales as roughly f0**2 because LAL linearly interpolates a barycentric-delay
-# table with a 400-second half interval (see module docstring), plus an additive floor
-# dominating at low f0 (binary's floor is set by LAL's own Kepler-solver tolerance, looser than
-# isolated's). Smallest observed margin over any sampled trial: isolated 25x, binary
-# 13x -- a fresh large-scale test run may want to re-derive these constants rather than
-# assume they still hold with the same margin at a much larger --n-samples.
-def _threshold(f0: float, *, is_binary: bool) -> float:
-    floor = 2e-3 if is_binary else 1e-4
-    coeff = 4e-4 if is_binary else 3e-4
-    return floor + coeff * (f0 / 100.0) ** 2
-
-
-# ``XLALPulsarSimulateCoherentGW`` documents its interpolated antenna response as
-# accurate to about 0.1%; this 1% ceiling leaves a factor-of-ten reference margin
-# while catching a global amplitude-scale regression that normalized mismatch misses.
-_MAX_RELATIVE_NORM_ERROR = 1e-2
+# _threshold and MAX_RELATIVE_NORM_ERROR live in runner.py (imported above), shared
+# with test_makefakedata_v5_large_scale.py -- see that module's docstring for the
+# calibration these came from.
+_MAX_RELATIVE_NORM_ERROR = MAX_RELATIVE_NORM_ERROR
 
 
 _START_GPS = 1_000_000_000

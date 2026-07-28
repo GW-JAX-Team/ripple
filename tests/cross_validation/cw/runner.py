@@ -390,6 +390,26 @@ def _hardware_info() -> dict:
 _F0_REF = 100.0  # Hz -- reference frequency for reporting the fitted coefficient
 
 
+# Mismatch threshold vs. f0 (Hz): pure f0**2 scaling, no additive floor (the fitted
+# power law alone stays above every observed point in the calibration run below).
+# Calibrated from a 1000-trial-per-population large-scale test (2026-07-28), rounded
+# up to the nearest power of ten -- see docs/dev/reference_implementations.md. Shared
+# by test_makefakedata_v5.py's single fixed point and
+# test_makefakedata_v5_large_scale.py's full sweep, so both stay in sync. This is a
+# "just above observed" bound, not a generously-margined one -- a fresh large-scale
+# test at a different --n-samples or parameter range may exceed it and require
+# re-deriving these constants.
+def mismatch_threshold(f0: float, *, is_binary: bool) -> float:
+    coeff = 1e-2 if is_binary else 1e-3
+    return coeff * (f0 / 100.0) ** 2
+
+
+# LAL's coarsely-tabulated antenna response (see module docstring) sets a flat,
+# f0-independent floor on this diagnostic. Rounded up from the observed max (1.42e-2,
+# 1000-trial large-scale test, 2026-07-28) to the nearest power of ten.
+MAX_RELATIVE_NORM_ERROR = 1e-1
+
+
 def fit_power_law(f0: np.ndarray, loss: np.ndarray) -> dict:
     """Least-squares fit of ``log(loss) = log(A) + exponent * log(f0)`` over positive,
     finite losses.
