@@ -1132,6 +1132,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#large-scale-campaign-results-2026-07-28" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Large-scale campaign results (2026-07-28)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1700,6 +1711,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#large-scale-campaign-results-2026-07-28" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Large-scale campaign results (2026-07-28)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1808,8 +1830,8 @@ To submit a test, see <a href="../cross_validation/">Cross-validation tests</a>.
 </tr>
 <tr>
 <td>ExactPulsarSignal vs direct LALPulsar building blocks</td>
-<td>mismatch &lt; 1e-9; relative norm error &lt; 1e-8</td>
-<td>randomized 512 Hz aligned time series</td>
+<td>mismatch &lt; <code>3e-9 + 8e-9·(f0/100Hz)²</code>; relative norm error &lt; 2e-7</td>
+<td>frequency-dependent, see below</td>
 </tr>
 <tr>
 <td>PulsarSignal</td>
@@ -1823,12 +1845,12 @@ To submit a test, see <a href="../cross_validation/">Cross-validation tests</a>.
 </tr>
 <tr>
 <td>PulsarSignal vs <code>CWMakeFakeData</code></td>
-<td><code>1e-4 + 3e-4·(f0/100Hz)²</code></td>
+<td>mismatch &lt; <code>1e-4 + 3e-4·(f0/100Hz)²</code>; relative norm error &lt; 5e-2</td>
 <td>LAL reference-interpolation bound, see below</td>
 </tr>
 <tr>
 <td>BinaryPulsarSignal vs <code>CWMakeFakeData</code></td>
-<td><code>2e-3 + 4e-4·(f0/100Hz)²</code></td>
+<td>mismatch &lt; <code>2e-3 + 4e-4·(f0/100Hz)²</code>; relative norm error &lt; 5e-2</td>
 <td>LAL reference-interpolation bound, see below</td>
 </tr>
 </tbody>
@@ -1863,16 +1885,21 @@ Once the resulting linear phase ramp is removed, the residual is consistent with
 <p>The deviation is confined to extreme mass ratio (q ~ 0.07) and near-extremal primary spin (chi1 ~ 0.98), where the (3,2) mode exhibits strong spheroidal-spherical mixing near the ringdown.</p>
 <p>The (3,2) intermediate phase is set by a 6×6 linear system, one of whose constraints is the first derivative of the spheroidal-to-spherical (S2S) phase at <code>fcutRD</code>.
 That derivative disagrees slightly between ripple and LAL: the S2S phase oscillates rapidly near <code>fcutRD</code> (a beat between the (3,2) and (2,2) QNMs), so small differences in how JAX vs. C sample a rapidly oscillating function's instantaneous slope produce a small phase error in the 200–300 Hz intermediate region.</p>
+<p>This threshold is deliberately <strong>not</strong> tightened to match a smaller-<code>n</code> observed max (see <a href="#large-scale-campaign-results-2026-07-28">Large-scale campaign results</a>): the extreme-mass-ratio/near-extremal-spin corner responsible is rare enough that the observed max keeps growing with <code>--n-samples</code> rather than converging -- a <code>n=5000</code> run (2026-07-28) found max 9.75e-06, nearly 10x over this threshold itself.</p>
 <h3 id="imrphenomxp">IMRPhenomXP<a class="headerlink" href="#imrphenomxp" title="Permanent link">¤</a></h3>
 <p><strong>Threshold: 1e-6</strong></p>
 <p>The dominant contribution comes from parameter combinations where the MSA precession correction has a near-singularity in the sensitive band.
 In <code>IMRPhenomX_Return_phiz_of_v_MSA_precav_correction_LAL</code>, the correction formula contains <code>1/sqrt(d0+d2+d4)</code>, which diverges when <code>d0+d2+d4 = 0</code> — the angular-momentum resonance <code>J = L − Smi</code>.
 Near that resonance, <code>d0+d2+d4</code> is a difference of large, nearly-equal terms (catastrophic cancellation), so GPU/CPU float64 rounding differences in the spin-evolution coefficients get amplified into a real, if small, discrepancy in the precession angle — further amplified in <code>hc</code> vs <code>hp</code> at high inclination.</p>
 <p>This is a fundamental float64 limitation: both ripple and LAL use the same formula, and the error arises from irreducible GPU/CPU rounding differences near the resonance, not from either implementation being wrong.</p>
+<p>At the same near-extremal-spin resonance, LAL occasionally refuses to generate at all rather than returning a degraded result: a 1000-sample large-scale run (2026-07-28) hit <code>Internal function call failed: Input domain error</code> for 1/1000 random draws (<code>|s2| ~ 0.95</code>), confirmed via the local LALSuite source to originate in the same <code>d0+d2+d4</code>/<code>sqrt(fabs(...))</code> MSA quantities as above. This is a benign, expected LAL-side domain rejection near the resonance, not a ripple regression, and unrelated to the overlap-loss threshold itself.</p>
+<p>Like XHM, this threshold is deliberately <strong>not</strong> tightened to a smaller-<code>n</code> observed max: the same resonance corner makes overlap loss heavy-tailed here too. <code>n=1000</code> found max 6.98e-08, but an <code>n=5000</code> run (2026-07-28) found max 1.15e-06 -- <em>exceeding</em> this threshold. See <a href="#large-scale-campaign-results-2026-07-28">Large-scale campaign results</a>.</p>
 <h3 id="imrphenomxphm">IMRPhenomXPHM<a class="headerlink" href="#imrphenomxphm" title="Permanent link">¤</a></h3>
 <p><strong>Threshold: 1e-6</strong></p>
 <p>Dominated by the same MSA resonance mechanism as XP.
 Beyond that, high aligned-spin cases pick up a small additional contribution from the (3,2) mode (see IMRPhenomXHM above), diluted by the other modes.</p>
+<p>Shares XP's occasional benign LAL domain rejection near the resonance (same 2026-07-28 run: 1/1000, max overlap loss among generated samples 8.24e-07).</p>
+<p>Given the shared mechanism, this threshold is also kept unrounded rather than tightened from the <code>n=1000</code> max: an <code>n=3000</code> recheck (2026-07-28) found max 2.26e-07, comfortably under 1e-6, but XHM's and XP's own larger-<code>n</code> reruns showed this family's tail isn't reliably characterized by any single run of this size -- see <a href="#large-scale-campaign-results-2026-07-28">Large-scale campaign results</a>.</p>
 <hr />
 <h2 id="time-domain-waveform-models">Time-domain waveform models<a class="headerlink" href="#time-domain-waveform-models" title="Permanent link">¤</a></h2>
 <p>Time-domain validation compares directly generated, aligned real samples.
@@ -1899,13 +1926,15 @@ The <code>CWMakeFakeData</code> regression and large-scale test use the shared m
 </ul>
 <p><code>ExactPulsarSignal</code> also has a randomized large-scale test built from the first reference path.
 It faithfully follows LAL's <code>XLALGPSGetREAL8</code> phase convention on a 512 Hz grid whose timestamps are exactly representable in that format, sampling 10–200 Hz without introducing a grid-created phase floor.
-It checks the direct FFT-free mismatch and the relative-norm amplitude diagnostic.</p>
+It checks the direct FFT-free mismatch and the relative-norm amplitude diagnostic.
+Like <code>CWMakeFakeData</code> below, its mismatch is not a flat floor either: a 1000-trial run (2026-07-28) found a clean <span class="arithmatex">\(f_0^2\)</span> scaling (log-log fit exponent ~1.97), just ~100x tighter in absolute terms (~1e-9 vs ~1e-6) since this path uses LAL's own <code>XLALGPSGetREAL8</code>/<code>XLALBarycenter</code> REAL8-precision routines directly rather than the <code>REAL4</code>-tabulated <code>CWMakeFakeData</code> pipeline. The relative norm error showed no comparable <span class="arithmatex">\(f_0\)</span> trend (log-log correlation ~0.13).</p>
 <h3 id="frequency-dependent-cwmakefakedata-bound">Frequency-dependent <code>CWMakeFakeData</code> bound<a class="headerlink" href="#frequency-dependent-cwmakefakedata-bound" title="Permanent link">¤</a></h3>
 <p>The <code>CWMakeFakeData</code> mismatch is not a flat numerical floor: the large-scale test finds it grows approximately as <span class="arithmatex">\(f_0^2\)</span>.
 This is a limitation of the LAL reference path.
 <code>PulsarSimulateCoherentGW.c</code>, reached through <code>CWMakeFakeData</code>, uses a hard-coded 400-second delay-table half interval (800 seconds between tabulated delay values) and linearly interpolates at each output sample.
 Its source comments estimate a delay error of order microseconds.
 A delay-induced phase error scales with <span class="arithmatex">\(f_0\)</span>, so the normalized mismatch naturally scales approximately as <span class="arithmatex">\(f_0^2\)</span>.</p>
+<p>The relative-norm-error (amplitude-scale) diagnostic against <code>CWMakeFakeData</code> has a <em>separate</em> LAL-side floor, unrelated to <span class="arithmatex">\(f_0\)</span>: a 1000-trial <code>PulsarSignal</code> run (2026-07-28) found essentially no <span class="arithmatex">\(f_0\)</span> correlation (log-log correlation ~-0.01) but roughly 2x higher error at short trial duration (≤100s) than long (≥1000s), plus occasional larger outliers (observed max 1.42e-2) from specific sky-position/polarization-angle configurations. The same <code>PulsarSimulateCoherentGW.c</code> path tabulates the detector antenna response (<code>LALComputeDetAMResponseSeries</code>) at a hard-coded <code>dtPolBy2 = 300</code>-second half interval (600 seconds between <code>REAL4</code>-precision table nodes), linearly interpolated — coarser for short trials, which span fewer table nodes — unlike ripple's own comparison strain, which calls <code>ComputeDetAMResponse</code> fresh at every sample (<code>_lal_helpers.detector_strain_from_am_response</code>). This is why the large-scale test's norm-error ceiling is a flat bound, not an <span class="arithmatex">\(f_0\)</span>-scaled one, unlike the mismatch.</p>
 <p>The frequency-dependent bounds above are calibrated to that reference approximation, not evidence that ripple should add the same interpolation.
 Recalibrate them after changing the sampled parameter range or LAL version.
 Run the selected CW test through <a href="../cross_validation/">Cross-validation tests</a>; it requires LALPulsar and Earth/Sun ephemerides visible to the worker.</p>
@@ -1914,8 +1943,110 @@ Run the selected CW test through <a href="../cross_validation/">Cross-validation
 <ul>
 <li>A different random seed or parameter range may give different extreme values; thresholds carry margin over what's been observed to allow for that variation.</li>
 <li>The frequency-domain overlap loss is not maximised over time or phase shifts; it is the raw comparison between ripple and LAL waveforms with identical input parameters.</li>
-<li>IMRPhenomXAS_NRTidalv3's BNS-band frequency grid can exceed available host memory at large <code>--n-samples</code> on GPU; the OOM-retry ladder in the frequency-domain test runner only handles GPU/JAX OOM, not host-side array allocation.</li>
+<li>A BNS-band frequency grid can exceed available host memory at large <code>--n-samples</code> on GPU; the OOM-retry ladder in the frequency-domain test runner only handles GPU/JAX OOM, not host-side array allocation. This isn't unique to IMRPhenomXAS_NRTidalv3: a 2026-07-28 <code>--n-samples 1000</code> run with <code>tests.cross_validation.submit</code>'s default <code>--memory 16G</code> also OOM-killed IMRPhenomD_NRTidalv2 and, unexpectedly, the non-BNS TaylorF2 -- all three passed cleanly once resubmitted with <code>--memory 64G</code>. Consider raising the frequency-domain default in <code>tests/cross_validation/submit.py</code> rather than relying on a per-run override.</li>
 </ul>
+<hr />
+<h2 id="large-scale-campaign-results-2026-07-28">Large-scale campaign results (2026-07-28)<a class="headerlink" href="#large-scale-campaign-results-2026-07-28" title="Permanent link">¤</a></h2>
+<p>A full <code>--n-samples 1000 --plots</code> run of every registered waveform (<code>python -m tests.cross_validation.submit --scheduler slurm --waveform all</code>) was run on Slurm; results and plots are stored under <code>accuracy-results/20260728-192604/&lt;waveform&gt;/</code> (one <code>*_n1000.json</code> + <code>*_n1000.png</code> per waveform; the bulky <code>--cache-reference</code> raw-array caches were deleted afterward to stay under the cluster's disk quota -- rerun with <code>--cache-reference</code> locally if you need to regenerate them). <code>IMRPhenomD_NRTidalv2</code>, <code>IMRPhenomXAS_NRTidalv3</code>, and <code>TaylorF2</code> needed a <code>--memory 64G</code> rerun (the frequency-domain launcher's 16G default OOM-killed them at <code>n=1000</code>, unrelated to accuracy); <code>ExactPulsarSignal</code> and <code>PulsarSignal</code> needed the threshold fixes below and were rerun to confirm.</p>
+<p>Every threshold in this document and in <code>tolerances.toml</code> is "just above" the max observed in this campaign, rounded up to the nearest power of ten (a <code>1e-N</code> value) -- <strong>except</strong> <code>IMRPhenomXHM</code>/<code>IMRPhenomXP</code>/<code>IMRPhenomXPHM</code>'s <code>overlap_loss</code>, kept at the pre-existing <code>1e-6</code> for reasons explained below.</p>
+<table>
+<thead>
+<tr>
+<th>Waveform</th>
+<th>Threshold</th>
+<th>Max observed (n=1000)</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TaylorF2</td>
+<td>overlap_loss 1e-15; phase_offset 1e-10</td>
+<td>3.93e-16; 4.50e-11</td>
+<td>—</td>
+</tr>
+<tr>
+<td>IMRPhenomD</td>
+<td>overlap_loss 1e-15; phase_offset 1e-11</td>
+<td>4.44e-16; 7.31e-12</td>
+<td>—</td>
+</tr>
+<tr>
+<td>IMRPhenomD_NRTidalv2</td>
+<td>overlap_loss 1e-15; phase_offset 1e-9</td>
+<td>3.82e-16; 1.00e-10</td>
+<td>needed <code>--memory 64G</code></td>
+</tr>
+<tr>
+<td>IMRPhenomHM</td>
+<td>overlap_loss 1e-15; phase_offset 1e-11</td>
+<td>4.39e-16; 7.51e-12</td>
+<td>—</td>
+</tr>
+<tr>
+<td>IMRPhenomPv2</td>
+<td>overlap_loss 1e-4</td>
+<td>3.21e-05</td>
+<td>—</td>
+</tr>
+<tr>
+<td>IMRPhenomXAS</td>
+<td>overlap_loss 1e-15; phase_offset 1e-12</td>
+<td>4.12e-16; 7.49e-13</td>
+<td>—</td>
+</tr>
+<tr>
+<td>IMRPhenomXAS_NRTidalv3</td>
+<td>overlap_loss 1e-12; phase_offset 1e-7</td>
+<td>3.57e-13; 1.94e-8</td>
+<td>needed <code>--memory 64G</code></td>
+</tr>
+<tr>
+<td>IMRPhenomXHM</td>
+<td>overlap_loss <strong>1e-6</strong> (unrounded, see below)</td>
+<td>5.29e-08 (n=1000); <strong>9.75e-06 (n=5000)</strong></td>
+<td>heavy-tailed -- see below</td>
+</tr>
+<tr>
+<td>IMRPhenomXP</td>
+<td>overlap_loss <strong>1e-6</strong> (unrounded, see below)</td>
+<td>6.98e-08 (n=1000); <strong>1.15e-06 (n=5000)</strong></td>
+<td>heavy-tailed; 1/1000 benign LAL domain rejection</td>
+</tr>
+<tr>
+<td>IMRPhenomXPHM</td>
+<td>overlap_loss <strong>1e-6</strong> (unrounded, see below)</td>
+<td>8.24e-07 (n=1000); 2.26e-07 (n=3000)</td>
+<td>1/1000 benign LAL domain rejection</td>
+</tr>
+<tr>
+<td>SineGaussian</td>
+<td>mismatch 1e-17; norm err 1e-15</td>
+<td>2.42e-18; 8.88e-16</td>
+<td>—</td>
+</tr>
+<tr>
+<td>ExactPulsarSignal</td>
+<td>mismatch <code>1e-9·(f0/100)²</code>; norm err 1e-7</td>
+<td>2.43e-09 at f0=191Hz; 1.58e-8</td>
+<td>—</td>
+</tr>
+<tr>
+<td>PulsarSignal vs <code>CWMakeFakeData</code></td>
+<td>mismatch <code>1e-3·(f0/100)²</code>; norm err 1e-1</td>
+<td>5.10e-03; 1.42e-02</td>
+<td>—</td>
+</tr>
+<tr>
+<td>BinaryPulsarSignal vs <code>CWMakeFakeData</code></td>
+<td>mismatch <code>1e-2·(f0/100)²</code>; norm err 1e-1</td>
+<td>1.20e-02; 6.17e-03</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>This run also calibrated every frequency-dependent CW bound and the <code>ExactPulsarSignal</code> threshold; it superseded smaller earlier CW calibration runs (n=300-500) that hadn't sampled enough of the parameter space to catch the true floor. The CW/<code>ExactPulsarSignal</code> mismatch thresholds turned out to need no additive floor term at all -- a pure <code>C·(f0/100Hz)²</code> stays above every sampled trial -- so the earlier floor-plus-power-law formulas were simplified.</p>
+<p><strong>Why <code>IMRPhenomXHM</code>/<code>IMRPhenomXP</code>/<code>IMRPhenomXPHM</code> are the exception.</strong> "Round the n=1000 max up to the nearest power of ten" assumes the statistic is reasonably well-behaved -- true for the smooth f0² power laws above, but not for these three. Their overlap loss is dominated by a rare, narrow parameter-space corner (extreme mass ratio, near-extremal spin -- see their sections above), so the observed max keeps growing as <code>--n-samples</code> grows rather than converging. Follow-up runs the same day confirmed this directly: at <code>n=5000</code>, <code>IMRPhenomXHM</code>'s max grew to 9.75e-06 and <code>IMRPhenomXP</code>'s to 1.15e-06 -- both <em>exceeding</em> the pre-existing <code>1e-6</code> threshold, not just the naively-rounded <code>1e-7</code> an n=1000-only calibration would have produced. (<code>IMRPhenomXPHM</code>'s own <code>n=3000</code> recheck stayed under <code>1e-6</code>, but given the shared mechanism and the other two's behavior, that's not enough to conclude it's safe rounded down either.) A robust threshold for this family needs a dedicated, much larger campaign -- and possibly a different methodology (e.g. explicitly characterizing or excluding the bad corner) -- rather than a quick re-derivation, so all three keep their long-standing <code>1e-6</code> unrounded.</p>
 
 
 
