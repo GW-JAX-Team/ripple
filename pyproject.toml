@@ -56,6 +56,7 @@ doc = [
 
 [project.scripts]
 ripple-benchmark = "ripplegw.benchmarks.timings.timing:main"
+ripplegw-fetch-ephemeris = "ripplegw.waveforms.cw.ephemeris:main"
 
 [project.urls]
 Homepage = "https://github.com/GW-JAX-Team/ripple"

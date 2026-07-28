@@ -24,8 +24,16 @@ A standard ``earth*``/``sun*`` file isn't bundled with ripple (see
 :func:`read_ephemeris_file` downloads it from the LALSuite repository and
 caches it locally (see :func:`resolve_ephemeris_path`) rather than requiring
 users to fetch it manually.
+
+On a machine without internet access (e.g. an HPC compute node), that
+auto-download fails -- run the ``ripplegw-fetch-ephemeris`` console script
+(see :func:`main`) once on a machine that does have internet access first
+(e.g. the same cluster's login node). The cache directory is normally on
+shared/home storage, so a later job on a node without internet access finds
+the file already there and never attempts a download.
 """
 
+import argparse
 import gzip
 import os
 import re
@@ -46,6 +54,9 @@ _LALSUITE_RAW_BASE = "https://git.ligo.org/lscsoft/lalsuite/-/raw/master/lalpuls
 # Auto-download is only ever attempted for a bare name matching this pattern --
 # ripple never guesses at an arbitrary URL.
 _EPHEMERIS_NAME_RE = re.compile(r"\A(earth|sun)\d{2}-\d{2}-DE\d{3}\.dat(\.gz)?\Z")
+# Names fetched by `ripplegw-fetch-ephemeris` when none are given explicitly --
+# matches the pair every CW waveform class defaults to needing.
+_DEFAULT_EPHEMERIS_NAMES = ("earth00-40-DE405.dat.gz", "sun00-40-DE405.dat.gz")
 
 
 @dataclass(frozen=True)
@@ -165,8 +176,12 @@ def resolve_ephemeris_path(name_or_path: str) -> str:
         raise FileNotFoundError(
             f"Ephemeris file '{name_or_path}' isn't cached locally, and "
             f"downloading it from {_LALSUITE_RAW_BASE}/{basename} failed: {exc}. "
-            "See docs/installation.md to obtain it manually and pass the local "
-            "path instead."
+            "If this machine has no internet access (e.g. an HPC compute node), "
+            "run `ripplegw-fetch-ephemeris` once on a machine that does (e.g. the "
+            "cluster's login node) -- its cache directory is normally on "
+            "shared/home storage, so this machine will then find the file already "
+            "cached. Otherwise, see docs/installation.md to obtain it manually and "
+            "pass the local path instead."
         ) from exc
 
 
@@ -289,3 +304,50 @@ def load_ephemeris(
     earth = read_ephemeris_file(earth_file)
     sun = read_ephemeris_file(sun_file) if sun_file is not None else None
     return earth, sun
+
+
+def main() -> None:
+    """``ripplegw-fetch-ephemeris`` console-script entry point.
+
+    Pre-fetches ephemeris files into the local cache (see :func:`_cache_dir`) so
+    a later run on a machine without internet access -- e.g. an HPC compute node
+    -- finds them already cached and never attempts a download, since that cache
+    directory is normally on shared/home storage. Safe to run repeatedly: an
+    already-cached file is left untouched (see :func:`_download_to_cache`).
+
+    Exits with status 1, printing to stderr, if any requested file fails to
+    download (network error, or not a recognised standard name).
+    """
+    parser = argparse.ArgumentParser(
+        description=(
+            "Pre-fetch LALPulsar Earth/Sun ephemeris files into ripplegw's local "
+            "cache. Run this once on a machine with internet access (e.g. an HPC "
+            "login node) before running CW code on a machine without one (e.g. a "
+            "compute node)."
+        ),
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "names",
+        nargs="*",
+        default=list(_DEFAULT_EPHEMERIS_NAMES),
+        help="Standard LALPulsar ephemeris file name(s) to fetch",
+    )
+    args = parser.parse_args()
+
+    failed = False
+    for name in args.names:
+        try:
+            path = resolve_ephemeris_path(name)
+        except FileNotFoundError as exc:
+            print(f"FAILED  {name}: {exc}", file=sys.stderr)
+            failed = True
+            continue
+        print(f"OK      {name} -> {path}")
+
+    if failed:
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
