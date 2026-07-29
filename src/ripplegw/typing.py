@@ -8,3 +8,4 @@ FloatScalar: TypeAlias = Float[Array, ""]
 IntScalar: TypeAlias = Int[Array, ""]
 ComplexScalar: TypeAlias = Complex[Array, ""]
 FloatLike: TypeAlias = float | Float[Array, ""]
+ComplexLike: TypeAlias = complex | ComplexScalar

@@ -14,7 +14,8 @@ All PSDs are sourced from the bilby gravitational wave inference library:
 ## Files
 
 ### ET_D_psd.txt
-Einstein Telescope D-design PSD. Used as the default test PSD for cross-validation and benchmarking.
+Einstein Telescope D-design PSD.
+Used as the default PSD for frequency-domain cross-validation and benchmarking.
 
 **Format:** Two-column ASCII text (frequency [Hz], PSD [Hz^-1])
 
