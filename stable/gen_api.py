@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Generate API reference stubs and produce _zensical_build.toml.
 
 Run before: uv run zensical build -f _zensical_build.toml --clean
@@ -18,7 +17,11 @@ from pathlib import Path
 
 # Module path prefixes (relative to src/) to exclude from the API docs.
 # Use forward slashes, e.g. "mypkg/internal".
-SKIP_PREFIXES: list[str] = ["ripplegw/benchmarks"]
+SKIP_PREFIXES: list[str] = [
+    "ripplegw/benchmarks",
+    "ripplegw/utils",
+    "ripplegw/waveforms",
+]
 REFERENCE_TAB_NAME = "Reference"
 
 
@@ -36,8 +39,15 @@ def scan_modules(src_dir: Path) -> list[tuple[list[str], Path]]:
     )
     for py_file in py_files:
         parts = list(py_file.relative_to(src_dir).with_suffix("").parts)
-        if parts[-1] in ("__init__", "__main__"):
+        if parts[-1] == "__main__":
             continue
+        if parts[-1] == "__init__":
+            if len(parts) == 2:
+                # The top-level package's own __init__.py becomes its Overview
+                # page (e.g. "ripplegw"), so its __all__ is documented.
+                parts = parts[:-1]
+            else:
+                continue
         if any(part.startswith("_") for part in parts):
             continue
         rel = "/".join(parts)
