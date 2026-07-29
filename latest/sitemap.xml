@@ -10,13 +10,40 @@
         <loc>https://gw-jax-team.github.io/ripple/latest/quickstart/</loc>
       </url>
       <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/tutorials/</loc>
+        <loc>https://gw-jax-team.github.io/ripple/latest/guides/</loc>
       </url>
       <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/tutorials/generating_waveforms/</loc>
+        <loc>https://gw-jax-team.github.io/ripple/latest/guides/waveforms/</loc>
       </url>
       <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/tutorials/benchmarking/</loc>
+        <loc>https://gw-jax-team.github.io/ripple/latest/guides/parameters/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/guides/jax/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/guides/catalogue/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/guides/benchmarking/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/dev/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/dev/architecture/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/dev/adding_a_waveform/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/dev/test_coverage/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/dev/run_reference_checks/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/dev/reference_comparisons_and_limits/</loc>
       </url>
       <url>
         <loc>https://gw-jax-team.github.io/ripple/latest/FAQ/</loc>
@@ -28,6 +55,9 @@
         <loc>https://gw-jax-team.github.io/ripple/latest/contributing/</loc>
       </url>
       <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/</loc>
+      </url>
+      <url>
         <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/constants/</loc>
       </url>
       <url>
@@ -37,69 +67,9 @@
         <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/interfaces/</loc>
       </url>
       <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/registry/</loc>
+      </url>
+      <url>
         <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/typing/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/waveforms/elliptic_integrals/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/waveforms/IMRPhenom_tidal_utils/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/waveforms/IMRPhenomD/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/waveforms/IMRPhenomD_NRTidalv2/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/waveforms/IMRPhenomD_QNMdata/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/waveforms/IMRPhenomD_utils/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/waveforms/IMRPhenomHM/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/waveforms/IMRPhenomPv2/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/waveforms/IMRPhenomPv2_utils/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/waveforms/IMRPhenomX_utils/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/waveforms/IMRPhenomXAS/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/waveforms/IMRPhenomXAS_NRTidalv3/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/waveforms/IMRPhenomXHM/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/waveforms/IMRPhenomXP/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/waveforms/IMRPhenomXPHM/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/waveforms/initialize_MSA_system/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/waveforms/LALSimIMRPhenomX_precession/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/waveforms/NRTidalv3_utils/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/waveforms/SineGaussian/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/waveforms/spherical_harmonics/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/waveforms/TaylorF2/</loc>
       </url>
 </urlset>

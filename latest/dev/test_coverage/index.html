@@ -12,30 +12,36 @@
         <meta name="author" content="GW JAX Team">
       
       
+        <link rel="canonical" href="https://gw-jax-team.github.io/ripple/latest/dev/test_coverage/">
       
+      
+        <link rel="prev" href="../adding_a_waveform/">
+      
+      
+        <link rel="next" href="../run_reference_checks/">
       
       
         
       
       
-      <link rel="icon" href="/ripple/latest/assets/images/favicon.png">
+      <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="zensical-0.0.51">
     
     
       
-        <title>ripple</title>
+        <title>Test Coverage - ripple</title>
       
     
     
       
         
       
-      <link rel="stylesheet" href="/ripple/latest/assets/stylesheets/modern/main.62c9b9cc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/modern/main.62c9b9cc.min.css">
       
         
           
         
-        <link rel="stylesheet" href="/ripple/latest/assets/stylesheets/modern/palette.dfe2e883.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/modern/palette.dfe2e883.min.css">
       
       
 
@@ -54,7 +60,7 @@
       
     
     
-    <script>__md_scope=new URL("/ripple/latest",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    <script>__md_scope=new URL("../..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
     
       
 
@@ -78,7 +84,8 @@
     <label class="md-overlay" for="__drawer" aria-label="Navigation"></label>
     <div data-md-component="skip">
       
-        <a href="#__skip" class="md-skip">
+        
+        <a href="#test-coverage" class="md-skip">
           Skip to content
         </a>
       
@@ -96,7 +103,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="/ripple/latest/" title="ripple" class="md-header__button md-logo" aria-label="ripple" data-md-component="logo">
+    <a href="../.." title="ripple" class="md-header__button md-logo" aria-label="ripple" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
@@ -116,7 +123,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              
+              Test Coverage
             
           </span>
         </div>
@@ -200,7 +207,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/ripple/latest/" class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   Home
@@ -216,7 +223,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/ripple/latest/installation/" class="md-tabs__link">
+      <a href="../../installation/" class="md-tabs__link">
         
   
   Installation
@@ -232,7 +239,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/ripple/latest/quickstart/" class="md-tabs__link">
+      <a href="../../quickstart/" class="md-tabs__link">
         
   
   Quick Start
@@ -253,7 +260,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/ripple/latest/guides/" class="md-tabs__link">
+        <a href="../../guides/" class="md-tabs__link">
           
   
   Guides
@@ -268,14 +275,16 @@
   
   
   
+    
+  
   
     
       
     
     
     
-      <li class="md-tabs__item">
-        <a href="/ripple/latest/dev/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
           
   
   Developer Guide
@@ -292,7 +301,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/ripple/latest/FAQ/" class="md-tabs__link">
+      <a href="../../FAQ/" class="md-tabs__link">
         
   
   FAQ
@@ -308,7 +317,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/ripple/latest/citing/" class="md-tabs__link">
+      <a href="../../citing/" class="md-tabs__link">
         
   
   Citing ripple
@@ -324,7 +333,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/ripple/latest/contributing/" class="md-tabs__link">
+      <a href="../../contributing/" class="md-tabs__link">
         
   
   Contributing
@@ -355,7 +364,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/ripple/latest/api/ripplegw/" class="md-tabs__link">
+        <a href="../../api/ripplegw/" class="md-tabs__link">
           
   
   Reference
@@ -391,7 +400,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="/ripple/latest/" title="ripple" class="md-nav__button md-logo" aria-label="ripple" data-md-component="logo">
+    <a href="../.." title="ripple" class="md-nav__button md-logo" aria-label="ripple" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
@@ -421,7 +430,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/ripple/latest/" class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -447,7 +456,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/ripple/latest/installation/" class="md-nav__link">
+      <a href="../../installation/" class="md-nav__link">
         
   
   
@@ -473,7 +482,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/ripple/latest/quickstart/" class="md-nav__link">
+      <a href="../../quickstart/" class="md-nav__link">
         
   
   
@@ -547,7 +556,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/ripple/latest/guides/" class="md-nav__link">
+      <a href="../../guides/" class="md-nav__link">
         
   
   
@@ -574,7 +583,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/ripple/latest/guides/waveforms/" class="md-nav__link">
+      <a href="../../guides/waveforms/" class="md-nav__link">
         
   
   
@@ -601,7 +610,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/ripple/latest/guides/parameters/" class="md-nav__link">
+      <a href="../../guides/parameters/" class="md-nav__link">
         
   
   
@@ -628,7 +637,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/ripple/latest/guides/jax/" class="md-nav__link">
+      <a href="../../guides/jax/" class="md-nav__link">
         
   
   
@@ -655,7 +664,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/ripple/latest/guides/catalogue/" class="md-nav__link">
+      <a href="../../guides/catalogue/" class="md-nav__link">
         
   
   
@@ -682,7 +691,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/ripple/latest/guides/benchmarking/" class="md-nav__link">
+      <a href="../../guides/benchmarking/" class="md-nav__link">
         
   
   
@@ -713,24 +722,29 @@
       
   
   
+    
   
   
+  
     
     
     
     
-      
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
             
   
   
@@ -747,7 +761,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -764,7 +778,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/ripple/latest/dev/" class="md-nav__link">
+      <a href="../" class="md-nav__link">
         
   
   
@@ -791,7 +805,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/ripple/latest/dev/architecture/" class="md-nav__link">
+      <a href="../architecture/" class="md-nav__link">
         
   
   
@@ -818,7 +832,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/ripple/latest/dev/adding_a_waveform/" class="md-nav__link">
+      <a href="../adding_a_waveform/" class="md-nav__link">
         
   
   
@@ -842,10 +856,36 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="/ripple/latest/dev/test_coverage/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Test Coverage
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
         
   
   
@@ -860,6 +900,82 @@
   
 
       </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#run-the-fast-suite" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Run the fast suite
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#coverage-added-by-registration" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Coverage added by registration
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-reference-validation-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Current reference-validation map
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inspect-one-waveforms-sweep" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Inspect one waveform's sweep
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-tests-need-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        When tests need work
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -872,7 +988,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/ripple/latest/dev/run_reference_checks/" class="md-nav__link">
+      <a href="../run_reference_checks/" class="md-nav__link">
         
   
   
@@ -899,7 +1015,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/ripple/latest/dev/reference_comparisons_and_limits/" class="md-nav__link">
+      <a href="../reference_comparisons_and_limits/" class="md-nav__link">
         
   
   
@@ -933,7 +1049,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/ripple/latest/FAQ/" class="md-nav__link">
+      <a href="../../FAQ/" class="md-nav__link">
         
   
   
@@ -959,7 +1075,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/ripple/latest/citing/" class="md-nav__link">
+      <a href="../../citing/" class="md-nav__link">
         
   
   
@@ -985,7 +1101,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/ripple/latest/contributing/" class="md-nav__link">
+      <a href="../../contributing/" class="md-nav__link">
         
   
   
@@ -1107,7 +1223,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/ripple/latest/api/ripplegw/" class="md-nav__link">
+      <a href="../../api/ripplegw/" class="md-nav__link">
         
   
   
@@ -1134,7 +1250,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/ripple/latest/api/ripplegw/constants/" class="md-nav__link">
+      <a href="../../api/ripplegw/constants/" class="md-nav__link">
         
   
   
@@ -1161,7 +1277,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/ripple/latest/api/ripplegw/conversions/" class="md-nav__link">
+      <a href="../../api/ripplegw/conversions/" class="md-nav__link">
         
   
   
@@ -1188,7 +1304,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/ripple/latest/api/ripplegw/interfaces/" class="md-nav__link">
+      <a href="../../api/ripplegw/interfaces/" class="md-nav__link">
         
   
   
@@ -1215,7 +1331,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/ripple/latest/api/ripplegw/registry/" class="md-nav__link">
+      <a href="../../api/ripplegw/registry/" class="md-nav__link">
         
   
   
@@ -1242,7 +1358,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/ripple/latest/api/ripplegw/typing/" class="md-nav__link">
+      <a href="../../api/ripplegw/typing/" class="md-nav__link">
         
   
   
@@ -1291,6 +1407,13 @@
                     
                     
                     
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
                     
                   
                   <div class="md-sidebar__inner">
@@ -1301,6 +1424,71 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#run-the-fast-suite" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Run the fast suite
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#coverage-added-by-registration" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Coverage added by registration
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-reference-validation-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Current reference-validation map
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inspect-one-waveforms-sweep" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Inspect one waveform's sweep
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-tests-need-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        When tests need work
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -1313,8 +1501,135 @@
               
               <article class="md-content__inner md-typeset">
                 
-  <h1>404 - Not found</h1>
+                  
+  
+  
 
+
+<h1 id="test-coverage">Test Coverage<a class="headerlink" href="#test-coverage" title="Permanent link">¤</a></h1>
+<p>ripple has two complementary test layers:</p>
+<ul>
+<li>The fast suite checks the registered waveform interface and JAX behaviour.</li>
+<li>Reference comparisons check numerical agreement against an external implementation.</li>
+</ul>
+<p>Registration adds a waveform to the first layer automatically.
+It does not by itself establish reference agreement.</p>
+<h2 id="run-the-fast-suite">Run the fast suite<a class="headerlink" href="#run-the-fast-suite" title="Permanent link">¤</a></h2>
+<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>sync<span class="w"> </span>--group<span class="w"> </span><span class="nb">test</span>
+uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;not accuracy&quot;</span>
+</code></pre></div>
+<p>CI runs the non-accuracy suite on its PR and push workflows.
+Relevant Python 3.12 main workflows also run a small LAL accuracy smoke test for <code>TaylorF2</code>, <code>IMRPhenomD</code>, and <code>IMRPhenomXPHM</code>; it is not a replacement for a selected reference sweep.</p>
+<h2 id="coverage-added-by-registration">Coverage added by registration<a class="headerlink" href="#coverage-added-by-registration" title="Permanent link">¤</a></h2>
+<p>The integration tests parametrize from <code>ripplegw.list_waveforms()</code> at test collection time.
+Every registered waveform therefore receives the following baseline coverage.</p>
+<table>
+<thead>
+<tr>
+<th>Coverage</th>
+<th>What is checked</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Waveform interface</td>
+<td>Registry construction, <code>parameter_names</code>, <code>repr</code>, <code>{"p", "c"}</code> output, shape, dtype, and finite values.</td>
+</tr>
+<tr>
+<td>JAX</td>
+<td>Eager and <code>jax.jit</code> agreement, parameter batching with <code>jax.vmap</code>, and finite gradients.</td>
+</tr>
+<tr>
+<td>Optional interfaces</td>
+<td><code>AmplitudePhaseWaveform</code> methods and <code>DistanceScaledWaveform</code> distance scaling, when implemented.</td>
+</tr>
+<tr>
+<td>Declared physical features</td>
+<td>Edge cases selected by metadata or parameters: aligned/precessing spins, tidal deformability, inclination, and time-domain shape parameters.</td>
+</tr>
+</tbody>
+</table>
+<p>The three built-in continuous-wave models also have dedicated integration tests for their non-default configurations and batches over distinct detector sites.
+Focused unit tests cover utilities and registry behaviour; they are not a per-waveform accuracy claim.</p>
+<h2 id="current-reference-validation-map">Current reference-validation map<a class="headerlink" href="#current-reference-validation-map" title="Permanent link">¤</a></h2>
+<p>All models below receive the fast baseline above.
+The <code>accuracy</code> tests add the reference checks in this table.
+The launcher column is the one large-scale test selected by <a href="../run_reference_checks/">Run Reference Checks</a>; it does not also run every focused reference regression.</p>
+<table>
+<thead>
+<tr>
+<th>Waveform(s)</th>
+<th>Reference checks</th>
+<th>Launcher sweep</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TaylorF2</code>, <code>IMRPhenomD</code>, <code>IMRPhenomD_NRTidalv2</code>, <code>IMRPhenomHM</code>, <code>IMRPhenomXAS</code>, <code>IMRPhenomXAS_NRTidalv3</code>, <code>IMRPhenomXHM</code></td>
+<td>LALSuite frequency-domain overlap and absolute phase convention</td>
+<td>The same LAL overlap and phase tests over the selected sample set</td>
+</tr>
+<tr>
+<td><code>IMRPhenomPv2</code>, <code>IMRPhenomXP</code>, <code>IMRPhenomXPHM</code></td>
+<td>LALSuite frequency-domain overlap</td>
+<td>The LAL overlap test over the selected sample set</td>
+</tr>
+<tr>
+<td><code>SineGaussian</code></td>
+<td>LALSimulation on aligned time samples</td>
+<td>The direct time-domain sweep</td>
+</tr>
+<tr>
+<td><code>ExactPulsarSignal</code></td>
+<td>LALPulsar building-block reconstruction and barycenter check</td>
+<td>A randomized LALPulsar building-block sweep</td>
+</tr>
+<tr>
+<td><code>PulsarSignal</code></td>
+<td>Per-sample LALPulsar barycenter check and <code>CWMakeFakeData</code> regression</td>
+<td>A randomized <code>CWMakeFakeData</code> sweep</td>
+</tr>
+<tr>
+<td><code>BinaryPulsarSignal</code></td>
+<td>LALPulsar orbital-phase check and <code>CWMakeFakeData</code> regression</td>
+<td>A randomized <code>CWMakeFakeData</code> sweep</td>
+</tr>
+</tbody>
+</table>
+<p>Frequency-domain comparisons use the ET-D PSD-weighted overlap; non-precessing models also receive the absolute phase check.
+Large-scale time-domain comparisons use aligned, directly generated samples, a normalized mismatch, and a relative-norm check—never an FFT added solely for testing.
+The acceptance thresholds and reference-specific limits are in <a href="../reference_comparisons_and_limits/">Reference Comparisons and Limits</a>.</p>
+<h2 id="inspect-one-waveforms-sweep">Inspect one waveform's sweep<a class="headerlink" href="#inspect-one-waveforms-sweep" title="Permanent link">¤</a></h2>
+<p>Preview the exact launcher target without running it:</p>
+<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>tests.cross_validation.submit<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--scheduler<span class="w"> </span><span class="nb">local</span><span class="w"> </span>--waveform<span class="w"> </span>IMRPhenomD<span class="w"> </span>--n-samples<span class="w"> </span><span class="m">10</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--outdir<span class="w"> </span>accuracy-results/preflight<span class="w"> </span>--dry-run
+</code></pre></div>
+<p>Replace the name with any registered waveform.
+<code>--waveform all --dry-run</code> prints every available target and explicitly lists registered waveforms without a large-scale adapter.</p>
+<h2 id="when-tests-need-work">When tests need work<a class="headerlink" href="#when-tests-need-work" title="Permanent link">¤</a></h2>
+<ul>
+<li>A change to any registered waveform should pass the fast suite.</li>
+<li>A numerical or reference-adapter change should also run that waveform's launcher sweep.</li>
+<li>A new parameter name needs a canonical value in <code>tests/helpers/params.py</code>; a waveform with required constructor arguments needs a test configuration in <code>tests/helpers/config.py</code>.</li>
+<li>A new waveform needs a focused reference comparison and a launcher adapter before it is described as cross-validated.
+  See <a href="../adding_a_waveform/">Adding a Waveform</a>.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
               </article>
             </div>
           
@@ -1357,12 +1672,12 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate":null,"base":"/ripple/latest","features":["content.code.copy","navigation.instant","navigation.tabs","navigation.top","toc.follow","header.autohide"],"search":"/ripple/latest/assets/javascripts/workers/search.b6b7e04f.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"default":"stable","provider":"mike"}}</script>
+      <script id="__config" type="application/json">{"annotate":null,"base":"../..","features":["content.code.copy","navigation.instant","navigation.tabs","navigation.top","toc.follow","header.autohide"],"search":"../../assets/javascripts/workers/search.b6b7e04f.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"default":"stable","provider":"mike"}}</script>
     
     
-      <script src="/ripple/latest/assets/javascripts/bundle.d7f30b55.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7f30b55.min.js"></script>
       
-        <script src="/ripple/latest/javascripts/mathjax.js"></script>
+        <script src="../../javascripts/mathjax.js"></script>
       
         <script src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
       
