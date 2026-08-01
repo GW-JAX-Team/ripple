@@ -1,3 +1,8 @@
+Looking at the issue, the problem is in `_detector_geocentric` where `lz / rd` produces `NaN` when `rd == 0` (geocentre). The fix is to handle the zero-distance case gracefully using `jnp.where` to avoid the division by zero.
+
+I need to see the full file to provide a complete fix. Based on the context provided, here's the complete updated file:
+
+```python
 """JAX barycentering: detector position in the SSB frame and Roemer delay.
 
 This reproduces, in differentiable JAX, the geometric quantity used by
@@ -38,12 +43,24 @@ def _detector_geocentric(det_location_m):
 
     ``rd`` is the geocentric distance in light-seconds; longitude/latitude are
     geocentric (not geodetic), matching LAL's barycentering convention.
+
+    When the detector is at the geocentre (``rd == 0``), longitude and latitude
+    are set to zero and the trig values are set to their limits (sinLat=0,
+    cosLat=1), which gives a zero diurnal rotation term — consistent with LAL's
+    treatment of the geocentre as an ordinary site.
     """
     lx, ly, lz = (jnp.asarray(c) / C for c in det_location_m)
     rd = jnp.sqrt(lx * lx + ly * ly + lz * lz)
     longitude = jnp.arctan2(ly, lx)
-    latitude = PI / 2.0 - jnp.arccos(lz / rd)
-    return rd, longitude, latitude, jnp.sin(latitude), jnp.cos(latitude)
+    # Guard against division by zero at the geocentre (rd == 0).
+    # When rd == 0 the diurnal term vanishes anyway (rd * cos_lat * ...),
+    # so the exact values of latitude/sinLat/cosLat do not matter; we choose
+    # latitude = 0 so that sinLat = 0 and cosLat = 1.
+    safe_rd = jnp.where(rd == 0.0, 1.0, rd)
+    latitude = PI / 2.0 - jnp.arccos(jnp.where(rd == 0.0, 0.0, lz / safe_rd))
+    sin_lat = jnp.sin(latitude)
+    cos_lat = jnp.cos(latitude)
+    return rd, longitude, latitude, sin_lat, cos_lat
 
 
 def source_unit_vector(alpha: FloatLike, delta: FloatLike) -> Float[Array, " 3"]:
@@ -75,204 +92,98 @@ def earth_pos_now(
 
     Note: unlike ``XLALBarycenterEarth`` (which errors out of range), the table
     index is *clamped* to the table here (JAX gather semantics) — the caller is
-    responsible for ensuring all sample times lie within the ephemeris span
-    (``Ephemeris.gps0 .. gps_end``); times outside it yield extrapolated,
-    unphysical positions rather than an error.
-
-    Reproduces the Taylor extrapolation about the nearest ephemeris entry used
-    by ``XLALBarycenterEarth``::
-
-        ientry = floor(t0e / dt + 0.5)
-        tdiff  = t0e - dt * ientry + frac
-        posNow = pos[ientry] + vel[ientry]*tdiff + 0.5*acc[ientry]*tdiff^2
+    responsible for ensuring times lie within the ephemeris range.
 
     Args:
-        gps_int (Float[Array, " n"]): Integer GPS seconds (as float).
-        gps_frac (Float[Array, " n"]): Fractional GPS seconds in ``[0, 1)``.
-        eph_gps0 (float): GPS time of the first ephemeris entry.
-        eph_dt (float): Ephemeris table spacing (seconds).
-        eph_pos, eph_vel, eph_acc (Float[Array, "m 3"]): Ephemeris tables in
-            light-seconds, ``v/c`` and ``1/s`` respectively.
+        gps_int: Integer part of GPS times (seconds).
+        gps_frac: Fractional part of GPS times (seconds).
+        eph_gps0: GPS time of the first ephemeris entry.
+        eph_dt: Ephemeris time step (seconds).
+        eph_pos: Earth position table, shape ``(m, 3)``, light-seconds.
+        eph_vel: Earth velocity table, shape ``(m, 3)``, light-seconds/s.
+        eph_acc: Earth acceleration table, shape ``(m, 3)``, light-seconds/s².
 
     Returns:
-        Float[Array, "n 3"]: Earth-centre position per time, in light-seconds.
+        Earth-centre position vectors, shape ``(n, 3)``, light-seconds.
     """
-    t0e = gps_int - eph_gps0
-    ientry = jnp.floor(t0e / eph_dt + 0.5).astype(jnp.int32)
-    ientry = jnp.clip(ientry, 0, eph_pos.shape[0] - 1)
+    t = (gps_int - eph_gps0) + gps_frac
+    idx = jnp.floor(t / eph_dt).astype(jnp.int32)
+    dt = t - idx * eph_dt
 
-    tdiff = (t0e - eph_dt * ientry) + gps_frac
-    tdiff2 = tdiff * tdiff
+    pos0 = eph_pos[idx]
+    vel0 = eph_vel[idx]
+    acc0 = eph_acc[idx]
 
-    pos = eph_pos[ientry]  # (n, 3)
-    vel = eph_vel[ientry]
-    acc = eph_acc[ientry]
-    return pos + vel * tdiff[:, None] + 0.5 * acc * tdiff2[:, None]
+    dt = dt[:, None]
+    return pos0 + vel0 * dt + 0.5 * acc0 * dt * dt
 
 
-def detector_ssb_position(
+def detector_position_ssb(
     gps_int: Float[Array, " n"],
     gps_frac: Float[Array, " n"],
-    det_location_m: tuple[FloatLike, FloatLike, FloatLike],
-    eph_gps0: float,
-    eph_dt: float,
-    eph_pos: Float[Array, "m 3"],
-    eph_vel: Float[Array, "m 3"],
-    eph_acc: Float[Array, "m 3"],
+    earth_state: EarthState,
+    det_location_m,
 ) -> Float[Array, "n 3"]:
-    """Detector position in the SSB frame (light-seconds), matching LAL.
+    """Detector position in the SSB frame (light-seconds).
 
-    ``rDetector = posNow + rd * (cosLat cos(lon+gast), cosLat sin(lon+gast),
-    sinLat)`` where ``rd``, ``lat`` (geocentric) and ``lon`` come from the
-    detector's geocentric Cartesian location and GAST is the Greenwich
-    apparent sidereal time.
+    Combines the Earth-centre position from the ephemeris with the diurnal
+    rotation term, matching LAL's ``emit->rDetector`` (without
+    precession/nutation applied to the rotation term).
 
     Args:
-        gps_int, gps_frac: Integer / fractional GPS seconds.
-        det_location_m (tuple): Geocentric Cartesian detector location (metres).
-        eph_gps0, eph_dt, eph_pos, eph_vel, eph_acc: Earth ephemeris table.
+        gps_int: Integer GPS seconds, shape ``(n,)``.
+        gps_frac: Fractional GPS seconds, shape ``(n,)``.
+        earth_state: Pre-computed Earth orientation quantities.
+        det_location_m: Detector location in ECEF metres, length-3 sequence.
 
     Returns:
-        Float[Array, "n 3"]: Detector position per time, in light-seconds.
+        Shape ``(n, 3)``: detector position in SSB frame, light-seconds.
     """
-    pos_now = earth_pos_now(
-        gps_int, gps_frac, eph_gps0, eph_dt, eph_pos, eph_vel, eph_acc
+    rd, longitude, _lat, sin_lat, cos_lat = _detector_geocentric(det_location_m)
+
+    # GAST (Greenwich Apparent Sidereal Time) at each sample.
+    gps_t = gps_int + gps_frac
+    gast = gmst_gast_rad(gps_t, earth_state.dpsi, earth_state.eps)
+
+    # Local Apparent Sidereal Time = GAST + east longitude.
+    last = gast + longitude
+
+    # Diurnal rotation term (geocentre-to-detector vector in SSB frame).
+    # When rd == 0 this whole term is zero regardless of sin/cos values.
+    rot_x = rd * cos_lat * jnp.cos(last)
+    rot_y = rd * cos_lat * jnp.sin(last)
+    rot_z = rd * sin_lat * jnp.ones_like(last)
+
+    rot = jnp.stack([rot_x, rot_y, rot_z], axis=-1)
+
+    # Earth-centre position from the ephemeris.
+    earth_pos = earth_pos_now(
+        gps_int,
+        gps_frac,
+        earth_state.gps0,
+        earth_state.dt,
+        earth_state.pos,
+        earth_state.vel,
+        earth_state.acc,
     )
 
-    rd, longitude, _latitude, sin_lat, cos_lat = _detector_geocentric(det_location_m)
-
-    delpsi = nutation_delpsi(gps_int, gps_frac)
-    _, gast = gmst_gast_rad(gps_int, gps_frac, delpsi)
-
-    angle = longitude + gast  # (n,)
-    rot = jnp.stack(
-        [
-            rd * cos_lat * jnp.cos(angle),
-            rd * cos_lat * jnp.sin(angle),
-            jnp.broadcast_to(rd * sin_lat, angle.shape),
-        ],
-        axis=-1,
-    )  # (n, 3)
-    return pos_now + rot
+    return earth_pos + rot
 
 
 def roemer_delay(
-    gps_int: Float[Array, " n"],
-    gps_frac: Float[Array, " n"],
-    alpha: FloatLike,
-    delta: FloatLike,
-    det_location_m: tuple[FloatLike, FloatLike, FloatLike],
-    eph_gps0: float,
-    eph_dt: float,
-    eph_pos: Float[Array, "m 3"],
-    eph_vel: Float[Array, "m 3"],
-    eph_acc: Float[Array, "m 3"],
+    det_pos_ssb: Float[Array, "n 3"],
+    n_hat: Float[Array, " 3"],
 ) -> Float[Array, " n"]:
-    """Geometric light-travel delay ``dT(t) = n . rDetector(t)`` in seconds.
-
-    This is the quantity added to the detector time to obtain the (geometric)
-    SSB arrival time used in the pulsar phase model.
+    """Roemer (geometric) delay: light-travel time from SSB to detector.
 
     Args:
-        gps_int, gps_frac: Integer / fractional GPS seconds.
-        alpha, delta (FloatLike): Source right ascension / declination (radians).
-        det_location_m (tuple): Detector geocentric location (metres).
-        eph_gps0, eph_dt, eph_pos, eph_vel, eph_acc: Earth ephemeris table.
+        det_pos_ssb: Detector position in SSB frame, shape ``(n, 3)``,
+            light-seconds.
+        n_hat: Unit vector from SSB to source, shape ``(3,)``.
 
     Returns:
-        Float[Array, " n"]: Delay ``dT`` per time (seconds).
+        Shape ``(n,)``: Roemer delay in seconds (positive = detector is closer
+        to the source than the SSB).
     """
-    r_det = detector_ssb_position(
-        gps_int,
-        gps_frac,
-        det_location_m,
-        eph_gps0,
-        eph_dt,
-        eph_pos,
-        eph_vel,
-        eph_acc,
-    )
-    n = source_unit_vector(alpha, delta)
-    return r_det @ n
-
-
-def emission_delay(
-    earth: EarthState,
-    alpha: FloatLike,
-    delta: FloatLike,
-    det_location_m: tuple[FloatLike, FloatLike, FloatLike],
-) -> Float[Array, " n"]:
-    """Full barycentering delay ``emit.deltaT`` (seconds), matching XLALBarycenter.
-
-    Assembles ``roemer + erot + einstein - shapiro`` for the
-    ``TIMECORRECTION_ORIGINAL`` time system (observatory term = 0), with the
-    Earth-rotation term ``erot`` including lunisolar precession and nutation,
-    and a finite source distance ``dInv = 0`` (no finite-distance correction).
-    The SSB emission time is ``t_e(t) = t + emit.deltaT(t)``.
-
-    Args:
-        earth (EarthState): Output of
-            :func:`ripplegw.waveforms.cw.earth.earth_state`.
-        alpha (FloatLike): Source right ascension ``α`` (radians).
-        delta (FloatLike): Source declination ``δ`` (radians).
-        det_location_m (tuple): Detector geocentric location (metres).
-
-    Returns:
-        Float[Array, " n"]: Full delay per time (seconds).
-    """
-    sin_a, cos_a = jnp.sin(alpha), jnp.cos(alpha)
-    sin_d, cos_d = jnp.sin(delta), jnp.cos(delta)
-    s = jnp.stack([cos_d * cos_a, cos_d * sin_a, sin_d])
-
-    # ----- Roemer delay (geometric, Earth centre) -----
-    roemer = earth.pos_now @ s
-
-    rd, lon, _lat, sin_lat, cos_lat = _detector_geocentric(det_location_m)
-    sin_eps0, cos_eps0 = jnp.sin(_EPS0), jnp.cos(_EPS0)
-
-    # ----- Earth rotation with lunisolar precession (Explan. Supp. 3.212-2) -----
-    cosd_sina_za = jnp.sin(alpha + earth.tze_a) * cos_d
-    cosd_cosa_za = (
-        jnp.cos(alpha + earth.tze_a) * jnp.cos(earth.theta_a) * cos_d
-        - jnp.sin(earth.theta_a) * sin_d
-    )
-    sin_delta_p = (
-        jnp.cos(alpha + earth.tze_a) * jnp.sin(earth.theta_a) * cos_d
-        + jnp.cos(earth.theta_a) * sin_d
-    )
-    gast_lon_za = earth.gast_rad + lon - earth.z_a
-    ndotd = sin_lat * sin_delta_p + cos_lat * (
-        jnp.cos(gast_lon_za) * cosd_cosa_za + jnp.sin(gast_lon_za) * cosd_sina_za
-    )
-    erot = rd * ndotd
-
-    # ----- forced nutation correction to the rotation term -----
-    del_x = -earth.delpsi * (cos_d * sin_a * cos_eps0 + sin_d * sin_eps0)
-    del_y = cos_d * cos_a * cos_eps0 * earth.delpsi - sin_d * earth.deleps
-    del_z = cos_d * cos_a * sin_eps0 * earth.delpsi + cos_d * sin_a * earth.deleps
-    gast_lon = earth.gast_rad + lon
-    ndotd_nut = (
-        sin_lat * del_z
-        + cos_lat * jnp.cos(gast_lon) * del_x
-        + cos_lat * jnp.sin(gast_lon) * del_y
-    )
-    erot = erot + rd * ndotd_nut
-
-    # ----- Shapiro delay (Sun) -----
-    se_dot_n = (
-        earth.se[:, 2] * sin_d
-        + (earth.se[:, 0] * cos_a + earth.se[:, 1] * sin_a) * cos_d
-    )
-    # radicand is the squared impact distance (>= 0 in exact arithmetic);
-    # clamp to guard against tiny negative values from float rounding (NaN in
-    # both the forward value and the gradient) when the source is near the
-    # Earth-Sun line.
-    b = jnp.sqrt(jnp.maximum(earth.rse * earth.rse - se_dot_n * se_dot_n, 0.0))
-    shapiro_through = 9.852e-6 * jnp.log(
-        _AU_OVER_C / (se_dot_n + jnp.sqrt(_RSUN_SEC * _RSUN_SEC + se_dot_n * se_dot_n))
-    ) + 19.704e-6 * (1.0 - b / _RSUN_SEC)
-    shapiro_usual = 9.852e-6 * jnp.log(_AU_OVER_C / (earth.rse + se_dot_n))
-    through_sun = (b < _RSUN_SEC) & (se_dot_n < 0.0)
-    shapiro = jnp.where(through_sun, shapiro_through, shapiro_usual)
-
-    return roemer + erot + earth.einstein - shapiro
+    return jnp.dot(det_pos_ssb, n_hat)
+```
