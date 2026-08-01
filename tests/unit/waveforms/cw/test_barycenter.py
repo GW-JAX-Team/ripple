@@ -24,10 +24,13 @@ def test_detector_geocentric_at_the_geocentre_is_finite_and_has_no_site_offset()
     physical value too: at the geocentre the detector *is* the Earth centre, so ``rd`` must be
     exactly zero and the rotation term it scales must vanish.
     """
-    rd, _longitude, latitude, sin_lat, cos_lat = _detector_geocentric((0.0, 0.0, 0.0))
+    rd, longitude, latitude, sin_lat, cos_lat = _detector_geocentric((0.0, 0.0, 0.0))
 
+    # `longitude` is included because it reaches the rotation as `angle = longitude + gast`, and a
+    # NaN there would survive the multiplication by a zero radius just as `latitude`'s would.
     for name, value in (
         ("rd", rd),
+        ("longitude", longitude),
         ("latitude", latitude),
         ("sin_lat", sin_lat),
         ("cos_lat", cos_lat),
