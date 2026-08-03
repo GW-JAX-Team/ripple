@@ -38,11 +38,29 @@ def _detector_geocentric(det_location_m):
 
     ``rd`` is the geocentric distance in light-seconds; longitude/latitude are
     geocentric (not geodetic), matching LAL's barycentering convention.
+
+    The geocentre, ``(0, 0, 0)``, is a supported site: it yields the SSB-to-Earth-centre
+    delay, matching ``XLALBarycenter``, which returns a finite delay there. Callers use it
+    to obtain polarizations before applying their own detector projection.
+
+    .. note::
+       Evaluation at the geocentre is supported; **differentiation there is not**. Spherical
+       coordinates are singular at the origin -- ``longitude = arctan2(0, 0)`` has no
+       derivative -- so ``jax.grad`` with respect to ``det_location_m`` returns NaN at that
+       point. Values are unaffected. Expressing the rotation in Cartesian coordinates would
+       remove the singularity, at the cost of reworking the precession algebra in
+       :func:`barycenter_delay`.
     """
     lx, ly, lz = (jnp.asarray(c) / C for c in det_location_m)
     rd = jnp.sqrt(lx * lx + ly * ly + lz * lz)
     longitude = jnp.arctan2(ly, lx)
-    latitude = PI / 2.0 - jnp.arccos(lz / rd)
+    # ``lz / rd`` is 0/0 at the geocentre. Every consumer multiplies the returned angles by
+    # ``rd`` (see :func:`detector_position_ssb` and :func:`barycenter_delay`), so at ``rd == 0``
+    # their value is irrelevant and the site contribution vanishes -- but ``0 * NaN`` is NaN,
+    # which would make every returned sample NaN. The clip additionally guards a real site,
+    # where ``lz / rd`` can exceed 1 by one ulp and make ``arccos`` return NaN.
+    safe_rd = jnp.where(rd > 0.0, rd, 1.0)
+    latitude = PI / 2.0 - jnp.arccos(jnp.clip(lz / safe_rd, -1.0, 1.0))
     return rd, longitude, latitude, jnp.sin(latitude), jnp.cos(latitude)
 
 
