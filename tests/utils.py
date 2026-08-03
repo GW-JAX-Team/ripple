@@ -373,6 +373,8 @@ def get_lal_waveform(
         lalparams = lal.CreateDict()
         lalsim.SimInspiralWaveformParamsInsertPhenomXPrecVersion(lalparams, 222)
 
+        lalsim.SimInspiralWaveformParamsInsertPhenomXPHMThresholdMband(lalparams, 0.0)
+        lalsim.SimInspiralWaveformParamsInsertPhenomXHMThresholdMband(lalparams, 0.0)
         lalsim.SimInspiralWaveformParamsInsertTidalLambda1(lalparams, l1)
         lalsim.SimInspiralWaveformParamsInsertTidalLambda2(lalparams, l2)
         quad1 = lalsim.SimUniversalRelationQuadMonVSlambda2Tidal(l1)
