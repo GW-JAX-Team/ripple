@@ -2,15 +2,9 @@ ci:
   autoupdate_branch: ripple-dev
   autoupdate_schedule: quarterly
   # ty-pre-commit requires network access, which pre-commit.ci does not provide.
-  skip: [uv-lock, pyright, ty]
+  skip: [pyright, ty]
 
 repos:
-  - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.11.32
-    hooks:
-      - id: uv-lock
-        args: ["--upgrade"]
-
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.16.0
     hooks:
