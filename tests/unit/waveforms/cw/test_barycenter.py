@@ -1,5 +1,6 @@
 """Unit tests for CW barycentering geometry."""
 
+import jax.numpy as jnp
 import numpy as np
 
 from ripplegw.waveforms.cw.barycenter import C, _detector_geocentric, source_unit_vector
@@ -46,19 +47,24 @@ def test_detector_geocentric_is_unchanged_for_a_real_site():
 
     ``jnp.where(rd > 0, ...)`` engages only at exactly zero, so a real detector must reproduce
     the plain spherical conversion bit for bit -- otherwise the fix has moved existing signals.
+
+    The reference here is computed with ``jnp`` (not ``numpy``) so both sides run through the
+    same XLA backend: NumPy's libm and JAX/XLA's CPU transcendentals are each accurate but not
+    guaranteed bit-identical, so a NumPy reference can differ by 1 ULP depending on the host CPU
+    -- unrelated to whether the guard is inert.
     """
     location = (-2161414.93, -3834695.35, 4600350.23)  # LIGO Hanford, metres
     rd, longitude, latitude, sin_lat, cos_lat = _detector_geocentric(location)
 
-    lx, ly, lz = (np.asarray(c) / C for c in location)
-    expected_rd = np.sqrt(lx * lx + ly * ly + lz * lz)
-    expected_lat = np.pi / 2.0 - np.arccos(lz / expected_rd)
+    lx, ly, lz = (jnp.asarray(c) / C for c in location)
+    expected_rd = jnp.sqrt(lx * lx + ly * ly + lz * lz)
+    expected_lat = jnp.pi / 2.0 - jnp.arccos(lz / expected_rd)
 
     assert float(rd) == float(expected_rd)
-    assert float(longitude) == float(np.arctan2(ly, lx))
+    assert float(longitude) == float(jnp.arctan2(ly, lx))
     assert float(latitude) == float(expected_lat)
-    assert float(sin_lat) == float(np.sin(expected_lat))
-    assert float(cos_lat) == float(np.cos(expected_lat))
+    assert float(sin_lat) == float(jnp.sin(expected_lat))
+    assert float(cos_lat) == float(jnp.cos(expected_lat))
 
 
 def test_differentiating_at_the_geocentre_is_not_supported():
