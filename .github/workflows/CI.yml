@@ -13,6 +13,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -20,23 +23,23 @@ jobs:
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v7
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v9.0.0
         with:
           enable-cache: true
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
       - name: Install dependencies
-        run: uv sync --python ${{ matrix.python-version }} --group test --group cross-validation
+        run: uv sync --python ${{ matrix.python-version }} --group test ${{ matrix.python-version == '3.12' && '--group cross-validation' || '' }}
       - name: Run non-accuracy tests
         run: |
           if [[ "${{ matrix.python-version }}" == "3.12" ]]; then
-            uv run pytest -m "not accuracy" --cov=ripplegw --cov-report=term-missing
+            uv run pytest tests/ -m "not accuracy" --cov=ripplegw --cov-report=term-missing
           else
-            uv run pytest -m "not accuracy"
+            uv run pytest tests/ -m "not accuracy"
           fi
       - name: Run accuracy smoke test
-        if: matrix.python-version == '3.12' && (github.base_ref == 'main' || github.ref == 'refs/heads/main')
+        if: matrix.python-version == '3.12' && (github.ref == 'refs/heads/main' || github.base_ref == 'main')
         run: uv run pytest -m "accuracy and smoke" --reference lal --n-samples 3
       - name: Upload coverage to Coveralls
         if: matrix.python-version == '3.12'
@@ -48,8 +51,8 @@ jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v7
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v9.0.0
         with:
           enable-cache: true
       - name: Install dependencies
@@ -65,10 +68,10 @@ jobs:
       name: pypi
       url: https://pypi.org/project/ripplegw/
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v9.0.0
       - name: Build package
         run: uv build
       - name: Publish to PyPI
@@ -79,11 +82,12 @@ jobs:
   merge-main-to-dev:
     needs: [publish]
     runs-on: ubuntu-latest
+    if: github.event_name == 'release'
     permissions:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ripple-dev
           fetch-depth: 0
@@ -119,11 +123,11 @@ jobs:
       name: testpypi
       url: https://test.pypi.org/project/ripplegw/
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v9.0.0
       - name: Build package
         run: uv build
       - name: Publish to TestPyPI
