@@ -128,7 +128,11 @@ def gen_IMRPhenomXP_hphc(
         msa_S1L_pav=_msa_init[32],
         msa_S2L_pav=_msa_init[33],
     )
-    Mf = (m1 + m2) * f * MTSUN
+    # LAL: Mf = pWF->M_sec * f with M_sec built from round-tripped solar masses;
+    # (m1+m2)*f*MTSUN differs by up to 1 ULP, which the near-degenerate MSA S^2
+    # cubic amplifies into the Euler angles.
+    Msec_lal = pPrec.lal_M_sec(m1, m2)
+    Mf = f * Msec_lal
     hlm_22 = XLALSimIMRPhenomXHMGethlmModes(
         Mf, pWF22_prec, phi0=0.0, ell_mm_pairs=[(2, 2)]
     )[(2, 2)]
@@ -167,18 +171,19 @@ def gen_IMRPhenomXP_hphc(
     cexp_i_alpha_2 = jnp.exp(1j * alpha)
     hp_twist_22, hc_twist_22 = twist_22(cexp_i_alpha_2, theta_JN, beta_powers_2)
 
-    # epsilon is returned from compute_evolved_spin_given_setup; apply e^{-2i*epsilon}/2 scaling
-    # (hc_twist_22 already includes the factor of i from the transfer function construction)
-    # Factor of 2 matches LAL's cexp(-2.0*I*epsilon); XPHM applies this via eps_2 * 2.
-    exp_neg_i_2epsilon = jnp.exp(-2j * eps) / 2.0
-    _hp = h0_bare * hp_twist_22 * exp_neg_i_2epsilon
-    _hc = h0_bare * hc_twist_22 * exp_neg_i_2epsilon
+    # LAL grouping (IMRPhenomXPTwistUp22, LALSimIMRPhenomX_precession.c:2075-2079):
+    # eps_phase_hP = (cexp(-2i*eps) * hAS) / 2, then hp = eps_phase_hP * hp_sum.
+    # Complex multiplication is not associative, so mirror the order exactly.
+    eps_phase_hP = (jnp.exp(-2j * eps) * h0_bare) / 2.0
+    _hp = eps_phase_hP * hp_twist_22
+    _hc = eps_phase_hP * hc_twist_22
 
-    # LALSim zeros the contribution for Mf >= 0.3 (f_max_prime). Setting
-    # cos_beta=0 in compute_evolved_spin_using_msa does NOT produce a null
+    # LALSim zeroes the contribution above Mf = f_max_prime*M_sec — inclusive
+    # comparison, fCutDef in {0.3, 0.33}; see mf_twist_cutoff.  Setting
+    # cos_beta=0 in compute_evolved_spin_given_setup does NOT produce a null
     # rotation (beta=pi/2 gives cBetah=sBetah=1/sqrt(2)), so we must
     # explicitly zero _hp/_hc here to match LALSim's behavior.
-    inspiral_mask = Mf < 0.299999
+    inspiral_mask = Mf <= pPrec.mf_twist_cutoff(eta, s1z, s2z, Msec_lal)
     _hp = jnp.where(inspiral_mask, _hp, 0.0)
     _hc = jnp.where(inspiral_mask, _hc, 0.0)
 

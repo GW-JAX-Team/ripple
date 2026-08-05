@@ -80,8 +80,10 @@ def generate_xphm(
     reference_frequency: float,
 ) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """Generate IMRPhenomXPHM plus and cross polarizations."""
-    Mf: Float[Array, " n_freq"] = pPrec.XLALSimIMRPhenomXUtilsHztoMf(
-        frequency_array, mass_1 + mass_2
+    # LAL: Mf = pWF->M_sec * f with M_sec built from round-tripped solar masses;
+    # the ULP matters because Mf feeds the near-degenerate MSA S^2 cubic.
+    Mf: Float[Array, " n_freq"] = frequency_array * pPrec.lal_M_sec(
+        mass_1, mass_2
     )  # type: ignore[assignment]
 
     Mtot = mass_1 + mass_2
@@ -313,15 +315,25 @@ def twistup(
         [eps_1 * 1, eps_2 * 2, eps_2 * 2, eps_3 * 3, eps_4 * 4], axis=0
     )
 
-    exp_neg_i_epsilon = jnp.exp(-1j * epsilon_all_modes.T) / 2
-    _hp = jnp.sum(hlm.T * hp_twist_all_modes.T * exp_neg_i_epsilon, axis=1)
-    _hc = jnp.sum(hlm.T * hc_twist_all_modes.T * exp_neg_i_epsilon, axis=1)
+    # LAL grouping (LALSimIMRPhenomXPHM.c:2192, 2204-2205):
+    # eps_phase = (cexp(-mprime*i*eps) * hlm) / 2, then hp += eps_phase * hp_sum.
+    # Complex multiplication is not associative, so mirror the order exactly.
+    # Accepted residual: jnp.sum's reduction order over the 5 modes (and over m
+    # inside twist_*) is XLA's choice, not LAL's sequential +=.  These sums are
+    # well-conditioned (O(1) summands, no amplification), unlike the MSA S^2
+    # cubic inputs, so the ULP is harmless and not worth chasing.
+    eps_phase = (jnp.exp(-1j * epsilon_all_modes.T) * hlm.T) / 2.0
+    _hp = jnp.sum(eps_phase * hp_twist_all_modes.T, axis=1)
+    _hc = jnp.sum(eps_phase * hc_twist_all_modes.T, axis=1)
 
-    # LALSim zeros the contribution for Mf >= 0.3 (f_max_prime). Setting
-    # cos_beta=0 in compute_evolved_spin_using_msa does NOT produce a null
+    # LALSim zeroes the contribution above Mf = f_max_prime*M_sec — inclusive
+    # comparison, fCutDef in {0.3, 0.33}; see mf_twist_cutoff.  Setting
+    # cos_beta=0 in compute_evolved_spin_given_setup does NOT produce a null
     # rotation (beta=pi/2 gives cBetah=sBetah=1/sqrt(2)), so we must
     # explicitly zero _hp/_hc here to match LALSim's behavior.
-    inspiral_mask = Mf < 0.299999
+    inspiral_mask = Mf <= pPrec.mf_twist_cutoff(
+        eta, chi1z, chi2z, pPrec.lal_M_sec(mass_1, mass_2)
+    )
     _hp = jnp.where(inspiral_mask, _hp, 0.0)
     _hc = jnp.where(inspiral_mask, _hc, 0.0)
 

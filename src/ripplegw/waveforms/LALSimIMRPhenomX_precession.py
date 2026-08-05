@@ -8,6 +8,9 @@ import jax
 from ripplegw.waveforms.initialize_MSA_system import (
     IMRPhenomX_Initialize_MSA_System,
     IMRPhenomX_Return_phi_zeta_costhetaL_MSA,
+    cbrt_cr,
+    lal_M_sec,
+    lal_mass_conventions,
 )
 
 
@@ -75,7 +78,10 @@ def compute_vangles(
     Omegazeta5_coeff,
     zeta_0,
 ):
-    v = jnp.cbrt(jnp.pi * Mf * 2.0 / emm)
+    # LAL grouping (LALSimIMRPhenomXPHM.c:1864): cbrt(pi * Mf * (2.0/mprime)).
+    # (pi*Mf*2)/emm differs by 1 ULP for emm=3, and the ULP is amplified through
+    # the near-degenerate S^2 cubic.  cbrt_cr: correctly-rounded cube root.
+    v = cbrt_cr(jnp.pi * Mf * (2.0 / emm))
 
     vangles = IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
         v,
@@ -396,7 +402,9 @@ def Get_alphaepsilon_atfref_pflag_true(
     Omegazeta5_coeff,
     zeta_0,
 ):
-    v = jnp.cbrt(omega_ref)
+    # LAL: Get_alphaepsilon_atfref, v = cbrt(omega_ref)
+    # (LALSimIMRPhenomX_precession.c:1588).  cbrt_cr: correctly rounded.
+    v = cbrt_cr(omega_ref)
     vangles = IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
         v,
         eta,
@@ -570,8 +578,11 @@ def compute_msa_precession_setup(
     compute_evolved_spin_given_setup inside any vmap over modes.
     """
     phenom_xp_convention = 1
-    eta = mass_1 * mass_2 / jnp.power(mass_1 + mass_2, 2)
-    Msec = (mass_1 + mass_2) * MTSUN
+    # LAL-bit-compatible masses (see lal_mass_conventions): eta from the
+    # |0.25(1-delta^2)| form, qq from the solar-mass fractions, M_sec from the
+    # round-tripped total mass.  These feed the ill-conditioned MSA chain.
+    _, _, eta, _x1, _x2, _, _Mtot = lal_mass_conventions(mass_1, mass_2)
+    Msec = _Mtot * MTSUN
     piM = jnp.pi * Msec
 
     msa_init = IMRPhenomX_Initialize_MSA_System(
@@ -590,18 +601,21 @@ def compute_msa_precession_setup(
     epsilon0 = set_epsilon0(phenom_xp_convention, phiJ_Sf)
     mprime_for_offset = 2
 
-    eta2 = jnp.power(eta, 2)
-    eta3 = jnp.power(eta, 3)
-    eta4 = jnp.power(eta, 4)
-    inveta = jnp.power(eta, -1)
+    # Powers exactly as LAL forms them (LALSimIMRPhenomX_precession.c:168-191,
+    # 2516-2519)
+    eta2 = eta * eta
+    eta3 = eta * eta2
+    eta4 = eta * eta3
+    inveta = 1.0 / eta
 
     SAv2 = msa_init[15]
     SAv = jnp.sqrt(SAv2)
-    invSAv = jnp.power(SAv, -1)
-    invSAv2 = jnp.power(SAv2, -1)
+    invSAv = 1.0 / SAv
+    invSAv2 = 1.0 / SAv2
 
-    qq = mass_2 / mass_1
-    delta_qq = (1 - qq) / (1 + qq)
+    # pPrec->qq is a ratio of mass *fractions* (LALSimIMRPhenomX_precession.c:2306)
+    qq = _x2 / _x1
+    delta_qq = (1.0 - qq) / (1.0 + qq)
 
     alpha_offset, epsilon_offset = Get_alphaepsilon_atfref(
         mprime_for_offset,
@@ -717,7 +731,12 @@ def compute_evolved_spin_given_setup(
     Returns:
         alpha, epsilon, cos_beta arrays over Mf.
     """
-    inspiral_mask = Mf < 0.3
+    # Zero the angles beyond the largest possible twist cutoff (fCutDef = 0.33
+    # for chiEff > 0.99; 0.3 otherwise — see mf_twist_cutoff).  This mask only
+    # guards against pathological MSA values leaking into the strain via 0*NaN;
+    # the waveform-level mask (Mf <= mf_twist_cutoff(...)) sets the actual LAL
+    # cutoff, so this one must never be *tighter* than it.
+    inspiral_mask = Mf <= 0.33
     vangles = compute_vangles(
         Mf=Mf,
         emm=emm,
@@ -774,6 +793,39 @@ def compute_evolved_spin_given_setup(
     return alpha_out, epsilon_out, cos_beta_out
 
 
+def mf_twist_cutoff(
+    eta: FloatLike, chi1L: FloatLike, chi2L: FloatLike, M_sec: FloatLike
+) -> FloatLike:
+    """Geometric-frequency cutoff of the precessing twist, matching LAL.
+
+    LAL zeroes hp/hc above Mf > f_max_prime*M_sec with f_max_prime =
+    min(fMax, fCutDef/M_sec) and fCutDef = 0.3, or 0.33 when chiEff > 0.99
+    (LALSimIMRPhenomX_internals.c:505-536); the comparison is inclusive,
+    `Mf <= f_max_prime*M_sec` (LALSimIMRPhenomXPHM.c:1088).  On ripple's
+    caller-supplied frequency grids the fMax leg never bites, so the effective
+    threshold is the round-trip (fCutDef/M_sec)*M_sec — reproduced here
+    including its rounding.  chiEff follows XLALSimIMRPhenomXchiEff
+    (LALSimIMRPhenomXUtilities.c:283-290).  Use as `Mf <= mf_twist_cutoff(...)`.
+
+    Verified bin-for-bin against LAL for fCutDef = 0.3 (0 mismatched zeros,
+    Mtot=60 grid straddling the cutoff).  Known corner-case limitation: for
+    chiEff > 0.99 the twist mask correctly extends to 0.33, but ripple's
+    co-precessing amplitude is independently zeroed at fM_CUT = 0.3
+    (IMRPhenomXAS.py heaviside), so the band Mf in (0.3, 0.33] stays zero while
+    LAL keeps it.  Reaching that corner requires both aligned spins > ~0.99 —
+    outside every test prior — and threading fCutDef through the aligned-spin
+    model is out of scope here.
+    """
+    # LAL's eta is clamped to <= 0.25 upstream; ripple's caller-side eta can
+    # exceed it by rounding, so guard the sqrt.
+    delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
+    mm1 = 0.5 * (1.0 + delta)
+    mm2 = 0.5 * (1.0 - delta)
+    chi_eff = mm1 * chi1L + mm2 * chi2L
+    f_cut_def = jnp.where(chi_eff > 0.99, 0.33, 0.3)
+    return (f_cut_def / M_sec) * M_sec
+
+
 def XLALSimIMRPhenomXUtilsHztoMf(fHz: FloatLike, Mtot_Msun: FloatLike) -> FloatLike:
     """
     Convert frequency from Hz to geometric units (Mf).
@@ -784,8 +836,11 @@ def XLALSimIMRPhenomXUtilsHztoMf(fHz: FloatLike, Mtot_Msun: FloatLike) -> FloatL
 
     Returns:
         FloatLike: Geometric frequency Mf
+
+    LAL grouping (LALSimIMRPhenomXUtilities.c:329-335): fHz * (MTSUN * Mtot) —
+    (fHz*Mtot)*MTSUN differs by up to 1 ULP.
     """
-    return fHz * Mtot_Msun * MTSUN
+    return fHz * (MTSUN * Mtot_Msun)
 
 
 def IMRPhenomX_rotate_z(angle, v):
