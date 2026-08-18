@@ -6,9 +6,9 @@ This directory contains noise PSD files used for testing ripple waveforms.
 
 All PSDs are sourced from the bilby gravitational wave inference library:
 
-**Repository:** https://github.com/bilby-dev/bilby  
-**Commit:** `0985f75c664786e21cc4f662d4f12fe181b1a536`  
-**Date:** 2026-02-25  
+**Repository:** https://github.com/bilby-dev/bilby
+**Commit:** `0985f75c664786e21cc4f662d4f12fe181b1a536`
+**Date:** 2026-02-25
 **Source Path:** `bilby/gw/detector/noise_curves/`
 
 ## Files
