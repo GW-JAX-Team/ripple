@@ -3,6 +3,7 @@ import jax.numpy as jnp
 from jaxtyping import Array, Float, Complex
 from ripplegw.constants import PI, MTSUN, MRSUN, MPC
 from ripplegw.conversions import Mc_eta_to_ms
+from ripplegw.typing import FloatLike
 from ripplegw.waveforms import LALSimIMRPhenomX_precession as pPrec
 from ripplegw.waveforms.initialize_MSA_system import IMRPhenomX_Initialize_MSA_System
 
@@ -22,7 +23,7 @@ def gen_IMRPhenomXP_hphc(
     f: Float[Array, " n_freq"],
     theta: Float[Array, "12"],
     f_ref: float,
-) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"], FloatLike]: # REMOVEME
     """
     Generate PhenomXP frequency domain waveform.
     vars array contains both intrinsic and extrinsic variables
@@ -160,7 +161,7 @@ def gen_IMRPhenomXP_hphc(
     _angles = pPrec.compute_evolved_spin_given_setup(Mf, 2, _msa_setup)
 
     # _angles is a tuple of 3 arrays, each shape (N_freq)
-    alpha, eps, cos_beta = _angles
+    alpha, eps, cos_beta, _min_Spl2mSmi2 = _angles
     # eps *= -1
 
     # Compute Wigner-d coefficients
@@ -189,4 +190,4 @@ def gen_IMRPhenomXP_hphc(
 
     hp, hc = apply_polarization_rotation(zeta_polarisations, _hp, _hc)
 
-    return hp, hc
+    return hp, hc, _min_Spl2mSmi2

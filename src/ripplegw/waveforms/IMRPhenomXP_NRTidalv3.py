@@ -201,8 +201,9 @@ def gen_IMRPhenomXP_NRTidalv3(
     # Modes 22 and 32 share emm=2, so we only need emm = 1, 2, 3, 4.
     _angles = pPrec.compute_evolved_spin_given_setup(Mf, 2, _msa_setup)
 
-    # _angles is a tuple of 3 arrays, each shape (N_freq)
-    alpha, eps, cos_beta = _angles
+    # _angles is a tuple of 3 arrays, each shape (N_freq), plus a min-Spl2mSmi2
+    # diagnostic scalar (only surfaced by gen_IMRPhenomXP_hphc, not needed here).
+    alpha, eps, cos_beta, _ = _angles
     # eps *= -1
 
     # Compute Wigner-d coefficients
