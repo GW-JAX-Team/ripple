@@ -93,6 +93,12 @@ under IMRPhenomXP_NRTidalv3 below.
 
 **Threshold: 2e-6 (combined metric; expected headroom ~1000x after the 2026-08 fixes)**
 
+See [`msa_precession_instability.md`](msa_precession_instability.md) for the full
+mathematical derivation (what `cm` is, where S and L come from, and why the error is
+amplified for edge-on inclinations via the Wigner-d matrices), and
+`tests/cross_validation/results/analyse_msa_failure_modes.py` to reproduce the
+correlation between the S^2 cubic degeneracy and the observed mismatch tail.
+
 The BNS prior (chi in [-0.05, 0.05]) puts ~88% of samples in a regime where the MSA S^2
 cubic (Eq. B2-B4 of arXiv:1703.03967, solved as `theta = arccos(a)/3`) is within 1e-6 of
 a double root: `a -> -1`, where `arccos(-1+e) = pi - sqrt(2e)` has an infinite derivative.
