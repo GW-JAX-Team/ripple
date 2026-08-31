@@ -17,7 +17,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 try:
-    import matplotlib.pyplot as plt  # type: ignore[import]
+    import matplotlib.pyplot as plt
     import numpy as np
 
     HAS_MATPLOTLIB = True
@@ -26,8 +26,9 @@ except ImportError:
     np: Any = None
     HAS_MATPLOTLIB = False
 
-DEFAULT_RESULTS_DIR = Path.cwd() / "timings" / "outdir"
-DEFAULT_OUTPUT_DIR = Path.cwd() / "timings" / "figures"
+_TIMINGS_DIR = Path(__file__).parent.parent.parent.parent.parent / "timings"
+DEFAULT_RESULTS_DIR = _TIMINGS_DIR / "outdir"
+DEFAULT_OUTPUT_DIR = _TIMINGS_DIR / "figures"
 
 
 def load_results(results_dir: Path) -> list[dict]:
@@ -93,7 +94,7 @@ def create_time_per_waveform_plot(
     )
     x = np.arange(len(waveforms))
     width = 0.35
-    fig, ax = plt.subplots(figsize=(13, 6))
+    _, ax = plt.subplots(figsize=(13, 6))
     b1 = ax.bar(
         x - width / 2,
         ripple,
@@ -103,7 +104,7 @@ def create_time_per_waveform_plot(
         label=f"ripple float64 ({ripple_device} GPU, N={ripple_n})",
         color="#3498db",
         alpha=0.85,
-        error_kw=dict(ecolor="black", lw=1.5),
+        error_kw={"ecolor": "black", "lw": 1.5},
     )
     b2 = ax.bar(
         x + width / 2,
@@ -114,7 +115,7 @@ def create_time_per_waveform_plot(
         label=f"LAL float64 (CPU, N={lal_n})",
         color="#2ecc71",
         alpha=0.85,
-        error_kw=dict(ecolor="black", lw=1.5),
+        error_kw={"ecolor": "black", "lw": 1.5},
     )
     ax.set_yscale("log")
     ax.set_ylabel("Time per waveform (ms)", fontsize=12, fontweight="bold")
@@ -145,7 +146,7 @@ def create_throughput_plot(organized, output_path, ripple_device, ripple_n, lal_
     )
     x = np.arange(len(waveforms))
     width = 0.35
-    fig, ax = plt.subplots(figsize=(13, 6))
+    _, ax = plt.subplots(figsize=(13, 6))
     b1 = ax.bar(
         x - width / 2,
         ripple,
@@ -155,7 +156,7 @@ def create_throughput_plot(organized, output_path, ripple_device, ripple_n, lal_
         label=f"ripple float64 ({ripple_device} GPU, N={ripple_n})",
         color="#3498db",
         alpha=0.85,
-        error_kw=dict(ecolor="black", lw=1.5),
+        error_kw={"ecolor": "black", "lw": 1.5},
     )
     b2 = ax.bar(
         x + width / 2,
@@ -166,7 +167,7 @@ def create_throughput_plot(organized, output_path, ripple_device, ripple_n, lal_
         label=f"LAL float64 (CPU, N={lal_n})",
         color="#2ecc71",
         alpha=0.85,
-        error_kw=dict(ecolor="black", lw=1.5),
+        error_kw={"ecolor": "black", "lw": 1.5},
     )
     ax.set_yscale("log")
     ax.set_ylabel("Waveforms per second", fontsize=12, fontweight="bold")
@@ -197,7 +198,7 @@ def create_speedup_plot(organized, output_path, ripple_device):
             speedups.append(float("nan"))
 
     x = np.arange(len(waveforms))
-    fig, ax = plt.subplots(figsize=(13, 5))
+    _, ax = plt.subplots(figsize=(13, 5))
     bars = ax.bar(x, speedups, color="#e74c3c", alpha=0.85)
     ax.set_yscale("log")
     ax.set_ylabel("Speedup (LAL / ripple)", fontsize=12, fontweight="bold")

@@ -12,7 +12,7 @@ import logging
 import socket
 import subprocess
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 from importlib import import_module
 from pathlib import Path
 from typing import Any
@@ -20,6 +20,11 @@ from typing import Any
 import numpy as np
 
 logger = logging.getLogger(__name__)
+
+# Same location timing.py writes to and compare_lal.py reads from.
+_DEFAULT_OUTDIR = (
+    Path(__file__).parent.parent.parent.parent.parent / "timings" / "outdir"
+)
 
 lal: Any = None
 lalsim: Any = None
@@ -132,7 +137,7 @@ def _get_git_hash():
         return subprocess.run(
             ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True
         ).stdout.strip()
-    except Exception:
+    except (subprocess.CalledProcessError, FileNotFoundError):
         return "unknown"
 
 
@@ -440,7 +445,7 @@ def run_timing(args):
         "minimum_frequency": args.f_min,
         "maximum_frequency": args.f_max,
         "reference_frequency": args.f_ref,
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "git_hash": _get_git_hash(),
     }
 
@@ -491,7 +496,9 @@ def run_timing(args):
     }
 
     output_path = (
-        Path(args.output) if args.output else Path(f"{args.waveform}_lal_cpu.json")
+        Path(args.output)
+        if args.output
+        else _DEFAULT_OUTDIR / f"{args.waveform}_lal_cpu.json"
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w") as f:
@@ -532,7 +539,7 @@ def main():
     parser.add_argument(
         "--output",
         type=str,
-        help="Output JSON path (default: <waveform>_lal_cpu.json in CWD)",
+        help="Output JSON path (default: timings/outdir/<waveform>_lal_cpu.json)",
     )
     args = parser.parse_args()
     run_timing(args)
