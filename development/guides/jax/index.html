@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.55">
+      <meta name="generator" content="zensical-0.0.57">
     
     
       
@@ -36,12 +36,12 @@
       
         
       
-      <link rel="stylesheet" href="../../assets/stylesheets/modern/main.20815dad.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/modern/main.5da3a30f.min.css">
       
         
           
         
-        <link rel="stylesheet" href="../../assets/stylesheets/modern/palette.dfe2e883.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/modern/palette.812a03bb.min.css">
       
       
 
@@ -1513,7 +1513,7 @@ This page shows the common patterns; see the <a href="../../FAQ/">FAQ</a> for tr
 <p>JAX defaults to 32-bit floats.
 Enable 64-bit precision before doing anything else — without it you may see inaccurate waveforms, particularly at high frequencies or for long signals:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
-<span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot;jax_enable_x64&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+<span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">"jax_enable_x64"</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="gradients-with-jaxgrad">Gradients with <code>jax.grad</code><a class="headerlink" href="#gradients-with-jaxgrad" title="Permanent link">¤</a></h2>
 <p>Construct the waveform once, outside the function you differentiate — the model object is reused across every gradient evaluation rather than rebuilt each call:</p>
@@ -1521,20 +1521,20 @@ Enable 64-bit precision before doing anything else — without it you may see in
 <span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">ripplegw</span>
 
-<span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot;jax_enable_x64&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+<span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">"jax_enable_x64"</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
 
 <span class="n">frequency</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">20.0</span><span class="p">,</span> <span class="mf">1024.0</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">)</span>
 <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;M_c&quot;</span><span class="p">:</span> <span class="mf">28.3</span><span class="p">,</span> <span class="s2">&quot;eta&quot;</span><span class="p">:</span> <span class="mf">0.247</span><span class="p">,</span> <span class="s2">&quot;s1_z&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;s2_z&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-    <span class="s2">&quot;d_L&quot;</span><span class="p">:</span> <span class="mf">440.0</span><span class="p">,</span> <span class="s2">&quot;phase_c&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;iota&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="s2">"M_c"</span><span class="p">:</span> <span class="mf">28.3</span><span class="p">,</span> <span class="s2">"eta"</span><span class="p">:</span> <span class="mf">0.247</span><span class="p">,</span> <span class="s2">"s1_z"</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">"s2_z"</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="s2">"d_L"</span><span class="p">:</span> <span class="mf">440.0</span><span class="p">,</span> <span class="s2">"phase_c"</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">"iota"</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
 <span class="p">}</span>
-<span class="n">wf</span> <span class="o">=</span> <span class="n">ripplegw</span><span class="o">.</span><span class="n">waveform</span><span class="p">(</span><span class="s2">&quot;IMRPhenomD&quot;</span><span class="p">,</span> <span class="n">f_ref</span><span class="o">=</span><span class="mf">20.0</span><span class="p">)</span>
+<span class="n">wf</span> <span class="o">=</span> <span class="n">ripplegw</span><span class="o">.</span><span class="n">waveform</span><span class="p">(</span><span class="s2">"IMRPhenomD"</span><span class="p">,</span> <span class="n">f_ref</span><span class="o">=</span><span class="mf">20.0</span><span class="p">)</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">total_power</span><span class="p">(</span><span class="n">M_c</span><span class="p">):</span>
-    <span class="n">h</span> <span class="o">=</span> <span class="n">wf</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="p">{</span><span class="o">**</span><span class="n">params</span><span class="p">,</span> <span class="s2">&quot;M_c&quot;</span><span class="p">:</span> <span class="n">M_c</span><span class="p">})</span>
-    <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s2">&quot;p&quot;</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">wf</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="p">{</span><span class="o">**</span><span class="n">params</span><span class="p">,</span> <span class="s2">"M_c"</span><span class="p">:</span> <span class="n">M_c</span><span class="p">})</span>
+    <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s2">"p"</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
 
-<span class="n">grad_Mc</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">total_power</span><span class="p">)(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;M_c&quot;</span><span class="p">])</span>
+<span class="n">grad_Mc</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">total_power</span><span class="p">)(</span><span class="n">params</span><span class="p">[</span><span class="s2">"M_c"</span><span class="p">])</span>
 </code></pre></div>
 <p>This same pattern differentiates with respect to any parameter, or several at once via <code>jax.grad</code> on a function that takes a pytree of parameters.</p>
 <h2 id="fast-repeated-evaluation-with-jaxjit">Fast repeated evaluation with <code>jax.jit</code><a class="headerlink" href="#fast-repeated-evaluation-with-jaxjit" title="Permanent link">¤</a></h2>
@@ -1542,7 +1542,7 @@ Enable 64-bit precision before doing anything else — without it you may see in
 
 <span class="n">_</span> <span class="o">=</span> <span class="n">fast_wf</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>  <span class="c1"># first call traces and compiles — this is slow</span>
 <span class="n">h</span> <span class="o">=</span> <span class="n">fast_wf</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>  <span class="c1"># subsequent calls with the same shapes are fast</span>
-<span class="n">h</span><span class="p">[</span><span class="s2">&quot;p&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">block_until_ready</span><span class="p">()</span>      <span class="c1"># JAX dispatch is async; block before timing</span>
+<span class="n">h</span><span class="p">[</span><span class="s2">"p"</span><span class="p">]</span><span class="o">.</span><span class="n">block_until_ready</span><span class="p">()</span>      <span class="c1"># JAX dispatch is async; block before timing</span>
 </code></pre></div>
 <p>The first call to a <code>jit</code>-compiled waveform triggers XLA compilation, which will be slow for large models.
 If you're timing ripple, always discard the first call and call <code>.block_until_ready()</code> before stopping your timer — see <a href="../benchmarking/">Benchmarking</a> for a ready-made CLI that already does this correctly.</p>
@@ -1550,7 +1550,7 @@ If you're timing ripple, always discard the first call and call <code>.block_unt
 <div class="highlight"><pre><span></span><code><span class="n">Mc_values</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">20.0</span><span class="p">,</span> <span class="mf">40.0</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">h_plus</span><span class="p">(</span><span class="n">M_c</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">wf</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="p">{</span><span class="o">**</span><span class="n">params</span><span class="p">,</span> <span class="s2">&quot;M_c&quot;</span><span class="p">:</span> <span class="n">M_c</span><span class="p">})[</span><span class="s2">&quot;p&quot;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">wf</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="p">{</span><span class="o">**</span><span class="n">params</span><span class="p">,</span> <span class="s2">"M_c"</span><span class="p">:</span> <span class="n">M_c</span><span class="p">})[</span><span class="s2">"p"</span><span class="p">]</span>
 
 <span class="n">hp_batch</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">h_plus</span><span class="p">))(</span><span class="n">Mc_values</span><span class="p">)</span>   <span class="c1"># shape (1000, n_freq)</span>
 </code></pre></div>
@@ -1618,7 +1618,7 @@ If you only need to evaluate once, <code>jax.config.update("jax_disable_jit", Tr
       <script id="__config" type="application/json">{"annotate":null,"base":"../..","features":["content.code.copy","navigation.instant","navigation.tabs","navigation.top","toc.follow","header.autohide"],"search":"../../assets/javascripts/workers/search.7d14d953.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"default":"stable","provider":"mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.e886cdf1.min.js"></script>
+      <script src="../../assets/javascripts/bundle.49251538.min.js"></script>
       
         <script src="../../javascripts/mathjax.js"></script>
       
