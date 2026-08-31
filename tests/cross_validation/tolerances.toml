@@ -1,0 +1,55 @@
+# Enforced LAL frequency-domain cross-validation limits.
+#
+# overlap_loss: maximum PSD-weighted ``1 - overlap`` across the sampled points.
+# phase_offset: maximum absolute inner-product phase at ``tc = phi_c = 0``.
+#
+# Waveforms inherit an omitted metric from ``[lal.defaults]``. The tolerance-table
+# test keeps these overlap-loss values aligned with the developer documentation.
+
+[lal.defaults]
+overlap_loss = 1e-6
+phase_offset = 1e-3
+
+[lal.TaylorF2]
+overlap_loss = 1e-15
+phase_offset = 1e-10
+
+[lal.IMRPhenomD]
+overlap_loss = 1e-15
+phase_offset = 1e-11
+
+[lal.IMRPhenomD_NRTidalv2]
+overlap_loss = 1e-15
+phase_offset = 1e-9
+
+[lal.IMRPhenomHM]
+overlap_loss = 1e-15
+phase_offset = 1e-11
+
+[lal.IMRPhenomPv2]
+overlap_loss = 1e-4
+# phase_offset: precessing; not checked by test_phase_convention.py.
+
+[lal.IMRPhenomXAS]
+overlap_loss = 1e-15
+phase_offset = 1e-12
+
+[lal.IMRPhenomXAS_NRTidalv3]
+overlap_loss = 1e-12
+phase_offset = 1e-7
+
+[lal.IMRPhenomXHM]
+overlap_loss = 1e-6
+phase_offset = 1e-6
+
+[lal.IMRPhenomXP]
+overlap_loss = 1e-6
+# phase_offset: precessing; not checked by test_phase_convention.py.
+
+[lal.IMRPhenomXP_NRTidalv3]
+overlap_loss = 2e-6
+# phase_offset: precessing; not checked by test_phase_convention.py.
+
+[lal.IMRPhenomXPHM]
+overlap_loss = 1e-6
+# phase_offset: precessing; not checked by test_phase_convention.py.

@@ -7,10 +7,14 @@ on:
     branches: [main, ripple-dev]
   release:
     types: [published]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   test:
@@ -19,25 +23,24 @@ jobs:
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v7
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v9.0.0
         with:
           enable-cache: true
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
       - name: Install dependencies
         run: uv sync --python ${{ matrix.python-version }} --group test ${{ matrix.python-version == '3.12' && '--group cross-validation' || '' }}
-      - name: Run tests
+      - name: Run non-accuracy tests
         run: |
           if [[ "${{ matrix.python-version }}" == "3.12" ]]; then
-            OVERLAP_TESTS=""
-            if [[ "${{ github.base_ref }}" == "main" || "${{ github.ref }}" == "refs/heads/main" ]]; then
-              OVERLAP_TESTS="tests/cross_validation/test_lal_overlap.py"
-            fi
-            uv run pytest --cov=ripplegw --cov-report=term-missing tests/unit tests/integration tests/cross_validation/test_lal_constants.py $OVERLAP_TESTS
+            uv run pytest tests/ -m "not accuracy" --cov=ripplegw --cov-report=term-missing
           else
-            uv run pytest tests/unit tests/integration tests/cross_validation/test_lal_constants.py
+            uv run pytest tests/ -m "not accuracy"
           fi
+      - name: Run accuracy smoke test
+        if: matrix.python-version == '3.12' && (github.ref == 'refs/heads/main' || github.base_ref == 'main')
+        run: uv run pytest -m "accuracy and smoke" --reference lal --n-samples 3
       - name: Upload coverage to Coveralls
         if: matrix.python-version == '3.12'
         env:
@@ -48,8 +51,8 @@ jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v7
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v9.0.0
         with:
           enable-cache: true
       - name: Install dependencies
@@ -65,10 +68,10 @@ jobs:
       name: pypi
       url: https://pypi.org/project/ripplegw/
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v9.0.0
       - name: Build package
         run: uv build
       - name: Publish to PyPI
@@ -76,24 +79,41 @@ jobs:
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
 
-  tag-dev:
+  merge-main-to-dev:
     needs: [publish]
     runs-on: ubuntu-latest
+    if: github.event_name == 'release'
     permissions:
       contents: write
+      pull-requests: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ripple-dev
-      - name: Tag ripple-dev with next minor dev version
+          fetch-depth: 0
+      - name: Merge main into ripple-dev, or open a PR on conflict
         env:
-          TAG_NAME: ${{ github.event.release.tag_name }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          VERSION="${TAG_NAME#v}"
-          IFS='.' read -r major minor patch <<< "$VERSION"
-          NEXT="v${major}.$((minor + 1)).0.dev0"
-          git tag --force "$NEXT"
-          git push --force origin "$NEXT"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          if git merge --no-edit origin/main; then
+            git push origin ripple-dev
+          else
+            git merge --abort
+            existing=$(gh pr list --repo "$GITHUB_REPOSITORY" --base ripple-dev --head main --state open --json number --jq '.[0].number // empty')
+            if [ -n "$existing" ]; then
+              echo "PR #$existing already open for main -> ripple-dev merge."
+            else
+              gh pr create \
+                --repo "$GITHUB_REPOSITORY" \
+                --base ripple-dev \
+                --head main \
+                --title "Merge main into ripple-dev after release" \
+                --body "Automated merge of main into ripple-dev failed due to conflicts. Please resolve manually."
+            fi
+          fi
 
   publish-testpypi:
     needs: [test, pre-commit]
@@ -103,11 +123,11 @@ jobs:
       name: testpypi
       url: https://test.pypi.org/project/ripplegw/
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v9.0.0
       - name: Build package
         run: uv build
       - name: Publish to TestPyPI

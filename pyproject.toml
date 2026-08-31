@@ -49,7 +49,6 @@ cross-validation = [
     "lalsuite",
 ]
 doc = [
-    "nbconvert",
     "mkdocstrings[python]",
     "pymdown-extensions",
     "zensical",
@@ -57,6 +56,7 @@ doc = [
 
 [project.scripts]
 ripple-benchmark = "ripplegw.benchmarks.timings.timing:main"
+ripplegw-fetch-ephemeris = "ripplegw.waveforms.cw.ephemeris:main"
 
 [project.urls]
 Homepage = "https://github.com/GW-JAX-Team/ripple"
@@ -75,22 +75,48 @@ build-backend = "hatchling.build"
 [tool.hatch.version]
 source = "vcs"
 fallback-version = "0.0.0"
-raw-options = { local_scheme = "no-local-version" }
+raw-options = { local_scheme = "no-local-version", version_scheme = "semver-pep440-release-branch" }
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-norecursedirs = ["tests/cross_validation"]
+testpaths = ["tests"]
+markers = [
+    "accuracy: compares waveform output against its registered reference calculation",
+    "smoke: minimal accuracy subset cheap enough for CI",
+]
+
+[tool.ruff]
+# Classify the installed package separately from third-party dependencies.
+src = ["src"]
 
 [tool.ruff.lint]
+extend-select = ["E402"]
 ignore = [
     "F722",  # Forward annotations evaluation (false positive with jaxtyping)
     "E731",  # Lambda assignment
+    "UP007", # Keep explicit Union[...] annotations when they improve readability.
+    "UP045", # Keep Optional[...] annotations rather than rewriting them as X | None.
 ]
+
+[tool.ruff.lint.isort]
+# Tests are part of this repository, not an external dependency.
+known-first-party = ["tests"]
 
 [tool.ruff.lint.extend-per-file-ignores]
 "notebooks/*" = ["E402"]
+# jax.config.update("jax_enable_x64", True) must run before any jax-dependent imports
+"tests/*" = ["E402"]
+# Waveform module names intentionally mirror established LAL waveform names and
+# form part of ripple's public import paths.
+"src/ripplegw/waveforms/**/*.py" = ["N999"]
 
 [tool.pyright]
+include = ["src"]
+reportUnnecessaryTypeIgnoreComment = "error"
+
+[tool.ty.src]
+# Match Pyright's source-only scope; tests have optional LAL dependencies and
+# remain covered by pytest and the explicitly requested Ruff test check.
 include = ["src"]
 
 [tool.coverage.report]

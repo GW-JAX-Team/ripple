@@ -1,0 +1,1 @@
+"""Non-CBC burst waveforms."""

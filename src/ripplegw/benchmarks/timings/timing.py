@@ -9,14 +9,13 @@ import argparse
 import json
 import logging
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 import jax
 import jax.numpy as jnp
 
-from ripplegw import waveform_preset
-from ripplegw.conversions import ms_to_Mc_eta
+import ripplegw
 from ripplegw.benchmarks.utils import (
     generate_bbh_parameters,
     generate_bns_parameters,
@@ -24,6 +23,7 @@ from ripplegw.benchmarks.utils import (
     get_device_name,
     get_git_hash,
 )
+from ripplegw.conversions import ms_to_Mc_eta
 
 logger = logging.getLogger(__name__)
 
@@ -117,29 +117,45 @@ def _prepare_bns_params(params):
     }
 
 
-def time_waveform(waveform, batched_params, config):
+def _construct_waveform(name, f_ref):
+    """Construct a registered CBC waveform. Every CBC model takes ``f_ref``."""
+    return ripplegw.waveform(name, f_ref=f_ref)
+
+
+def time_waveform(waveform, batched_params, config, domain="FD"):
     """Time waveform generation using the class-based waveform interface.
 
     Args:
-        waveform: An instantiated waveform object from ``ripplegw.waveform_preset``.
+        waveform: An instantiated waveform object from ``ripplegw.waveform(...)``.
         batched_params: Dict of JAX arrays, each of shape ``(n_waveforms,)``.
         config: Benchmark configuration dictionary.
+        domain: ``"FD"`` builds a frequency grid from ``f_min``/``f_max``/``duration``;
+            ``"TD"`` builds a time grid sampled at ``2 * f_max`` Hz, ending 2 seconds
+            after ``t=0`` (coalescence) rather than centred on it -- ``duration``
+            seconds of mostly-inspiral before merger, a couple seconds of
+            ringdown/buffer after, matching standard segment placement.
+            Every CBC model built into ripple today is FD, but CBC isn't defined by
+            domain -- a future time-domain CBC model is timed correctly too.
 
     Returns:
         tuple: ``(first_run_time, exec_times, effective_batch_size)`` where
         ``effective_batch_size`` is ``None`` when full vmap succeeded or the
         integer ``batch_size`` used with ``jax.lax.map`` when vmap OOM'd.
     """
-    f = jnp.arange(
-        config["minimum_frequency"],
-        config["maximum_frequency"],
-        1.0 / config["duration"],
-    )
+    if domain == "TD":
+        f_sampling = 2.0 * config["maximum_frequency"]
+        axis = jnp.arange(-config["duration"] + 2.0, 2.0, 1.0 / f_sampling)
+    else:
+        axis = jnp.arange(
+            config["minimum_frequency"],
+            config["maximum_frequency"],
+            1.0 / config["duration"],
+        )
     n_waveforms = config["n_waveforms"]
     n_runs = config.get("n_runs", 5)
 
     def _make_batched(batch_size):
-        single = lambda p: waveform(f, p)
+        single = lambda p: waveform(axis, p)
         if batch_size is None:
             return jax.jit(jax.vmap(single))
         return jax.jit(lambda bp: jax.lax.map(single, bp, batch_size=batch_size))
@@ -219,7 +235,7 @@ def run_timing(args):
         "minimum_frequency": args.f_min,
         "maximum_frequency": args.f_max,
         "reference_frequency": args.f_ref,
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "git_hash": get_git_hash(),
     }
 
@@ -242,6 +258,9 @@ def run_timing(args):
 
     # Generate parameters based on waveform type
     waveform_type = get_waveform_type(args.waveform)
+    metadata = ripplegw.get_waveform_metadata(args.waveform)
+    is_precessing = metadata.get("is_precessing", False)
+    config["domain"] = metadata["domain"]
 
     if waveform_type == "precessing_bns":
         params = generate_precessing_bns_parameters(args.n_waveforms)
@@ -254,40 +273,28 @@ def run_timing(args):
     logger.info("Parameter keys: %s", list(params.keys()))
 
     # Run timing based on waveform
-    precessing_waveforms = ["IMRPhenomPv2", "IMRPhenomXP", "IMRPhenomXPHM"]
-    if args.waveform in precessing_waveforms:
-        logger.info(
-            "Running precessing waveform timing benchmark (%s)...", args.waveform
-        )
-        waveform = waveform_preset[args.waveform](
-            f_ref=config["reference_frequency"]  # type: ignore
-        )
-        batched_params = _prepare_precessing_params(params)
-    elif waveform_type == "precessing_bns":
+    waveform = _construct_waveform(args.waveform, config["reference_frequency"])
+    if waveform_type == "precessing_bns":
         logger.info(
             "Running precessing BNS waveform timing benchmark (%s)...", args.waveform
         )
-        waveform = waveform_preset[args.waveform](
-            f_ref=config["reference_frequency"]  # type: ignore
-        )
         batched_params = _prepare_precessing_bns_params(params)
+    elif is_precessing:
+        logger.info(
+            "Running precessing waveform timing benchmark (%s)...", args.waveform
+        )
+        batched_params = _prepare_precessing_params(params)
     elif waveform_type == "bns":
         logger.info("Running BNS waveform timing benchmark (%s)...", args.waveform)
-        waveform = waveform_preset[args.waveform](
-            f_ref=config["reference_frequency"]  # type: ignore
-        )
         batched_params = _prepare_bns_params(params)
     else:
         logger.info(
             "Running aligned-spin waveform timing benchmark (%s)...", args.waveform
         )
-        waveform = waveform_preset[args.waveform](
-            f_ref=config["reference_frequency"]  # type: ignore
-        )
         batched_params = _prepare_aligned_params(params)
 
     first_run_time, exec_times, effective_batch_size = time_waveform(
-        waveform, batched_params, config
+        waveform, batched_params, config, domain=config["domain"]
     )
 
     # Compute statistics over timed runs
@@ -361,12 +368,30 @@ def run_timing(args):
 
 
 def get_waveform_type(waveform):
-    """Determine waveform parameter family."""
-    bns_waveforms = ["TaylorF2", "IMRPhenomD_NRTidalv2", "IMRPhenomXAS_NRTidalv3"]
-    precessing_bns_waveforms = ["IMRPhenomXP_NRTidalv3"]
-    if waveform in precessing_bns_waveforms:
+    """Determine the parameter shape a CBC waveform needs.
+
+    Returns ``"precessing_bns"``, ``"bns"``, or ``"bbh"``. Driven by the
+    registry's own metadata rather than a hardcoded list, so a newly
+    registered CBC model is timed correctly with no edits to this file.
+
+    Raises:
+        ValueError: If ``waveform`` isn't a CBC model -- timing only supports
+            CBC waveforms, which share one parameterisation; other GW sources
+            (e.g. bursts, and eventually continuous waves) have their own and
+            aren't covered here. CBC models can be FD or TD -- domain doesn't
+            factor into this check; see ``time_waveform`` for the grid built
+            for each.
+    """
+    metadata = ripplegw.get_waveform_metadata(waveform)
+    if metadata.get("source_type") != "cbc":
+        raise ValueError(
+            f"ripple-benchmark only times CBC waveforms (the shared "
+            f"M_c/eta/spins/d_L/phase_c/iota parameterisation); {waveform!r} "
+            f"has source_type={metadata.get('source_type')!r} and isn't supported."
+        )
+    if metadata.get("is_tidal") and metadata.get("is_precessing"):
         return "precessing_bns"
-    return "bns" if waveform in bns_waveforms else "bbh"
+    return "bns" if metadata.get("is_tidal") else "bbh"
 
 
 def main():
@@ -379,20 +404,8 @@ def main():
     parser.add_argument(
         "waveform",
         type=str,
-        choices=[
-            "TaylorF2",
-            "IMRPhenomD",
-            "IMRPhenomD_NRTidalv2",
-            "IMRPhenomHM",
-            "IMRPhenomPv2",
-            "IMRPhenomXAS",
-            "IMRPhenomXAS_NRTidalv3",
-            "IMRPhenomXHM",
-            "IMRPhenomXP",
-            "IMRPhenomXPHM",
-            "IMRPhenomXP_NRTidalv3",
-        ],
-        help="Waveform approximant to time",
+        choices=sorted(ripplegw.list_waveforms(source_type="cbc")),
+        help="CBC waveform approximant to time (non-CBC sources, e.g. bursts, aren't supported)",
     )
 
     parser.add_argument(

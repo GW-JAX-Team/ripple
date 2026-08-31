@@ -15,10 +15,21 @@ nav = [
     {"Home" = "index.md"},
     {"Installation" = "installation.md"},
     {"Quick Start" = "quickstart.md"},
-    {"Tutorials" = [
-        "tutorials/index.md",
-        {"Generating Waveforms" = "tutorials/generating_waveforms.md"},
-        {"Benchmarking" = "tutorials/benchmarking.md"},
+    {"Guides" = [
+        "guides/index.md",
+        {"Working with Waveforms" = "guides/waveforms.md"},
+        {"Parameters and Conventions" = "guides/parameters.md"},
+        {"JAX Transformations" = "guides/jax.md"},
+        {"Waveform Catalogue" = "guides/catalogue.md"},
+        {"Benchmarking" = "guides/benchmarking.md"},
+    ]},
+    {"Developer Guide" = [
+        "dev/index.md",
+        {"Architecture" = "dev/architecture.md"},
+        {"Adding a Waveform" = "dev/adding_a_waveform.md"},
+        {"Test Coverage" = "dev/test_coverage.md"},
+        {"Run Reference Checks" = "dev/run_reference_checks.md"},
+        {"Reference Comparisons and Limits" = "dev/reference_comparisons_and_limits.md"},
     ]},
     {"FAQ" = "FAQ.md"},
     {"Citing ripple" = "citing.md"},
@@ -62,7 +73,7 @@ paths = ["src"]
 [project.plugins.mkdocstrings.handlers.python.options]
 docstring_style = "google"
 filters = ["!^_[^_]", "!^logger$"]
-inherited_members = false
+inherited_members = true
 group_by_category = true
 show_category_heading = false
 summary = {attributes = true, functions = true}

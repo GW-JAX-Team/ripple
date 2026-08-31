@@ -2,7 +2,7 @@
 
 This document derives, step by step, the numerical mechanism behind the "known cause
 (LAL MSA conditioning)" entry for `IMRPhenomXP_NRTidalv3` in
-[`lal_agreement.md`](lal_agreement.md), and explains why it shows up as a mismatch
+[Reference Comparisons and Limits](reference_comparisons_and_limits.md), and explains why it shows up as a mismatch
 *tail* concentrated at low spin and small opening angle rather than as a uniform
 error. It also covers the companion (and separate) equal-mass singularity. The
 reproducing script is
@@ -323,10 +323,12 @@ with R² = 0.93, and a controlled angle-injection experiment (inject a known
 reproduces the same exponent independent of `chi_p`
 (`tests/cross_validation/results/analyse_mismatches.ipynb`, cells 17-18). This is
 exactly why `overlap_loss_hc` alone is not the metric asserted in
-`test_lal_overlap.py`: it measures an edge-on *geometric amplification* of an error
-that carries negligible detector SNR there, not a growing absolute defect. The
-SNR-weighted combined metric (`compute_polarization_weighted_overlap_loss`,
-documented in `lal_agreement.md`) divides that amplification back out.
+`tests/cross_validation/fd/test_overlap.py`: it measures an edge-on *geometric
+amplification* of an error that carries negligible detector SNR there, not a
+growing absolute defect. The SNR-weighted combined metric
+(`combined_overlap_loss` in `tests/helpers/metrics.py`, documented in
+[Reference Comparisons and Limits](reference_comparisons_and_limits.md))
+divides that amplification back out.
 
 ## 6. Putting it together: why the mismatch tail tracks degeneracy, not q -> 1
 

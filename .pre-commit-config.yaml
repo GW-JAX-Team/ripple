@@ -1,26 +1,51 @@
 ci:
   autoupdate_branch: ripple-dev
-  skip: [uv-lock, pyright]
+  autoupdate_schedule: quarterly
+  # ty-pre-commit requires network access, which pre-commit.ci does not provide.
+  skip: [pyright, ty]
 
 repos:
-  - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.11.29
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
     hooks:
-      - id: uv-lock
-        args: ["--upgrade"]
+      - id: check-added-large-files
+      - id: check-ast
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+      - id: check-json
+      - id: pretty-format-json
+        args: ["--autofix"]
+        exclude: \.ipynb$
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+      - id: debug-statements
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.22
+    rev: v0.16.4
     hooks:
       - id: ruff-check
         args: ["--fix"]
-        files: src/
+        files: ^(src|tests)/
       - id: ruff-format
-        files: src/
-  
-  - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.411
+        files: ^(src|tests)/
+
+  - repo: https://github.com/astral-sh/ty-pre-commit
+    rev: v0.0.74
     hooks:
-    - id: pyright
-      files: src/
-      additional_dependencies: ["jax>=0.8.2", "jaxtyping>=0.3.3", numpy, typing_extensions]
+      - id: ty
+        args: [--locked]
+
+  - repo: local
+    hooks:
+      - id: pyright
+        name: pyright
+        entry: uv run pyright
+        language: system
+        files: src/
+        require_serial: true
