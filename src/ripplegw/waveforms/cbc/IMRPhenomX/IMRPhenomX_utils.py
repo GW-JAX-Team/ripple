@@ -1,3 +1,5 @@
+from typing import Optional
+
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
@@ -8,7 +10,14 @@ from ripplegw.typing import FloatLike
 fM_CUT = 0.3
 
 
-def get_cutoff_fMs(m1, m2, chi1, chi2, chip: float | Array = 0.0, a_prec_override=None):
+def get_cutoff_fMs(
+    m1: FloatLike,
+    m2: FloatLike,
+    chi1: FloatLike,
+    chi2: FloatLike,
+    chip: FloatLike = 0.0,
+    a_prec_override: Optional[FloatLike] = None,
+) -> tuple[FloatLike, FloatLike, FloatLike, FloatLike]:
     # This function returns a variety of frequencies needed for computing IMRPhenomXAS
     # In particular, we have fRD, fdamp, fMECO, FISCO
     # chip: effective precession spin parameter. When non-zero, fRD/fdamp are computed

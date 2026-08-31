@@ -1,6 +1,7 @@
 """by Robin Chan"""
 
 from collections.abc import Mapping
+from typing import Optional
 
 import jax
 import jax.numpy as jnp
@@ -68,7 +69,7 @@ def _phase_of(
     bbh_psi: Float[Array, " n_freq"],
     no_taper: bool = False,
     chip: float = 0.0,
-    a_prec_override=None,
+    a_prec_override: Optional[FloatLike] = None,
 ) -> Float[Array, " n_freq"]:
     """Phase of ``h0 = amplitude * exp(1j * phase)`` (the exponent).
 
@@ -185,7 +186,7 @@ def _gen_IMRPhenomXAS_NRTidalv3(
     bbh_psi: Float[Array, " n_freq"],
     no_taper: bool = False,
     chip: float = 0.0,
-    a_prec_override=None,
+    a_prec_override: Optional[FloatLike] = None,
 ) -> Complex[Array, " n_freq"]:
     """
     Master internal function to get the GW strain for given parameters.
@@ -231,7 +232,7 @@ def _bbh_amp_psi(
     theta_intrinsic: Float[Array, "6"],
     theta_extrinsic: Float[Array, "3"],
     chip: float = 0.0,
-    a_prec_override=None,
+    a_prec_override: Optional[FloatLike] = None,
 ) -> tuple[Float[Array, " n_freq"], Float[Array, " n_freq"]]:
     """BBH-baseline amplitude and phase that the tidal corrections are applied on top of.
 
@@ -261,7 +262,7 @@ def gen_IMRPhenomXAS_NRTidalv3(
     use_lambda_tildes: bool = True,
     no_taper: bool = False,
     chip: float = 0.0,
-    a_prec_override=None,
+    a_prec_override: Optional[FloatLike] = None,
 ) -> Complex[Array, " n_freq"]:
     """
     Generate NRTidalv3 frequency domain waveform following 2311.07456.

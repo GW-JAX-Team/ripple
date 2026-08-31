@@ -33,14 +33,16 @@ jax.config.update("jax_enable_x64", True)
 
 
 def gen_IMRPhenomXP_NRTidalv3(
-    f: Array,
-    theta: Array,
+    f: Float[Array, " n_freq"],
+    theta: Float[Array, "14"],
     f_ref: float,
     use_lambda_tildes: bool = True,
     no_taper: bool = False,
-):
-    """Generate IMRPhenomXP_NRTidalv3 frequency-domain strain.
-    `theta` = [Mchirp, eta, s1x, s1y, s1z, s2x, s2y, s2z, lambda_tilde/lambda1, delta_lambda_tilde/lambda2, D, tc, phic, iota].
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
+    """Generate IMRPhenomXP_NRTidalv3 frequency-domain plus and cross polarizations.
+
+    ``theta`` = [Mchirp, eta, s1x, s1y, s1z, s2x, s2y, s2z,
+    lambda_tilde/lambda1, delta_lambda_tilde/lambda2, D, tc, phic, iota].
     """
 
     # --- Set up precession variables ---
@@ -237,12 +239,14 @@ def gen_IMRPhenomXP_NRTidalv3(
 
 
 def gen_IMRPhenomXP_NRTidalv3_hphc(
-    f: Array,
-    theta: Array,
+    f: Float[Array, " n_freq"],
+    theta: Float[Array, "14"],
     f_ref: float,
     use_lambda_tildes: bool = True,
     no_taper: bool = False,
-):
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
+    """Alias of ``gen_IMRPhenomXP_NRTidalv3`` for the ``*_hphc`` naming the
+    other precessing generators use."""
     return gen_IMRPhenomXP_NRTidalv3(f, theta, f_ref, use_lambda_tildes, no_taper)
 
 

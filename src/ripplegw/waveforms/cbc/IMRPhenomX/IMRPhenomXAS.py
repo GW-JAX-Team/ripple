@@ -1,5 +1,6 @@
 # from math import PI
 from collections.abc import Mapping
+from typing import Optional
 
 import jax
 import jax.numpy as jnp
@@ -356,8 +357,8 @@ def get_intermediate_raw_phase(
     dPhaseRD: FloatLike,
     cL: FloatLike,
     chip: FloatLike = 0.0,
-    a_prec_override=None,
-) -> Array:
+    a_prec_override: Optional[FloatLike] = None,
+) -> Float[Array, " n_freq"] | FloatLike:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -568,12 +569,12 @@ def get_intermediate_raw_phase(
 
 
 def get_mergerringdown_raw_phase(
-    fM_s: Array,
-    theta: Array,
-    phase_coeffs: Array,
+    fM_s: Float[Array, " n_freq"] | FloatLike,
+    theta: Float[Array, "4"],
+    phase_coeffs: Float[Array, "13 49"],
     chip: FloatLike = 0.0,
-    a_prec_override=None,
-) -> tuple[Array, tuple[FloatLike, FloatLike]]:
+    a_prec_override: Optional[FloatLike] = None,
+) -> tuple[Float[Array, " n_freq"], tuple[FloatLike, FloatLike]]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -751,8 +752,8 @@ def Phase(
     theta: Float[Array, "4"],
     phase_coeffs: Float[Array, "13 49"],
     chip: FloatLike = 0.0,
-    a_prec_override=None,
-) -> Array:
+    a_prec_override: Optional[FloatLike] = None,
+) -> Float[Array, " n_freq"]:
     """
     Computes the phase of the PhenomD waveform following 1508.07253.
     Sets time and phase of coealence to be zero.
@@ -856,8 +857,8 @@ def PhaseDerivative(
     theta: Float[Array, "4"],
     phase_coeffs: Float[Array, "13 49"],
     chip: float = 0.0,
-    a_prec_override=None,
-) -> Array:
+    a_prec_override: Optional[FloatLike] = None,
+) -> Float[Array, " n_freq"]:
     """
     Compute d Phase / d f for IMRPhenomXAS using the same piecewise construction
     as Phase(), but without differentiating through the final Heaviside assembly.
@@ -1367,8 +1368,8 @@ def get_mergerringdown_Amp(
     theta: Float[Array, "4"],
     amp_coeffs: Float[Array, "7 42"],
     chip: FloatLike = 0.0,
-    a_prec_override=None,
-) -> tuple[Array, Array]:
+    a_prec_override: Optional[FloatLike] = None,
+) -> tuple[Float[Array, " n_freq"], FloatLike]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -1446,13 +1447,13 @@ def get_mergerringdown_Amp(
 
 
 def Amp(
-    f: Array,
-    theta: Array,
-    amp_coeffs: Array,
+    f: Float[Array, " n_freq"],
+    theta: Float[Array, "4"],
+    amp_coeffs: Float[Array, "7 42"],
     D: FloatLike = 1.0,
     chip: float = 0.0,
-    a_prec_override=None,
-) -> Array:
+    a_prec_override: Optional[FloatLike] = None,
+) -> Float[Array, " n_freq"]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
