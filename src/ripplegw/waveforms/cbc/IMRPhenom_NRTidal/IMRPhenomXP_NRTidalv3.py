@@ -4,7 +4,7 @@ from collections.abc import Mapping
 
 import jax
 import jax.numpy as jnp
-from jaxtyping import Array, Float
+from jaxtyping import Array, Complex, Float
 
 import ripplegw.waveforms.cbc.IMRPhenomX.LALSimIMRPhenomX_precession as pPrec
 from ripplegw.constants import MTSUN, PI
@@ -26,6 +26,7 @@ from ripplegw.waveforms.cbc.IMRPhenomX.IMRPhenomXPHM import (
 )  # spaghetti code! FIXME
 from ripplegw.waveforms.cbc.IMRPhenomX.initialize_MSA_system import (
     IMRPhenomX_Initialize_MSA_System,
+    lal_M_sec,
 )
 
 jax.config.update("jax_enable_x64", True)
@@ -141,7 +142,7 @@ def gen_IMRPhenomXP_NRTidalv3(
     # LAL: Mf = pWF->M_sec * f with M_sec built from round-tripped solar masses;
     # (m1+m2)*f*MTSUN differs by up to 1 ULP, which the near-degenerate MSA S^2
     # cubic amplifies into the Euler angles.
-    Msec_lal = pPrec.lal_M_sec(m1, m2)
+    Msec_lal = lal_M_sec(m1, m2)
     Mf = f * Msec_lal
 
     chip = pWF22_prec.get("chip", 0.0)
@@ -197,19 +198,19 @@ def gen_IMRPhenomXP_NRTidalv3(
         kappa,
         phiJ_Sf,
     )
-    # Compute precession angles for all 4 unique emm values in a single batched call.
-    # Modes 22 and 32 share emm=2, so we only need emm = 1, 2, 3, 4.
+    # XP_NRTidalv3 carries the (2,2) mode only, so the precession angles are
+    # needed at emm=2.
     _angles = pPrec.compute_evolved_spin_given_setup(Mf, 2, _msa_setup)
 
-    # _angles is a tuple of 3 arrays, each shape (N_freq), plus a min-Spl2mSmi2
-    # diagnostic scalar (only surfaced by gen_IMRPhenomXP_hphc, not needed here).
+    # alpha, eps, cos_beta are arrays of shape (N_freq); the fourth entry is the
+    # MSA S^2 cubic degeneracy diagnostic, only surfaced by gen_IMRPhenomXP_hphc.
     alpha, eps, cos_beta, _ = _angles
     # eps *= -1
 
     # Compute Wigner-d coefficients
     cBetah, sBetah = IMRPhenomXWignerdCoefficients_cosbeta(cos_beta)
 
-    # Modes 22 and 32 – both use emm = 2
+    # (2,2) twist: emm = 2
     beta_powers_2 = BetaPowers.from_half_angle_trig(cBetah, sBetah)
     cexp_i_alpha_2 = jnp.exp(1j * alpha)
     hp_twist_22, hc_twist_22 = twist_22(cexp_i_alpha_2, theta_JN, beta_powers_2)
@@ -302,7 +303,7 @@ class IMRPhenomXP_NRTidalv3(FrequencyDomainWaveform, DistanceScaledWaveform):
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
-    ) -> dict[str, Float[Array, " n_freq"]]:
+    ) -> dict[str, Complex[Array, " n_freq"]]:
         """Evaluate the IMRPhenomXP_NRTidalv3 waveform.
 
         Args:
@@ -313,7 +314,7 @@ class IMRPhenomXP_NRTidalv3(FrequencyDomainWaveform, DistanceScaledWaveform):
                 ``use_lambda_tildes``.
 
         Returns:
-            dict[str, Float[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
+            dict[str, Complex[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
                 polarizations.
         """
         if self.use_lambda_tildes:

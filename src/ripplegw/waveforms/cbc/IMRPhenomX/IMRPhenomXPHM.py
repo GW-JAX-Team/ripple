@@ -22,6 +22,7 @@ from ripplegw.waveforms.cbc.IMRPhenomX.IMRPhenomXHM import (
 )
 from ripplegw.waveforms.cbc.IMRPhenomX.initialize_MSA_system import (
     IMRPhenomX_Initialize_MSA_System,
+    lal_M_sec,
 )
 
 
@@ -93,7 +94,7 @@ def generate_xphm(
     """Generate IMRPhenomXPHM plus and cross polarizations."""
     # LAL: Mf = pWF->M_sec * f with M_sec built from round-tripped solar masses;
     # the ULP matters because Mf feeds the near-degenerate MSA S^2 cubic.
-    Mf: Float[Array, " n_freq"] = frequency_array * pPrec.lal_M_sec(mass_1, mass_2)  # type: ignore[assignment]
+    Mf: Float[Array, " n_freq"] = frequency_array * lal_M_sec(mass_1, mass_2)
 
     Mtot = mass_1 + mass_2
 
@@ -341,7 +342,7 @@ def twistup(
     # rotation (beta=pi/2 gives cBetah=sBetah=1/sqrt(2)), so we must
     # explicitly zero _hp/_hc here to match LALSim's behavior.
     inspiral_mask = Mf <= pPrec.mf_twist_cutoff(
-        eta, chi1z, chi2z, pPrec.lal_M_sec(mass_1, mass_2)
+        eta, chi1z, chi2z, lal_M_sec(mass_1, mass_2)
     )
     _hp = jnp.where(inspiral_mask, _hp, 0.0)
     _hc = jnp.where(inspiral_mask, _hc, 0.0)

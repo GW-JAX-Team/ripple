@@ -22,6 +22,7 @@ from ripplegw.waveforms.cbc.IMRPhenomX.IMRPhenomXPHM import (
 )  # spaghetti code! FIXME
 from ripplegw.waveforms.cbc.IMRPhenomX.initialize_MSA_system import (
     IMRPhenomX_Initialize_MSA_System,
+    lal_M_sec,
 )
 
 jax.config.update("jax_enable_x64", True)
@@ -31,7 +32,7 @@ def gen_IMRPhenomXP_hphc(
     f: Float[Array, " n_freq"],
     theta: Float[Array, "12"],
     f_ref: float,
-) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"], FloatLike]:  # REMOVEME
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     Generate PhenomXP frequency domain waveform.
     vars array contains both intrinsic and extrinsic variables
@@ -140,7 +141,7 @@ def gen_IMRPhenomXP_hphc(
     # LAL: Mf = pWF->M_sec * f with M_sec built from round-tripped solar masses;
     # (m1+m2)*f*MTSUN differs by up to 1 ULP, which the near-degenerate MSA S^2
     # cubic amplifies into the Euler angles.
-    Msec_lal = pPrec.lal_M_sec(m1, m2)
+    Msec_lal = lal_M_sec(m1, m2)
     Mf = f * Msec_lal
     hlm_22 = XLALSimIMRPhenomXHMGethlmModes(
         Mf, pWF22_prec, phi0=0.0, ell_mm_pairs=[(2, 2)]
@@ -164,18 +165,18 @@ def gen_IMRPhenomXP_hphc(
         kappa,
         phiJ_Sf,
     )
-    # Compute precession angles for all 4 unique emm values in a single batched call.
-    # Modes 22 and 32 share emm=2, so we only need emm = 1, 2, 3, 4.
+    # XP carries the (2,2) mode only, so the precession angles are needed at emm=2.
     _angles = pPrec.compute_evolved_spin_given_setup(Mf, 2, _msa_setup)
 
-    # _angles is a tuple of 3 arrays, each shape (N_freq)
+    # alpha, eps, cos_beta are arrays of shape (N_freq); _min_Spl2mSmi2 is the
+    # MSA S^2 cubic degeneracy diagnostic (see the return comment below).
     alpha, eps, cos_beta, _min_Spl2mSmi2 = _angles
     # eps *= -1
 
     # Compute Wigner-d coefficients
     cBetah, sBetah = IMRPhenomXWignerdCoefficients_cosbeta(cos_beta)
 
-    # Modes 22 and 32 – both use emm = 2
+    # (2,2) twist: emm = 2
     beta_powers_2 = BetaPowers.from_half_angle_trig(cBetah, sBetah)
     cexp_i_alpha_2 = jnp.exp(1j * alpha)
     hp_twist_22, hc_twist_22 = twist_22(cexp_i_alpha_2, theta_JN, beta_powers_2)

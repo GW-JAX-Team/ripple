@@ -352,9 +352,9 @@ def get_intermediate_raw_phase(
     fM_s: Float[Array, " n_freq"] | FloatLike,
     theta: Float[Array, "4"],
     phase_coeffs: Float[Array, "13 49"],
-    dPhaseIN: Float,
-    dPhaseRD: Float,
-    cL: Float,
+    dPhaseIN: FloatLike,
+    dPhaseRD: FloatLike,
+    cL: FloatLike,
     chip: FloatLike = 0.0,
     a_prec_override=None,
 ) -> Array:
@@ -1449,7 +1449,7 @@ def Amp(
     f: Array,
     theta: Array,
     amp_coeffs: Array,
-    D: Float = 1.0,
+    D: FloatLike = 1.0,
     chip: float = 0.0,
     a_prec_override=None,
 ) -> Array:
