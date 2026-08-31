@@ -29,15 +29,16 @@ The MSA precession correction is ill-conditioned near angular-momentum resonance
 Small float64 differences in spin-evolution coefficients can then be amplified in the precession angles, particularly at high inclination.
 `IMRPhenomXPHM` also inherits the `(3, 2)` mixing sensitivity through its XHM co-precessing seed.
 The LAL reference explicitly requests `PhenomXPrecVersion=222`, so an MSA-initialization failure is surfaced rather than silently selecting a different precession approximation.
-Across the BBH prior this resonance is rare enough that both models agree with LAL at the float64 floor; see IMRPhenomXP_NRTidalv3 below for the much more common low-spin conditioning problem the BNS prior hits.
+The BBH prior lands near this ill-conditioning rarely, so both models agree with LAL at the float64 floor.
 
 ### IMRPhenomXP_NRTidalv3
 
-LAL builds this approximant via `XLALSimIMRPhenomXPHM` (modes `(2, ±2)` only); multibanding is on by default there and must be disabled in comparisons (`PhenomXPHMThresholdMband = PhenomXHMThresholdMband = 0`, see `tests/cross_validation/reference/lal.py`). With multibanding on, LAL disagrees with its own multibanding-off output by up to `OL ~ 1` for edge-on BNS samples.
-
-The twist cutoff matches LAL bin-for-bin (`Mf <= (fCutDef/M_sec)*M_sec`, inclusive, `fCutDef` in `{0.3, 0.33}`); the sole corner case is `chiEff > 0.99`, where ripple's co-precessing amplitude is independently zeroed at `Mf = 0.3` (`fM_CUT` in `IMRPhenomXAS.py`) so `Mf` in `(0.3, 0.33]` stays zero while LAL keeps it — unreachable within the BNS test prior.
-
-The dominant source of overlap loss is not a resonance but a near-alignment conditioning problem in the MSA spin-evolution cubic that the BNS prior's low spins land close to far more often than the BBH prior does: see [MSA Precession Instability](msa_precession_instability.md) for the full derivation of why it happens, why it is common at low spin, and why it shows up as an edge-on-amplified `hc`-only error that the SNR-weighted combined metric (see the top of [Reference Comparisons and Limits](reference_comparisons_and_limits.md)) accounts for.
+LAL builds this approximant through its `XLALSimIMRPhenomXPHM` code path, restricted to the `(2, ±2)` modes.
+Multibanding is on by default there and must be disabled for the comparison (`PhenomXPHMThresholdMband = PhenomXHMThresholdMband = 0`, see `tests/cross_validation/reference/lal.py`); otherwise LAL disagrees with its own multibanding-off output for edge-on samples.
+The twist cutoff matches LAL bin-for-bin: `Mf <= (fCutDef/M_sec)*M_sec`, inclusive, with `fCutDef` in `{0.3, 0.33}`.
+The one corner case is `chiEff > 0.99`, where ripple's co-precessing amplitude is separately zeroed at `Mf = 0.3` (`fM_CUT` in `IMRPhenomXAS.py`) so `Mf` in `(0.3, 0.33]` stays zero while LAL keeps it; it is unreachable within the BNS test prior.
+The dominant source of overlap loss is the MSA spin-evolution cubic's near-alignment ill-conditioning, which the BNS prior's low spins hit far more often than the BBH prior does.
+See [MSA Precession Instability](msa_precession_instability.md) for the mechanism and why it shows up as an edge-on-amplified `hc`-only error that the SNR-weighted combined metric absorbs.
 
 ## Continuous-wave comparisons
 

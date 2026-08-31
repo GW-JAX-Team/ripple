@@ -17,16 +17,9 @@ $$
 {\bigl(\langle h_1 \mid h_1 \rangle \langle h_2 \mid h_2 \rangle\bigr)^{1/2}}.
 $$
 
-For precessing models, the value asserted against the threshold is the SNR-weighted
-combination of the two polarizations' overlap loss (`combined_overlap_loss` in
-`tests/helpers/metrics.py`), not the worse of the two raw per-polarization values:
-judging the cross polarization in isolation is misleading near edge-on inclination,
-where its own signal content vanishes and a fixed-size error is amplified into an
-arbitrarily large *relative* loss despite carrying negligible detector SNR. The
-per-polarization losses are still recorded (`overlap_loss_p`/`overlap_loss_c` in the
-JSON results) as diagnostics. Non-precessing models also have a fixed-parameter
-absolute phase check; precessing models do not, because their global phase is coupled
-to the spin azimuths.
+For precessing models the asserted value is the SNR-weighted combination of the two polarizations' overlap loss (`combined_overlap_loss` in `tests/helpers/metrics.py`), not the worse of the raw per-polarization values.
+Near edge-on inclination the cross polarization's own signal content vanishes, so a fixed-size error there inflates into an arbitrarily large relative loss despite carrying negligible SNR; the per-polarization losses are kept in the JSON results as diagnostics only.
+Non-precessing models also have a fixed-parameter absolute phase check; precessing models do not, because their global phase is coupled to the spin azimuths.
 The overlap loss is a raw same-grid comparison at identical inputs; it is not maximised over time or phase.
 
 | Waveform | Overlap-loss threshold | Phase-offset threshold |
@@ -51,8 +44,10 @@ The overlap-loss values mirror `tests/cross_validation/tolerances.toml`.
   The resulting comparison is dominated by a linear phase ramp rather than an amplitude discrepancy.
 - **IMRPhenomXAS_NRTidalv3:** the non-machine-precision threshold remains under investigation.
 - **IMRPhenomXHM:** the threshold covers sensitivity of the `(3, 2)` mode near ringdown, where spheroidal-to-spherical mixing makes the phase derivative numerically delicate.
-- **IMRPhenomXP** and **IMRPhenomXPHM:** at BBH spins the MSA precession correction agrees with LAL at the float64 floor; the resonance mechanism below only matters at the rare parameter combinations the BBH prior samples close to it.
-- **IMRPhenomXP_NRTidalv3:** the BNS prior sits close to the same MSA correction's conditioning problem far more often than the BBH prior does (a near-alignment degeneracy in the precession-averaged spin evolution, not a resonance), which the SNR-weighting above accounts for rather than removes. See [MSA Precession Instability](msa_precession_instability.md) for the derivation.
+- **IMRPhenomXP** and **IMRPhenomXPHM:** the MSA precession correction is ill-conditioned where the spin-evolution cubic has a near-double root, which is the weakly precessing regime.
+  The BBH prior lands close to it only rarely, so both models agree with LAL at the float64 floor.
+- **IMRPhenomXP_NRTidalv3:** the BNS prior's low spins hit that near-alignment ill-conditioning far more often, and it is the dominant source of overlap loss.
+  The SNR-weighted metric above accounts for it rather than removing it; see [MSA Precession Instability](msa_precession_instability.md) for the derivation.
 
 ## Time-domain waveforms
 

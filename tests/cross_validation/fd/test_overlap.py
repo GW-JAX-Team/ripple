@@ -1,9 +1,10 @@
 """Compare reference-supported frequency-domain waveforms with a backend.
 
 For every parameter draw, the test computes the PSD-weighted overlap loss of
-both polarizations and requires the worse value to meet that waveform's limit.
-The smoke-marked models provide the small CI subset; time-domain models use
-their own cross-validation adapters.
+both polarizations and requires the SNR-weighted combination
+(``combined_overlap_loss``) to meet that waveform's limit; the per-polarization
+values are kept as diagnostics. The smoke-marked models provide the small CI
+subset; time-domain models use their own cross-validation adapters.
 """
 
 from pathlib import Path
