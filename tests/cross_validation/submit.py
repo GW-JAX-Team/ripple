@@ -600,7 +600,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _default_outdir() -> Path:
-    return Path("accuracy-results") / datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
+    return (
+        _REPO_DIR
+        / "tests"
+        / "cross_validation"
+        / "results"
+        / datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
+    )
 
 
 def main(
