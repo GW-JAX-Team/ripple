@@ -31,7 +31,7 @@ def gen_IMRPhenomXP_hphc(
     f: Float[Array, " n_freq"],
     theta: Float[Array, "12"],
     f_ref: float,
-) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"], FloatLike]: # REMOVEME
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"], FloatLike]:  # REMOVEME
     """
     Generate PhenomXP frequency domain waveform.
     vars array contains both intrinsic and extrinsic variables

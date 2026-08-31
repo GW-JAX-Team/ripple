@@ -93,9 +93,7 @@ def generate_xphm(
     """Generate IMRPhenomXPHM plus and cross polarizations."""
     # LAL: Mf = pWF->M_sec * f with M_sec built from round-tripped solar masses;
     # the ULP matters because Mf feeds the near-degenerate MSA S^2 cubic.
-    Mf: Float[Array, " n_freq"] = frequency_array * pPrec.lal_M_sec(
-        mass_1, mass_2
-    )  # type: ignore[assignment]
+    Mf: Float[Array, " n_freq"] = frequency_array * pPrec.lal_M_sec(mass_1, mass_2)  # type: ignore[assignment]
 
     Mtot = mass_1 + mass_2
 

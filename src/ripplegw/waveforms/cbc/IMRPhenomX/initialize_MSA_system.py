@@ -9,7 +9,6 @@ from ripplegw.waveforms.cbc.IMRPhenomX.elliptic_integrals import (
     gsl_sf_elljac_e,
 )
 
-
 _DEKKER_SPLIT = 134217729.0  # 2^27 + 1
 
 
@@ -2035,7 +2034,7 @@ def IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
     )
     cos_theta_L = IMRPhenomX_costhetaLJ(L_norm3PN, J_norm3PN, SNorm)
 
-    return phiz + phiz_MSA, zeta + zeta_MSA, cos_theta_L, jnp.min(Spl2mSmi2) # REMOVEME
+    return phiz + phiz_MSA, zeta + zeta_MSA, cos_theta_L, jnp.min(Spl2mSmi2)  # REMOVEME
 
 
 def IMRPhenomX_costhetaLJ(

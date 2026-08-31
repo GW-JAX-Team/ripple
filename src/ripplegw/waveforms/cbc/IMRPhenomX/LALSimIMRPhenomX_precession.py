@@ -10,7 +10,6 @@ from ripplegw.waveforms.cbc.IMRPhenomX.initialize_MSA_system import (
     IMRPhenomX_Initialize_MSA_System,
     IMRPhenomX_Return_phi_zeta_costhetaL_MSA,
     cbrt_cr,
-    lal_M_sec,
     lal_mass_conventions,
 )
 
@@ -719,7 +718,9 @@ def compute_msa_precession_setup(
 
 def compute_evolved_spin_given_setup(
     Mf: Float[Array, " n_freq"] | FloatLike, emm: int | Array, setup: MSAPrecessionSetup
-) -> tuple[Float[Array, " n_freq"], Float[Array, " n_freq"], Float[Array, " n_freq"], FloatLike]: # REMOVEME
+) -> tuple[
+    Float[Array, " n_freq"], Float[Array, " n_freq"], Float[Array, " n_freq"], FloatLike
+]:  # REMOVEME
     """Compute precession angles for mode emm using pre-computed MSA setup.
 
     This is the emm-dependent part of compute_evolved_spin_using_msa.
@@ -739,7 +740,7 @@ def compute_evolved_spin_given_setup(
     # the waveform-level mask (Mf <= mf_twist_cutoff(...)) sets the actual LAL
     # cutoff, so this one must never be *tighter* than it.
     inspiral_mask = Mf <= 0.33
-    vangles, min_Spl2mSmi2 = compute_vangles( # REMOVEME
+    vangles, min_Spl2mSmi2 = compute_vangles(  # REMOVEME
         Mf=Mf,
         emm=emm,
         eta=setup.eta,
@@ -792,7 +793,7 @@ def compute_evolved_spin_given_setup(
         inspiral_mask, vangles[1] - setup.epsilon_offset, 0.0
     )
     cos_beta_out: FloatLike = jnp.where(inspiral_mask, vangles[2], 0.0)
-    return alpha_out, epsilon_out, cos_beta_out, min_Spl2mSmi2 # REMOVEME
+    return alpha_out, epsilon_out, cos_beta_out, min_Spl2mSmi2  # REMOVEME
 
 
 def mf_twist_cutoff(

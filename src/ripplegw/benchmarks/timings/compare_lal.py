@@ -12,7 +12,7 @@ import json
 import logging
 import math
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ DEFAULT_RESULTS_DIR = Path.cwd() / "timings" / "outdir"
 DEFAULT_OUTPUT_DIR = Path.cwd() / "timings" / "figures"
 
 
-def load_results(results_dir: Path) -> List[Dict]:
+def load_results(results_dir: Path) -> list[dict]:
     results = []
     for json_file in results_dir.glob("*.json"):
         with open(json_file) as f:
@@ -38,12 +38,12 @@ def load_results(results_dir: Path) -> List[Dict]:
     return results
 
 
-def organize(results: List[Dict]) -> Dict[str, Dict[str, Dict]]:
+def organize(results: list[dict]) -> dict[str, dict[str, dict]]:
     """Organize by waveform → {"ripple": data, "lal": data}.
 
     Only float64 ripple results are kept; non-float64 entries are skipped.
     """
-    organized: Dict[str, Dict[str, Dict]] = {}
+    organized: dict[str, dict[str, dict]] = {}
     for r in results:
         wf = r["waveform"]
         backend = r.get("backend", "ripple")
