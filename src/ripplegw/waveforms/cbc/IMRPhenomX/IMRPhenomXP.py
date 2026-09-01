@@ -168,10 +168,8 @@ def gen_IMRPhenomXP_hphc(
     # XP carries the (2,2) mode only, so the precession angles are needed at emm=2.
     _angles = pPrec.compute_evolved_spin_given_setup(Mf, 2, _msa_setup)
 
-    # alpha, eps, cos_beta are arrays of shape (N_freq); _min_Spl2mSmi2 is the
-    # MSA S^2 cubic degeneracy diagnostic (see the return comment below).
-    alpha, eps, cos_beta, _min_Spl2mSmi2 = _angles
-    # eps *= -1
+    # alpha, eps, cos_beta are arrays of shape (N_freq).
+    alpha, eps, cos_beta = _angles
 
     # Compute Wigner-d coefficients
     cBetah, sBetah = IMRPhenomXWignerdCoefficients_cosbeta(cos_beta)
@@ -199,10 +197,6 @@ def gen_IMRPhenomXP_hphc(
 
     hp, hc = apply_polarization_rotation(zeta_polarisations, _hp, _hc)
 
-    # _min_Spl2mSmi2 (min |Spl2 - Smi2| over the grid) is debug instrumentation
-    # for the MSA S^2 cubic degeneracy investigation (see
-    # tests/cross_validation/msa_precession_instability.md); it is not consumed
-    # by any caller, so it is not threaded through this public return.
     return hp, hc
 
 

@@ -83,7 +83,7 @@ def compute_vangles(
     # the near-degenerate S^2 cubic.  cbrt_cr: correctly-rounded cube root.
     v = cbrt_cr(jnp.pi * Mf * (2.0 / emm))
 
-    phiz, zeta, cos_theta_L, min_Spl2mSmi2 = IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
+    phiz, zeta, cos_theta_L = IMRPhenomX_Return_phi_zeta_costhetaL_MSA(
         v,
         eta,
         eta2,
@@ -129,7 +129,7 @@ def compute_vangles(
         zeta_0,
     )
     vangles = (phiz, zeta, cos_theta_L)
-    return vangles, min_Spl2mSmi2
+    return vangles
 
 
 def compute_thetaJN_kappa_and_zeta(
@@ -718,9 +718,7 @@ def compute_msa_precession_setup(
 
 def compute_evolved_spin_given_setup(
     Mf: Float[Array, " n_freq"] | FloatLike, emm: int | Array, setup: MSAPrecessionSetup
-) -> tuple[
-    Float[Array, " n_freq"], Float[Array, " n_freq"], Float[Array, " n_freq"], FloatLike
-]:  # REMOVEME
+) -> tuple[Float[Array, " n_freq"], Float[Array, " n_freq"], Float[Array, " n_freq"]]:
     """Compute precession angles for mode emm using pre-computed MSA setup.
 
     This is the emm-dependent part of compute_evolved_spin_using_msa.
@@ -740,7 +738,7 @@ def compute_evolved_spin_given_setup(
     # the waveform-level mask (Mf <= mf_twist_cutoff(...)) sets the actual LAL
     # cutoff, so this one must never be *tighter* than it.
     inspiral_mask = Mf <= 0.33
-    vangles, min_Spl2mSmi2 = compute_vangles(  # REMOVEME
+    vangles = compute_vangles(
         Mf=Mf,
         emm=emm,
         eta=setup.eta,
@@ -793,7 +791,7 @@ def compute_evolved_spin_given_setup(
         inspiral_mask, vangles[1] - setup.epsilon_offset, 0.0
     )
     cos_beta_out: FloatLike = jnp.where(inspiral_mask, vangles[2], 0.0)
-    return alpha_out, epsilon_out, cos_beta_out, min_Spl2mSmi2  # REMOVEME
+    return alpha_out, epsilon_out, cos_beta_out
 
 
 def mf_twist_cutoff(

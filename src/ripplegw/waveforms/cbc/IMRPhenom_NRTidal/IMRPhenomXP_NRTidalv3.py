@@ -23,7 +23,7 @@ from ripplegw.waveforms.cbc.IMRPhenomX.IMRPhenomXPHM import (
     IMRPhenomXWignerdCoefficients_cosbeta,
     apply_polarization_rotation,
     twist_22,
-)  # spaghetti code! FIXME
+)
 from ripplegw.waveforms.cbc.IMRPhenomX.initialize_MSA_system import (
     IMRPhenomX_Initialize_MSA_System,
     lal_M_sec,
@@ -50,12 +50,8 @@ def gen_IMRPhenomXP_NRTidalv3(
 
     m1, m2 = Mc_eta_to_ms(jnp.array([Mc, eta]))
 
-    l1, l2 = jax.lax.cond(
-        use_lambda_tildes,
-        lambda _: lambda_tildes_to_lambdas(jnp.array([l1, l2, m1, m2])),
-        lambda _: (l1, l2),
-        operand=None,
-    )
+    if use_lambda_tildes:
+        l1, l2 = lambda_tildes_to_lambdas(jnp.array([l1, l2, m1, m2]))
 
     theta_intrinsic_XAS = jnp.array([m1, m2, s1z, s2z, l1, l2])
     theta_extrinsic = jnp.array([D, tc, phic])
@@ -204,10 +200,8 @@ def gen_IMRPhenomXP_NRTidalv3(
     # needed at emm=2.
     _angles = pPrec.compute_evolved_spin_given_setup(Mf, 2, _msa_setup)
 
-    # alpha, eps, cos_beta are arrays of shape (N_freq); the fourth entry is the
-    # MSA S^2 cubic degeneracy diagnostic, only surfaced by gen_IMRPhenomXP_hphc.
-    alpha, eps, cos_beta, _ = _angles
-    # eps *= -1
+    # alpha, eps, cos_beta are arrays of shape (N_freq).
+    alpha, eps, cos_beta = _angles
 
     # Compute Wigner-d coefficients
     cBetah, sBetah = IMRPhenomXWignerdCoefficients_cosbeta(cos_beta)
