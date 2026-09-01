@@ -49,3 +49,34 @@ overlap_loss = 1e-6
 [lal.IMRPhenomXPHM]
 overlap_loss = 1e-6
 # phase_offset: precessing; not checked by test_phase_convention.py.
+
+# ---------------------------------------------------------------------------
+# Per-mode limits for fd/test_hom_mismatches.py, which compares one
+# spherical-harmonic mode at a time.  Kept under a separate key so the [lal.*]
+# table above (checked against the docs by test_tolerance_table.py) is not
+# affected.  A mode listed in [<name>.modes] overrides that waveform's value.
+# ---------------------------------------------------------------------------
+
+[lal_modes.defaults]
+overlap_loss = 1e-6
+
+[lal_modes.IMRPhenomHM]
+overlap_loss = 1e-13
+
+[lal_modes.IMRPhenomXHM]
+overlap_loss = 1e-6
+
+[lal_modes.IMRPhenomXHM.modes]
+# (3,2) is the mode IMRPhenomXHM builds with spheroidal-harmonic mode mixing
+# (_compute_32_hlm), roughly two orders of magnitude less accurate than the
+# rest.  Measured over 60 random BBH draws at T=8 s: median 2.3e-8, p95 3.8e-7,
+# max 2.1e-6; at T=32 s the max fell to 2.6e-7.  The other modes stay below
+# 1.4e-9.
+"32" = 1e-5
+
+[lal_modes.IMRPhenomXPHM]
+overlap_loss = 1e-6
+
+[lal_modes.IMRPhenomXPHM.modes]
+# Inherits XHM's mode mixing through the co-precessing seed.
+"32" = 1e-5

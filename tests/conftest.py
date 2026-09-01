@@ -62,6 +62,16 @@ def pytest_addoption(parser):
         help="Generate per-waveform overlap-loss figures (requires matplotlib).",
     )
     parser.addoption(
+        "--hom-modes",
+        default=None,
+        help=(
+            "Modes for the per-mode HOM accuracy test, e.g. '22,33,44' or "
+            "'2:2 4:3'. Only m > 0 is given; the (l, -m) partner is included "
+            "automatically. Modes a waveform does not implement are skipped "
+            "and reported. Default: 22,21,33,32,44,43."
+        ),
+    )
+    parser.addoption(
         "--cw-waveform",
         choices=("PulsarSignal", "BinaryPulsarSignal"),
         default=None,
