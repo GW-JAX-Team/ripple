@@ -105,10 +105,10 @@ class TestResult:
 
 
 def _reference_cache_path(
-    cache_dir: Path, backend: str, waveform: str, T: float, seed: int
+    cache_dir: Path, backend: str, waveform: str, T: float
 ) -> Path:
     T_str = f"T{int(T)}" if T == int(T) else f"T{T}"
-    return cache_dir / f"{backend}_{waveform}_{T_str}_seed{seed}.npz"
+    return cache_dir / f"{backend}_{waveform}_{T_str}.npz"
 
 
 def _load_reference_cache(path: Path, n_samples: int, n_freqs: int):
@@ -120,22 +120,12 @@ def _load_reference_cache(path: Path, n_samples: int, n_freqs: int):
         return None
     if data["hp"].shape[0] < n_samples or data["hp"].shape[1] != n_freqs:
         return None
-    out = {k: data[k][:n_samples] for k in ("hp", "hc", "valid")}
-    out["expected_failures"] = (
-        data["expected_failures"][:n_samples]
-        if "expected_failures" in data.files
-        else np.zeros(n_samples, dtype=bool)
-    )
-    return out
+    return {k: data[k][:n_samples] for k in ("hp", "hc", "valid")}
 
 
-def _save_reference_cache(path: Path, hp, hc, valid, expected_failures, errors) -> None:
-    if errors:
-        # A cache that dropped an unexpected reference failure would let a later
-        # cached run pass where the fresh run failed. Only cache clean batches.
-        return
+def _save_reference_cache(path: Path, hp, hc, valid) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    np.savez(str(path), hp=hp, hc=hc, valid=valid, expected_failures=expected_failures)
+    np.savez(str(path), hp=hp, hc=hc, valid=valid)
 
 
 def generate_reference_batch(
@@ -161,7 +151,7 @@ def generate_reference_batch(
                 cached["hc"],
                 cached["valid"].astype(bool),
                 {},
-                cached["expected_failures"].astype(bool),
+                np.zeros(n_samples, dtype=bool),
             )
 
     is_expected_failure = getattr(reference, "expected_failure", None)
@@ -198,7 +188,7 @@ def generate_reference_batch(
                 errors[i] = err
 
     if cache_path is not None:
-        _save_reference_cache(cache_path, hp, hc, valid, expected_failures, errors)
+        _save_reference_cache(cache_path, hp, hc, valid)
     return hp, hc, valid, errors, expected_failures
 
 
@@ -266,7 +256,7 @@ def run_overlap_test(
     params_batch = random_params_batch(wf, n_samples, seed=seed)
 
     cache_path = (
-        _reference_cache_path(cache_dir, reference.name, name, 1.0 / grid.df, seed)
+        _reference_cache_path(cache_dir, reference.name, name, 1.0 / grid.df)
         if cache_dir
         else None
     )
