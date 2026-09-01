@@ -201,8 +201,8 @@ def gen_IMRPhenomXP_hphc(
 
     # _min_Spl2mSmi2 (min |Spl2 - Smi2| over the grid) is debug instrumentation
     # for the MSA S^2 cubic degeneracy investigation (see
-    # docs/dev/msa_precession_instability.md); it is not consumed by any
-    # caller, so it is not threaded through this public return.
+    # tests/cross_validation/msa_precession_instability.md); it is not consumed
+    # by any caller, so it is not threaded through this public return.
     return hp, hc
 
 

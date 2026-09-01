@@ -47,7 +47,7 @@ The overlap-loss values mirror `tests/cross_validation/tolerances.toml`.
 - **IMRPhenomXP** and **IMRPhenomXPHM:** the MSA precession correction is ill-conditioned where the spin-evolution cubic has a near-double root, which is the weakly precessing regime.
   The BBH prior lands close to it only rarely, so both models agree with LAL at the float64 floor.
 - **IMRPhenomXP_NRTidalv3:** the BNS prior's low spins hit that near-alignment ill-conditioning far more often, and it is the dominant source of overlap loss.
-  The SNR-weighted metric above accounts for it rather than removing it; see [MSA Precession Instability](msa_precession_instability.md) for the derivation.
+  The SNR-weighted metric above accounts for it rather than removing it; the full derivation is in [`tests/cross_validation/msa_precession_instability.md`](https://github.com/GW-JAX-Team/ripple/blob/ripple-dev/tests/cross_validation/msa_precession_instability.md).
 
 ## Time-domain waveforms
 

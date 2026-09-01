@@ -38,7 +38,7 @@ Multibanding is on by default there and must be disabled for the comparison (`Ph
 The twist cutoff matches LAL bin-for-bin: `Mf <= (fCutDef/M_sec)*M_sec`, inclusive, with `fCutDef` in `{0.3, 0.33}`.
 The one corner case is `chiEff > 0.99`, where ripple's co-precessing amplitude is separately zeroed at `Mf = 0.3` (`fM_CUT` in `IMRPhenomXAS.py`) so `Mf` in `(0.3, 0.33]` stays zero while LAL keeps it; it is unreachable within the BNS test prior.
 The dominant source of overlap loss is the MSA spin-evolution cubic's near-alignment ill-conditioning, which the BNS prior's low spins hit far more often than the BBH prior does.
-See [MSA Precession Instability](msa_precession_instability.md) for the mechanism and why it shows up as an edge-on-amplified `hc`-only error that the SNR-weighted combined metric absorbs.
+See [`tests/cross_validation/msa_precession_instability.md`](https://github.com/GW-JAX-Team/ripple/blob/ripple-dev/tests/cross_validation/msa_precession_instability.md) for the mechanism and why it shows up as an edge-on-amplified `hc`-only error that the SNR-weighted combined metric absorbs.
 
 ## Continuous-wave comparisons
 
