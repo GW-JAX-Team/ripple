@@ -41,7 +41,11 @@ def cbrt_cr(x: FloatLike) -> FloatLike:
     y2, e2 = _two_prod(y, y)
     y3, e3 = _two_prod(y2, y)
     resid = (y3 - x) + (e3 + e2 * y)
-    return y - resid / (3.0 * y2)
+    # cbrt(0) == 0 gives y2 == 0; skip the Newton step there so a zero-frequency
+    # bin returns 0 rather than 0/0 -> NaN. Bit-identical for positive inputs.
+    zero = y2 == 0.0
+    correction = jnp.where(zero, 0.0, resid / jnp.where(zero, 1.0, 3.0 * y2))
+    return y - correction
 
 
 def lal_mass_conventions(mass_1: FloatLike, mass_2: FloatLike):

@@ -1172,6 +1172,7 @@ def get_intermediate_Amp(
     amp_coeffs: Float[Array, "7 42"],
     fMs_AmpRDMin: FloatLike,
     chip: float = 0.0,
+    a_prec_override: Optional[FloatLike] = None,
 ) -> Float[Array, " n_freq"]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
@@ -1198,7 +1199,7 @@ def get_intermediate_Amp(
 
     inspFMs1, d1 = jax.value_and_grad(get_inspiral_Amp)(FMs1, theta, amp_coeffs, chip)
     rdFMs4, d4 = jax.value_and_grad(get_mergerringdown_Amp, has_aux=True)(
-        FMs4, theta, amp_coeffs, chip
+        FMs4, theta, amp_coeffs, chip, a_prec_override
     )
     rdFMs4 = rdFMs4[0]
 
@@ -1475,7 +1476,9 @@ def Amp(
     Amp_RD, fMs_AmpRDMin = get_mergerringdown_Amp(
         fM_s, theta, amp_coeffs, chip, a_prec_override
     )
-    Amp_Int = get_intermediate_Amp(fM_s, theta, amp_coeffs, fMs_AmpRDMin, chip)
+    Amp_Int = get_intermediate_Amp(
+        fM_s, theta, amp_coeffs, fMs_AmpRDMin, chip, a_prec_override
+    )
 
     Amp = (
         Amp_Ins * jnp.heaviside(fMs_AmpMatchIN - fM_s, 0.5)
