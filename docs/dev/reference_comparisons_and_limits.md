@@ -33,7 +33,7 @@ The overlap loss is a raw same-grid comparison at identical inputs; it is not ma
 | IMRPhenomXAS_NRTidalv3 | 1e-12 | 1e-7 |
 | IMRPhenomXHM | 1e-6 | 1e-6 |
 | IMRPhenomXP | 1e-6 | — |
-| IMRPhenomXP_NRTidalv3 | 2e-6 | — |
+| IMRPhenomXP_NRTidalv3 | 1e-6 | — |
 | IMRPhenomXPHM | 1e-6 | — |
 
 The overlap-loss values mirror `tests/cross_validation/tolerances.toml`.
