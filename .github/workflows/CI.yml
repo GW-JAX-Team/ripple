@@ -18,14 +18,12 @@ permissions:
 
 jobs:
   test:
+    name: ${{ matrix.test_suite }} (${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
         test_suite: [unit, integration, cross-validation]
-        exclude:
-          - {test_suite: cross-validation, python-version: "3.11"}
-          - {test_suite: cross-validation, python-version: "3.13"}
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.0.1
@@ -41,6 +39,11 @@ jobs:
           restore-keys: xla-${{ runner.os }}-${{ matrix.test_suite }}-py${{ matrix.python-version }}-
       - name: Install dependencies
         run: uv sync --group test ${{ matrix.test_suite == 'cross-validation' && '--group cross-validation' || '' }}
+      - name: Run accuracy smoke test
+        if: matrix.test_suite == 'cross-validation' && (github.ref == 'refs/heads/main' || github.base_ref == 'main')
+        env:
+          JAX_COMPILATION_CACHE_DIR: ${{ github.workspace }}/.jax-cache
+        run: uv run pytest -m "accuracy and smoke" --reference lal --n-samples 3
       - name: Run ${{ matrix.test_suite }} tests
         env:
           JAX_COMPILATION_CACHE_DIR: ${{ github.workspace }}/.jax-cache
@@ -93,28 +96,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
         run: uv run coveralls
-
-  accuracy-smoke:
-    if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.0.1
-        with:
-          enable-cache: true
-          python-version: "3.12"
-      - name: Cache XLA compilations
-        uses: actions/cache@v4
-        with:
-          path: .jax-cache
-          key: xla-${{ runner.os }}-accuracy-smoke-${{ hashFiles('src/ripplegw/**/*.py', 'uv.lock') }}
-          restore-keys: xla-${{ runner.os }}-accuracy-smoke-
-      - name: Install dependencies
-        run: uv sync --group test --group cross-validation
-      - name: Run accuracy smoke test
-        env:
-          JAX_COMPILATION_CACHE_DIR: ${{ github.workspace }}/.jax-cache
-        run: uv run pytest -m "accuracy and smoke" --reference lal --n-samples 3
 
   pre-commit:
     runs-on: ubuntu-latest
@@ -190,7 +171,7 @@ jobs:
           fi
 
   publish-testpypi:
-    needs: [test, accuracy-smoke, pre-commit]
+    needs: [test, pre-commit]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
