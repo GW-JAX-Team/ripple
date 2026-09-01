@@ -1365,6 +1365,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#imrphenomxp_nrtidalv3" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        IMRPhenomXP_NRTidalv3
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1420,7 +1431,15 @@ Investigate a discrepancy in this region as a mode-mixing or phase-derivative is
 <p>The MSA precession correction is ill-conditioned near angular-momentum resonances, where terms involving <code>d0 + d2 + d4</code> suffer cancellation.
 Small float64 differences in spin-evolution coefficients can then be amplified in the precession angles, particularly at high inclination.
 <code>IMRPhenomXPHM</code> also inherits the <code>(3, 2)</code> mixing sensitivity through its XHM co-precessing seed.
-The LAL reference explicitly requests <code>PhenomXPrecVersion=222</code>, so an MSA-initialization failure is surfaced rather than silently selecting a different precession approximation.</p>
+The LAL reference explicitly requests <code>PhenomXPrecVersion=222</code>, so an MSA-initialization failure is surfaced rather than silently selecting a different precession approximation.
+The BBH prior lands near this ill-conditioning rarely, so both models agree with LAL at the float64 floor.</p>
+<h3 id="imrphenomxp_nrtidalv3">IMRPhenomXP_NRTidalv3<a class="headerlink" href="#imrphenomxp_nrtidalv3" title="Permanent link">¤</a></h3>
+<p>LAL builds this approximant through its <code>XLALSimIMRPhenomXPHM</code> code path, restricted to the <code>(2, ±2)</code> modes.
+Multibanding is on by default there and must be disabled for the comparison (<code>PhenomXPHMThresholdMband = PhenomXHMThresholdMband = 0</code>, see <code>tests/cross_validation/reference/lal.py</code>); otherwise LAL disagrees with its own multibanding-off output for edge-on samples.
+The twist cutoff matches LAL bin-for-bin: <code>Mf &lt;= (fCutDef/M_sec)*M_sec</code>, inclusive, with <code>fCutDef</code> in <code>{0.3, 0.33}</code>.
+The one corner case is <code>chiEff &gt; 0.99</code>, where ripple's co-precessing amplitude is separately zeroed at <code>Mf = 0.3</code> (<code>fM_CUT</code> in <code>IMRPhenomXAS.py</code>) so <code>Mf</code> in <code>(0.3, 0.33]</code> stays zero while LAL keeps it; it is unreachable within the BNS test prior.
+The dominant source of overlap loss is the MSA spin-evolution cubic's near-alignment ill-conditioning, which the BNS prior's low spins hit far more often than the BBH prior does.
+See <a href="https://github.com/GW-JAX-Team/ripple/blob/ripple-dev/tests/cross_validation/msa_precession_instability.md"><code>tests/cross_validation/msa_precession_instability.md</code></a> for the mechanism and why it shows up as an edge-on-amplified <code>hc</code>-only error that the SNR-weighted combined metric absorbs.</p>
 <h2 id="continuous-wave-comparisons">Continuous-wave comparisons<a class="headerlink" href="#continuous-wave-comparisons" title="Permanent link">¤</a></h2>
 <p><code>ExactPulsarSignal</code> uses direct LALPulsar building blocks because <code>CWMakeFakeData</code> always includes the Einstein and Shapiro delays that the model intentionally omits.
 <code>CWMakeFakeData</code> instead provides the end-to-end comparison for the full pulsar models, including detector response, barycentering, and orbital modulation where applicable.
