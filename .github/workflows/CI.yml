@@ -135,6 +135,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'release'
     permissions:
+      actions: write
       contents: write
       pull-requests: write
     steps:
@@ -149,8 +150,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin main
+          before=$(git rev-parse HEAD)
           if git merge --no-edit origin/main; then
             git push origin ripple-dev
+            if [ "$(git rev-parse HEAD)" != "$before" ]; then
+              gh workflow run CI.yml --ref ripple-dev
+            fi
           else
             git merge --abort
             existing=$(gh pr list --repo "$GITHUB_REPOSITORY" --base ripple-dev --head main --state open --json number --jq '.[0].number // empty')
