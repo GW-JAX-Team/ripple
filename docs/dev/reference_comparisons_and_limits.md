@@ -36,12 +36,18 @@ The overlap loss is a raw same-grid comparison at identical inputs; it is not ma
 
 The overlap-loss values mirror `tests/cross_validation/tolerances.toml`.
 
+`fd/test_hom_mismatches.py` compares one spherical-harmonic mode at a time and carries its own, tighter thresholds under `[lal_modes.*]` in the same file.
+`IMRPhenomXHM` and `IMRPhenomXPHM` are held to `1e-13` per mode, with `(3, 2)` relaxed to `1e-5` for the spheroidal mode mixing described under Reference limits.
+Those thresholds are only meaningful because the reference disables LAL's multibanding: `PhenomXHMThresholdMband` defaults to `1e-3` and makes LAL interpolate from a coarse grid, which alone costs about `1e-3` in relative amplitude in the ringdown and floors every XHM/XPHM mode's overlap loss near `1e-10`.
+The mode-summed thresholds above have not yet been retightened following that change.
+
 ### Reference limits
 
 - **IMRPhenomPv2:** LAL and ripple use different procedures for the coalescence-time correction.
   The resulting comparison is dominated by a linear phase ramp rather than an amplitude discrepancy.
 - **IMRPhenomXAS_NRTidalv3:** the non-machine-precision threshold remains under investigation.
 - **IMRPhenomXHM:** the threshold covers sensitivity of the `(3, 2)` mode near ringdown, where spheroidal-to-spherical mixing makes the phase derivative numerically delicate.
+  Per mode, `(3, 2)` is now the only source of error: every other mode reaches round-off.
 - **IMRPhenomXP** and **IMRPhenomXPHM:** the MSA precession correction is sensitive near angular-momentum resonances, where floating-point differences are amplified.
 
 ## Time-domain waveforms

@@ -1,7 +1,8 @@
 """
 IMRPhenomXHM.py — JAX port of LAL's PhenomXHM higher-mode infrastructure.
 
-Ports the 122019-release code from:
+The phase follows the 122019 release; the amplitude follows 122022, which is
+LAL's default (``PhenomXHMReleaseVersion``).  Ported from:
   LALSimIMRPhenomXHM_qnm.c          — QNM fits (fRING, fDAMP per mode)
   LALSimIMRPhenomXHM_internals.c    — waveform struct, coefficient computation
   LALSimIMRPhenomXHM_inspiral.c     — inspiral parameter-space fits
@@ -42,6 +43,19 @@ from ripplegw.waveforms.cbc.IMRPhenomX.IMRPhenomXAS import (
     get_inspiral_phase,
     get_mergerringdown_Amp,
 )
+
+_FALSE_ZERO = 1e-15
+"""LAL's ``FALSE_ZERO`` (LALSimIMRPhenomXHM_internals.h).
+
+The reconstructed amplitude can dip below zero where a collocation polynomial
+undershoots -- notably in the (2,1), whose amplitude has a genuine minimum in
+the late inspiral.  LAL clamps a negative amplitude to this value at the end of
+every ``IMRPhenomXHM_Amplitude_*`` function; without the clamp the mode picks up
+a spurious pi phase flip on those bins instead of passing through ~zero.
+
+Distinct from the ``1e-15`` guards used on collocation *inputs* before a linear
+solve, which protect the solve's conditioning rather than the model's output.
+"""
 
 PNCoefficient: TypeAlias = FloatLike | ComplexLike
 PNCoefficients: TypeAlias = tuple[
@@ -2317,9 +2331,12 @@ def _compute_32_hlm(
     rdF_IM_32 = rd_amp_32(fIM)
     d_rdF_IM_32 = jax.grad(rd_amp_32)(fIM)
 
-    _AMP_EPS = 1e-15
-    inspF_IN_32_s = jnp.where(jnp.abs(inspF_IN_32) < _AMP_EPS, _AMP_EPS, inspF_IN_32)
-    rdF_IM_32_s = jnp.where(jnp.abs(rdF_IM_32) < _AMP_EPS, _AMP_EPS, rdF_IM_32)
+    # Boundary-value guard for the solve below; see xhm_get_amp_coefficients.
+    _SOLVE_EPS = 1e-15
+    inspF_IN_32_s = jnp.where(
+        jnp.abs(inspF_IN_32) < _SOLVE_EPS, _SOLVE_EPS, inspF_IN_32
+    )
+    rdF_IM_32_s = jnp.where(jnp.abs(rdF_IM_32) < _SOLVE_EPS, _SOLVE_EPS, rdF_IM_32)
 
     # Build 8x8 linear system for direct polynomial A(f)=f^(-7/6)*sum_j c_j*f^j
     nC_32 = 8
@@ -2522,6 +2539,8 @@ def _compute_32_hlm(
             amp_ins(Mf),
             jnp.where(Mf < fIM, amp_inter(Mf), amp_rd(Mf)),
         )
+        # LAL's FALSE_ZERO clamp, as in IMRPhenomXHM_Amplitude_ModeMixing.
+        amp = jnp.where(amp < 0.0, _FALSE_ZERO, amp)
         ph: FloatLike = jnp.where(
             Mf < fMatchIN,
             phase_ins(Mf),
@@ -6472,9 +6491,13 @@ def xhm_get_amp_coefficients(
     rdF_IM = rd_strain(fIM)
     d_rdF_IM = jax.grad(rd_strain)(fIM)
 
-    _EPS = 1e-30
-    inspF_IN_s: FloatLike = jnp.where(jnp.abs(inspF_IN) < 1e-15, 1e-15, inspF_IN)
-    rdF_IM_s: FloatLike = jnp.where(jnp.abs(rdF_IM) < 1e-15, 1e-15, rdF_IM)
+    # Keep the boundary values away from zero so the collocation solve below stays
+    # conditioned; unrelated to the FALSE_ZERO clamp on the model's output.
+    _SOLVE_EPS = 1e-15
+    inspF_IN_s: FloatLike = jnp.where(
+        jnp.abs(inspF_IN) < _SOLVE_EPS, _SOLVE_EPS, inspF_IN
+    )
+    rdF_IM_s: FloatLike = jnp.where(jnp.abs(rdF_IM) < _SOLVE_EPS, _SOLVE_EPS, rdF_IM)
 
     # Build and solve linear system for intermediate polynomial coefficients c_j
     # such that A_inter(f) = f^(-7/6) * sum_j c_j * f^j
@@ -6599,7 +6622,10 @@ def xhm_amp_noModeMixing(
     amp_r = jax.vmap(rd_amp)(Mf)
 
     result = jnp.where(Mf < fIN, amp_i, jnp.where(Mf < fIM, amp_m, amp_r))
-    return result
+    # LAL: `if (Amp < 0 ...) Amp = FALSE_ZERO` at the end of
+    # IMRPhenomXHM_Amplitude_noModeMixing.  Sign-only test, so applying it here
+    # (with ampNorm already folded in) matches LAL's branch exactly.
+    return jnp.where(result < 0.0, _FALSE_ZERO, result)
 
 
 # ---------------------------------------------------------------------------
@@ -6734,6 +6760,16 @@ def XLALSimIMRPhenomXHMGethlmModes(
             #   -mm*phi0 + (mm/2)*phifRef + mm*phi0 = (mm/2)*phifRef_const + mm*phi0
             # This matches LAL's phi0-dependent mode phases (eq. 2364/2368 LALSimIMRPhenomXHM.c).
             hlm_dict[(ell, mm)] = hlm * jnp.exp(1j * ((mm / 2.0) * phifRef + mm * phi0))
+
+    # LAL truncates every mode at fCut = 0.3 (it generates on [f_min, f_max_prime]
+    # with f_max_prime = min(f_max, fCut/M_sec) and leaves the rest of the series
+    # zero).  IMRPhenomXAS_Amp already applies this, so the 22 above is unaffected;
+    # the higher modes need it here.  It matters most for the (4,4), whose ringdown
+    # has not decayed far by Mf = 0.3, and only for binaries heavy enough that
+    # Mf = 0.3 falls inside the analysis band.
+    above_fcut = freqs_geom > IMRPhenomX_utils.fM_CUT
+    for key, hlm in hlm_dict.items():
+        hlm_dict[key] = jnp.where(above_fcut, 0.0, hlm)
 
     return hlm_dict
 

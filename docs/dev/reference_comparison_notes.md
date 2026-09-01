@@ -9,6 +9,17 @@ For the enforcing thresholds, see [Reference Comparisons and Limits](reference_c
 The frequency-domain overlap is a raw same-grid comparison at identical inputs.
 It is not maximised over time or phase.
 
+### LAL multibanding is disabled on the reference side
+
+LAL's `PhenomXHMThresholdMband` defaults to `1e-3`: rather than evaluating the model on every frequency bin, LAL evaluates a coarse grid and interpolates.
+That is a speed optimisation, not part of the waveform model, and it costs roughly `1e-3` in relative amplitude and `1e-4` rad in phase, concentrated in the ringdown where the coarse grid is least adequate.
+Left on it puts a floor of about `1e-10` on every `IMRPhenomXHM` and `IMRPhenomXPHM` mode's overlap loss, regardless of how correct ripple is, and that floor was for a time mistaken for a defect in ripple's higher modes.
+Both the mode-summed backend and the per-mode test therefore set the threshold to zero.
+
+`IMRPhenomXPHM` needs the `PhenomXHMThresholdMband` flag specifically.
+Its own `PhenomXPHMThresholdMband` and `PhenomXPHMMBandVersion` flags govern only the Euler-angle grid, while the co-precessing modes are generated through the XHM path and read the XHM threshold.
+`IMRPhenomHM` has no multibanding, which is why it always sat at round-off.
+
 ### IMRPhenomPv2
 
 LAL estimates the coalescence-time correction from the derivative of a natural-cubic spline through a small phase grid around ringdown.
@@ -19,9 +30,19 @@ At zero in-plane spin, both implementations remain continuous.
 
 ### IMRPhenomXHM
 
+With multibanding disabled, every mode except `(3, 2)` agrees with LAL at round-off.
+`(3, 2)` is the only remaining source of error, so a per-mode discrepancy anywhere else should be treated as a regression rather than an expected limit.
+
 The phase of the `(3, 2)` mode is sensitive to spheroidal-to-spherical mixing near ringdown.
 The intermediate phase fit is constrained by the phase derivative at the transition, so small differences there can shift the fitted phase.
 Investigate a discrepancy in this region as a mode-mixing or phase-derivative issue rather than an amplitude discrepancy.
+
+Two conventions in LAL's higher-mode amplitude are easy to miss and both showed up as small isolated errors:
+
+- LAL clamps a negative reconstructed amplitude to `FALSE_ZERO = 1e-15` at the end of every `IMRPhenomXHM_Amplitude_*` function.
+  The `(2, 1)` amplitude has a genuine minimum in the late inspiral where the collocation polynomial can undershoot; without the clamp those bins get a spurious `pi` phase flip instead of passing through zero.
+- LAL truncates every mode at `fCut = 0.3` in geometric frequency.
+  ripple's `IMRPhenomXAS` amplitude has always applied this, but the higher-mode path did not, which showed up in the `(4, 4)` mode of heavy binaries — the only case where `Mf = 0.3` falls inside the analysis band while that mode's ringdown has not yet decayed away.
 
 ### IMRPhenomXP and IMRPhenomXPHM
 

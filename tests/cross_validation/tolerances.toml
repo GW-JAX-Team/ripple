@@ -64,18 +64,20 @@ overlap_loss = 1e-6
 overlap_loss = 1e-13
 
 [lal_modes.IMRPhenomXHM]
-overlap_loss = 1e-6
+# Every mode but (3,2) reaches round-off once LAL's multibanding is disabled on
+# the reference side (see reference/lal.py and fd/test_hom_mismatches.py).
+overlap_loss = 1e-13
 
 [lal_modes.IMRPhenomXHM.modes]
 # (3,2) is the mode IMRPhenomXHM builds with spheroidal-harmonic mode mixing
-# (_compute_32_hlm), roughly two orders of magnitude less accurate than the
-# rest.  Measured over 60 random BBH draws at T=8 s: median 2.3e-8, p95 3.8e-7,
-# max 2.1e-6; at T=32 s the max fell to 2.6e-7.  The other modes stay below
-# 1.4e-9.
+# (_compute_32_hlm), and the only one not brought to round-off by disabling
+# multibanding -- it is limited by the spheroidal-to-spherical transform itself.
+# Measured over 60 random BBH draws at T=8 s: median 2.3e-8, p95 3.8e-7,
+# max 2.1e-6; at T=32 s the max fell to 2.6e-7.
 "32" = 1e-5
 
 [lal_modes.IMRPhenomXPHM]
-overlap_loss = 1e-6
+overlap_loss = 1e-13
 
 [lal_modes.IMRPhenomXPHM.modes]
 # Inherits XHM's mode mixing through the co-precessing seed.

@@ -63,6 +63,23 @@ Comparing the symmetrized ripple factors against LAL's unsymmetrized
 single-mode output leaves ``h+`` agreeing up to a positive scale (invisible to
 a scale-invariant overlap) while ``hx`` picks up a negative factor for
 iota > pi/2, i.e. an overlap of exactly -1 and an overlap loss of 2.
+
+Multibanding is disabled on the reference side
+----------------------------------------------
+LAL's ``PhenomXHMThresholdMband`` defaults to 1e-3: rather than evaluating the
+model on every bin, LAL evaluates a coarse grid and interpolates.  That is a
+speed optimization, not part of the waveform model, and it costs roughly 1e-3
+in relative amplitude and 1e-4 rad in phase, concentrated in the ringdown where
+the coarse grid is least adequate.  Left on, it puts a floor of ~1e-10 on every
+XHM/XPHM mode's overlap loss regardless of how correct ripple is, which is a
+floor three orders of magnitude above the round-off these comparisons otherwise
+reach.  Both reference generators below therefore set it to zero.
+
+``IMRPhenomXPHM`` needs the *XHM* flag specifically: LAL generates XPHM's
+co-precessing modes through the XHM path, which reads ``PhenomXHMThresholdMband``
+(``LALSimIMRPhenomXPHM.c``), while the ``PhenomXPHM*`` multibanding flags govern
+only the Euler-angle grid.  ``IMRPhenomHM`` has no multibanding at all, so the
+flag is inert there.
 """
 
 from dataclasses import dataclass
@@ -186,6 +203,10 @@ def _make_aligned_reference(approximant_name: str) -> Callable:
         m1, m2 = _masses(params)
         laldict = lal.CreateDict()
         lalsim.SimInspiralWaveformParamsInsertModeArray(laldict, _mode_array(mode))
+        # Set unconditionally: IMRPhenomHM ignores the flag, and branching on the
+        # approximant would only hide that the two aligned-spin models are asked
+        # for the same thing (module docstring, "Multibanding is disabled").
+        lalsim.SimInspiralWaveformParamsInsertPhenomXHMThresholdMband(laldict, 0.0)
         hp, hc = lalsim.SimInspiralChooseFDWaveform(
             m1 * lal.MSUN_SI,
             m2 * lal.MSUN_SI,
@@ -229,6 +250,10 @@ def _reference_xphm_mode(params: dict, mode: Mode, grid: Grid):
     lalsim.SimInspiralWaveformParamsInsertPhenomXPHMTwistPhenomHM(p, 0)
     lalsim.SimInspiralWaveformParamsInsertPhenomXPHMMBandVersion(p, 0)
     lalsim.SimInspiralWaveformParamsInsertPhenomXPHMThresholdMband(p, 0.0)
+    # The two PhenomXPHM flags above only cover the Euler-angle grid; the
+    # co-precessing modes are generated through the XHM path, which reads its own
+    # threshold.  Without this line XPHM inherits XHM's ~1e-10 multibanding floor.
+    lalsim.SimInspiralWaveformParamsInsertPhenomXHMThresholdMband(p, 0.0)
     lalsim.SimInspiralWaveformParamsInsertPhenomXPrecVersion(p, 222)
     hp, hc = lalsim.SimIMRPhenomXPHM(
         m1 * lal.MSUN_SI,

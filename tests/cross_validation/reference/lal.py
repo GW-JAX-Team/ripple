@@ -14,6 +14,15 @@ path:
   the same ``PrecVersion=222``.
 - Tidal models insert ``TidalLambda{1,2}`` and the ``dQuadMon`` universal
   relation ripple assumes internally.
+
+The XHM-family calls additionally set ``PhenomXHMThresholdMband=0``.  LAL
+multibands those models by default -- it evaluates a coarse frequency grid and
+interpolates -- which is a speed optimization rather than part of the waveform
+model and costs ~1e-3 in relative amplitude, concentrated in the ringdown.  Left
+on it puts a ~1e-10 floor on the overlap loss no matter how correct ripple is.
+IMRPhenomXPHM needs the *XHM* flag specifically: its ``PhenomXPHM*`` multibanding
+flags govern only the Euler-angle grid, while the co-precessing modes are
+generated through the XHM path.
 """
 
 import numpy as np
@@ -145,6 +154,10 @@ class LALBackend:
             lalsim.SimInspiralWaveformParamsInsertPhenomXPHMTwistPhenomHM(p, 0)
             lalsim.SimInspiralWaveformParamsInsertPhenomXPHMMBandVersion(p, 0)
             lalsim.SimInspiralWaveformParamsInsertPhenomXPHMThresholdMband(p, 0.0)
+            # The PhenomXPHM flags above cover only the Euler-angle grid.  XPHM's
+            # co-precessing modes come from the XHM path, which reads its own
+            # threshold; without this XPHM inherits XHM's multibanding error.
+            lalsim.SimInspiralWaveformParamsInsertPhenomXHMThresholdMband(p, 0.0)
             lalsim.SimInspiralWaveformParamsInsertPhenomXPrecVersion(p, 222)
             hp, hc = lalsim.SimIMRPhenomXPHM(
                 m1_kg,
@@ -219,6 +232,16 @@ class LALBackend:
                 approximant,
             )
         else:
+            # IMRPhenomXHM multibands by default (PhenomXHMThresholdMband=1e-3):
+            # LAL evaluates a coarse grid and interpolates.  That is a speed
+            # optimization rather than part of the model, and it caps agreement
+            # at ~1e-10.  Every other approximant on this path ignores the flag.
+            laldict = None
+            if waveform == "IMRPhenomXHM":
+                laldict = lal.CreateDict()
+                lalsim.SimInspiralWaveformParamsInsertPhenomXHMThresholdMband(
+                    laldict, 0.0
+                )
             hp, hc = lalsim.SimInspiralChooseFDWaveform(
                 m1_kg,
                 m2_kg,
@@ -238,7 +261,7 @@ class LALBackend:
                 f_l,
                 f_u,
                 f_ref,
-                None,
+                laldict,
                 approximant,
             )
 
