@@ -10,7 +10,7 @@ reproducing script is
 
 Equation numbers below refer to Chatziioannou, Klein, Yunes & Cornish, *PRD 95,
 104004 (2017)*, arXiv:1703.03967 ("the MSA paper"), which is what
-`IMRPhenomX_Initialize_MSA_System` (`src/ripplegw/waveforms/initialize_MSA_system.py`)
+`IMRPhenomX_Initialize_MSA_System` (`src/ripplegw/waveforms/cbc/IMRPhenomX/initialize_MSA_system.py`)
 implements.
 
 ---
