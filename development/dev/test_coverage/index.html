@@ -1519,7 +1519,7 @@ It does not by itself establish reference agreement.</p>
 uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>-m<span class="w"> </span><span class="s2">"not accuracy"</span>
 </code></pre></div>
 <p>CI runs the non-accuracy suite on its PR and push workflows.
-Relevant Python 3.12 main workflows also run a small LAL accuracy smoke test for <code>TaylorF2</code>, <code>IMRPhenomD</code>, and <code>IMRPhenomXPHM</code>; it is not a replacement for a selected reference sweep.</p>
+Relevant Python 3.12 main workflows also run a LAL accuracy smoke test over every frequency-domain waveform at three parameter draws each; it is not a replacement for a selected reference sweep.</p>
 <h2 id="coverage-added-by-registration">Coverage added by registration<a class="headerlink" href="#coverage-added-by-registration" title="Permanent link">¤</a></h2>
 <p>The integration tests parametrize from <code>ripplegw.list_waveforms()</code> at test collection time.
 Every registered waveform therefore receives the following baseline coverage.</p>
