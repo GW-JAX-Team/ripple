@@ -1,3 +1,5 @@
+"""by Robin Chan"""
+
 from collections.abc import Mapping
 
 import jax
@@ -5,15 +7,17 @@ import jax.numpy as jnp
 from jaxtyping import Array, Complex, Float
 
 import ripplegw.waveforms.cbc.IMRPhenomX.LALSimIMRPhenomX_precession as pPrec
-from ripplegw.constants import MPC, MRSUN, MTSUN, PI
-from ripplegw.conversions import Mc_eta_to_ms
+from ripplegw.constants import MTSUN, PI
+from ripplegw.conversions import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from ripplegw.interfaces import DistanceScaledWaveform, FrequencyDomainWaveform
 from ripplegw.registry import register
 from ripplegw.typing import FloatLike
-from ripplegw.waveforms.cbc.IMRPhenomX.IMRPhenomXHM import (
-    XLALSimIMRPhenomXHMGethlmModes,
-    build_pWF22,
+from ripplegw.waveforms.cbc.IMRPhenom_NRTidal.IMRPhenomXAS_NRTidalv3 import (
+    _amplitude_of,
+    _bbh_amp_psi,
+    _phase_of,
 )
+from ripplegw.waveforms.cbc.IMRPhenomX.IMRPhenomXHM import build_pWF22
 from ripplegw.waveforms.cbc.IMRPhenomX.IMRPhenomXPHM import (
     BetaPowers,
     IMRPhenomXWignerdCoefficients_cosbeta,
@@ -28,34 +32,33 @@ from ripplegw.waveforms.cbc.IMRPhenomX.initialize_MSA_system import (
 jax.config.update("jax_enable_x64", True)
 
 
-def gen_IMRPhenomXP_hphc(
+def gen_IMRPhenomXP_NRTidalv3(
     f: Float[Array, " n_freq"],
-    theta: Float[Array, "12"],
+    theta: Float[Array, "14"],
     f_ref: float,
+    use_lambda_tildes: bool = True,
+    no_taper: bool = False,
 ) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
-    """
-    Generate PhenomXP frequency domain waveform.
-    vars array contains both intrinsic and extrinsic variables
-    theta = [Mchirp, eta, s1x, s1y, s1z, s2x, s2y, s2z, D, tc, phic, iota]
-    Mchirp: Chirp mass of the system [solar masses]
-    eta: Symmetric mass ratio [between 0.0 and 0.25]
-    chi1: Dimensionless aligned spin of the primary object [between -1 and 1]
-    chi2: Dimensionless aligned spin of the secondary object [between -1 and 1]
-    D: Luminosity distance to source [Mpc]
-    tc: Time of coalesence. This only appears as an overall linear in f contribution to the phase
-    phic: Phase of coalesence
-    iota: Inclination angle of the binary [between 0 and PI]
+    """Generate IMRPhenomXP_NRTidalv3 frequency-domain plus and cross polarizations.
 
-    f_ref: Reference frequency for the waveform
-
-    Returns:
-      hp (array): Strain of the plus polarization
-      hc (array): Strain of the cross polarization
+    ``theta`` = [Mchirp, eta, s1x, s1y, s1z, s2x, s2y, s2z,
+    lambda_tilde/lambda1, delta_lambda_tilde/lambda2, D, tc, phic, iota].
     """
 
-    Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, D, tc, phic, iota = theta
+    # --- Set up precession variables ---
+    Mc, eta, s1x, s1y, s1z, s2x, s2y, s2z, l1, l2, D, tc, phic, iota = theta
 
     m1, m2 = Mc_eta_to_ms(jnp.array([Mc, eta]))
+
+    l1, l2 = jax.lax.cond(
+        use_lambda_tildes,
+        lambda _: lambda_tildes_to_lambdas(jnp.array([l1, l2, m1, m2])),
+        lambda _: (l1, l2),
+        operand=None,
+    )
+
+    theta_intrinsic_XAS = jnp.array([m1, m2, s1z, s2z, l1, l2])
+    theta_extrinsic = jnp.array([D, tc, phic])
 
     ### Geometry first: need phiJ_Sf for co-precessing phase convention ###
     bigM = 1
@@ -143,12 +146,44 @@ def gen_IMRPhenomXP_hphc(
     # cubic amplifies into the Euler angles.
     Msec_lal = lal_M_sec(m1, m2)
     Mf = f * Msec_lal
-    hlm_22 = XLALSimIMRPhenomXHMGethlmModes(
-        Mf, pWF22_prec, phi0=0.0, ell_mm_pairs=[(2, 2)]
-    )[(2, 2)]
-    dist_m = D * MPC
-    amp0 = (m1 + m2) * MRSUN * (m1 + m2) * MTSUN / dist_m
-    h0_bare = hlm_22 * amp0 * jnp.exp(2j * PI * f * tc)
+
+    chip = pWF22_prec.get("chip", 0.0)
+    # Use afinal_prec directly for fRING/fDAMP to avoid the chip roundtrip losing
+    # information when afinal_prec < a_aln (clamped chip=0 case, common at low chi_p).
+    a_prec_override = pWF22_prec.get("afinal", None)
+
+    # Co-precessing frame: phic must be 0 here. In LAL's XP convention the
+    # co-precessing mode uses phi0=0 (phase zeroed at f_ref); phic enters only
+    # through the precession geometry (phiJ_Sf -> epsilon_0).  Including 2*phic
+    # in the phase would double-count it, producing a 2*phic offset vs LAL.
+    theta_extrinsic_coprec = jnp.array([D, tc, 0.0])
+    bbh_amp, bbh_psi = _bbh_amp_psi(
+        f,
+        theta_intrinsic_XAS,
+        theta_extrinsic,
+        chip=chip,
+        a_prec_override=a_prec_override,
+    )
+    amp_22 = _amplitude_of(
+        f, theta_intrinsic_XAS, theta_extrinsic, bbh_amp, no_taper=no_taper
+    )
+    phase_22 = _phase_of(
+        f,
+        f_ref,
+        theta_intrinsic_XAS,
+        theta_extrinsic_coprec,
+        bbh_psi,
+        no_taper=no_taper,
+        chip=chip,
+        a_prec_override=a_prec_override,
+    )
+
+    h0_coprec = amp_22 * jnp.exp(1j * phase_22)
+
+    # XAS uses amp0_XAS = 2*sqrt(5/(64*π)) * M_s²*C/(D*MPC); twist_22 expects the XP/XHM
+    # convention amp0_XP = M_s²*C/(D*MPC).  Divide out the extra prefactor so the mode
+    # amplitude matches what the non-tidal gen_IMRPhenomXP passes to twist_22.
+    h0_coprec = h0_coprec / (2.0 * jnp.sqrt(5.0 / (64.0 * PI)))
 
     # Compute MSA precession constants once (independent of emm and Mf) so they
     # are not redundantly recomputed for each of the 5 modes inside the vmap.
@@ -165,12 +200,13 @@ def gen_IMRPhenomXP_hphc(
         kappa,
         phiJ_Sf,
     )
-    # XP carries the (2,2) mode only, so the precession angles are needed at emm=2.
+    # XP_NRTidalv3 carries the (2,2) mode only, so the precession angles are
+    # needed at emm=2.
     _angles = pPrec.compute_evolved_spin_given_setup(Mf, 2, _msa_setup)
 
-    # alpha, eps, cos_beta are arrays of shape (N_freq); _min_Spl2mSmi2 is the
-    # MSA S^2 cubic degeneracy diagnostic (see the return comment below).
-    alpha, eps, cos_beta, _min_Spl2mSmi2 = _angles
+    # alpha, eps, cos_beta are arrays of shape (N_freq); the fourth entry is the
+    # MSA S^2 cubic degeneracy diagnostic, only surfaced by gen_IMRPhenomXP_hphc.
+    alpha, eps, cos_beta, _ = _angles
     # eps *= -1
 
     # Compute Wigner-d coefficients
@@ -181,10 +217,10 @@ def gen_IMRPhenomXP_hphc(
     cexp_i_alpha_2 = jnp.exp(1j * alpha)
     hp_twist_22, hc_twist_22 = twist_22(cexp_i_alpha_2, theta_JN, beta_powers_2)
 
-    # LAL grouping (IMRPhenomXPTwistUp22, LALSimIMRPhenomX_precession.c:2075-2079):
-    # eps_phase_hP = (cexp(-2i*eps) * hAS) / 2, then hp = eps_phase_hP * hp_sum.
+    # LAL grouping (IMRPhenomXPHMTwistUp, LALSimIMRPhenomXPHM.c:2192, 2204-2205):
+    # eps_phase = (cexp(-mprime*i*eps) * hlm) / 2, then hp = eps_phase * hp_sum.
     # Complex multiplication is not associative, so mirror the order exactly.
-    eps_phase_hP = (jnp.exp(-2j * eps) * h0_bare) / 2.0
+    eps_phase_hP = (jnp.exp(-2j * eps) * h0_coprec) / 2.0
     _hp = eps_phase_hP * hp_twist_22
     _hc = eps_phase_hP * hc_twist_22
 
@@ -199,29 +235,54 @@ def gen_IMRPhenomXP_hphc(
 
     hp, hc = apply_polarization_rotation(zeta_polarisations, _hp, _hc)
 
-    # _min_Spl2mSmi2 (min |Spl2 - Smi2| over the grid) is debug instrumentation
-    # for the MSA S^2 cubic degeneracy investigation (see
-    # tests/cross_validation/msa_precession_instability.md); it is not consumed
-    # by any caller, so it is not threaded through this public return.
     return hp, hc
 
 
-@register("IMRPhenomXP", is_tidal=False, is_precessing=True)
-class IMRPhenomXP(FrequencyDomainWaveform, DistanceScaledWaveform):
-    """IMRPhenomXP frequency-domain waveform (precessing spins, 22-mode only).
+def gen_IMRPhenomXP_NRTidalv3_hphc(
+    f: Float[Array, " n_freq"],
+    theta: Float[Array, "14"],
+    f_ref: float,
+    use_lambda_tildes: bool = True,
+    no_taper: bool = False,
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
+    """Alias of ``gen_IMRPhenomXP_NRTidalv3`` for the ``*_hphc`` naming the
+    other precessing generators use."""
+    return gen_IMRPhenomXP_NRTidalv3(f, theta, f_ref, use_lambda_tildes, no_taper)
+
+
+@register("IMRPhenomXP_NRTidalv3", is_tidal=True, is_precessing=True)
+class IMRPhenomXP_NRTidalv3(FrequencyDomainWaveform, DistanceScaledWaveform):
+    """IMRPhenomXP_NRTidalv3 frequency-domain waveform (precessing spins, NRTidalv3 tides).
 
     Attributes:
         f_ref (float): Reference frequency in Hz.
+        use_lambda_tildes (bool): If True, expects ``lambda_tilde`` /
+            ``delta_lambda_tilde``; otherwise ``lambda_1`` / ``lambda_2``.
+        no_taper (bool): If True, the Planck taper in the amplitude is disabled.
     """
 
     f_ref: float
+    use_lambda_tildes: bool
+    no_taper: bool
 
-    def __init__(self, f_ref: float = 20.0) -> None:
+    def __init__(
+        self,
+        f_ref: float = 20.0,
+        use_lambda_tildes: bool = False,
+        no_taper: bool = False,
+    ) -> None:
         """
         Args:
             f_ref (float): Reference frequency in Hz. Defaults to 20.0.
+            use_lambda_tildes (bool): Whether to parameterise tidal deformability
+                via ``lambda_tilde`` / ``delta_lambda_tilde`` rather than
+                ``lambda_1`` / ``lambda_2``. Defaults to False.
+            no_taper (bool): Whether to disable tapering (useful for relative
+                binning runs). Defaults to False.
         """
         self.f_ref = f_ref
+        self.use_lambda_tildes = use_lambda_tildes
+        self.no_taper = no_taper
 
     @property
     def parameter_names(self) -> tuple[str, ...]:
@@ -234,6 +295,11 @@ class IMRPhenomXP(FrequencyDomainWaveform, DistanceScaledWaveform):
             "s2_x",
             "s2_y",
             "s2_z",
+            *(
+                ("lambda_tilde", "delta_lambda_tilde")
+                if self.use_lambda_tildes
+                else ("lambda_1", "lambda_2")
+            ),
             "d_L",
             "phase_c",
             "iota",
@@ -242,18 +308,26 @@ class IMRPhenomXP(FrequencyDomainWaveform, DistanceScaledWaveform):
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> dict[str, Complex[Array, " n_freq"]]:
-        """Evaluate the IMRPhenomXP waveform.
+        """Evaluate the IMRPhenomXP_NRTidalv3 waveform.
 
         Args:
             frequency (Float[Array, " n_freq"]): Frequency array in Hz.
-            params: Source parameters with keys
-                ``M_c``, ``eta``, ``s1_x``, ``s1_y``, ``s1_z``,
-                ``s2_x``, ``s2_y``, ``s2_z``, ``d_L``, ``phase_c``, ``iota``.
+            params: Source parameters with keys ``M_c``, ``eta``, ``s1_x``,
+                ``s1_y``, ``s1_z``, ``s2_x``, ``s2_y``, ``s2_z``, ``d_L``,
+                ``phase_c``, ``iota``, plus tidal keys depending on
+                ``use_lambda_tildes``.
 
         Returns:
             dict[str, Complex[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
                 polarizations.
         """
+        if self.use_lambda_tildes:
+            first_lambda_param = params["lambda_tilde"]
+            second_lambda_param = params["delta_lambda_tilde"]
+        else:
+            first_lambda_param = params["lambda_1"]
+            second_lambda_param = params["lambda_2"]
+
         theta = jnp.array(
             [
                 params["M_c"],
@@ -264,14 +338,25 @@ class IMRPhenomXP(FrequencyDomainWaveform, DistanceScaledWaveform):
                 params["s2_x"],
                 params["s2_y"],
                 params["s2_z"],
+                first_lambda_param,
+                second_lambda_param,
                 params["d_L"],
                 0.0,
                 params["phase_c"],
                 params["iota"],
             ]
         )
-        hp, hc = gen_IMRPhenomXP_hphc(frequency, theta, self.f_ref)
+        hp, hc = gen_IMRPhenomXP_NRTidalv3_hphc(
+            frequency,
+            theta,
+            self.f_ref,
+            use_lambda_tildes=self.use_lambda_tildes,
+            no_taper=self.no_taper,
+        )
         return {"p": hp, "c": hc}
 
     def __repr__(self):
-        return f"IMRPhenomXP(f_ref={self.f_ref})"
+        return (
+            f"IMRPhenomXP_NRTidalv3(f_ref={self.f_ref}, "
+            f"use_lambda_tildes={self.use_lambda_tildes}, no_taper={self.no_taper})"
+        )

@@ -80,6 +80,26 @@ def _prepare_precessing_params(params):
     }
 
 
+def _prepare_precessing_bns_params(params):
+    """Build a batched param dict for precessing BNS waveforms (IMRPhenomXP_NRTidalv3)."""
+    Mc, eta = ms_to_Mc_eta(jnp.array([params["mass_1"], params["mass_2"]]))
+    return {
+        "M_c": Mc,
+        "eta": eta,
+        "s1_x": params["spin_1x"],
+        "s1_y": params["spin_1y"],
+        "s1_z": params["spin_1z"],
+        "s2_x": params["spin_2x"],
+        "s2_y": params["spin_2y"],
+        "s2_z": params["spin_2z"],
+        "lambda_1": params["lambda_1"],
+        "lambda_2": params["lambda_2"],
+        "d_L": params["luminosity_distance"],
+        "phase_c": params["phase"],
+        "iota": params["theta_jn"],
+    }
+
+
 def _prepare_bns_params(params):
     """Build a batched param dict for BNS waveforms (TaylorF2_BNS, IMRPhenomD_NRTidalv2, IMRPhenomXAS_NRTidalv3)."""
     Mc, eta = ms_to_Mc_eta(jnp.array([params["mass_1"], params["mass_2"]]))
@@ -241,30 +261,37 @@ def run_timing(args):
     is_precessing = metadata.get("is_precessing", False)
     config["domain"] = metadata["domain"]
 
+    is_bns = waveform_type == "bns"
     params = (
         generate_bns_parameters(args.n_waveforms)
-        if waveform_type == "bns"
+        if is_bns
         else generate_bbh_parameters(args.n_waveforms)
     )
 
     logger.info("Generated %d parameter sets", args.n_waveforms)
     logger.info("Parameter keys: %s", list(params.keys()))
 
-    # Run timing based on waveform
+    # Both generators return a superset of keys (aligned + precessing spins,
+    # plus tidal for BNS); the prepare step hands each waveform just the subset
+    # its parameterisation needs, selected by is_precessing.
     waveform = _construct_waveform(args.waveform, config["reference_frequency"])
-    if is_precessing:
-        logger.info(
-            "Running precessing waveform timing benchmark (%s)...", args.waveform
+    kind = (
+        f"{'precessing' if is_precessing else 'aligned-spin'} "
+        f"{'BNS' if is_bns else 'BBH'}"
+    )
+    logger.info("Running %s waveform timing benchmark (%s)...", kind, args.waveform)
+    if is_bns:
+        batched_params = (
+            _prepare_precessing_bns_params(params)
+            if is_precessing
+            else _prepare_bns_params(params)
         )
-        batched_params = _prepare_precessing_params(params)
-    elif waveform_type == "bns":
-        logger.info("Running BNS waveform timing benchmark (%s)...", args.waveform)
-        batched_params = _prepare_bns_params(params)
     else:
-        logger.info(
-            "Running aligned-spin waveform timing benchmark (%s)...", args.waveform
+        batched_params = (
+            _prepare_precessing_params(params)
+            if is_precessing
+            else _prepare_aligned_params(params)
         )
-        batched_params = _prepare_aligned_params(params)
 
     first_run_time, exec_times, effective_batch_size = time_waveform(
         waveform, batched_params, config, domain=config["domain"]
@@ -344,6 +371,8 @@ def get_waveform_type(waveform):
 
     Driven by the registry's own metadata rather than a hardcoded list, so a
     newly registered CBC model is timed correctly with no edits to this file.
+    Precession is orthogonal: both shapes' draws carry full 3-D spin components,
+    and ``run_timing`` picks aligned vs precessing keys from ``is_precessing``.
 
     Raises:
         ValueError: If ``waveform`` isn't a CBC model -- timing only supports

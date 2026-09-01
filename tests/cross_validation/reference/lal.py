@@ -4,7 +4,7 @@ Wraps ``lalsimulation`` behind the ``ReferenceBackend`` protocol. Converts
 ripple-native parameter dicts (``M_c``, ``eta``, ``s1_z``, ...) to LAL's own
 convention internally, so callers never need to know LAL's argument order.
 
-Three families need calls beyond the generic ``SimInspiralChooseFDWaveform``
+Four families need calls beyond the generic ``SimInspiralChooseFDWaveform``
 path:
 
 - **IMRPhenomXP** sets ``PhenomXPrecVersion=222``, which makes an MSA-init
@@ -12,6 +12,11 @@ path:
 - **IMRPhenomXPHM** uses ``SimIMRPhenomXPHM`` directly to configure the mode
   array, ``TwistPhenomHM=0`` (XHM co-precessing seed, matching ripple), and
   the same ``PrecVersion=222``.
+- **IMRPhenomXP_NRTidalv3** combines the ``PrecVersion=222`` setting with the
+  tidal insertions below; LAL also builds it via the XPHM code path
+  internally, so ``PhenomXPHMThresholdMband``/``PhenomXHMThresholdMband``
+  must be forced to 0 to disable multibanding (otherwise LAL disagrees with
+  its own multibanding-off output for edge-on samples).
 - Tidal models insert ``TidalLambda{1,2}`` and the ``dQuadMon`` universal
   relation ripple assumes internally.
 """
@@ -44,11 +49,19 @@ _APPROXIMANT_NAMES = {
     "IMRPhenomXAS_NRTidalv3": "IMRPhenomXAS_NRTidalv3",
     "IMRPhenomXHM": "IMRPhenomXHM",
     "IMRPhenomXP": "IMRPhenomXP",
+    "IMRPhenomXP_NRTidalv3": "IMRPhenomXP_NRTidalv3",
     "IMRPhenomXPHM": "IMRPhenomXPHM",
 }
 
 _TIDAL = {"TaylorF2", "IMRPhenomD_NRTidalv2", "IMRPhenomXAS_NRTidalv3"}
 _PRECESSING = {"IMRPhenomPv2", "IMRPhenomXP", "IMRPhenomXPHM"}
+
+# PhenomXPrecVersion=222 surfaces an MSA-initialization failure as this LAL
+# error (XLAL_EDOM) instead of silently falling back to the NNLO precession
+# approximation (223). Do not broaden this to arbitrary LAL errors: doing so
+# can turn a broken cross-validation setup into a silently excluded sample.
+_MSA_FALLBACK_ERROR = "Internal function call failed: Input domain error"
+_PREC_VERSION_222 = {"IMRPhenomXP", "IMRPhenomXPHM", "IMRPhenomXP_NRTidalv3"}
 
 
 def _m1_m2(params: dict) -> tuple[float, float]:
@@ -82,6 +95,12 @@ class LALBackend:
     def supports(self, waveform: str) -> bool:
         return waveform in _APPROXIMANT_NAMES
 
+    def expected_failure(self, waveform: str, error: Exception) -> bool:
+        """Whether ``error`` is the expected PhenomXPrecVersion=222 MSA-init
+        fallback rather than a real generation bug, so the caller can exclude
+        the sample instead of failing the test on it."""
+        return waveform in _PREC_VERSION_222 and _MSA_FALLBACK_ERROR in str(error)
+
     def constants(self) -> dict[str, float]:
         return {
             "MSUN": lal.MSUN_SI,
@@ -114,6 +133,44 @@ class LALBackend:
         if waveform == "IMRPhenomXP":
             lalparams = lal.CreateDict()
             lalsim.SimInspiralWaveformParamsInsertPhenomXPrecVersion(lalparams, 222)
+            hp, hc = lalsim.SimInspiralChooseFDWaveform(
+                m1_kg,
+                m2_kg,
+                params["s1_x"],
+                params["s1_y"],
+                params["s1_z"],
+                params["s2_x"],
+                params["s2_y"],
+                params["s2_z"],
+                distance,
+                inclination,
+                phi_ref,
+                0,
+                0,
+                0,
+                df,
+                f_l,
+                f_u,
+                f_ref,
+                lalparams,
+                approximant,
+            )
+        elif waveform == "IMRPhenomXP_NRTidalv3":
+            l1, l2 = _lambda_1_2(params, m1, m2)
+            lalparams = lal.CreateDict()
+            lalsim.SimInspiralWaveformParamsInsertPhenomXPrecVersion(lalparams, 222)
+            lalsim.SimInspiralWaveformParamsInsertPhenomXPHMThresholdMband(
+                lalparams, 0.0
+            )
+            lalsim.SimInspiralWaveformParamsInsertPhenomXHMThresholdMband(
+                lalparams, 0.0
+            )
+            lalsim.SimInspiralWaveformParamsInsertTidalLambda1(lalparams, l1)
+            lalsim.SimInspiralWaveformParamsInsertTidalLambda2(lalparams, l2)
+            quad1 = lalsim.SimUniversalRelationQuadMonVSlambda2Tidal(l1)
+            quad2 = lalsim.SimUniversalRelationQuadMonVSlambda2Tidal(l2)
+            lalsim.SimInspiralWaveformParamsInsertdQuadMon1(lalparams, quad1 - 1)
+            lalsim.SimInspiralWaveformParamsInsertdQuadMon2(lalparams, quad2 - 1)
             hp, hc = lalsim.SimInspiralChooseFDWaveform(
                 m1_kg,
                 m2_kg,

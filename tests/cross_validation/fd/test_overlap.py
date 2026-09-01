@@ -1,9 +1,10 @@
 """Compare reference-supported frequency-domain waveforms with a backend.
 
 For every parameter draw, the test computes the PSD-weighted overlap loss of
-both polarizations and requires the worse value to meet that waveform's limit.
-The smoke-marked models provide the small CI subset; time-domain models use
-their own cross-validation adapters.
+both polarizations and requires the SNR-weighted combination
+(``combined_overlap_loss``) to meet that waveform's limit; the per-polarization
+values are kept as diagnostics. The smoke-marked models provide the small CI
+subset; time-domain models use their own cross-validation adapters.
 """
 
 from pathlib import Path
@@ -66,12 +67,19 @@ def test_reference_overlap(
         print(f"  Figure saved to: {fig_file}")
 
     finite = result.testable
+    n_expected_failures = int(result.expected_failures.sum())
+    if n_expected_failures:
+        print(
+            f"\n  {n_expected_failures}/{n_samples} samples excluded: "
+            f"{reference.name} reference reported an expected failure"
+        )
     cross_val_results.append(
         {
             "waveform": waveform_name,
             "reference": reference.name,
             "n_samples": n_samples,
             "n_failed": len(result.errors),
+            "n_expected_failures": n_expected_failures,
             "mean": float(finite.mean()) if finite.size else float("nan"),
             "median": float(np.median(finite)) if finite.size else float("nan"),
             "max": result.max_loss,

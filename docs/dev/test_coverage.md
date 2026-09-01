@@ -42,7 +42,7 @@ The launcher column is the one large-scale test selected by [Run Reference Check
 | Waveform(s) | Reference checks | Launcher sweep |
 | --- | --- | --- |
 | `TaylorF2`, `IMRPhenomD`, `IMRPhenomD_NRTidalv2`, `IMRPhenomHM`, `IMRPhenomXAS`, `IMRPhenomXAS_NRTidalv3`, `IMRPhenomXHM` | LALSuite frequency-domain overlap and absolute phase convention | The same LAL overlap and phase tests over the selected sample set |
-| `IMRPhenomPv2`, `IMRPhenomXP`, `IMRPhenomXPHM` | LALSuite frequency-domain overlap | The LAL overlap test over the selected sample set |
+| `IMRPhenomPv2`, `IMRPhenomXP`, `IMRPhenomXP_NRTidalv3`, `IMRPhenomXPHM` | LALSuite frequency-domain overlap | The LAL overlap test over the selected sample set |
 | `SineGaussian` | LALSimulation on aligned time samples | The direct time-domain sweep |
 | `ExactPulsarSignal` | LALPulsar building-block reconstruction and barycenter check | A randomized LALPulsar building-block sweep |
 | `PulsarSignal` | Per-sample LALPulsar barycenter check and `CWMakeFakeData` regression | A randomized `CWMakeFakeData` sweep |

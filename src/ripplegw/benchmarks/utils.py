@@ -116,9 +116,11 @@ def generate_bbh_parameters(n_waveforms, seed=42):
 def generate_bns_parameters(n_waveforms, seed=42):
     """Generate binary neutron star parameters using JAX random sampling.
 
-    Includes tidal deformability parameters.
-
-    # TODO: Implement precessing spins. For now, this is limited to aligned spins only.
+    Returns a superset of keys, like ``generate_bbh_parameters``: the aligned
+    spins ``a_1``/``a_2``, the full 3-D spin components ``spin_i{x,y,z}`` (same
+    magnitudes, random direction), and the tidal deformabilities. The prepare
+    step hands each waveform just the subset its parameterisation needs, so one
+    draw serves both aligned and precessing tidal models.
     """
     keys = jax.random.split(jax.random.PRNGKey(seed), 10)
 
@@ -147,11 +149,37 @@ def generate_bns_parameters(n_waveforms, seed=42):
     # Time of coalescence
     geocent_time = uniform(keys[9], 0, 1)
 
+    # Precessing spin components: random direction, magnitude |a_i| (matching
+    # generate_bbh_parameters). Drawn from a separate key stream so the aligned
+    # draws above are unchanged.
+    pkeys = jax.random.split(jax.random.PRNGKey(seed + 1), 6)
+    spin_1x_raw = uniform(pkeys[0], -1, 1)
+    spin_1y_raw = uniform(pkeys[1], -1, 1)
+    spin_1z_raw = uniform(pkeys[2], -1, 1)
+    spin_1_mag = jnp.sqrt(spin_1x_raw**2 + spin_1y_raw**2 + spin_1z_raw**2)
+    spin_1x = jnp.abs(a_1) * spin_1x_raw / spin_1_mag
+    spin_1y = jnp.abs(a_1) * spin_1y_raw / spin_1_mag
+    spin_1z = jnp.abs(a_1) * spin_1z_raw / spin_1_mag
+
+    spin_2x_raw = uniform(pkeys[3], -1, 1)
+    spin_2y_raw = uniform(pkeys[4], -1, 1)
+    spin_2z_raw = uniform(pkeys[5], -1, 1)
+    spin_2_mag = jnp.sqrt(spin_2x_raw**2 + spin_2y_raw**2 + spin_2z_raw**2)
+    spin_2x = jnp.abs(a_2) * spin_2x_raw / spin_2_mag
+    spin_2y = jnp.abs(a_2) * spin_2y_raw / spin_2_mag
+    spin_2z = jnp.abs(a_2) * spin_2z_raw / spin_2_mag
+
     return {
         "mass_1": mass_1,
         "mass_2": mass_2,
         "a_1": a_1,
         "a_2": a_2,
+        "spin_1x": spin_1x,
+        "spin_1y": spin_1y,
+        "spin_1z": spin_1z,
+        "spin_2x": spin_2x,
+        "spin_2y": spin_2y,
+        "spin_2z": spin_2z,
         "lambda_1": lambda_1,
         "lambda_2": lambda_2,
         "luminosity_distance": luminosity_distance,

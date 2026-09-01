@@ -28,6 +28,7 @@ BUILTINS = {
     "IMRPhenomXAS_NRTidalv3",
     "IMRPhenomXHM",
     "IMRPhenomXP",
+    "IMRPhenomXP_NRTidalv3",
     "IMRPhenomXPHM",
     "SineGaussian",
 }
@@ -96,7 +97,12 @@ def test_list_waveforms_filter_domain():
 
 def test_list_waveforms_filter_metadata():
     prec = set(ripplegw.list_waveforms(is_precessing=True))
-    assert prec == {"IMRPhenomPv2", "IMRPhenomXP", "IMRPhenomXPHM"}
+    assert prec == {
+        "IMRPhenomPv2",
+        "IMRPhenomXP",
+        "IMRPhenomXP_NRTidalv3",
+        "IMRPhenomXPHM",
+    }
     assert "IMRPhenomD" in ripplegw.list_waveforms(is_tidal=False)
 
 

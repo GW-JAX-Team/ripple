@@ -19,7 +19,7 @@ import numpy as np
 
 import ripplegw
 from tests.helpers.grids import Grid, accuracy_grid
-from tests.helpers.metrics import get_nyquist_mask, overlap_loss
+from tests.helpers.metrics import combined_overlap_loss, get_nyquist_mask, overlap_loss
 from tests.helpers.params import random_params_batch, regime
 
 TOLERANCES_PATH = Path(__file__).parent / "tolerances.toml"
@@ -69,18 +69,26 @@ class TestResult:
     grid: Grid
     overlap_loss_p: np.ndarray  # NaN for failed/excluded samples
     overlap_loss_c: np.ndarray
+    overlap_loss_combined: np.ndarray  # SNR-weighted; this is the asserted metric
     valid_mask: np.ndarray
+    expected_failures: np.ndarray  # excluded from both errors and valid_mask
     errors: dict = field(default_factory=dict)
     threshold: float = float("nan")
 
     @property
     def worst(self) -> np.ndarray:
+        """Per-polarization worst case -- a diagnostic only.
+
+        Amplified for the near-vanishing polarization at edge-on inclination;
+        ``testable``/``max_loss`` use the SNR-weighted ``overlap_loss_combined``
+        instead. See ``tests.helpers.metrics.combined_overlap_loss``.
+        """
         return np.maximum(self.overlap_loss_p, self.overlap_loss_c)
 
     @property
     def testable(self) -> np.ndarray:
-        w = self.worst
-        return w[self.valid_mask & np.isfinite(w)]
+        c = self.overlap_loss_combined
+        return c[self.valid_mask & np.isfinite(c)]
 
     @property
     def max_loss(self) -> float:
@@ -138,15 +146,24 @@ def generate_reference_batch(
     if cache_path is not None:
         cached = _load_reference_cache(cache_path, n_samples, len(grid.axis))
         if cached is not None:
-            return cached["hp"], cached["hc"], cached["valid"].astype(bool), {}
+            return (
+                cached["hp"],
+                cached["hc"],
+                cached["valid"].astype(bool),
+                {},
+                np.zeros(n_samples, dtype=bool),
+            )
+
+    is_expected_failure = getattr(reference, "expected_failure", None)
 
     def _one(i: int):
         p = {k: float(v[i]) for k, v in params_batch.items()}
         try:
             out = reference.generate(waveform, p, grid)
-            return i, out["p"], out["c"], None
+            return i, out["p"], out["c"], None, False
         except Exception as exc:  # noqa: BLE001 - one bad sample must not kill the batch
-            return i, None, None, str(exc)
+            expected = bool(is_expected_failure and is_expected_failure(waveform, exc))
+            return i, None, None, str(exc), expected
 
     try:
         n_cpu = len(os.sched_getaffinity(0))
@@ -158,18 +175,21 @@ def generate_reference_batch(
     hp = np.full((n_samples, n_freqs), np.nan, dtype=complex)
     hc = np.full((n_samples, n_freqs), np.nan, dtype=complex)
     valid = np.zeros(n_samples, dtype=bool)
+    expected_failures = np.zeros(n_samples, dtype=bool)
     errors: dict = {}
     with ThreadPoolExecutor(max_workers=n_workers) as pool:
-        for i, p_wave, c_wave, err in pool.map(_one, range(n_samples)):
+        for i, p_wave, c_wave, err, expected in pool.map(_one, range(n_samples)):
             if err is None:
                 hp[i], hc[i] = p_wave, c_wave
                 valid[i] = True
+            elif expected:
+                expected_failures[i] = True
             else:
                 errors[i] = err
 
     if cache_path is not None:
         _save_reference_cache(cache_path, hp, hc, valid)
-    return hp, hc, valid, errors
+    return hp, hc, valid, errors, expected_failures
 
 
 def _is_oom(exc: Exception) -> bool:
@@ -240,7 +260,7 @@ def run_overlap_test(
         if cache_dir
         else None
     )
-    ref_hp, ref_hc, valid, errors = generate_reference_batch(
+    ref_hp, ref_hc, valid, errors, expected_failures = generate_reference_batch(
         reference, name, params_batch, grid, n_samples, cache_path=cache_path
     )
 
@@ -251,7 +271,9 @@ def run_overlap_test(
         grid=grid,
         overlap_loss_p=np.full(n_samples, np.nan),
         overlap_loss_c=np.full(n_samples, np.nan),
+        overlap_loss_combined=np.full(n_samples, np.nan),
         valid_mask=valid,
+        expected_failures=expected_failures,
         errors=errors,
         threshold=threshold,
     )
@@ -270,6 +292,9 @@ def run_overlap_test(
         hc_ref = jnp.asarray(ref_hc[i]) * nyquist
         result.overlap_loss_p[i] = float(overlap_loss(hp_r, hp_ref, psd, grid.axis))
         result.overlap_loss_c[i] = float(overlap_loss(hc_r, hc_ref, psd, grid.axis))
+        result.overlap_loss_combined[i] = float(
+            combined_overlap_loss(hp_r, hc_r, hp_ref, hc_ref, psd, grid.axis)
+        )
 
     return result
 
@@ -307,8 +332,11 @@ def write_results(result: TestResult, outdir: Path) -> Path:
         "passed": result.passed,
         "n_failed": len(result.errors),
         "errors": result.errors,
+        "n_expected_failures": int(result.expected_failures.sum()),
         "overlap_loss_p": result.overlap_loss_p.tolist(),
         "overlap_loss_c": result.overlap_loss_c.tolist(),
+        "overlap_loss_max": result.worst.tolist(),
+        "overlap_loss_combined": result.overlap_loss_combined.tolist(),
         "hardware": _hardware_info(),
     }
     out_file.write_text(json.dumps(payload, indent=2))
@@ -323,8 +351,7 @@ def plot_results(result: TestResult, outdir: Path) -> Path:
     fig_dir.mkdir(parents=True, exist_ok=True)
     fig_file = fig_dir / f"{result.reference}_{result.waveform}.png"
 
-    worst = result.worst[result.valid_mask & np.isfinite(result.worst)]
-    positive = worst[worst > 0]
+    positive = result.testable[result.testable > 0]
 
     fig, ax = plt.subplots(figsize=(6, 4))
     if positive.size:
