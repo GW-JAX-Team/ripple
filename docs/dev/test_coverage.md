@@ -16,7 +16,7 @@ uv run pytest -m "not accuracy"
 ```
 
 CI runs the non-accuracy suite on its PR and push workflows.
-Relevant Python 3.12 main workflows also run a small LAL accuracy smoke test for `TaylorF2`, `IMRPhenomD`, and `IMRPhenomXPHM`; it is not a replacement for a selected reference sweep.
+Relevant Python 3.12 main workflows also run a LAL accuracy smoke test over every frequency-domain waveform at three parameter draws each; it is not a replacement for a selected reference sweep.
 
 ## Coverage added by registration
 

@@ -23,7 +23,6 @@ jobs:
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
         test_suite: [unit, integration, cross-validation]
-        # cross-validation compares against LAL; run it once, on the coverage version.
         exclude:
           - {test_suite: cross-validation, python-version: "3.11"}
           - {test_suite: cross-validation, python-version: "3.13"}
@@ -33,9 +32,18 @@ jobs:
         with:
           enable-cache: true
           python-version: ${{ matrix.python-version }}
+      - name: Cache XLA compilations
+        if: matrix.test_suite != 'unit'
+        uses: actions/cache@v4
+        with:
+          path: .jax-cache
+          key: xla-${{ runner.os }}-${{ matrix.test_suite }}-py${{ matrix.python-version }}-${{ hashFiles('src/ripplegw/**/*.py', 'uv.lock') }}
+          restore-keys: xla-${{ runner.os }}-${{ matrix.test_suite }}-py${{ matrix.python-version }}-
       - name: Install dependencies
         run: uv sync --group test ${{ matrix.test_suite == 'cross-validation' && '--group cross-validation' || '' }}
       - name: Run ${{ matrix.test_suite }} tests
+        env:
+          JAX_COMPILATION_CACHE_DIR: ${{ github.workspace }}/.jax-cache
         run: |
           case "${{ matrix.test_suite }}" in
             unit) test_path=tests/unit ;;
@@ -44,7 +52,9 @@ jobs:
           esac
           cov_flags=""
           [[ "${{ matrix.python-version }}" == "3.12" ]] && cov_flags="--cov=ripplegw --cov-report="
-          uv run pytest "$test_path" -m "not accuracy" $cov_flags
+          xdist=""
+          [[ "${{ matrix.test_suite }}" == "integration" ]] && xdist="-n auto"
+          uv run pytest "$test_path" -m "not accuracy" $cov_flags $xdist
       - name: Prepare coverage data
         if: matrix.python-version == '3.12'
         run: mv .coverage ".coverage.${{ matrix.test_suite }}"
@@ -93,9 +103,17 @@ jobs:
         with:
           enable-cache: true
           python-version: "3.12"
+      - name: Cache XLA compilations
+        uses: actions/cache@v4
+        with:
+          path: .jax-cache
+          key: xla-${{ runner.os }}-accuracy-smoke-${{ hashFiles('src/ripplegw/**/*.py', 'uv.lock') }}
+          restore-keys: xla-${{ runner.os }}-accuracy-smoke-
       - name: Install dependencies
         run: uv sync --group test --group cross-validation
       - name: Run accuracy smoke test
+        env:
+          JAX_COMPILATION_CACHE_DIR: ${{ github.workspace }}/.jax-cache
         run: uv run pytest -m "accuracy and smoke" --reference lal --n-samples 3
 
   pre-commit:

@@ -9,6 +9,7 @@ __pycache__/
 .coverage
 .coverage.*
 htmlcov/
+.jax-cache/
 
 # Virtual environments
 .venv/

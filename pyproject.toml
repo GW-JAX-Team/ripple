@@ -41,6 +41,7 @@ test = [
     "coveralls>=4.0.1",
     "pytest>=8.3.3",
     "pytest-cov>=6.0.0",
+    "pytest-xdist>=3.6.0",
     "ruff>=0.12.2",
     "tqdm>=4.66.0",
     "pyright>=1.1.402",
@@ -82,7 +83,7 @@ pythonpath = ["."]
 testpaths = ["tests"]
 markers = [
     "accuracy: compares waveform output against its registered reference calculation",
-    "smoke: minimal accuracy subset cheap enough for CI",
+    "smoke: accuracy checks cheap enough to run on every CI gate (few parameter draws)",
 ]
 
 [tool.ruff]

@@ -3,8 +3,10 @@
 For every parameter draw, the test computes the PSD-weighted overlap loss of
 both polarizations and requires the SNR-weighted combination
 (``combined_overlap_loss``) to meet that waveform's limit; the per-polarization
-values are kept as diagnostics. The smoke-marked models provide the small CI
-subset; time-domain models use their own cross-validation adapters.
+values are kept as diagnostics. Every frequency-domain model is smoke-marked, so
+the CI accuracy gate covers all of them; the heavier sweep (more samples, more
+references) is the offline ``tests/cross_validation/submit.py`` path. Time-domain
+models use their own cross-validation adapters.
 """
 
 from pathlib import Path
@@ -23,11 +25,8 @@ from tests.cross_validation.runner import (
 
 _TOLERANCES = load_tolerances()
 
-_SMOKE = {"TaylorF2", "IMRPhenomD", "IMRPhenomXPHM"}
 _PARAMS = [
     pytest.param(name, marks=pytest.mark.smoke)
-    if name in _SMOKE
-    else pytest.param(name)
     for name in ripplegw.list_waveforms(domain="FD")
 ]
 
