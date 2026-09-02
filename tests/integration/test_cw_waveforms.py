@@ -185,7 +185,7 @@ class TestExactPulsarSignal:
         def loss(f0):
             return jnp.sum(model(time_grid, {**isolated_params, "f0": f0})["p"])
 
-        g = jax.grad(loss)(isolated_params["f0"])
+        g = jax.jit(jax.grad(loss))(isolated_params["f0"])
         assert jnp.isfinite(g)
         assert abs(float(g)) > 0.0  # frequency genuinely affects the waveform
 
@@ -232,7 +232,7 @@ class TestPulsarSignal:
         def loss(f0):
             return jnp.sum(model(time_grid, {**isolated_params, "f0": f0})["p"])
 
-        g = jax.grad(loss)(isolated_params["f0"])
+        g = jax.jit(jax.grad(loss))(isolated_params["f0"])
         assert jnp.isfinite(g)
         assert abs(float(g)) > 0.0
 
@@ -293,7 +293,7 @@ class TestBinaryPulsarSignal:
         def loss(asini):
             return jnp.sum(model(time_grid, {**binary_params, "asini": asini})["p"])
 
-        g = jax.grad(loss)(binary_params["asini"])
+        g = jax.jit(jax.grad(loss))(binary_params["asini"])
         assert jnp.isfinite(g)
         assert abs(float(g)) > 0.0  # the orbit genuinely modulates the phase
 

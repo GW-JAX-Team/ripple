@@ -51,6 +51,6 @@ def test_grad_is_finite(name, compiled_model):
         out = wf(axis, p)
         return jnp.sum(jnp.abs(out["p"]) ** 2 + jnp.abs(out["c"]) ** 2)
 
-    grads = jax.grad(loss)(params)
+    grads = jax.jit(jax.grad(loss))(params)
     for key, g in grads.items():
         assert jnp.isfinite(g), f"grad w.r.t. {key!r} is non-finite for {name}"
