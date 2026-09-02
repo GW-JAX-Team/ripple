@@ -1549,7 +1549,8 @@ Every registered waveform therefore receives the following baseline coverage.</p
 </tr>
 </tbody>
 </table>
-<p>For precessing and tidal models the eager/<code>jit</code> and <code>vmap</code> checks are marked <code>slow</code>: they run on <code>main</code>-targeted CI only, where the accuracy job already compares those paths against LAL. Finite-gradient checks run on every build.</p>
+<p>For precessing and tidal models the eager/<code>jit</code> and <code>vmap</code> checks are marked <code>slow</code>: they run on <code>main</code>-targeted CI only, where the accuracy job already compares those paths against LAL.
+Finite-gradient checks run on every build.</p>
 <p>The three built-in continuous-wave models also have dedicated integration tests for their non-default configurations and batches over distinct detector sites.
 Focused unit tests cover utilities and registry behaviour; they are not a per-waveform accuracy claim.</p>
 <h2 id="current-reference-validation-map">Current reference-validation map<a class="headerlink" href="#current-reference-validation-map" title="Permanent link">¤</a></h2>
