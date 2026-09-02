@@ -83,6 +83,7 @@ testpaths = ["tests"]
 markers = [
     "accuracy: compares waveform output against its registered reference calculation",
     "smoke: accuracy checks cheap enough to run on every CI gate (few parameter draws)",
+    "slow: heavy compile path already covered by another test; runs on main, skipped by -m 'not slow'",
 ]
 
 [tool.ruff]

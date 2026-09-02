@@ -13,12 +13,25 @@ from tests.helpers.params import canonical_params
 
 ALL_WAVEFORMS = ripplegw.list_waveforms()
 
+# Precessing / tidal models have the largest graphs and dominate this leg's
+# runtime. Their jit and vmap paths are already exercised -- against LAL, not
+# just for finiteness -- by the accuracy-smoke run on every main-targeted CI
+# build (runner.generate_ripple_batch does jax.jit(jax.vmap(...))), so mark
+# those two cases slow: they run on main and skip under -m "not slow".
+_ACCURACY_COVERED = set(ripplegw.list_waveforms(is_precessing=True)) | set(
+    ripplegw.list_waveforms(is_tidal=True)
+)
+_JIT_VMAP_WAVEFORMS = [
+    pytest.param(name, marks=pytest.mark.slow) if name in _ACCURACY_COVERED else name
+    for name in ALL_WAVEFORMS
+]
+
 
 def _batch(params: dict, batch_size: int) -> dict:
     return {k: jnp.full(batch_size, float(v)) for k, v in params.items()}
 
 
-@pytest.mark.parametrize("name", ALL_WAVEFORMS)
+@pytest.mark.parametrize("name", _JIT_VMAP_WAVEFORMS)
 def test_jit_matches_eager(name):
     wf = ripplegw.waveform(name, **default_config(name))
     axis = grid_for(name, small=True)
@@ -29,7 +42,7 @@ def test_jit_matches_eager(name):
         assert jnp.allclose(eager[key], jitted[key])
 
 
-@pytest.mark.parametrize("name", ALL_WAVEFORMS)
+@pytest.mark.parametrize("name", _JIT_VMAP_WAVEFORMS)
 def test_vmap_over_params(name, compiled_model):
     jitted, wf = compiled_model(name)
     axis = grid_for(name, small=True)

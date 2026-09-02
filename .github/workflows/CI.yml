@@ -53,9 +53,13 @@ jobs:
             integration) test_path=tests/integration ;;
             cross-validation) test_path=tests/cross_validation ;;
           esac
+          markexpr="not accuracy"
+          if [[ "${{ matrix.test_suite }}" == "integration" && "${{ github.ref }}" != "refs/heads/main" && "${{ github.base_ref }}" != "main" ]]; then
+            markexpr="not accuracy and not slow"
+          fi
           cov_flags=""
           [[ "${{ matrix.python-version }}" == "3.12" ]] && cov_flags="--cov=ripplegw --cov-report="
-          uv run pytest "$test_path" -m "not accuracy" $cov_flags
+          uv run pytest "$test_path" -m "$markexpr" $cov_flags
       - name: Prepare coverage data
         if: matrix.python-version == '3.12'
         run: mv .coverage ".coverage.${{ matrix.test_suite }}"
