@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.52">
+      <meta name="generator" content="zensical-0.0.57">
     
     
       
@@ -36,12 +36,12 @@
       
         
       
-      <link rel="stylesheet" href="../../assets/stylesheets/modern/main.8b3b5a67.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/modern/main.5da3a30f.min.css">
       
         
           
         
-        <link rel="stylesheet" href="../../assets/stylesheets/modern/palette.dfe2e883.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/modern/palette.812a03bb.min.css">
       
       
 
@@ -1570,9 +1570,9 @@ See <a href="../jax/">JAX Transformations</a> for <code>jax.grad</code> / <code>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">ripplegw</span>
 
 <span class="n">ripplegw</span><span class="o">.</span><span class="n">list_waveforms</span><span class="p">()</span>                       <span class="c1"># every registered model name</span>
-<span class="n">ripplegw</span><span class="o">.</span><span class="n">list_waveforms</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="s2">&quot;FD&quot;</span><span class="p">)</span>            <span class="c1"># filter by metadata</span>
+<span class="n">ripplegw</span><span class="o">.</span><span class="n">list_waveforms</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="s2">"FD"</span><span class="p">)</span>            <span class="c1"># filter by metadata</span>
 <span class="n">ripplegw</span><span class="o">.</span><span class="n">list_waveforms</span><span class="p">(</span><span class="n">is_precessing</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="n">ripplegw</span><span class="o">.</span><span class="n">get_waveform_metadata</span><span class="p">(</span><span class="s2">&quot;IMRPhenomD&quot;</span><span class="p">)</span>    <span class="c1"># {&quot;domain&quot;: &quot;FD&quot;, &quot;is_tidal&quot;: False, &quot;is_precessing&quot;: False}</span>
+<span class="n">ripplegw</span><span class="o">.</span><span class="n">get_waveform_metadata</span><span class="p">(</span><span class="s2">"IMRPhenomD"</span><span class="p">)</span>    <span class="c1"># {"domain": "FD", "is_tidal": False, "is_precessing": False}</span>
 </code></pre></div>
 <p>See the <a href="../catalogue/">Waveform Catalogue</a> for the full list with each waveform's domain and capabilities.</p>
 <div class="admonition note">
@@ -1581,7 +1581,7 @@ See <a href="../jax/">JAX Transformations</a> for <code>jax.grad</code> / <code>
 If a filter returns fewer names than you expect, check <code>get_waveform_metadata(...)</code> on a known model to see the real key names.</p>
 </div>
 <h2 id="constructing-a-waveform">Constructing a waveform<a class="headerlink" href="#constructing-a-waveform" title="Permanent link">¤</a></h2>
-<div class="highlight"><pre><span></span><code><span class="n">waveform</span> <span class="o">=</span> <span class="n">ripplegw</span><span class="o">.</span><span class="n">waveform</span><span class="p">(</span><span class="s2">&quot;IMRPhenomD&quot;</span><span class="p">,</span> <span class="n">f_ref</span><span class="o">=</span><span class="mf">20.0</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="n">waveform</span> <span class="o">=</span> <span class="n">ripplegw</span><span class="o">.</span><span class="n">waveform</span><span class="p">(</span><span class="s2">"IMRPhenomD"</span><span class="p">,</span> <span class="n">f_ref</span><span class="o">=</span><span class="mf">20.0</span><span class="p">)</span>
 </code></pre></div>
 <p><code>ripplegw.waveform(name, **config)</code> is the <strong>only</strong> construction path.
 <code>**config</code> is forwarded to the model's constructor; for most models this is just <code>f_ref</code>, the reference frequency in Hz.</p>
@@ -1593,21 +1593,21 @@ If a filter returns fewer names than you expect, check <code>get_waveform_metada
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
 
-<span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot;jax_enable_x64&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>  <span class="c1"># see JAX Transformations for why this matters</span>
+<span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">"jax_enable_x64"</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>  <span class="c1"># see JAX Transformations for why this matters</span>
 
 <span class="n">frequency</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">20.0</span><span class="p">,</span> <span class="mf">1024.0</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">)</span>
 <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;M_c&quot;</span><span class="p">:</span> <span class="mf">28.3</span><span class="p">,</span>    <span class="c1"># chirp mass [solar masses]</span>
-    <span class="s2">&quot;eta&quot;</span><span class="p">:</span> <span class="mf">0.247</span><span class="p">,</span>   <span class="c1"># symmetric mass ratio</span>
-    <span class="s2">&quot;s1_z&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>    <span class="c1"># primary aligned spin</span>
-    <span class="s2">&quot;s2_z&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>    <span class="c1"># secondary aligned spin</span>
-    <span class="s2">&quot;d_L&quot;</span><span class="p">:</span> <span class="mf">440.0</span><span class="p">,</span>   <span class="c1"># luminosity distance [Mpc]</span>
-    <span class="s2">&quot;phase_c&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-    <span class="s2">&quot;iota&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="s2">"M_c"</span><span class="p">:</span> <span class="mf">28.3</span><span class="p">,</span>    <span class="c1"># chirp mass [solar masses]</span>
+    <span class="s2">"eta"</span><span class="p">:</span> <span class="mf">0.247</span><span class="p">,</span>   <span class="c1"># symmetric mass ratio</span>
+    <span class="s2">"s1_z"</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>    <span class="c1"># primary aligned spin</span>
+    <span class="s2">"s2_z"</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>    <span class="c1"># secondary aligned spin</span>
+    <span class="s2">"d_L"</span><span class="p">:</span> <span class="mf">440.0</span><span class="p">,</span>   <span class="c1"># luminosity distance [Mpc]</span>
+    <span class="s2">"phase_c"</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="s2">"iota"</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
 <span class="p">}</span>
 
 <span class="n">polarizations</span> <span class="o">=</span> <span class="n">waveform</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
-<span class="n">hp</span><span class="p">,</span> <span class="n">hc</span> <span class="o">=</span> <span class="n">polarizations</span><span class="p">[</span><span class="s2">&quot;p&quot;</span><span class="p">],</span> <span class="n">polarizations</span><span class="p">[</span><span class="s2">&quot;c&quot;</span><span class="p">]</span>
+<span class="n">hp</span><span class="p">,</span> <span class="n">hc</span> <span class="o">=</span> <span class="n">polarizations</span><span class="p">[</span><span class="s2">"p"</span><span class="p">],</span> <span class="n">polarizations</span><span class="p">[</span><span class="s2">"c"</span><span class="p">]</span>
 </code></pre></div>
 <p>Every model returns a <code>dict</code> with exactly two keys: <code>"p"</code> (plus polarization, <span class="arithmatex">\(h_+\)</span>) and <code>"c"</code> (cross polarization, <span class="arithmatex">\(h_\times\)</span>), each the same length as the input axis.</p>
 <p><strong>Frequency-domain models return complex arrays; time-domain models return real arrays</strong>.
@@ -1616,16 +1616,16 @@ ripple never performs an FFT internally: a frequency-domain model builds its str
 <h3 id="visualising-the-spectrum">Visualising the spectrum<a class="headerlink" href="#visualising-the-spectrum" title="Permanent link">¤</a></h3>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 
-<span class="n">plt</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">hp</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;$|h_+|$&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">hc</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;$|h_\times|$&quot;</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Frequency [Hz]&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Strain amplitude&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">hp</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">"$|h_+|$"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">hc</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">"$|h_\times|$"</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">"--"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">"Frequency [Hz]"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">"Strain amplitude"</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </code></pre></div>
 <h2 id="amplitude-and-phase">Amplitude and phase<a class="headerlink" href="#amplitude-and-phase" title="Permanent link">¤</a></h2>
 <p>For single-mode, aligned-spin models — where an amplitude and phase as a function of frequency are individually well-defined — you can evaluate them separately:</p>
-<div class="highlight"><pre><span></span><code><span class="n">wf</span> <span class="o">=</span> <span class="n">ripplegw</span><span class="o">.</span><span class="n">waveform</span><span class="p">(</span><span class="s2">&quot;IMRPhenomD&quot;</span><span class="p">,</span> <span class="n">f_ref</span><span class="o">=</span><span class="mf">20.0</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="n">wf</span> <span class="o">=</span> <span class="n">ripplegw</span><span class="o">.</span><span class="n">waveform</span><span class="p">(</span><span class="s2">"IMRPhenomD"</span><span class="p">,</span> <span class="n">f_ref</span><span class="o">=</span><span class="mf">20.0</span><span class="p">)</span>
 <span class="n">amp</span> <span class="o">=</span> <span class="n">wf</span><span class="o">.</span><span class="n">amplitude</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>      <span class="c1"># includes distance scaling</span>
 <span class="n">phase</span> <span class="o">=</span> <span class="n">wf</span><span class="o">.</span><span class="n">phase</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>        <span class="c1"># the exponent in exp(1j * phase)</span>
 <span class="n">strain</span> <span class="o">=</span> <span class="n">wf</span><span class="o">.</span><span class="n">strain</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>      <span class="c1"># == amp * exp(1j * phase), the pre-polarization strain</span>
@@ -1640,9 +1640,9 @@ Not every model supports this — check directly via <code>isinstance(wf, ripple
 Check availability the same way: <code>isinstance(wf, ripplegw.DistanceScaledWaveform)</code>.</p>
 <h2 id="switching-between-models">Switching between models<a class="headerlink" href="#switching-between-models" title="Permanent link">¤</a></h2>
 <p>All waveform models share the same calling interface, so swapping models only requires changing the registered name:</p>
-<div class="highlight"><pre><span></span><code><span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;IMRPhenomD&quot;</span><span class="p">,</span> <span class="s2">&quot;IMRPhenomXAS&quot;</span><span class="p">]:</span>
+<div class="highlight"><pre><span></span><code><span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"IMRPhenomD"</span><span class="p">,</span> <span class="s2">"IMRPhenomXAS"</span><span class="p">]:</span>
     <span class="n">h</span> <span class="o">=</span> <span class="n">ripplegw</span><span class="o">.</span><span class="n">waveform</span><span class="p">(</span><span class="n">name</span><span class="p">)(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: max|h+| = </span><span class="si">{</span><span class="n">jnp</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">]))</span><span class="si">:</span><span class="s2">.3e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: max|h+| = </span><span class="si">{</span><span class="n">jnp</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="s1">'p'</span><span class="p">]))</span><span class="si">:</span><span class="s2">.3e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </code></pre></div>
 <p>This only works cleanly when the models share <code>parameter_names</code> (e.g. precessing models need <code>s1_x</code>/<code>s1_y</code> in addition to <code>s1_z</code>, and tidal models need <code>lambda_1</code>/<code>lambda_2</code>).</p>
 
@@ -1705,7 +1705,7 @@ Check availability the same way: <code>isinstance(wf, ripplegw.DistanceScaledWav
       <script id="__config" type="application/json">{"annotate":null,"base":"../..","features":["content.code.copy","navigation.instant","navigation.tabs","navigation.top","toc.follow","header.autohide"],"search":"../../assets/javascripts/workers/search.7d14d953.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"default":"stable","provider":"mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.ed145cee.min.js"></script>
+      <script src="../../assets/javascripts/bundle.49251538.min.js"></script>
       
         <script src="../../javascripts/mathjax.js"></script>
       

@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.52">
+      <meta name="generator" content="zensical-0.0.57">
     
     
       
@@ -36,12 +36,12 @@
       
         
       
-      <link rel="stylesheet" href="../assets/stylesheets/modern/main.8b3b5a67.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.5da3a30f.min.css">
       
         
           
         
-        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.dfe2e883.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.812a03bb.min.css">
       
       
 
@@ -1506,7 +1506,7 @@
 <p>JAX defaults to float32, but gravitational-wave waveform computations typically require float64 precision.
 Always enable it at the top of your script, before any JAX operations:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
-<span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot;jax_enable_x64&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+<span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">"jax_enable_x64"</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
 </code></pre></div>
 <p>Without this, you may see unexpected numerical errors or inaccurate waveforms, particularly at high frequencies or for long signals.</p>
 <h2 id="jit-compilation-time">JIT compilation time<a class="headerlink" href="#jit-compilation-time" title="Permanent link">¤</a></h2>
@@ -1514,7 +1514,7 @@ Always enable it at the top of your script, before any JAX operations:</p>
 This is normal — subsequent calls will be much faster.
 If you are timing ripple for benchmarking purposes, discard the first call.</p>
 <p>To disable JIT for debugging:</p>
-<div class="highlight"><pre><span></span><code><span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot;jax_disable_jit&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">"jax_disable_jit"</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="compilation-is-slow-for-complex-models">Compilation is slow for complex models<a class="headerlink" href="#compilation-is-slow-for-complex-models" title="Permanent link">¤</a></h2>
 <p>If you wrap a ripple waveform inside a larger likelihood with many operations or Python-level loops, JAX may take a long time to compile the full computational graph.
@@ -1523,7 +1523,7 @@ Replacing Python loops with <code>jax.lax.scan</code> or <code>jax.vmap</code> w
 <p>Older ripple code constructed models directly off the top-level module (<code>ripplegw.IMRPhenomD(f_ref=20.0)</code>) or looked them up in a <code>waveform_preset</code> dict.
 Neither exists anymore.
 The only construction path is the registry factory:</p>
-<div class="highlight"><pre><span></span><code><span class="n">waveform</span> <span class="o">=</span> <span class="n">ripplegw</span><span class="o">.</span><span class="n">waveform</span><span class="p">(</span><span class="s2">&quot;IMRPhenomD&quot;</span><span class="p">,</span> <span class="n">f_ref</span><span class="o">=</span><span class="mf">20.0</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="n">waveform</span> <span class="o">=</span> <span class="n">ripplegw</span><span class="o">.</span><span class="n">waveform</span><span class="p">(</span><span class="s2">"IMRPhenomD"</span><span class="p">,</span> <span class="n">f_ref</span><span class="o">=</span><span class="mf">20.0</span><span class="p">)</span>
 </code></pre></div>
 <p>See <a href="../guides/waveforms/">Working with Waveforms</a> for the full interface and <code>ripplegw.list_waveforms()</code> for every registered name.</p>
 <h2 id="where-is-t_c-time-of-coalescence">Where is <code>t_c</code> (time of coalescence)?<a class="headerlink" href="#where-is-t_c-time-of-coalescence" title="Permanent link">¤</a></h2>
@@ -1590,7 +1590,7 @@ If your use case needs to vary <code>t_c</code>, you currently need to apply the
       <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.code.copy","navigation.instant","navigation.tabs","navigation.top","toc.follow","header.autohide"],"search":"../assets/javascripts/workers/search.7d14d953.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"default":"stable","provider":"mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.ed145cee.min.js"></script>
+      <script src="../assets/javascripts/bundle.49251538.min.js"></script>
       
         <script src="../javascripts/mathjax.js"></script>
       
