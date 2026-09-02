@@ -55,9 +55,7 @@ jobs:
           esac
           cov_flags=""
           [[ "${{ matrix.python-version }}" == "3.12" ]] && cov_flags="--cov=ripplegw --cov-report="
-          xdist=""
-          [[ "${{ matrix.test_suite }}" == "integration" ]] && xdist="-n auto"
-          uv run pytest "$test_path" -m "not accuracy" $cov_flags $xdist
+          uv run pytest "$test_path" -m "not accuracy" $cov_flags
       - name: Prepare coverage data
         if: matrix.python-version == '3.12'
         run: mv .coverage ".coverage.${{ matrix.test_suite }}"
