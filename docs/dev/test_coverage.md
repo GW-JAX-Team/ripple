@@ -30,7 +30,8 @@ Every registered waveform therefore receives the following baseline coverage.
 | Optional interfaces | `AmplitudePhaseWaveform` methods and `DistanceScaledWaveform` distance scaling, when implemented. |
 | Declared physical features | Edge cases selected by metadata or parameters: aligned/precessing spins, tidal deformability, inclination, and time-domain shape parameters. |
 
-For precessing and tidal models the eager/`jit` and `vmap` checks are marked `slow`: they run on `main`-targeted CI only, where the accuracy job already compares those paths against LAL. Finite-gradient checks run on every build.
+For precessing and tidal models the eager/`jit` and `vmap` checks are marked `slow`: they run on `main`-targeted CI only, where the accuracy job already compares those paths against LAL.
+Finite-gradient checks run on every build.
 
 The three built-in continuous-wave models also have dedicated integration tests for their non-default configurations and batches over distinct detector sites.
 Focused unit tests cover utilities and registry behaviour; they are not a per-waveform accuracy claim.
