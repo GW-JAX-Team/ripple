@@ -32,7 +32,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Cache XLA compilations
         if: matrix.test_suite != 'unit'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .jax-cache
           key: xla-${{ runner.os }}-${{ matrix.test_suite }}-py${{ matrix.python-version }}-${{ hashFiles('src/ripplegw/**/*.py', 'uv.lock') }}
@@ -65,7 +65,7 @@ jobs:
         run: mv .coverage ".coverage.${{ matrix.test_suite }}"
       - name: Upload coverage data
         if: matrix.python-version == '3.12'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-${{ matrix.test_suite }}
           path: .coverage.${{ matrix.test_suite }}
@@ -84,7 +84,7 @@ jobs:
       - name: Install coverage dependencies
         run: uv sync --group test
       - name: Download coverage data
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: coverage-*
           path: coverage
