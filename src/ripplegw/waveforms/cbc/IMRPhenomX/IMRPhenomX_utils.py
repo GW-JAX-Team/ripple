@@ -1,3 +1,5 @@
+from typing import Optional
+
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
@@ -13,7 +15,8 @@ def get_cutoff_fMs(
     m2: FloatLike,
     chi1: FloatLike,
     chi2: FloatLike,
-    chip: float | FloatLike = 0.0,
+    chip: FloatLike = 0.0,
+    a_prec_override: Optional[FloatLike] = None,
 ) -> tuple[FloatLike, FloatLike, FloatLike, FloatLike]:
     # This function returns a variety of frequencies needed for computing IMRPhenomXAS
     # In particular, we have fRD, fdamp, fMECO, FISCO
@@ -151,8 +154,13 @@ def get_cutoff_fMs(
 
     # Precessing final spin (= a when chip=0): LAL sets pWF->afinal = afinal_prec,
     # so fRD/fdamp use a_prec. fISCO keeps using the aligned-spin a.
-    Sperp_prec = chip * mm1 * mm1  # chip * (m1/M)^2
-    a_prec = jnp.copysign(1.0, a) * jnp.sqrt(Sperp_prec**2 + a**2)
+    # a_prec_override bypasses the chip roundtrip when afinal_prec < a_aln (clamped chip=0
+    # would otherwise give a_prec = a_aln instead of the MSA-derived afinal_prec).
+    if a_prec_override is None:
+        Sperp_prec = chip * mm1 * mm1  # chip * (m1/M)^2
+        a_prec = jnp.copysign(1.0, a) * jnp.sqrt(Sperp_prec**2 + a**2)
+    else:
+        a_prec = a_prec_override
 
     a2 = a_prec * a_prec
     a3 = a2 * a_prec

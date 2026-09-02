@@ -2,12 +2,94 @@ import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
-from ripplegw.constants import EULERGAMMA, MSUN, C, G
+from ripplegw.constants import EULERGAMMA, MSUN, MTSUN, C, G
 from ripplegw.typing import FloatLike
 from ripplegw.waveforms.cbc.IMRPhenomX.elliptic_integrals import (
     ellint_F,
     gsl_sf_elljac_e,
 )
+
+_DEKKER_SPLIT = 134217729.0  # 2^27 + 1
+
+
+def _two_prod(a, b):
+    """Exact product a*b = p + err via Dekker splitting (no FMA needed)."""
+    p = a * b
+    ca = _DEKKER_SPLIT * a
+    ahi = ca - (ca - a)
+    alo = a - ahi
+    cb = _DEKKER_SPLIT * b
+    bhi = cb - (cb - b)
+    blo = b - bhi
+    err = ((ahi * bhi - p) + ahi * blo + alo * bhi) + alo * blo
+    return p, err
+
+
+def cbrt_cr(x: FloatLike) -> FloatLike:
+    """Correctly-rounded cube root (measured <= 0.5 ULP; positive args).
+
+    XLA's jnp.cbrt is off by up to ~3 ULP from the true cube root and is
+    backend-dependent; glibc's cbrt (what LAL calls) is off by up to ~2.4 ULP.
+    One Newton step with an exactly-computed residual (Dekker two-products for
+    y^3) lands on the correctly rounded result regardless of the seed's few-ULP
+    error, making ripple's v identical across backends.  The <= ~3 ULP residual
+    difference vs LAL is glibc's own error and cannot be removed without
+    transcribing glibc's algorithm — pointless while XLA's acos/cos differ from
+    glibc's by similar amounts inside the same cubic solve.
+    """
+    y = jnp.cbrt(x)
+    y2, e2 = _two_prod(y, y)
+    y3, e3 = _two_prod(y2, y)
+    resid = (y3 - x) + (e3 + e2 * y)
+    # cbrt(0) == 0 gives y2 == 0; skip the Newton step there so a zero-frequency
+    # bin returns 0 rather than 0/0 -> NaN. Bit-identical for positive inputs.
+    zero = y2 == 0.0
+    correction = jnp.where(zero, 0.0, resid / jnp.where(zero, 1.0, 3.0 * y2))
+    return y - correction
+
+
+def lal_mass_conventions(mass_1: FloatLike, mass_2: FloatLike):
+    """Mirror LAL's mass arithmetic bit-for-bit for the precession chain.
+
+    LAL receives SI masses, converts to solar (m = m_SI/MSUN), and derives
+    eta from delta = |(m1-m2)/(m1+m2)| as eta = |0.25*(1-delta^2)| clamped to
+    0.25 (IMRPhenomXSetWaveformVariables, LALSimIMRPhenomX_internals.c:318,
+    392-405), and the mass fractions pWF->m1,m2 = m/(m1+m2) in solar masses
+    (:426-427).  ripple's callers hold solar masses, so the LAL-side value is
+    the round-trip (m*MSUN)/MSUN — up to 1 ULP from m itself.
+
+    These 1-ULP differences matter here and nowhere else: the MSA S^2 cubic
+    has a near-double root over most of the BNS prior, where arccos(-1+e)
+    amplifies input ULPs by ~1e10-1e12 into the Euler angles.  Everything
+    downstream of this helper is bit-compatible with LAL by construction.
+
+    Returns (m1_SI, m2_SI, eta, x1, x2, Mtot_SI_wf, Mtot_solar) where
+    m*_SI are the caller-equivalent SI masses (what LAL's precession struct
+    divides for its own fractions), x* are pWF->m1/m2, and Mtot_SI_wf is
+    pWF->Mtot_SI (built from the round-tripped solar masses).
+    """
+    m1_SI = mass_1 * MSUN
+    m2_SI = mass_2 * MSUN
+    # LAL_SimIMRPhenomX_internals.c:318-319 — SI -> solar round-trip
+    m1 = m1_SI / MSUN
+    m2 = m2_SI / MSUN
+    delta = jnp.abs((m1 - m2) / (m1 + m2))
+    eta = jnp.minimum(jnp.abs(0.25 * (1.0 - delta * delta)), 0.25)
+    Mtot = m1 + m2
+    x1 = m1 / Mtot
+    x2 = m2 / Mtot
+    # wf->Mtot_SI = wf->m1_SI + wf->m2_SI with wf->m*_SI = m_rt * MSUN
+    Mtot_SI_wf = m1 * MSUN + m2 * MSUN
+    return m1_SI, m2_SI, eta, x1, x2, Mtot_SI_wf, Mtot
+
+
+def lal_M_sec(mass_1: FloatLike, mass_2: FloatLike) -> FloatLike:
+    """pWF->M_sec = Mtot * MTSUN with LAL's round-tripped solar masses.
+
+    Multiply frequencies as f * M_sec (LAL's grouping) to get bit-identical Mf.
+    """
+    _, _, _, _, _, _, Mtot = lal_mass_conventions(mass_1, mass_2)
+    return Mtot * MTSUN
 
 
 # /** This function initializes all the core variables required for the MSA system. This will be called first. */
@@ -34,12 +116,17 @@ def IMRPhenomX_Initialize_MSA_System(
     """
     # Sanity check on the precession version
 
-    eta = mass_1 * mass_2 / jnp.power(mass_1 + mass_2, 2)
+    # LAL-bit-compatible masses: eta from the |0.25(1-delta^2)| form, mass
+    # fractions from round-tripped solar masses (see lal_mass_conventions).
+    mass_1_SI, mass_2_SI, eta, x1, x2, Mtot_SI_wf, _ = lal_mass_conventions(
+        mass_1, mass_2
+    )
 
-    eta2 = jnp.power(eta, 2)
-    eta3 = jnp.power(eta, 3)
-    eta4 = jnp.power(eta, 4)
-    inveta = jnp.power(eta, -1)
+    # Powers exactly as LAL forms them (LALSimIMRPhenomX_precession.c:168-191)
+    eta2 = eta * eta
+    eta3 = eta * eta2
+    eta4 = eta * eta3
+    inveta = 1.0 / eta
 
     # PN Coefficients for d \omega / d t as per LALSimInspiralFDPrecAngles_internals.c
     LAL_LN2 = jnp.log(2.0)
@@ -95,7 +182,9 @@ def IMRPhenomX_Initialize_MSA_System(
     # IMRPhenomX assumes m1 > m2 and q > 1. For the internal MSA code, flip q and
     # dump this to pPrec->qq, where qq explicitly denotes that this is 0 < q < 1.
 
-    q = mass_2 / mass_1  # m2 / m1, q < 1, m1 > m2
+    # LAL: pPrec->qq = pWF->m2 / pWF->m1, a ratio of solar-mass *fractions*
+    # (LALSimIMRPhenomX_precession.c:2306) — not of the raw masses.
+    q = x2 / x1  # m2 / m1, q < 1, m1 > m2
 
     #    /* \delta and powers of \delta in terms of q < 1, should just be m1 - m2 */
     delta_qq = (1.0 - q) / (1.0 + q)
@@ -114,13 +203,17 @@ def IMRPhenomX_Initialize_MSA_System(
     S1_0_norm = IMRPhenomX_vector_L2_norm(S1v)
     S2_0_norm = IMRPhenomX_vector_L2_norm(S2v)
 
-    mass_1_SI = mass_1 * MSUN
-    mass_2_SI = mass_2 * MSUN
-
+    # piGM uses the caller-supplied SI masses (LALSimIMRPhenomX_precession.c:196)
     piGM = jnp.pi * (mass_1_SI + mass_2_SI) * (G / C) / (C * C)
 
-    # Reference velocity v and v^2
-    v_0 = jnp.power(piGM * reference_frequency, 1.0 / 3.0)
+    # Reference velocity v and v^2.
+    # LAL uses cbrt here (pPrec->v_0, LALSimIMRPhenomX_precession.c:2361); v_0
+    # feeds L_0_norm -> the S^2 cubic -> Spl2/Smi2, and for nearly-aligned
+    # systems that cubic has a near-double root, so single-ULP differences are
+    # amplified by many orders of magnitude.  cbrt_cr is correctly rounded and
+    # backend-independent; the residual vs LAL is glibc's own <= ~2.4 ULP error
+    # (see cbrt_cr docstring).
+    v_0 = cbrt_cr(piGM * reference_frequency)
     v_0_2 = v_0 * v_0
 
     # Reference orbital angular momenta
@@ -159,8 +252,19 @@ def IMRPhenomX_Initialize_MSA_System(
     L0norm = L_0_norm
     J0norm = J_0_norm
 
+    # LAL's pPrec->S1_norm uses fractions m_SI(caller) / pWF->Mtot_SI
+    # (LALSimIMRPhenomX_precession.c:147-148, 219-228) — note the mixed
+    # convention: the numerator is the caller's SI mass, the denominator the
+    # round-tripped one.
     S1_norm_2, S2_norm_2 = compute_spin_norm_squared(
-        chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, mass_1, mass_2
+        chi1x,
+        chi1y,
+        chi1z,
+        chi2x,
+        chi2y,
+        chi2z,
+        mass_1_SI / Mtot_SI_wf,
+        mass_2_SI / Mtot_SI_wf,
     )
 
     vRoots = IMRPhenomX_Return_Roots_MSA(
@@ -733,23 +837,69 @@ def IMRPhenomX_Return_Roots_MSA(
     invalid_case = jnp.logical_or(vector_condition, scalar_condition)
 
     def roots_when_valid():
+        # Trigonometric solution of the depressed cubic (see arXiv:0711.4064).
         tmp1 = 2.0 * sqrtarg * jnp.cos(theta - 4.0 * jnp.pi / 3.0) - B / 3.0
         tmp2 = 2.0 * sqrtarg * jnp.cos(theta - 2.0 * jnp.pi / 3.0) - B / 3.0
         tmp3 = 2.0 * sqrtarg * cos_theta - B / 3.0
 
-        tmp4 = jnp.maximum(jnp.maximum(tmp1, tmp2), tmp3)
-        tmp5 = jnp.minimum(jnp.minimum(tmp1, tmp2), tmp3)
+        hi = jnp.maximum(jnp.maximum(tmp1, tmp2), tmp3)
+        lo = jnp.minimum(jnp.minimum(tmp1, tmp2), tmp3)
+        mid = tmp1 + tmp2 + tmp3 - hi - lo
 
-        tmp6 = jnp.where(
-            (tmp4 - tmp3 > 0.0) & (tmp5 - tmp3 < 0.0),
-            tmp3,
-            jnp.where((tmp4 - tmp1 > 0.0) & (tmp5 - tmp1 < 0.0), tmp1, tmp2),
-        )
+        # For a nearly-aligned binary the upper two roots collide, acosarg -> -1 and
+        # theta -> pi/3, where arccos has an infinite derivative:
+        # arccos(-1 + e) = pi - sqrt(2e).  Taking all three roots straight from the
+        # trig formula then loses about half the mantissa in the colliding pair, and
+        # that error is amplified by ~1e7 more on the way to Omegaz0 (through
+        # cm = Smi2*eta^2 - c1^2 and adD = aw / (4*sqrt(|cp*cm|))), which sets the
+        # leading v^-3 term of both phi_z and zeta.  For BNS spins this regime covers
+        # the large majority of the prior.
+        #
+        # The isolated root is the accurate one: at the collision its derivative with
+        # respect to theta vanishes, so it is insensitive to the lost digits.  Deflate
+        # the monic cubic x^3 + B x^2 + C x + D by that root and read the colliding
+        # pair off the quadratic factor, so the pair is never obtained by differencing
+        # two nearly equal numbers.
+        gap_hi = hi - mid  # separation of the upper pair
+        gap_lo = mid - lo  # separation of the lower pair
+        upper_pair_collides = gap_hi <= gap_lo
 
-        S32 = tmp5
-        Smi2 = jnp.abs(tmp6)
-        Spl2 = jnp.abs(tmp4)
-        return jnp.array([S32, Smi2, Spl2])
+        r_iso = jnp.where(upper_pair_collides, lo, hi)
+
+        # Vieta, with r3 = r_iso:
+        #     direct   : r1 + r2 = -B - r3,        r1 r2 = C - r3 (r1 + r2)
+        #     deflated : r1 r2   = -D / r3,        r1 + r2 = (C - r1 r2) / r3
+        # The direct forms cancel catastrophically when |r3| >> |r1|, |r2| -- exactly
+        # the nearly-aligned case, where -B - r3 loses five or six digits and the
+        # product loses more.  The deflated forms are cancellation-free in that regime
+        # (C dominates r1 r2 by orders of magnitude), but degenerate as r3 -> 0.  Pick
+        # whichever branch has the dominant denominator.
+        sum_direct = -B - r_iso
+        prod_direct = C - r_iso * sum_direct
+
+        r_iso_dominates = jnp.abs(r_iso) > jnp.abs(sum_direct)
+        r_iso_safe = jnp.where(r_iso_dominates, r_iso, 1.0)
+        prod_deflated = -D / r_iso_safe
+        sum_deflated = (C - prod_deflated) / r_iso_safe
+
+        pair_sum = jnp.where(r_iso_dominates, sum_deflated, sum_direct)
+        pair_prod = jnp.where(r_iso_dominates, prod_deflated, prod_direct)
+
+        # Clamp: the discriminant is non-negative in exact arithmetic, and rounding
+        # can push it slightly negative exactly at the collision.
+        pair_diff = jnp.sqrt(jnp.maximum(pair_sum * pair_sum - 4.0 * pair_prod, 0.0))
+
+        pair_hi = 0.5 * (pair_sum + pair_diff)
+        pair_lo = 0.5 * (pair_sum - pair_diff)
+
+        # Reassemble in the order LAL uses: S32 = smallest, Smi2 = middle, Spl2 = largest.
+        S32 = jnp.where(upper_pair_collides, r_iso, pair_lo)
+        Smi2 = jnp.where(upper_pair_collides, pair_lo, pair_hi)
+        Spl2 = jnp.where(upper_pair_collides, pair_hi, r_iso)
+
+        # Spl2 ~ 0 to round-off can drive Smi2 slightly negative; LAL enforces
+        # positive-definiteness on the pair but deliberately not on S32.
+        return jnp.array([S32, jnp.abs(Smi2), jnp.abs(Spl2)])
 
     def roots_when_invalid():
         Smi2 = S_0_norm**2 * jnp.ones_like(LNorm)
@@ -972,15 +1122,22 @@ def compute_constants_L(eta, dotS1L, dotS2L, q):
     return constants_L_0, constants_L_1, constants_L_2, constants_L_3, constants_L_4
 
 
-def compute_spin_norm_squared(chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, mass_1, mass_2):
+def compute_spin_norm_squared(
+    chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, mass_1_fraction, mass_2_fraction
+):
     """
-    Compute the squared norms of the dimensionless spin vectors S1 and S2.
+    Compute the squared norms of the dimensionful spin vectors S1 and S2.
+
+    Bit-compatible with LAL (LALSimIMRPhenomX_precession.c:202, 219-228):
+    chi_norm = sqrt(x*x + y*y + z*z), m1_2 = m1*m1, S1_norm = |chi1_norm|*m1_2,
+    S1_norm_2 = S1_norm*S1_norm.  The caller supplies the mass fractions with
+    LAL's exact convention (caller SI mass / round-tripped Mtot_SI).
 
     Args:
         chi1x, chi1y, chi1z: Components of dimensionless spin vector for mass 1
         chi2x, chi2y, chi2z: Components of dimensionless spin vector for mass 2
-        mass_1: Mass of the primary (m1 > m2)
-        mass_2: Mass of the secondary
+        mass_1_fraction: m1/M for the primary (m1 > m2)
+        mass_2_fraction: m2/M for the secondary
 
     Returns:
         tuple: (S1_norm_2, S2_norm_2) - squared norms of the spin vectors
@@ -988,15 +1145,14 @@ def compute_spin_norm_squared(chi1x, chi1y, chi1z, chi2x, chi2y, chi2z, mass_1, 
     chi1_norm = jnp.sqrt(chi1x * chi1x + chi1y * chi1y + chi1z * chi1z)
     chi2_norm = jnp.sqrt(chi2x * chi2x + chi2y * chi2y + chi2z * chi2z)
 
-    total_mass = mass_1 + mass_2
-    mass_1_fraction = mass_1 / total_mass
-    mass_2_fraction = mass_2 / total_mass
+    m1_2 = mass_1_fraction * mass_1_fraction
+    m2_2 = mass_2_fraction * mass_2_fraction
 
-    S1_norm = jnp.abs(chi1_norm) * jnp.power(mass_1_fraction, 2)
-    S2_norm = jnp.abs(chi2_norm) * jnp.power(mass_2_fraction, 2)
+    S1_norm = jnp.abs(chi1_norm) * m1_2
+    S2_norm = jnp.abs(chi2_norm) * m2_2
 
-    S1_norm_2 = jnp.power(S1_norm, 2)
-    S2_norm_2 = jnp.power(S2_norm, 2)
+    S1_norm_2 = S1_norm * S1_norm
+    S2_norm_2 = S2_norm * S2_norm
 
     return S1_norm_2, S2_norm_2
 
@@ -1628,8 +1784,14 @@ def IMRPhenomX_vector_L2_norm(v1: Float[Array, "3"]) -> FloatLike:
         v1: 3D vector as JAX array [x, y, z] (Float[Array, "3"])
 
     Returns: FloatLike: L2 norm of the vector
+
+    Fixed summation order matching LAL (LALSimIMRPhenomX_precession.c:3710-3714):
+    sqrt((x*x) + (y*y) + (z*z)) with left-to-right accumulation.  jnp.linalg.norm
+    leaves the reduction order to XLA, and for J_0 = L_0 + S_0 the summands span
+    orders of magnitude — the resulting ULP feeds the ill-conditioned S^2 cubic.
     """
-    return jnp.linalg.norm(v1)
+    dot_product = (v1[0] * v1[0]) + (v1[1] * v1[1]) + (v1[2] * v1[2])
+    return jnp.sqrt(dot_product)
 
 
 def IMRPhenomX_vector_scalar(v1: Float[Array, "3"], a: FloatLike) -> Float[Array, "3"]:
@@ -1954,5 +2116,8 @@ def IMRPhenomX_vector_dot_product(
         v2: Second 3D vector as JAX array (Float[Array, "3"])
 
     Returns: FloatLike: Dot product
+
+    Fixed summation order matching LAL (LALSimIMRPhenomX_precession.c:3694-3697);
+    jnp.dot lowers to dot_general, which may reorder or FMA-contract the sum.
     """
-    return jnp.dot(v1, v2)
+    return (v1[0] * v2[0]) + (v1[1] * v2[1]) + (v1[2] * v2[2])

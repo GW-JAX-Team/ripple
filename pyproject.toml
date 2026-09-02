@@ -75,14 +75,15 @@ build-backend = "hatchling.build"
 [tool.hatch.version]
 source = "vcs"
 fallback-version = "0.0.0"
-raw-options = { local_scheme = "no-local-version" }
+raw-options = { local_scheme = "no-local-version", version_scheme = "semver-pep440-release-branch" }
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
 markers = [
     "accuracy: compares waveform output against its registered reference calculation",
-    "smoke: minimal accuracy subset cheap enough for CI",
+    "smoke: accuracy checks cheap enough to run on every CI gate (few parameter draws)",
+    "slow: heavy compile path already covered by another test; runs on main, skipped by -m 'not slow'",
 ]
 
 [tool.ruff]

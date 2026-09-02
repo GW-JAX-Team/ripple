@@ -7,6 +7,7 @@ anchored at ``testpaths = ["tests"]``.
 """
 
 from functools import cache
+from pathlib import Path
 
 import jax
 import pytest
@@ -15,6 +16,10 @@ jax.config.update("jax_enable_x64", True)
 
 import ripplegw
 from tests.helpers.config import default_config
+
+_DEFAULT_ACCURACY_OUTDIR = (
+    Path(__file__).resolve().parent / "cross_validation" / "results"
+)
 
 
 def pytest_addoption(parser):
@@ -40,8 +45,9 @@ def pytest_addoption(parser):
     )
     parser.addoption(
         "--outdir",
-        default="accuracy-results",
-        help="Directory for large-scale test results/figures/cache (default: ./accuracy-results).",
+        default=str(_DEFAULT_ACCURACY_OUTDIR),
+        help="Directory for large-scale test results/figures/cache "
+        "(default: tests/cross_validation/results).",
     )
     parser.addoption(
         "--cache-reference",

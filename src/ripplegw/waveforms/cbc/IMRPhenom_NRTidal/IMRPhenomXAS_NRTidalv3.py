@@ -1,6 +1,7 @@
 """by Robin Chan"""
 
 from collections.abc import Mapping
+from typing import Optional
 
 import jax
 import jax.numpy as jnp
@@ -67,6 +68,8 @@ def _phase_of(
     theta_extrinsic: Float[Array, "3"],
     bbh_psi: Float[Array, " n_freq"],
     no_taper: bool = False,
+    chip: float = 0.0,
+    a_prec_override: Optional[FloatLike] = None,
 ) -> Float[Array, " n_freq"]:
     """Phase of ``h0 = amplitude * exp(1j * phase)`` (the exponent).
 
@@ -74,6 +77,11 @@ def _phase_of(
     tidal and spin-correction phase terms are added on top of it. Note this
     phase's taper (``P_P``, windows 1.15-1.35x the merger frequency) differs
     from the amplitude's (``A_P`` in ``_amplitude_of``, windows 1.0-1.2x).
+
+    ``chip``/``a_prec_override`` forward the in-plane-spin-dependent ringdown
+    correction into the underlying ``Phase``/``PhaseDerivative`` calls; they
+    are only non-default when this is reused as the co-precessing (2,2) phase
+    for IMRPhenomXP_NRTidalv3 -- see ``IMRPhenomXP_NRTidalv3.py``.
     """
     m1, m2, _, _, lambda1, lambda2 = theta_intrinsic
     M_s = (m1 + m2) * MTSUN
@@ -120,15 +128,19 @@ def _phase_of(
     )
 
     # dphiXAS = jax.grad(Phase, argnums=0)(f_final, theta_intrinsic[:4], bbh_phase_coeffs) / M_s
-    dphiXAS = PhaseDerivative(f_final, theta_intrinsic[:4], bbh_phase_coeffs) / M_s
+    dphiXAS = (
+        PhaseDerivative(
+            f_final, theta_intrinsic[:4], bbh_phase_coeffs, chip, a_prec_override
+        )
+        / M_s
+    )
     linb = dphiT - dphiXAS
     ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] + 2 * theta_extrinsic[2]
     phase_shift = (
         linb * (f_Ms - f_ref * M_s)
-        - Phase(f_ref, theta_intrinsic[:4], bbh_phase_coeffs)
+        - Phase(f_ref, theta_intrinsic[:4], bbh_phase_coeffs, chip, a_prec_override)
         + phiTfRef
         + PI / 4.0
-        - PI
         + ext_phase_contrib
     )
 
@@ -173,6 +185,8 @@ def _gen_IMRPhenomXAS_NRTidalv3(
     bbh_amp: Float[Array, " n_freq"],
     bbh_psi: Float[Array, " n_freq"],
     no_taper: bool = False,
+    chip: float = 0.0,
+    a_prec_override: Optional[FloatLike] = None,
 ) -> Complex[Array, " n_freq"]:
     """
     Master internal function to get the GW strain for given parameters.
@@ -188,6 +202,11 @@ def _gen_IMRPhenomXAS_NRTidalv3(
         bbh_amp (Array): The BBH amplitude of the underlying model (before applying tidal corrections).
         bbh_psi (Array): The BBH phase of the underlying model (before applying tidal corrections).
         no_taper (bool, optional): Whether to disable tapering. Default is False.
+        chip (float, optional): In-plane spin magnitude forwarded to the BBH
+            ringdown correction; only non-default when reused as the
+            co-precessing phase for IMRPhenomXP_NRTidalv3. Default is 0.0.
+        a_prec_override (optional): Precession-averaged final spin override
+            forwarded to the same correction. Default is None.
 
     Returns:
         Array: Final complex-valued strain of GW.
@@ -195,7 +214,14 @@ def _gen_IMRPhenomXAS_NRTidalv3(
     # Reconstruct waveform with NRTidal terms included: h(f) = [A(f) + A_tidal(f)] * Exp{I [phi(f) - phi_tidal(f)]} * window(f)
     A = _amplitude_of(f, theta_intrinsic, theta_extrinsic, bbh_amp, no_taper=no_taper)
     phi = _phase_of(
-        f, f_ref, theta_intrinsic, theta_extrinsic, bbh_psi, no_taper=no_taper
+        f,
+        f_ref,
+        theta_intrinsic,
+        theta_extrinsic,
+        bbh_psi,
+        no_taper=no_taper,
+        chip=chip,
+        a_prec_override=a_prec_override,
     )
     h0 = A * jnp.exp(1.0j * phi)
     return h0
@@ -205,14 +231,27 @@ def _bbh_amp_psi(
     f: Float[Array, " n_freq"],
     theta_intrinsic: Float[Array, "6"],
     theta_extrinsic: Float[Array, "3"],
+    chip: float = 0.0,
+    a_prec_override: Optional[FloatLike] = None,
 ) -> tuple[Float[Array, " n_freq"], Float[Array, " n_freq"]]:
-    """BBH-baseline amplitude and phase that the tidal corrections are applied on top of."""
+    """BBH-baseline amplitude and phase that the tidal corrections are applied on top of.
+
+    ``chip``/``a_prec_override`` are only non-default when this is reused as
+    the co-precessing (2,2) baseline for IMRPhenomXP_NRTidalv3.
+    """
     m1, m2, chi1, chi2, _, _ = theta_intrinsic
     bbh_theta_intrinsic = jnp.array([m1, m2, chi1, chi2])
     phase_coeffs = IMRPhenomX_utils.PhenomX_phase_coeff_table
     amp_coeffs = IMRPhenomX_utils.PhenomX_amp_coeff_table
-    Psi = Phase(f, bbh_theta_intrinsic, phase_coeffs)
-    A = Amp(f, bbh_theta_intrinsic, amp_coeffs, D=theta_extrinsic[0])
+    Psi = Phase(f, bbh_theta_intrinsic, phase_coeffs, chip, a_prec_override)
+    A = Amp(
+        f,
+        bbh_theta_intrinsic,
+        amp_coeffs,
+        D=theta_extrinsic[0],
+        chip=chip,
+        a_prec_override=a_prec_override,
+    )
     return A, Psi
 
 
@@ -222,6 +261,8 @@ def gen_IMRPhenomXAS_NRTidalv3(
     f_ref: float,
     use_lambda_tildes: bool = True,
     no_taper: bool = False,
+    chip: float = 0.0,
+    a_prec_override: Optional[FloatLike] = None,
 ) -> Complex[Array, " n_freq"]:
     """
     Generate NRTidalv3 frequency domain waveform following 2311.07456.
@@ -244,6 +285,11 @@ def gen_IMRPhenomXAS_NRTidalv3(
         f_ref (float): Reference frequency for the waveform.
         use_lambda_tildes (bool, optional): Use lambda tilde and delta lambda instead of lambda1 and lambda2. Default is True.
         no_taper (bool, optional): Whether to disable tapering. Default is False.
+        chip (float, optional): In-plane spin magnitude forwarded to the BBH
+            ringdown correction; only non-default when reused as the
+            co-precessing phase/amplitude for IMRPhenomXP_NRTidalv3. Default is 0.0.
+        a_prec_override (optional): Precession-averaged final spin override
+            forwarded to the same correction. Default is None.
 
     Returns:
         h0 (Array): Strain.
@@ -262,11 +308,21 @@ def gen_IMRPhenomXAS_NRTidalv3(
     theta_intrinsic = jnp.array([m1, m2, chi1, chi2, lambda1, lambda2])
     theta_extrinsic = params[6:]
 
-    bbh_amp, bbh_psi = _bbh_amp_psi(f, theta_intrinsic, theta_extrinsic)
+    bbh_amp, bbh_psi = _bbh_amp_psi(
+        f, theta_intrinsic, theta_extrinsic, chip=chip, a_prec_override=a_prec_override
+    )
 
     # Use BBH waveform and add tidal corrections
     return _gen_IMRPhenomXAS_NRTidalv3(
-        f, f_ref, theta_intrinsic, theta_extrinsic, bbh_amp, bbh_psi, no_taper=no_taper
+        f,
+        f_ref,
+        theta_intrinsic,
+        theta_extrinsic,
+        bbh_amp,
+        bbh_psi,
+        no_taper=no_taper,
+        chip=chip,
+        a_prec_override=a_prec_override,
     )
 
 
@@ -312,8 +368,13 @@ def gen_IMRPhenomXAS_NRTidalv3_hphc(
         f, params[:-1], f_ref, use_lambda_tildes=use_lambda_tildes, no_taper=no_taper
     )
 
-    hp = h0 * (1 / 2 * (1 + jnp.cos(iota) ** 2))
-    hc = -1j * h0 * jnp.cos(iota)
+    # -1 prefactor in hp (and the corresponding sign in hc) comes from
+    # Ylmfactor = e^(i*PI) in Y_{-2}^{22}, which LAL evaluates at phi=PI/2
+    # after generating the h22 mode:
+    #   hp = pfac  * Ylmfactor * h22 = -(1+cos^2 iota)/2 * h22
+    #   hc = -i    * cfac * Ylmfactor * h22 = i * cos(iota) * h22
+    hp = -h0 * (1 / 2 * (1 + jnp.cos(iota) ** 2))
+    hc = 1j * h0 * jnp.cos(iota)
 
     return hp, hc
 

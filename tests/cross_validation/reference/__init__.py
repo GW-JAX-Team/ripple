@@ -37,6 +37,15 @@ class ReferenceBackend(Protocol):
         """Generate ``{"p": hp, "c": hc}`` on ``grid.axis``, from a ripple-native ``params`` dict."""
         ...
 
+    def expected_failure(self, waveform: str, error: Exception) -> bool:
+        """Whether ``error`` from ``generate`` is an expected, excludable failure
+        mode of the reference implementation itself (e.g. a documented
+        domain error) rather than a bug to fail the test on. Optional --
+        backends without a genuinely expected failure mode need not implement
+        it; callers should treat a missing implementation as always ``False``.
+        """
+        ...
+
 
 REFERENCE_BACKENDS: dict[str, type] = {}
 

@@ -68,6 +68,36 @@ def overlap_loss(
     return jnp.clip(loss, 0.0)
 
 
+def combined_overlap_loss(
+    h1p: jnp.ndarray,
+    h1c: jnp.ndarray,
+    h2p: jnp.ndarray,
+    h2c: jnp.ndarray,
+    psd: jnp.ndarray,
+    frequencies: jnp.ndarray,
+) -> float:
+    """SNR-weighted overlap loss combining both polarizations.
+
+    ``OL_combined = (<h2p|h2p>*OL_p + <h2c|h2c>*OL_c) / (<h2p|h2p> + <h2c|h2c>)``,
+    which equals the polarization-angle-averaged mismatch of the detector
+    strain (``h2p``/``h2c`` set the weights, so this is well-defined even
+    when ``h1p``/``h1c`` disagree strongly with the reference).
+
+    Judging ``h1c``/``h2c`` in isolation is misleading near edge-on
+    inclination: a fixed-size angle error there is divided by a
+    near-vanishing cross-polarization signal and blown up by orders of
+    magnitude in the raw per-polarization loss, while that polarization
+    carries negligible detector SNR. Weighting by each polarization's own
+    noise-weighted power avoids that spurious amplification. Per-polarization
+    losses remain useful as diagnostics -- see ``overlap_loss``.
+    """
+    p_power = noise_weighted_inner_product(h2p, h2p, psd, frequencies)
+    c_power = noise_weighted_inner_product(h2c, h2c, psd, frequencies)
+    ol_p = overlap_loss(h1p, h2p, psd, frequencies)
+    ol_c = overlap_loss(h1c, h2c, psd, frequencies)
+    return (p_power * ol_p + c_power * ol_c) / (p_power + c_power)
+
+
 def inner_product_phase(
     h1: jnp.ndarray, h2: jnp.ndarray, psd: jnp.ndarray, frequencies: jnp.ndarray
 ) -> float:

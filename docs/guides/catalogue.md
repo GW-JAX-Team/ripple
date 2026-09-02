@@ -40,6 +40,7 @@ The IMRPhenomX models are the newer IMRPhenom models.
 | `IMRPhenomXP` | Precessing | No | No |
 | `IMRPhenomXPHM` | Precessing | Yes | No |
 | `IMRPhenomXAS_NRTidalv3` | Aligned-spin | No | NRTidalv3 |
+| `IMRPhenomXP_NRTidalv3` | Precessing | No | NRTidalv3 |
 
 ## Bursts
 

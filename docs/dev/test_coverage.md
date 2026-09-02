@@ -16,7 +16,7 @@ uv run pytest -m "not accuracy"
 ```
 
 CI runs the non-accuracy suite on its PR and push workflows.
-Relevant Python 3.12 main workflows also run a small LAL accuracy smoke test for `TaylorF2`, `IMRPhenomD`, and `IMRPhenomXPHM`; it is not a replacement for a selected reference sweep.
+Relevant Python 3.12 main workflows also run a LAL accuracy smoke test over every frequency-domain waveform at three parameter draws each; it is not a replacement for a selected reference sweep.
 
 ## Coverage added by registration
 
@@ -30,6 +30,9 @@ Every registered waveform therefore receives the following baseline coverage.
 | Optional interfaces | `AmplitudePhaseWaveform` methods and `DistanceScaledWaveform` distance scaling, when implemented. |
 | Declared physical features | Edge cases selected by metadata or parameters: aligned/precessing spins, tidal deformability, inclination, and time-domain shape parameters. |
 
+For precessing and tidal models the eager/`jit` and `vmap` checks are marked `slow`: they run on `main`-targeted CI only, where the accuracy job already compares those paths against LAL.
+Finite-gradient checks run on every build.
+
 The three built-in continuous-wave models also have dedicated integration tests for their non-default configurations and batches over distinct detector sites.
 Focused unit tests cover utilities and registry behaviour; they are not a per-waveform accuracy claim.
 
@@ -42,7 +45,7 @@ The launcher column is the one large-scale test selected by [Run Reference Check
 | Waveform(s) | Reference checks | Launcher sweep |
 | --- | --- | --- |
 | `TaylorF2`, `IMRPhenomD`, `IMRPhenomD_NRTidalv2`, `IMRPhenomHM`, `IMRPhenomXAS`, `IMRPhenomXAS_NRTidalv3`, `IMRPhenomXHM` | LALSuite frequency-domain overlap and absolute phase convention | The same LAL overlap and phase tests over the selected sample set |
-| `IMRPhenomPv2`, `IMRPhenomXP`, `IMRPhenomXPHM` | LALSuite frequency-domain overlap | The LAL overlap test over the selected sample set |
+| `IMRPhenomPv2`, `IMRPhenomXP`, `IMRPhenomXP_NRTidalv3`, `IMRPhenomXPHM` | LALSuite frequency-domain overlap | The LAL overlap test over the selected sample set |
 | `SineGaussian` | LALSimulation on aligned time samples | The direct time-domain sweep |
 | `ExactPulsarSignal` | LALPulsar building-block reconstruction and barycenter check | A randomized LALPulsar building-block sweep |
 | `PulsarSignal` | Per-sample LALPulsar barycenter check and `CWMakeFakeData` regression | A randomized `CWMakeFakeData` sweep |

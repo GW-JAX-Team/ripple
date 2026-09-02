@@ -7,38 +7,93 @@ on:
     branches: [main, ripple-dev]
   release:
     types: [published]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   test:
+    name: ${{ matrix.test_suite }} (${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
+        test_suite: [unit, integration, cross-validation]
     steps:
-      - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v7
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.0.1
         with:
           enable-cache: true
-      - name: Set up Python ${{ matrix.python-version }}
-        run: uv python install ${{ matrix.python-version }}
+          python-version: ${{ matrix.python-version }}
+      - name: Cache XLA compilations
+        if: matrix.test_suite != 'unit'
+        uses: actions/cache@v4
+        with:
+          path: .jax-cache
+          key: xla-${{ runner.os }}-${{ matrix.test_suite }}-py${{ matrix.python-version }}-${{ hashFiles('src/ripplegw/**/*.py', 'uv.lock') }}
+          restore-keys: xla-${{ runner.os }}-${{ matrix.test_suite }}-py${{ matrix.python-version }}-
       - name: Install dependencies
-        run: uv sync --python ${{ matrix.python-version }} --group test --group cross-validation
-      - name: Run non-accuracy tests
-        run: |
-          if [[ "${{ matrix.python-version }}" == "3.12" ]]; then
-            uv run pytest -m "not accuracy" --cov=ripplegw --cov-report=term-missing
-          else
-            uv run pytest -m "not accuracy"
-          fi
+        run: uv sync --group test ${{ matrix.test_suite == 'cross-validation' && '--group cross-validation' || '' }}
       - name: Run accuracy smoke test
-        if: matrix.python-version == '3.12' && (github.base_ref == 'main' || github.ref == 'refs/heads/main')
+        if: matrix.test_suite == 'cross-validation' && (github.ref == 'refs/heads/main' || github.base_ref == 'main')
+        env:
+          JAX_COMPILATION_CACHE_DIR: ${{ github.workspace }}/.jax-cache
         run: uv run pytest -m "accuracy and smoke" --reference lal --n-samples 3
-      - name: Upload coverage to Coveralls
+      - name: Run ${{ matrix.test_suite }} tests
+        env:
+          JAX_COMPILATION_CACHE_DIR: ${{ github.workspace }}/.jax-cache
+        run: |
+          case "${{ matrix.test_suite }}" in
+            unit) test_path=tests/unit ;;
+            integration) test_path=tests/integration ;;
+            cross-validation) test_path=tests/cross_validation ;;
+          esac
+          markexpr="not accuracy"
+          if [[ "${{ matrix.test_suite }}" == "integration" && "${{ github.ref }}" != "refs/heads/main" && "${{ github.base_ref }}" != "main" ]]; then
+            markexpr="not accuracy and not slow"
+          fi
+          cov_flags=""
+          [[ "${{ matrix.python-version }}" == "3.12" ]] && cov_flags="--cov=ripplegw --cov-report="
+          uv run pytest "$test_path" -m "$markexpr" $cov_flags
+      - name: Prepare coverage data
         if: matrix.python-version == '3.12'
+        run: mv .coverage ".coverage.${{ matrix.test_suite }}"
+      - name: Upload coverage data
+        if: matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.test_suite }}
+          path: .coverage.${{ matrix.test_suite }}
+          if-no-files-found: error
+          include-hidden-files: true
+
+  coverage:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.0.1
+        with:
+          enable-cache: true
+          python-version: "3.12"
+      - name: Install coverage dependencies
+        run: uv sync --group test
+      - name: Download coverage data
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-*
+          path: coverage
+          merge-multiple: true
+      - name: Combine coverage data
+        run: |
+          uv run coverage combine coverage
+          uv run coverage report --show-missing
+      - name: Upload coverage to Coveralls
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
@@ -47,12 +102,13 @@ jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v7
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.0.1
         with:
           enable-cache: true
+          python-version: "3.12"
       - name: Install dependencies
-        run: uv sync --python 3.12 --group test
+        run: uv sync --group test
       - name: Run pre-commit
         run: uv run pre-commit run --all-files
 
@@ -64,10 +120,10 @@ jobs:
       name: pypi
       url: https://pypi.org/project/ripplegw/
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v10.0.1
       - name: Build package
         run: uv build
       - name: Publish to PyPI
@@ -75,24 +131,46 @@ jobs:
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
 
-  tag-dev:
+  merge-main-to-dev:
     needs: [publish]
     runs-on: ubuntu-latest
+    if: github.event_name == 'release'
     permissions:
+      actions: write
       contents: write
+      pull-requests: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ripple-dev
-      - name: Tag ripple-dev with next minor dev version
+          fetch-depth: 0
+      - name: Merge main into ripple-dev, or open a PR on conflict
         env:
-          TAG_NAME: ${{ github.event.release.tag_name }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          VERSION="${TAG_NAME#v}"
-          IFS='.' read -r major minor patch <<< "$VERSION"
-          NEXT="v${major}.$((minor + 1)).0.dev0"
-          git tag --force "$NEXT"
-          git push --force origin "$NEXT"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          before=$(git rev-parse HEAD)
+          if git merge --no-edit origin/main; then
+            git push origin ripple-dev
+            if [ "$(git rev-parse HEAD)" != "$before" ]; then
+              gh workflow run CI.yml --ref ripple-dev
+            fi
+          else
+            git merge --abort
+            existing=$(gh pr list --repo "$GITHUB_REPOSITORY" --base ripple-dev --head main --state open --json number --jq '.[0].number // empty')
+            if [ -n "$existing" ]; then
+              echo "PR #$existing already open for main -> ripple-dev merge."
+            else
+              gh pr create \
+                --repo "$GITHUB_REPOSITORY" \
+                --base ripple-dev \
+                --head main \
+                --title "Merge main into ripple-dev after release" \
+                --body "Automated merge of main into ripple-dev failed due to conflicts. Please resolve manually."
+            fi
+          fi
 
   publish-testpypi:
     needs: [test, pre-commit]
@@ -102,11 +180,11 @@ jobs:
       name: testpypi
       url: https://test.pypi.org/project/ripplegw/
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v10.0.1
       - name: Build package
         run: uv build
       - name: Publish to TestPyPI

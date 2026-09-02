@@ -13,6 +13,7 @@ By implementing waveform models as differentiable JAX functions, ripple enables 
 - IMRPhenomXAS — aligned-spin binary black holes
 - IMRPhenomXPHM — precessing spins with higher-order modes
 - IMRPhenomXAS_NRTidalv3 — tidal corrections for binary neutron star mergers
+- IMRPhenomXP_NRTidalv3 — precessing spins with tidal corrections
 - SineGaussian — time-domain burst waveform
 - PulsarSignal — continuous-wave signal from a spinning neutron star
 - etc.

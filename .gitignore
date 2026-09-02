@@ -9,6 +9,7 @@ __pycache__/
 .coverage
 .coverage.*
 htmlcov/
+.jax-cache/
 
 # Virtual environments
 .venv/
@@ -33,6 +34,3 @@ docs/_build/
 
 # Zensical generated files
 _zensical_build.toml
-
-# Cross-validation accuracy test output (see tests/cross_validation/)
-/accuracy-results/
