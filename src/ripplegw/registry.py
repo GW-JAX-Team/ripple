@@ -16,14 +16,6 @@ from typing import TYPE_CHECKING, Any, Optional
 if TYPE_CHECKING:
     from ripplegw.interfaces import Waveform
 
-__all__ = [
-    "WAVEFORM_REGISTRY",
-    "get_waveform_metadata",
-    "list_waveforms",
-    "register",
-    "waveform",
-]
-
 WAVEFORM_REGISTRY: dict[str, type["Waveform"]] = {}
 """Global name -> ``Waveform`` subclass registry, populated at import by
 ``register``."""

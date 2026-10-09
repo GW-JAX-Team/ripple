@@ -22,7 +22,7 @@ SKIP_PREFIXES: list[str] = [
     "ripplegw/utils",
     "ripplegw/waveforms",
 ]
-REFERENCE_TAB_NAME = "Reference"
+REFERENCE_TAB_NAME = "API Reference"
 
 
 # ── module scanning ───────────────────────────────────────────────────────────
@@ -222,7 +222,7 @@ def main() -> None:
     api_nav = build_nav_tree(modules)
     print(f"Generated {len(modules)} API stubs")
 
-    # Rebuild nav: keep everything except existing Reference entry, append new one
+    # Rebuild nav: keep everything except existing API Reference entry, append new one
     def drop_reference_entries(nav):
         """Drop auto-generated reference sections so rebuilds stay idempotent."""
         return [
