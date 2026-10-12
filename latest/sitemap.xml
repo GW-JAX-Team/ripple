@@ -4,55 +4,7 @@
         <loc>https://gw-jax-team.github.io/ripple/latest/</loc>
       </url>
       <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/installation/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/quickstart/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/guides/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/guides/waveforms/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/guides/parameters/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/guides/jax/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/guides/catalogue/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/guides/benchmarking/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/dev/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/dev/architecture/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/dev/adding_a_waveform/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/dev/test_coverage/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/dev/run_reference_checks/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/dev/reference_comparisons_and_limits/</loc>
-      </url>
-      <url>
         <loc>https://gw-jax-team.github.io/ripple/latest/FAQ/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/citing/</loc>
-      </url>
-      <url>
-        <loc>https://gw-jax-team.github.io/ripple/latest/contributing/</loc>
       </url>
       <url>
         <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/</loc>
@@ -71,5 +23,56 @@
       </url>
       <url>
         <loc>https://gw-jax-team.github.io/ripple/latest/api/ripplegw/typing/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/citing/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/contributing/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/dev/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/dev/adding_a_waveform/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/dev/architecture/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/dev/reference_comparison_notes/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/dev/reference_comparisons_and_limits/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/dev/run_reference_checks/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/dev/test_coverage/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/guides/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/guides/benchmarking/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/guides/catalogue/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/guides/jax/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/guides/parameters/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/guides/waveforms/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/installation/</loc>
+      </url>
+      <url>
+        <loc>https://gw-jax-team.github.io/ripple/latest/quickstart/</loc>
       </url>
 </urlset>
