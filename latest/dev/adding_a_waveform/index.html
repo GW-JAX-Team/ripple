@@ -1553,7 +1553,7 @@ uv<span class="w"> </span>run<span class="w"> </span>pre-commit<span class="w"> 
 Do not add a central import list.
 The first subpackage after <code>waveforms</code> becomes the default <code>source_type</code> metadata.</p>
 <p>Register the concrete class with its public name and deliberate metadata:</p>
-<div class="highlight"><pre><span></span><code><span class="nd">@register</span><span class="p">(</span><span class="s2">"NewWaveform"</span><span class="p">,</span> <span class="n">is_tidal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">is_precessing</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="nd">@register</span><span class="p">(</span><span class="s2">"NewWaveform"</span><span class="p">,</span> <span class="n">is_tidal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">is_precessing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">highest_mode</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">NewWaveform</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
     <span class="o">...</span>
 </code></pre></div>

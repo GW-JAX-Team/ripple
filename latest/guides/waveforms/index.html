@@ -1579,7 +1579,8 @@ See <a href="../jax/">JAX Transformations</a> for <code>jax.grad</code> / <code>
 <span class="n">ripplegw</span><span class="o">.</span><span class="n">list_waveforms</span><span class="p">()</span>                       <span class="c1"># every registered model name</span>
 <span class="n">ripplegw</span><span class="o">.</span><span class="n">list_waveforms</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="s2">"FD"</span><span class="p">)</span>            <span class="c1"># filter by metadata</span>
 <span class="n">ripplegw</span><span class="o">.</span><span class="n">list_waveforms</span><span class="p">(</span><span class="n">is_precessing</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="n">ripplegw</span><span class="o">.</span><span class="n">get_waveform_metadata</span><span class="p">(</span><span class="s2">"IMRPhenomD"</span><span class="p">)</span>    <span class="c1"># {"domain": "FD", "is_tidal": False, "is_precessing": False}</span>
+<span class="n">ripplegw</span><span class="o">.</span><span class="n">list_waveforms</span><span class="p">(</span><span class="n">highest_mode</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>         <span class="c1"># the higher-mode models</span>
+<span class="n">ripplegw</span><span class="o">.</span><span class="n">get_waveform_metadata</span><span class="p">(</span><span class="s2">"IMRPhenomD"</span><span class="p">)</span>    <span class="c1"># {"domain": "FD", "is_tidal": False, "is_precessing": False, "highest_mode": 2, ...}</span>
 </code></pre></div>
 <p>See the <a href="../catalogue/">Waveform Catalogue</a> for the full list with each waveform's domain and capabilities.</p>
 <div class="admonition note">
