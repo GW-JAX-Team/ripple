@@ -1526,8 +1526,8 @@ It does not by itself establish reference agreement.</p>
 <div class="highlight"><pre><span></span><code>uv<span class="w"> </span>sync<span class="w"> </span>--group<span class="w"> </span><span class="nb">test</span>
 uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>-m<span class="w"> </span><span class="s2">"not accuracy"</span>
 </code></pre></div>
-<p>CI runs the non-accuracy suite on its PR and push workflows.
-Relevant Python 3.12 main workflows also run a LAL accuracy smoke test over every frequency-domain waveform at three parameter draws each; it is not a replacement for a selected reference sweep.</p>
+<p>CI runs the non-accuracy suite on its PR and push workflows, without the tests marked <code>slow</code>.
+Pushes to <code>main</code> and releases run those too, plus a LAL accuracy smoke test over every frequency-domain waveform at three parameter draws each; it is not a replacement for a selected reference sweep.</p>
 <h2 id="coverage-added-by-registration">Coverage added by registration<a class="headerlink" href="#coverage-added-by-registration" title="Permanent link">¤</a></h2>
 <p>The integration tests parametrize from <code>ripplegw.list_waveforms()</code> at test collection time.
 Every registered waveform therefore receives the following baseline coverage.</p>
@@ -1557,8 +1557,8 @@ Every registered waveform therefore receives the following baseline coverage.</p
 </tr>
 </tbody>
 </table>
-<p>For precessing and tidal models the eager/<code>jit</code> and <code>vmap</code> checks are marked <code>slow</code>: they run on <code>main</code>-targeted CI only, where the accuracy job already compares those paths against LAL.
-Finite-gradient checks run on every build.</p>
+<p>For precessing and tidal models the eager/<code>jit</code> and <code>vmap</code> checks are marked <code>slow</code>: they run on <code>main</code> and release only, where the accuracy job already compares those paths against LAL.
+The eager checks (the <code>jit</code> comparison, <code>at_unit_distance</code>, finite gradients) are also <code>slow</code> for models with <code>highest_mode</code> above 2, since each eager call takes seconds; their jitted forward pass runs on every build.</p>
 <p>The three built-in continuous-wave models also have dedicated integration tests for their non-default configurations and batches over distinct detector sites.
 Focused unit tests cover utilities and registry behaviour; they are not a per-waveform accuracy claim.</p>
 <h2 id="current-reference-validation-map">Current reference-validation map<a class="headerlink" href="#current-reference-validation-map" title="Permanent link">¤</a></h2>
