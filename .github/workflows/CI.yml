@@ -53,7 +53,7 @@ jobs:
       - name: Install dependencies
         run: uv sync --group test ${{ matrix.test_suite == 'cross-validation' && '--group cross-validation' || '' }}
       - name: Run accuracy smoke test
-        if: matrix.test_suite == 'cross-validation' && (github.ref == 'refs/heads/main' || github.base_ref == 'main')
+        if: matrix.test_suite == 'cross-validation' && (github.ref == 'refs/heads/main' || github.event_name == 'release')
         env:
           JAX_COMPILATION_CACHE_DIR: ${{ github.workspace }}/.jax-cache
         run: uv run pytest -m "accuracy and smoke" --reference lal --n-samples 3
@@ -67,7 +67,7 @@ jobs:
             cross-validation) test_path=tests/cross_validation ;;
           esac
           markexpr="not accuracy"
-          if [[ "${{ matrix.test_suite }}" == "integration" && "${{ github.ref }}" != "refs/heads/main" && "${{ github.base_ref }}" != "main" ]]; then
+          if [[ "${{ matrix.test_suite }}" == "integration" && "${{ github.ref }}" != "refs/heads/main" && "${{ github.event_name }}" != "release" ]]; then
             markexpr="not accuracy and not slow"
           fi
           cov_flags=""
