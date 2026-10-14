@@ -6809,7 +6809,7 @@ def gen_IMRPhenomXHM_hphc(
     return hp, hc
 
 
-@register("IMRPhenomXHM", is_tidal=False, is_precessing=False)
+@register("IMRPhenomXHM", is_tidal=False, is_precessing=False, highest_mode=4)
 class IMRPhenomXHM(FrequencyDomainWaveform, DistanceScaledWaveform):
     """IMRPhenomXHM frequency-domain waveform (aligned spins, higher-order modes).
 

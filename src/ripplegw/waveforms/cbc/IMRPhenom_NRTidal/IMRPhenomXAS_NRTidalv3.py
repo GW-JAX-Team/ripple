@@ -409,7 +409,7 @@ def _split_params(
     return theta_intrinsic, theta_extrinsic
 
 
-@register("IMRPhenomXAS_NRTidalv3", is_tidal=True, is_precessing=False)
+@register("IMRPhenomXAS_NRTidalv3", is_tidal=True, is_precessing=False, highest_mode=2)
 class IMRPhenomXAS_NRTidalv3(AmplitudePhaseWaveform, DistanceScaledWaveform):
     """IMRPhenomXAS_NRTidalv3 frequency-domain waveform (non-precessing, NRTidalv3 tides).
 

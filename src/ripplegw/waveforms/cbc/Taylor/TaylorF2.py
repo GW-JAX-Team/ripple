@@ -570,7 +570,7 @@ def _split_params(
     return theta_intrinsic, theta_extrinsic
 
 
-@register("TaylorF2", is_tidal=True, is_precessing=False)
+@register("TaylorF2", is_tidal=True, is_precessing=False, highest_mode=2)
 class TaylorF2(AmplitudePhaseWaveform, DistanceScaledWaveform):
     """TaylorF2 post-Newtonian frequency-domain waveform including tidal effects.
 

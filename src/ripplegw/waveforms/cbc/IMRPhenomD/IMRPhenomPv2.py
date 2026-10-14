@@ -283,7 +283,7 @@ def gen_IMRPhenomPv2_hphc(
     return hp, hc
 
 
-@register("IMRPhenomPv2", is_tidal=False, is_precessing=True)
+@register("IMRPhenomPv2", is_tidal=False, is_precessing=True, highest_mode=2)
 class IMRPhenomPv2(FrequencyDomainWaveform, DistanceScaledWaveform):
     """IMRPhenomPv2 frequency-domain waveform (precessing spins).
 

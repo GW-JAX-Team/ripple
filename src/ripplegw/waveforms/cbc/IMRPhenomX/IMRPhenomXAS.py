@@ -1642,7 +1642,7 @@ def _split_params(
     return theta_intrinsic, theta_extrinsic
 
 
-@register("IMRPhenomXAS", is_tidal=False, is_precessing=False)
+@register("IMRPhenomXAS", is_tidal=False, is_precessing=False, highest_mode=2)
 class IMRPhenomXAS(AmplitudePhaseWaveform, DistanceScaledWaveform):
     """IMRPhenomXAS frequency-domain waveform (non-precessing, aligned spins, X family).
 
