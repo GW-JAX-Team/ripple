@@ -905,7 +905,7 @@ def IMRPhenomXWignerdCoefficients_cosbeta(
     return cos_beta_half, sin_beta_half
 
 
-@register("IMRPhenomXPHM", is_tidal=False, is_precessing=True)
+@register("IMRPhenomXPHM", is_tidal=False, is_precessing=True, highest_mode=4)
 class IMRPhenomXPHM(FrequencyDomainWaveform, DistanceScaledWaveform):
     """IMRPhenomXPHM frequency-domain waveform (precessing spins, higher-order modes).
 

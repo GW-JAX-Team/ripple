@@ -106,6 +106,18 @@ def test_list_waveforms_filter_metadata():
     assert "IMRPhenomD" in ripplegw.list_waveforms(is_tidal=False)
 
 
+def test_highest_mode_metadata():
+    assert set(ripplegw.list_waveforms(highest_mode=4)) == {
+        "IMRPhenomHM",
+        "IMRPhenomXHM",
+        "IMRPhenomXPHM",
+    }
+    # Every compact-binary model says which harmonics it contains.
+    for name in ripplegw.list_waveforms(source_type="cbc"):
+        highest_mode = ripplegw.get_waveform_metadata(name)["highest_mode"]
+        assert isinstance(highest_mode, int) and highest_mode >= 2, name
+
+
 # --- factory -----------------------------------------------------------------
 
 

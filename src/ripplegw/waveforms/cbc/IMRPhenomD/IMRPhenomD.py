@@ -751,7 +751,7 @@ def _split_params(
     return theta_intrinsic, theta_extrinsic
 
 
-@register("IMRPhenomD", is_tidal=False, is_precessing=False)
+@register("IMRPhenomD", is_tidal=False, is_precessing=False, highest_mode=2)
 class IMRPhenomD(AmplitudePhaseWaveform, DistanceScaledWaveform):
     """IMRPhenomD frequency-domain waveform (non-precessing, aligned spins).
 

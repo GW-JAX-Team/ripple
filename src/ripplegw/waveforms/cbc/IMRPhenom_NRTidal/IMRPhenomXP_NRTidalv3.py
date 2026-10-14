@@ -244,7 +244,7 @@ def gen_IMRPhenomXP_NRTidalv3_hphc(
     return gen_IMRPhenomXP_NRTidalv3(f, theta, f_ref, use_lambda_tildes, no_taper)
 
 
-@register("IMRPhenomXP_NRTidalv3", is_tidal=True, is_precessing=True)
+@register("IMRPhenomXP_NRTidalv3", is_tidal=True, is_precessing=True, highest_mode=2)
 class IMRPhenomXP_NRTidalv3(FrequencyDomainWaveform, DistanceScaledWaveform):
     """IMRPhenomXP_NRTidalv3 frequency-domain waveform (precessing spins, NRTidalv3 tides).
 

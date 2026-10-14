@@ -12,7 +12,8 @@ import ripplegw
 ripplegw.list_waveforms()                       # every registered model name
 ripplegw.list_waveforms(domain="FD")            # filter by metadata
 ripplegw.list_waveforms(is_precessing=True)
-ripplegw.get_waveform_metadata("IMRPhenomD")    # {"domain": "FD", "is_tidal": False, "is_precessing": False}
+ripplegw.list_waveforms(highest_mode=4)         # the higher-mode models
+ripplegw.get_waveform_metadata("IMRPhenomD")    # {"domain": "FD", "is_tidal": False, "is_precessing": False, "highest_mode": 2, ...}
 ```
 
 See the [Waveform Catalogue](catalogue.md) for the full list with each waveform's domain and capabilities.

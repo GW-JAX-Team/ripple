@@ -26,7 +26,7 @@ The first subpackage after `waveforms` becomes the default `source_type` metadat
 Register the concrete class with its public name and deliberate metadata:
 
 ```python
-@register("NewWaveform", is_tidal=False, is_precessing=False)
+@register("NewWaveform", is_tidal=False, is_precessing=False, highest_mode=2)
 class NewWaveform(...):
     ...
 ```

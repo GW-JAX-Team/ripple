@@ -1039,7 +1039,7 @@ def XLALSimPhenomUtilsChiP(
     return chip
 
 
-@register("IMRPhenomHM", is_tidal=False, is_precessing=False)
+@register("IMRPhenomHM", is_tidal=False, is_precessing=False, highest_mode=4)
 class IMRPhenomHM(FrequencyDomainWaveform, DistanceScaledWaveform):
     """IMRPhenomHM frequency-domain waveform (aligned spins, higher-order modes).
 
