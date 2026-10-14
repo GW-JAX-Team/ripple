@@ -16,7 +16,7 @@ ripplegw.list_waveforms(highest_mode=4)         # the higher-mode models
 ripplegw.get_waveform_metadata("IMRPhenomD")    # {"domain": "FD", "is_tidal": False, "is_precessing": False, "highest_mode": 2, ...}
 ```
 
-See the [Waveform Catalogue](catalogue.md) for the full list with each waveform's domain and capabilities.
+See the [Waveform Catalogue](../notes/catalogue.md) for the full list with each waveform's domain and capabilities.
 
 !!! note
     An unrecognized filter key doesn't raise — it just matches nothing.
@@ -62,7 +62,7 @@ Every model returns a `dict` with exactly two keys: `"p"` (plus polarization, $h
 **Frequency-domain models return complex arrays; time-domain models return real arrays**.
 ripple never performs an FFT internally: a frequency-domain model builds its strain analytically as $A(f) e^{i\psi(f)}$.
 
-See [Parameters and Conventions](parameters.md) for what each parameter name means and its units.
+See [Parameters and Conventions](../notes/parameters.md) for what each parameter name means and its units.
 
 ### Visualising the spectrum
 

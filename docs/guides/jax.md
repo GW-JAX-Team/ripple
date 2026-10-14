@@ -51,7 +51,7 @@ h["p"].block_until_ready()      # JAX dispatch is async; block before timing
 ```
 
 The first call to a `jit`-compiled waveform triggers XLA compilation, which will be slow for large models.
-If you're timing ripple, always discard the first call and call `.block_until_ready()` before stopping your timer — see [Benchmarking](benchmarking.md) for a ready-made CLI that already does this correctly.
+If you're timing ripple, always discard the first call and call `.block_until_ready()` before stopping your timer — see [Benchmarking](../how-to/benchmarking.md) for a ready-made CLI that already does this correctly.
 
 ## Batch evaluation with `jax.vmap`
 

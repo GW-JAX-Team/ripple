@@ -15,15 +15,24 @@ nav = [
     {"Home" = "index.md"},
     {"Installation" = "installation.md"},
     {"Quick Start" = "quickstart.md"},
+    {"Tutorials" = [
+        "tutorials/index.md",
+    ]},
     {"Guides" = [
         "guides/index.md",
         {"Working with Waveforms" = "guides/waveforms.md"},
-        {"Parameters and Conventions" = "guides/parameters.md"},
         {"JAX Transformations" = "guides/jax.md"},
-        {"Waveform Catalogue" = "guides/catalogue.md"},
-        {"Benchmarking" = "guides/benchmarking.md"},
     ]},
-    {"Developer Guide" = [
+    {"How-to" = [
+        "how-to/index.md",
+        {"Benchmarking" = "how-to/benchmarking.md"},
+    ]},
+    {"Technical Notes" = [
+        "notes/index.md",
+        {"Parameters and Conventions" = "notes/parameters.md"},
+        {"Waveform Catalogue" = "notes/catalogue.md"},
+    ]},
+    {"Development" = [
         "dev/index.md",
         {"Architecture" = "dev/architecture.md"},
         {"Adding a Waveform" = "dev/adding_a_waveform.md"},
