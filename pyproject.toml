@@ -43,7 +43,6 @@ test = [
     "pytest-cov>=6.0.0",
     "ruff>=0.12.2",
     "tqdm>=4.66.0",
-    "pyright>=1.1.402",
 ]
 cross-validation = [
     "lalsuite",
@@ -111,14 +110,14 @@ known-first-party = ["tests"]
 # form part of ripple's public import paths.
 "src/ripplegw/waveforms/**/*.py" = ["N999"]
 
-[tool.pyright]
-include = ["src"]
-reportUnnecessaryTypeIgnoreComment = "error"
-
 [tool.ty.src]
-# Match Pyright's source-only scope; tests have optional LAL dependencies and
-# remain covered by pytest and the explicitly requested Ruff test check.
+# Tests have optional LAL dependencies and remain covered by pytest and the
+# explicitly requested Ruff test check.
 include = ["src"]
+
+[tool.ty.rules]
+possibly-unresolved-reference = "error"
+unused-ignore-comment = "error"
 
 [tool.coverage.report]
 exclude_also = [
