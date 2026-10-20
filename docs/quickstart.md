@@ -71,6 +71,6 @@ See the [Installation](installation.md) page for GPU setup.
 ## Next steps
 
 - **[Working with Waveforms](guides/waveforms.md)** — what `__call__` returns, amplitude/phase evaluation, and switching between models in more depth.
-- **[Parameters and Conventions](guides/parameters.md)** — what every parameter name means.
-- **[Waveform Catalogue](guides/catalogue.md)** — every registered model, its parameters, and its capabilities.
+- **[Parameters and Conventions](notes/parameters.md)** — what every parameter name means.
+- **[Waveform Catalogue](notes/catalogue.md)** — every registered model, its parameters, and its capabilities.
 - **[JAX Transformations](guides/jax.md)** — `jit`/`grad`/`vmap` patterns and precision.

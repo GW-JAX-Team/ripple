@@ -22,4 +22,4 @@ python -m tests.cross_validation.submit --scheduler local --waveform IMRPhenomD 
 ```
 
 Use `--scheduler slurm` or `--scheduler condor` to submit the same test to HPC, and `--plots` to retain figures.
-See the developer guide for prerequisites, CW ephemerides, result locations, and troubleshooting.
+See the Development section of the docs for prerequisites, CW ephemerides, result locations, and troubleshooting.

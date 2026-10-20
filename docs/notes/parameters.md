@@ -62,7 +62,7 @@ Convert between them with `ripplegw.conversions.lambdas_to_lambda_tildes` / `lam
 | `phase_c` | Coalescence phase | radians |
 | `iota` | Inclination angle between the orbital angular momentum and the line of sight | radians |
 
-`d_L` is what [`at_unit_distance`](waveforms.md#evaluating-at-a-fixed-distance) sets to 1.0.
+`d_L` is what [`at_unit_distance`](../guides/waveforms.md#evaluating-at-a-fixed-distance) sets to 1.0.
 There is no `t_c` (time of coalescence) parameter — see the [FAQ](../FAQ.md) for why.
 
 ## Bursts

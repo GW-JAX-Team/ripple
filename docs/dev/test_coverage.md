@@ -15,8 +15,8 @@ uv sync --group test
 uv run pytest -m "not accuracy"
 ```
 
-CI runs the non-accuracy suite on its PR and push workflows.
-Relevant Python 3.12 main workflows also run a LAL accuracy smoke test over every frequency-domain waveform at three parameter draws each; it is not a replacement for a selected reference sweep.
+CI runs the non-accuracy suite on its PR and push workflows, without the tests marked `slow`.
+Pushes to `main` and releases run those too, plus a LAL accuracy smoke test over every frequency-domain waveform at three parameter draws each; it is not a replacement for a selected reference sweep.
 
 ## Coverage added by registration
 
@@ -30,8 +30,8 @@ Every registered waveform therefore receives the following baseline coverage.
 | Optional interfaces | `AmplitudePhaseWaveform` methods and `DistanceScaledWaveform` distance scaling, when implemented. |
 | Declared physical features | Edge cases selected by metadata or parameters: aligned/precessing spins, tidal deformability, inclination, and time-domain shape parameters. |
 
-For precessing and tidal models the eager/`jit` and `vmap` checks are marked `slow`: they run on `main`-targeted CI only, where the accuracy job already compares those paths against LAL.
-Finite-gradient checks run on every build.
+For precessing and tidal models the eager/`jit` and `vmap` checks are marked `slow`: they run on `main` and release only, where the accuracy job already compares those paths against LAL.
+The eager checks (the `jit` comparison, `at_unit_distance`, finite gradients) are also `slow` for models with `highest_mode` above 2, since each eager call takes seconds; their jitted forward pass runs on every build.
 
 The three built-in continuous-wave models also have dedicated integration tests for their non-default configurations and batches over distinct detector sites.
 Focused unit tests cover utilities and registry behaviour; they are not a per-waveform accuracy claim.

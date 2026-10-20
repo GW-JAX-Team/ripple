@@ -17,6 +17,7 @@ from ripplegw.interfaces import (
     DistanceScaledWaveform,
 )
 from tests.helpers.grids import grid_for
+from tests.helpers.marks import HIGHER_MODE_WAVEFORMS, slow_for
 from tests.helpers.params import canonical_params
 
 ALL_WAVEFORMS = ripplegw.list_waveforms()
@@ -46,7 +47,9 @@ def test_strain_equals_amplitude_times_exp_i_phase(name, compiled_model):
     assert jnp.allclose(strain(axis, params), amp * jnp.exp(1j * ph))
 
 
-@pytest.mark.parametrize("name", DISTANCE_SCALED_WAVEFORMS)
+@pytest.mark.parametrize(
+    "name", slow_for(DISTANCE_SCALED_WAVEFORMS, HIGHER_MODE_WAVEFORMS)
+)
 def test_at_unit_distance_matches_dl_equals_one(name, compiled_model):
     """``at_unit_distance`` must equal the ``d_L=1.0`` call exactly, not just
     to floating-point tolerance -- so this runs both sides eager (uncompiled).

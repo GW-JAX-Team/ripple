@@ -1,7 +1,7 @@
 ci:
   autoupdate_branch: ripple-dev
   autoupdate_schedule: quarterly
-  skip: [pyright, ty]
+  skip: [ty]
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -26,7 +26,7 @@ repos:
       - id: mixed-line-ending
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.10
+    rev: v0.17.1
     hooks:
       - id: ruff-check
         args: ["--fix"]
@@ -37,16 +37,7 @@ repos:
         types_or: [python, pyi]
 
   - repo: https://github.com/astral-sh/ty-pre-commit
-    rev: v0.0.84
+    rev: v0.0.89
     hooks:
       - id: ty
         args: [--locked]
-
-  - repo: local
-    hooks:
-      - id: pyright
-        name: pyright
-        entry: uv run pyright
-        language: system
-        files: src/
-        require_serial: true
