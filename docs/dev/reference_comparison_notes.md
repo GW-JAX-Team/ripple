@@ -17,6 +17,12 @@ The resulting time correction can differ near the merger-ringdown feature, appea
 At zero in-plane spin, both implementations remain continuous.
 `IMRPhenomPv2` is nevertheless not required to reduce to `IMRPhenomD`: its LAL convention swaps the component masses and spins, changing their assignment in asymmetric phase terms.
 
+### IMRPhenomPv2_NRTidalv2
+
+NRTidalv2 is applied to the co-precessing IMRPhenomD waveform before the precession twist-up, as in `LALSimIMRPhenomP.c`.
+Three LAL details must be reproduced for float64-level agreement: the quadrupole-monopole terms (`dQuadMon`) that LAL feeds into the IMRPhenomD inspiral phase (shared with `IMRPhenomD_NRTidalv2`), the NRTidalv2 merger frequency computed with the mass ratio `>= 1`, and the time shift taken from a natural cubic spline of the full tidal phase on 10 points in `[0.8, 1.2] f_merger`.
+Unlike `IMRPhenomPv2`, the spline is reproduced rather than replaced by autodiff, which is why the tolerance is tight.
+
 ### IMRPhenomXHM
 
 The phase of the `(3, 2)` mode is sensitive to spheroidal-to-spherical mixing near ringdown.
