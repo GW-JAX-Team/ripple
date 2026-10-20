@@ -21,7 +21,7 @@ from tests.helpers.config import H1_LOCATION
 # Regime-scoped defaults (canonical_params) and sampling bounds (random_params_batch)
 # ---------------------------------------------------------------------------
 
-_REGIME_MASSES = {"bbh": (30.0, 25.0), "bns": (1.4, 1.3)}
+_REGIME_MASSES = {"bbh": (30.0, 25.0), "bns": (1.4, 1.3), "nsbh": (5.0, 1.4)}
 
 _REGIME_DEFAULTS = {
     "bbh": {
@@ -43,6 +43,14 @@ _REGIME_DEFAULTS = {
         "lambda_1": 500.0,
         "lambda_2": 400.0,
         "d_L": 100.0,
+    },
+    # m1 is the black hole, m2 the neutron star; only the NS is deformable
+    "nsbh": {
+        "s1_z": 0.3,
+        "s2_z": 0.0,
+        "lambda_1": 0.0,
+        "lambda_2": 400.0,
+        "d_L": 200.0,
     },
 }
 
@@ -90,12 +98,27 @@ _REGIME_BOUNDS = {
         "lambda": (0.0, 5000.0),
         "d_L": (30.0, 500.0),
     },
+    # "m" is the BH mass range, "m_ns" the NS one; "chi" is the BH spin, "chi_ns" the NS spin
+    "nsbh": {
+        "m": (2.5, 40.0),
+        "m_ns": (1.0, 3.0),
+        "chi": (-0.9, 0.9),
+        "chi_ns": (-0.05, 0.05),
+        "lambda": (0.0, 5000.0),
+        "d_L": (30.0, 500.0),
+    },
 }
 
 
 def regime(wf) -> str:
-    """``"bns"`` for tidal models, ``"bbh"`` otherwise -- picks the mass/spin/distance scale."""
-    return "bns" if wf.waveform_metadata.get("is_tidal") else "bbh"
+    """``"nsbh"`` for tidal models with only ``lambda_2``, ``"bns"`` for other tidal models, ``"bbh"`` otherwise.
+
+    Picks the mass/spin/distance scale.
+    """
+    if not wf.waveform_metadata.get("is_tidal"):
+        return "bbh"
+    names = set(wf.parameter_names)
+    return "nsbh" if "lambda_2" in names and "lambda_1" not in names else "bns"
 
 
 def canonical_params(wf, **overrides) -> dict[str, float]:
@@ -138,7 +161,9 @@ def random_params_batch(
     rng = np.random.default_rng(seed)
 
     m1 = rng.uniform(*bounds["m"], n)
-    m2 = rng.uniform(*bounds["m"], n)
+    m2 = rng.uniform(*bounds.get("m_ns", bounds["m"]), n)
+    if reg == "nsbh":
+        m1 = np.maximum(m1, m2)  # the BH is the heavier body
     Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
     values: dict[str, np.ndarray] = {"M_c": np.asarray(Mc), "eta": np.asarray(eta)}
 
@@ -156,9 +181,11 @@ def random_params_batch(
             values[f"s{i}_z"] = mag * costheta
     else:
         values["s1_z"] = rng.uniform(*bounds["chi"], n)
-        values["s2_z"] = rng.uniform(*bounds["chi"], n)
+        values["s2_z"] = rng.uniform(*bounds.get("chi_ns", bounds["chi"]), n)
 
-    if "lambda_1" in names or "lambda_tilde" in names:
+    if "lambda_2" in names and "lambda_1" not in names:
+        values["lambda_2"] = rng.uniform(*bounds["lambda"], n)
+    elif "lambda_1" in names or "lambda_tilde" in names:
         l1 = rng.uniform(*bounds["lambda"], n)
         l2 = rng.uniform(*bounds["lambda"], n)
         if "lambda_tilde" in names:

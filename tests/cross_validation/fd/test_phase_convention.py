@@ -27,8 +27,8 @@ NON_PRECESSING = ripplegw.list_waveforms(domain="FD", is_precessing=False)
 
 def _fiducial_params(wf) -> dict:
     """Return canonical parameters with zero coalescence time and phase."""
-    if regime(wf) == "bns":
-        m1, m2 = 1.4, 1.2
+    if regime(wf) in ("bns", "nsbh"):
+        m1, m2 = (5.0, 1.4) if regime(wf) == "nsbh" else (1.4, 1.2)
         s1_z = s2_z = 0.0  # zero spin/deformability: BBH limit, for a clean phase check
     else:
         m1, m2 = 40.0, 25.0

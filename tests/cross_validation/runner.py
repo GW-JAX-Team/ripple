@@ -55,7 +55,7 @@ def get_tolerance(tolerances: dict, backend: str, waveform: str, kind: str) -> f
 
 def default_grid(wf, *, T_override: float | None = None) -> Grid:
     """Return the regime-appropriate frequency grid for one waveform."""
-    is_bns = regime(wf) == "bns"
+    is_bns = regime(wf) in ("bns", "nsbh")
     T = T_override if T_override is not None else (128.0 if is_bns else 32.0)
     f_u = 4096.0 if is_bns else 2048.0
     return accuracy_grid(f_l=5.0, f_u=f_u, f_sampling=2 * f_u, T=T, f_ref=5.0)

@@ -26,6 +26,10 @@ phase_offset = 1e-9
 overlap_loss = 1e-15
 phase_offset = 1e-11
 
+[lal.IMRPhenomNSBH]
+overlap_loss = 1e-14
+phase_offset = 1e-9
+
 [lal.IMRPhenomPv2]
 overlap_loss = 1e-4
 # phase_offset: precessing; not checked by test_phase_convention.py.
