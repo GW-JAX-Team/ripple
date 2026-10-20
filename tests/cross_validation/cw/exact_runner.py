@@ -353,7 +353,7 @@ def _hardware_info() -> dict:
         "jax_devices": [str(device) for device in jax.devices()],
         "sample_rate_hz": _SAMPLE_RATE,
         "duration_s": _DURATION,
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),  # noqa: DTZ005 - display metadata
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
 
 
