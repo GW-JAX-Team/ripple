@@ -1,0 +1,190 @@
+"""Recoverable NSBH domain checks, anchored to LAL's model boundaries."""
+
+import importlib
+
+import jax
+import jax.numpy as jnp
+import numpy as np
+import pytest
+from jax.experimental import checkify
+
+import ripplegw
+from ripplegw.conversions import ms_to_Mc_eta
+from tests.helpers.params import canonical_params
+
+nsbh = importlib.import_module("ripplegw.waveforms.cbc.IMRPhenom_NRTidal.IMRPhenomNSBH")
+F = jnp.array([20.0, 40.0, 80.0])
+
+
+def theta(m1=7.0, m2=1.4, lam=400.0, chi=0.3):
+    mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
+    return jnp.array([mc, eta, chi, 0.0, lam, 200.0, 0.0, 0.0])
+
+
+evaluate = jax.jit(lambda p: nsbh.gen_IMRPhenomNSBH(F, p, 20.0))
+
+
+@pytest.mark.parametrize("lam", [-1.0, 5000.0001])
+def test_invalid_tides_return_nan_without_raising(lam):
+    assert np.isnan(evaluate(theta(lam=lam))).all()
+    assert np.isfinite(evaluate(theta())).all()
+
+
+def test_mass_ratio_above_100_is_rejected():
+    assert np.isnan(evaluate(theta(m1=141.4))).all()
+
+
+def test_mass_ratio_endpoint_in_chirp_coordinates():
+    boundary = 100.0 / 101.0**2
+    p = theta().at[1].set(boundary)
+    assert np.isfinite(evaluate(p)).all()
+    assert np.isnan(evaluate(p.at[1].set(np.nextafter(boundary, 0.0)))).all()
+
+
+@pytest.mark.parametrize("eta", [0.0, -0.1, 0.2501, np.nan])
+def test_invalid_eta_is_not_hidden_by_mass_conversion(eta):
+    assert np.isnan(evaluate(theta().at[1].set(eta))).all()
+
+
+@pytest.mark.parametrize("m2", [0.7, 4.2])
+def test_no_neutron_star_mass_cut(m2):
+    assert np.isfinite(evaluate(theta(m1=5 * m2, m2=m2))).all()
+
+
+def test_redshift_scaling_is_preserved_above_mass_cut():
+    # Fixed dimensionless parameters: h(f/k, k*m)/h(f, m) = k**2 at fixed distance.
+    scale = 3.0
+    original = nsbh.gen_IMRPhenomNSBH(F, theta(), 20.0)
+    redshifted = nsbh.gen_IMRPhenomNSBH(
+        F / scale, theta(m1=7.0 * scale, m2=1.4 * scale), 20.0 / scale
+    )
+    np.testing.assert_allclose(redshifted, scale**2 * original, atol=0.0, rtol=1e-9)
+
+
+@pytest.mark.parametrize("lam", [0.0, 5000.0])
+def test_tidal_endpoints_are_inclusive(lam):
+    assert np.isfinite(evaluate(theta(lam=lam))).all()
+
+
+def test_checkify_returns_error_without_aborting():
+    checked = jax.jit(
+        checkify.checkify(
+            lambda p: nsbh.gen_IMRPhenomNSBH(F, p, 20.0, diagnostics=True)
+        )
+    )
+    err, output = checked(theta(lam=5001.0))
+    assert err.get() is not None and "lambda_2" in err.get()
+    assert np.isnan(output).all()
+    err, output = checked(theta())
+    assert err.get() is None
+    assert np.isfinite(output).all()
+
+
+def test_mixed_batch_rejects_only_invalid_samples_inside_scan():
+    batch = jnp.stack([theta(), theta(lam=5001.0), theta(m2=4.2, m1=21.0)])
+
+    def loglike(p):
+        h = nsbh.gen_IMRPhenomNSBH(F, p, 20.0)
+        valid = jnp.all(jnp.isfinite(h))
+        safe_h = jnp.where(valid, h, 0.0)
+        return jnp.where(valid, -jnp.sum(jnp.abs(safe_h * 1e23) ** 2), -jnp.inf)
+
+    @jax.jit
+    def run(samples):
+        return jax.lax.scan(lambda c, p: (c, loglike(p)), None, samples)[1]
+
+    output = run(batch)
+    assert np.isfinite(np.asarray(output)[[0, 2]]).all()
+    assert np.isneginf(output[1])
+    mapped = jax.jit(jax.vmap(loglike))(batch)
+    np.testing.assert_allclose(mapped, output, atol=0.0, rtol=1e-12)
+
+
+def test_negative_derivative_only_rejected_below_matching_frequency():
+    cc = nsbh.phenomC_amp_coeffs(0.14, 0.3)
+    props = nsbh.nsbh_merger_properties(7.0, 1.4, 0.3, 400.0)
+    # Force xdot negative on both sides of a known matching frequency.
+    cc = {**cc, "xdota2": -1e6, "Mf1": 0.01}
+    amplitude = jax.jit(nsbh.nsbh_amplitude)
+    assert np.isnan(amplitude(jnp.array([0.005, 0.02]), cc, props)).all()
+    assert np.isfinite(amplitude(jnp.array([0.01, 0.02]), cc, props)).all()
+
+
+@pytest.mark.parametrize("method", ["__call__", "amplitude", "phase", "strain"])
+def test_all_public_interfaces_reject_invalid_sample(method):
+    wf = ripplegw.waveform("IMRPhenomNSBH")
+    params = canonical_params(wf, lambda_2=5001.0)
+    output = jax.jit(getattr(wf, method))(F, params)
+    for array in jax.tree.leaves(output):
+        assert np.isnan(array).all()
+
+
+def test_valid_gradient_survives_checkify():
+    def power(p):
+        return jnp.sum(
+            jnp.abs(nsbh.gen_IMRPhenomNSBH(F, p, 20.0, diagnostics=True) * 1e23) ** 2
+        )
+
+    checked = jax.jit(checkify.checkify(jax.value_and_grad(power)))
+    err, (value, gradient) = checked(theta())
+    assert err.get() is None
+    assert np.isfinite(value)
+    assert np.isfinite(gradient).all()
+
+
+def test_lal_parameter_rejection_and_valid_amplitude():
+    lal = pytest.importorskip("lal")
+    lalsim = pytest.importorskip("lalsimulation")
+    freq = lal.CreateREAL8Sequence(len(F))
+    freq.data[:] = np.asarray(F)
+
+    def reference(m1, lam):
+        extra = lal.CreateDict()
+        lalsim.SimInspiralWaveformParamsInsertTidalLambda2(extra, lam)
+        return lalsim.SimIMRPhenomNSBHFrequencySequence(
+            freq,
+            0.0,
+            20.0,
+            200.0e6 * lal.PC_SI,
+            m1 * lal.MSUN_SI,
+            1.4 * lal.MSUN_SI,
+            0.3,
+            0.0,
+            extra,
+        ).data.data
+
+    for m1, lam in [(141.4, 400.0), (7.0, -1.0), (7.0, 5001.0)]:
+        with pytest.raises(RuntimeError):
+            reference(m1, lam)
+        assert np.isnan(evaluate(theta(m1=m1, lam=lam))).all()
+    expected = reference(7.0, 400.0)
+    actual = nsbh.gen_IMRPhenomNSBH(F, theta(), 20.0, f_max=float(F[-1]))
+    np.testing.assert_allclose(np.abs(actual), np.abs(expected), atol=0.0, rtol=1e-7)
+
+
+def test_default_has_no_error_effects():
+    assert not jax.make_jaxpr(evaluate)(theta()).effects
+    wf = ripplegw.waveform("IMRPhenomNSBH", diagnostics=True)
+    checked = jax.jit(checkify.checkify(wf))
+    err, output = checked(F, canonical_params(wf, lambda_2=-1.0))
+    assert err.get() is not None and "lambda_2" in err.get()
+    assert np.isnan(output["p"]).all()
+
+
+def test_checkified_vmap_preserves_good_samples():
+    checked = jax.jit(
+        jax.vmap(
+            checkify.checkify(
+                lambda p: nsbh.gen_IMRPhenomNSBH(F, p, 20.0, diagnostics=True)
+            )
+        )
+    )
+    errors, output = checked(jnp.stack([theta(), theta(lam=-1.0), theta()]))
+    assert "mapped index 1" in errors.get()
+    assert np.isnan(output[1]).all()
+    assert np.isfinite(np.asarray(output)[[0, 2]]).all()
+
+
+def test_empty_frequency_array_is_rejected_at_trace_time():
+    with pytest.raises(ValueError, match="nonempty frequency"):
+        jax.jit(nsbh.gen_IMRPhenomNSBH)(jnp.array([]), theta(), 20.0)

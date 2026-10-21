@@ -28,6 +28,7 @@ from typing import Optional
 
 import jax
 import jax.numpy as jnp
+from jax.experimental import checkify
 from jaxtyping import Array, Complex, Float
 
 from ripplegw.constants import EULERGAMMA, MPC, MRSUN, MTSUN, PI
@@ -63,6 +64,25 @@ from ripplegw.waveforms.cbc.Taylor.TaylorF2 import (
 #######################################################################################################
 ### Small helpers
 #######################################################################################################
+
+
+def _component_masses(mc: FloatLike, eta: FloatLike, diagnostics: bool = False):
+    """Validate chirp coordinates before conversion can hide an unphysical eta.
+
+    The LAL bound ``1 <= mBH/mNS <= 100`` is equivalent to
+    ``100/101**2 <= eta <= 1/4``. No neutron-star mass cut is applied.
+    """
+    valid_eta = (eta >= 100.0 / 101.0**2) & (eta <= 0.25)
+    valid_mc = jnp.isfinite(mc) & (mc > 0.0)
+    if diagnostics:
+        checkify.debug_check(
+            valid_eta,
+            "IMRPhenomNSBH requires 1 <= q <= 100 (eta in [100/101**2, 0.25])",
+        )
+        checkify.debug_check(valid_mc, "IMRPhenomNSBH requires a finite positive M_c")
+    m1, m2 = Mc_eta_to_ms(jnp.array([mc, eta]))
+    valid = valid_eta & valid_mc
+    return jnp.where(valid, m1, jnp.nan), jnp.where(valid, m2, jnp.nan)
 
 
 def _window_plus(x: FloatLike, x0: FloatLike, d: FloatLike) -> FloatLike:
@@ -440,12 +460,15 @@ def omega_tilde(a: FloatLike) -> Complex[Array, ""]:
 #######################################################################################################
 
 
-def phenomC_amp_coeffs(eta: FloatLike, chi: FloatLike) -> dict[str, FloatLike]:
+def phenomC_amp_coeffs(
+    eta: FloatLike, chi: FloatLike, diagnostics: bool = False
+) -> dict[str, FloatLike]:
     """IMRPhenomC PN amplitude coefficients and phenomenological fits ``g1, del1, del2``.
 
     Args:
         eta: Symmetric mass ratio.
         chi: Reduced spin of the binary, ``(m1 chi1 + m2 chi2) / M`` (IMRPhenomB ``chi``).
+        diagnostics: Add optional checkify annotations (static Python flag).
 
     The clamps applied by ``IMRPhenomNSBH_Core`` (``g1 >= 0``, ``del1 >= 0``, ``del2 >= 1e-4``) are included.
     """
@@ -547,12 +570,30 @@ def phenomC_amp_coeffs(eta: FloatLike, chi: FloatLike) -> dict[str, FloatLike]:
     del1 = jnp.maximum(del1, 0.0)
     del2 = jnp.maximum(del2, 1.0e-4)
 
+    # LAL ComputeIMRPhenomCParams: this BBH fit sets the SPA matching
+    # frequency used by the negative-xdot guard, before NSBH corrections.
+    etachi = eta * chi
+    afin = (
+        chi
+        - 0.129 * chi * etachi
+        - 0.384 * etachi * eta
+        - 2.686 * etachi
+        + 2.0 * jnp.sqrt(3.0) * eta
+        - 3.454 * eta2
+        + 2.353 * eta2 * eta
+    )
+    if diagnostics:
+        checkify.debug_check(
+            jnp.abs(afin) <= 1.0, "IMRPhenomNSBH PhenomC remnant spin exceeds unity"
+        )
+    Mf1 = 0.1 * (1.5251 - 1.1568 * (1.0 - jnp.abs(afin)) ** 0.1292) / (2.0 * PI)
+
     return {
         "xdotaN": xdotaN, "xdota2": xdota2, "xdota3": xdota3, "xdota4": xdota4,
         "xdota5": xdota5, "xdota6": xdota6, "xdota6log": xdota6log, "xdota7": xdota7,
         "AN": AN, "A2": A2, "A3": A3, "A4": A4, "A5": A5, "A5imag": A5imag,
         "A6": A6, "A6log": A6log, "A6imag": A6imag,
-        "g1": g1, "del1": del1, "del2": del2, "d0": 0.015,
+        "g1": g1, "del1": del1, "del2": del2, "d0": 0.015, "Mf1": Mf1,
     }  # fmt: skip
 
 
@@ -692,13 +733,18 @@ def nsbh_merger_properties(
 
 
 def nsbh_amplitude(
-    Mf: Float[Array, " n_freq"], cc: dict[str, FloatLike], props: dict[str, FloatLike]
+    Mf: Float[Array, " n_freq"],
+    cc: dict[str, FloatLike],
+    props: dict[str, FloatLike],
+    diagnostics: bool = False,
 ) -> Float[Array, " n_freq"]:
     """``|PhenomNSBHAmplitudeOneFrequency|`` (dimensionless, before ``amp0 * ylm_fac``) at geometric frequency ``Mf``.
 
     LAL's amplitude is ``-(aPN wMinus + aPM wMinus + aRD wPlus)``, i.e. non-positive; the sign is returned
     separately through the phase (see module docstring).
     """
+    if Mf.size == 0:
+        raise ValueError("IMRPhenomNSBH requires a nonempty frequency array")
     v = (PI * Mf) ** (1.0 / 3.0)
     v2 = v * v
     v3 = v * v2
@@ -719,6 +765,12 @@ def nsbh_amplitude(
         + cc["xdota7"] * v7
     )
     xdot = xdot * (cc["xdotaN"] * v10)
+    valid = ~jnp.any((xdot < 0.0) & (Mf < cc["Mf1"])) & jnp.isfinite(cc["Mf1"])
+    if diagnostics:
+        checkify.debug_check(
+            valid,
+            "IMRPhenomNSBH omegaDot < 0 below the SPA matching frequency, or invalid matching frequency",
+        )
     omgdot = 1.5 * v * xdot
     ampfac = jnp.sqrt(jnp.abs(PI / omgdot))
     AmpPNre = (
@@ -747,7 +799,8 @@ def nsbh_amplitude(
     wMinus_PN = _w_minus(Mf, props["epsilon_ins"] * props["f0_PN"], d)
     wMinus_PM = _w_minus(Mf, props["f0_PM"], d)
     wPlus_RD = _w_plus(Mf, props["f0_RD"], d)
-    return aPN * wMinus_PN + aPM * wMinus_PM + aRD * wPlus_RD
+    amp = aPN * wMinus_PN + aPM * wMinus_PM + aRD * wPlus_RD
+    return jnp.where(valid, amp, jnp.nan)
 
 
 #######################################################################################################
@@ -852,17 +905,25 @@ def _amp_phase(
     phase_c: FloatLike,
     f_ref: float,
     f_max: Optional[float],
+    diagnostics: bool = False,
 ) -> tuple[Float[Array, " n_freq"], Float[Array, " n_freq"]]:
     """Amplitude ``A >= 0`` and phase of ``h0 = A exp(i phase)`` (see module docstring for the sign convention)."""
+    if f.size == 0:
+        raise ValueError("IMRPhenomNSBH requires a nonempty frequency array")
     M = m1 + m2
     M_s = M * MTSUN
     eta = m1 * m2 / (M * M)
+    valid_tides = (lambda2 >= 0.0) & (lambda2 <= 5000.0)
+    if diagnostics:
+        checkify.debug_check(
+            valid_tides, "IMRPhenomNSBH requires lambda_2 in [0, 5000]"
+        )
 
     # ---- amplitude
     chi_eff = (m1 * chi1 + m2 * chi2) / M
-    cc = phenomC_amp_coeffs(eta, chi_eff)
+    cc = phenomC_amp_coeffs(eta, chi_eff, diagnostics=diagnostics)
     props = nsbh_merger_properties(m1, m2, chi1, lambda2, chi_NS=chi2, del2=cc["del2"])
-    amp = nsbh_amplitude(f * M_s, cc, props)
+    amp = nsbh_amplitude(f * M_s, cc, props, diagnostics=diagnostics)
     # amp0 * ylm_fac, with the distance in metres
     amp0 = 2.0 * jnp.sqrt(5.0 / (64.0 * PI)) * M * MRSUN * M * MTSUN / (d_L * MPC)
     A = amp0 * amp
@@ -893,7 +954,8 @@ def _amp_phase(
     Psi = Psi + psi_T - t0 * (f * M_s - Mf_ref) - Psi_ref
     Psi = Psi + 2.0 * PI * f * tc - 2.0 * phase_c
     # +pi carries the sign of LAL's negative amplitude
-    return A, -Psi + PI
+    valid = valid_tides & jnp.all(jnp.isfinite(amp))
+    return jnp.where(valid, A, jnp.nan), jnp.where(valid, -Psi + PI, jnp.nan)
 
 
 def gen_IMRPhenomNSBH(
@@ -901,6 +963,8 @@ def gen_IMRPhenomNSBH(
     params: Float[Array, "8"],
     f_ref: float,
     f_max: Optional[float] = None,
+    *,
+    diagnostics: bool = False,
 ) -> Complex[Array, " n_freq"]:
     """
     Generate the IMRPhenomNSBH strain ``h0``.
@@ -914,13 +978,28 @@ def gen_IMRPhenomNSBH(
         f_ref (float): Reference frequency in Hz.
         f_max (Optional[float]): Frequency in Hz at which the time shift is anchored;
             ``None`` uses LAL's default upper frequency ``Mf = 0.2``.
+        diagnostics (bool): Add optional checkify annotations. Keep this static
+            under ``jit``; wrap in ``checkify.checkify`` to collect error messages.
 
     Returns:
         h0 (array): Strain.
     """
-    m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
+    m1, m2 = _component_masses(params[0], params[1], diagnostics=diagnostics)
     chi1, chi2, lambda2, d_L, tc, phase_c = params[2:]
-    A, phi = _amp_phase(f, m1, m2, chi1, chi2, lambda2, d_L, tc, phase_c, f_ref, f_max)
+    A, phi = _amp_phase(
+        f,
+        m1,
+        m2,
+        chi1,
+        chi2,
+        lambda2,
+        d_L,
+        tc,
+        phase_c,
+        f_ref,
+        f_max,
+        diagnostics=diagnostics,
+    )
     return A * jnp.cos(phi) + 1j * (A * jnp.sin(phi))
 
 
@@ -929,6 +1008,8 @@ def gen_IMRPhenomNSBH_hphc(
     params: Float[Array, "9"],
     f_ref: float,
     f_max: Optional[float] = None,
+    *,
+    diagnostics: bool = False,
 ) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     Generate the IMRPhenomNSBH plus and cross polarizations.
@@ -939,17 +1020,20 @@ def gen_IMRPhenomNSBH_hphc(
     Returns:
         hp (array): Strain of the plus polarization
         hc (array): Strain of the cross polarization
+
+    ``diagnostics`` is a static flag with the same meaning as in
+    ``gen_IMRPhenomNSBH``.
     """
     iota = params[-1]
-    h0 = gen_IMRPhenomNSBH(f, params[:-1], f_ref, f_max=f_max)
+    h0 = gen_IMRPhenomNSBH(f, params[:-1], f_ref, f_max=f_max, diagnostics=diagnostics)
     hp = h0 * (0.5 * (1.0 + jnp.cos(iota) ** 2))
     hc = -1j * h0 * jnp.cos(iota)
     return hp, hc
 
 
-def _split_params(params: Mapping[str, FloatLike]):
+def _split_params(params: Mapping[str, FloatLike], diagnostics: bool = False):
     # Mc_eta_to_ms returns m1 >= m2: m1 is the BH, m2 the NS
-    m1, m2 = Mc_eta_to_ms(jnp.array([params["M_c"], params["eta"]]))
+    m1, m2 = _component_masses(params["M_c"], params["eta"], diagnostics=diagnostics)
     return (
         m1,
         m2,
@@ -965,26 +1049,43 @@ def _split_params(params: Mapping[str, FloatLike]):
 class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
     """IMRPhenomNSBH frequency-domain waveform (non-precessing, single deformable body: the NS).
 
-    LAL's parameter limits, not enforced here, are listed in the Validity Ranges notes.
+    Invalid mass ratios (outside ``[1, 100]``), tidal deformabilities (outside
+    ``[0, 5000]``), or a negative inspiral frequency derivative below LAL's
+    SPA matching frequency return NaN for the entire sample. Evaluation remains
+    compatible with ``jit``, ``vmap`` and ``scan``; other batch samples continue.
+    Set ``diagnostics=True`` and wrap evaluation in ``checkify.checkify`` for
+    optional error diagnostics. Normal evaluation has no error effects.
+    Errors are returned as values; throwing them is the caller's choice.
+    There is no neutron-star mass cut. Nonzero NS spin and NS masses below one
+    solar mass are outside LAL's calibration, but are not rejected here.
 
     Attributes:
         f_ref (float): Reference frequency in Hz.
         f_max (Optional[float]): Frequency in Hz at which the coalescence-time shift is anchored
             (LAL's upper frequency ``f_max``). ``None`` uses LAL's default, ``Mf = 0.2``.
+        diagnostics (bool): Enable optional checkify annotations. Defaults to False.
     """
 
     f_ref: float
     f_max: Optional[float]
 
-    def __init__(self, f_ref: float = 20.0, f_max: Optional[float] = None) -> None:
+    def __init__(
+        self,
+        f_ref: float = 20.0,
+        f_max: Optional[float] = None,
+        *,
+        diagnostics: bool = False,
+    ) -> None:
         """
         Args:
             f_ref (float): Reference frequency in Hz. Defaults to 20.0.
             f_max (Optional[float]): Time-shift anchor frequency in Hz. Defaults to None
                 (``Mf = 0.2``).
+            diagnostics (bool): Add optional checkify annotations. Defaults to False.
         """
         self.f_ref = f_ref
         self.f_max = f_max
+        self.diagnostics = diagnostics
 
     @property
     def parameter_names(self) -> tuple[str, ...]:
@@ -994,7 +1095,7 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
         self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> Float[Array, " n_freq"]:
         """Amplitude of ``h0`` (non-negative; includes distance scaling)."""
-        m1, m2, chi1, chi2, lam, d_L, phase_c = _split_params(params)
+        m1, m2, chi1, chi2, lam, d_L, phase_c = _split_params(params, self.diagnostics)
         A, _ = _amp_phase(
             frequency,
             m1,
@@ -1007,6 +1108,7 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
             phase_c,
             self.f_ref,
             self.f_max,
+            diagnostics=self.diagnostics,
         )
         return A
 
@@ -1014,7 +1116,7 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
         self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> Float[Array, " n_freq"]:
         """Phase of ``h0`` (includes the ``pi`` that carries LAL's negative amplitude)."""
-        m1, m2, chi1, chi2, lam, d_L, phase_c = _split_params(params)
+        m1, m2, chi1, chi2, lam, d_L, phase_c = _split_params(params, self.diagnostics)
         _, phi = _amp_phase(
             frequency,
             m1,
@@ -1027,6 +1129,7 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
             phase_c,
             self.f_ref,
             self.f_max,
+            diagnostics=self.diagnostics,
         )
         return phi
 
@@ -1057,8 +1160,10 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
                 params["iota"],
             ]
         )
-        hp, hc = gen_IMRPhenomNSBH_hphc(frequency, theta, self.f_ref, f_max=self.f_max)
+        hp, hc = gen_IMRPhenomNSBH_hphc(
+            frequency, theta, self.f_ref, f_max=self.f_max, diagnostics=self.diagnostics
+        )
         return {"p": hp, "c": hc}
 
     def __repr__(self):
-        return f"IMRPhenomNSBH(f_ref={self.f_ref}, f_max={self.f_max})"
+        return f"IMRPhenomNSBH(f_ref={self.f_ref}, f_max={self.f_max}, diagnostics={self.diagnostics})"

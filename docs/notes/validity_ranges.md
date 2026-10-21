@@ -1,7 +1,8 @@
 # Validity Ranges
 
-ripple ports the LAL implementations but does not enforce their parameter checks.
-Outside these ranges the models extrapolate silently.
+ripple ports the LAL implementations. Most models do not enforce their parameter
+checks and extrapolate silently outside these ranges. `IMRPhenomNSBH` applies
+the recoverable checks described below.
 Each model links to its LAL 7.26 documentation; limits that page does not state are checks in the [LALSuite 7.26.16 source](https://git.ligo.org/lscsoft/lalsuite/-/tree/lalsuite-v7.26.16).
 
 ## Compact-binary coalescences
@@ -23,6 +24,56 @@ LAL documents every model as usable outside its calibrated range, with unverifie
 | [`IMRPhenomXAS_NRTidalv3`](https://lscsoft.docs.ligo.org/lalsuite/7.26/lalsimulation/_l_a_l_sim_i_m_r_phenom_x_8c.html), [`IMRPhenomXP_NRTidalv3`](https://lscsoft.docs.ligo.org/lalsuite/7.26/lalsimulation/_l_a_l_sim_i_m_r_phenom_x_8c.html) | As the BBH model, and $\Lambda_i < 0$ | As the BBH model; [tides](https://lscsoft.docs.ligo.org/lalsuite/7.26/lalsimulation/_l_a_l_sim_n_r_tuned_tides_8c.html) to $q = 2$ and $\kappa_2^T \in [40, 5000]$ |
 
 LAL applies the `IMRPhenomNSBH` limit $m_\mathrm{NS} \le 3\,M_\odot$ to the detector-frame mass, so it also rejects ordinary systems at redshift $z \gtrsim 1.15$; ripple's model has no such limit.
+
+### Recoverable IMRPhenomNSBH validation
+
+`IMRPhenomNSBH` returns `NaN` for an entire sample when $q$ is outside
+$[1, 100]$, $\Lambda_2$ is outside $[0, 5000]$, or the inspiral frequency
+derivative is negative at any requested frequency below LAL's SPA matching
+frequency. The matching frequency is $0.1$ times the **PhenomC BBH** ringdown
+frequency, before the NSBH corrections. Chirp mass must also be finite and
+positive, and the PhenomC remnant-spin fit must give a physical matching frequency.
+The mass-ratio bound is checked in the supplied symmetric mass ratio before
+conversion to component masses; this also rejects unphysical `eta > 0.25`.
+No neutron-star mass cutoff is applied. Nonzero NS spin and NS masses below
+one solar mass remain calibration caveats rather than rejection rules.
+
+Normal evaluation uses array operations without error side effects. In a
+compiled inference loop, reject nonfinite waveforms explicitly:
+
+```python
+@jax.jit
+def log_likelihood(params):
+    h = waveform(frequencies, params)
+    valid = jnp.all(jnp.isfinite(h["p"])) & jnp.all(jnp.isfinite(h["c"]))
+    safe_h = jax.tree.map(lambda x: jnp.where(valid, x, 0.0), h)
+    return jnp.where(valid, evaluate_likelihood(safe_h), -jnp.inf)
+```
+
+This rejects individual samples under `jit`, `vmap`, and `lax.scan` without
+throwing an exception. It does not skip waveform computation. Masking invalid
+outputs also does not guarantee meaningful gradients at invalid parameters;
+gradient samplers should keep proposals in their physical domain.
+
+For optional error messages, enable diagnostics and functionalize the checks:
+
+```python
+from jax.experimental import checkify
+
+waveform = ripplegw.waveform("IMRPhenomNSBH", diagnostics=True)
+checked = jax.jit(checkify.checkify(waveform))
+err, h = checked(frequencies, params)
+message = err.get()  # Host inspection; returns None for a valid sample.
+# err.throw() is optional and explicitly raises on a failed check.
+```
+
+`diagnostics=True` adds `checkify.debug_check` annotations; without
+`checkify.checkify` they do not report errors, while the NaN rejection still
+applies. Leave diagnostics disabled in the normal sampling path to avoid
+effect annotations. Host inspection of error messages synchronizes execution.
+
+The low-level `gen_IMRPhenomNSBH` and `gen_IMRPhenomNSBH_hphc` functions accept
+the same static `diagnostics` keyword.
 
 ## Bursts
 
