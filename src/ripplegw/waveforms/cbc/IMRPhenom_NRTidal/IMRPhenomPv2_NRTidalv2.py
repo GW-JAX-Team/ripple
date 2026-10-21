@@ -193,7 +193,7 @@ def gen_IMRPhenomPv2_NRTidalv2(
     t0 = _natural_cubic_spline_derivative(
         f_fixed, -coprecessing_phase(f_fixed), f_merger
     ) / (2 * PI)
-    phase_corr = jnp.exp(-1j * f * (2 * PI * t0 + M_s * tc))
+    phase_corr = jnp.exp(-2j * PI * f * (t0 + tc))
     hp *= phase_corr
     hc *= phase_corr
 

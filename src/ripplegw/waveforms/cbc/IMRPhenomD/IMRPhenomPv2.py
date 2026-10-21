@@ -299,9 +299,8 @@ def gen_IMRPhenomPv2(
     #     f, m2, m1, chi2_l, chi1_l, chip, phiRef, M, dist_mpc
     # )
     t0 = jax.grad(phi_IIb)(f_RD) / (2 * jnp.pi)
-    M_s = (m1 + m2) * MTSUN
     # Fuse t0 time-shift and tc time-shift into a single complex exponential per bin.
-    phase_corr = jnp.exp(-1j * fs * (2 * jnp.pi * t0 + M_s * tc))
+    phase_corr = jnp.exp(-2j * jnp.pi * fs * (t0 + tc))
     hp *= phase_corr
     hc *= phase_corr
 
