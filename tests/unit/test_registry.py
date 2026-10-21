@@ -23,6 +23,7 @@ BUILTINS = {
     "IMRPhenomD",
     "IMRPhenomD_NRTidalv2",
     "IMRPhenomHM",
+    "IMRPhenomNSBH",
     "IMRPhenomPv2",
     "IMRPhenomPv2_NRTidalv2",
     "IMRPhenomXAS",

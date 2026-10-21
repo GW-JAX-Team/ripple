@@ -28,6 +28,7 @@ The overlap loss is a raw same-grid comparison at identical inputs; it is not ma
 | IMRPhenomD | 1e-15 | 1e-11 |
 | IMRPhenomD_NRTidalv2 | 1e-15 | 1e-9 |
 | IMRPhenomHM | 1e-15 | 1e-11 |
+| IMRPhenomNSBH | 1e-15 | 1e-9 |
 | IMRPhenomPv2 | 1e-4 | — |
 | IMRPhenomPv2_NRTidalv2 | 1e-4 | — |
 | IMRPhenomXAS | 1e-15 | 1e-12 |

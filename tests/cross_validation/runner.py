@@ -55,10 +55,21 @@ def get_tolerance(tolerances: dict, backend: str, waveform: str, kind: str) -> f
 
 def default_grid(wf, *, T_override: float | None = None) -> Grid:
     """Return the regime-appropriate frequency grid for one waveform."""
-    is_bns = regime(wf) == "bns"
+    is_bns = regime(wf) in ("bns", "nsbh")
     T = T_override if T_override is not None else (128.0 if is_bns else 32.0)
     f_u = 4096.0 if is_bns else 2048.0
     return accuracy_grid(f_l=5.0, f_u=f_u, f_sampling=2 * f_u, T=T, f_ref=5.0)
+
+
+def anchor_to_band_edge(wf, grid: Grid):
+    """Return ``wf`` with its time-shift anchor ``f_max`` set to the grid's upper edge.
+
+    Models with an ``f_max`` setting (``IMRPhenomNSBH``) anchor their time origin at
+    LAL's requested upper frequency, so ripple must use the same value LAL is called with.
+    """
+    if not hasattr(wf, "f_max"):
+        return wf
+    return type(wf)(f_ref=wf.f_ref, f_max=grid.f_u)
 
 
 @dataclass
@@ -253,6 +264,7 @@ def run_overlap_test(
     """End to end: sample parameters, generate both sides, score overlap loss."""
     wf = ripplegw.waveform(name, f_ref=5.0)
     grid = default_grid(wf, T_override=T_override)
+    wf = anchor_to_band_edge(wf, grid)
     params_batch = random_params_batch(wf, n_samples, seed=seed)
 
     cache_path = (

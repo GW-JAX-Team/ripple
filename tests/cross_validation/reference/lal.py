@@ -44,6 +44,7 @@ _APPROXIMANT_NAMES = {
     "IMRPhenomD": "IMRPhenomD",
     "IMRPhenomD_NRTidalv2": "IMRPhenomD_NRTidalv2",
     "IMRPhenomHM": "IMRPhenomHM",
+    "IMRPhenomNSBH": "IMRPhenomNSBH",
     "IMRPhenomPv2": "IMRPhenomPv2",
     "IMRPhenomPv2_NRTidalv2": "IMRPhenomPv2_NRTidalv2",
     "IMRPhenomXAS": "IMRPhenomXAS",
@@ -248,6 +249,34 @@ class LALBackend:
                 f_u,
                 f_ref,
                 None,
+                approximant,
+            )
+        elif waveform == "IMRPhenomNSBH":
+            # LAL requires lambda_1 == 0 and derives the NS quadrupole-monopole parameter itself
+            laldict = lal.CreateDict()
+            lalsim.SimInspiralWaveformParamsInsertTidalLambda2(
+                laldict, params["lambda_2"]
+            )
+            hp, hc = lalsim.SimInspiralChooseFDWaveform(
+                m1_kg,
+                m2_kg,
+                0.0,
+                0.0,
+                params["s1_z"],
+                0.0,
+                0.0,
+                params["s2_z"],
+                distance,
+                inclination,
+                phi_ref,
+                0,
+                0,
+                0,
+                df,
+                f_l,
+                f_u,
+                f_ref,
+                laldict,
                 approximant,
             )
         elif waveform in _TIDAL:
