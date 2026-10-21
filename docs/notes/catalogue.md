@@ -28,6 +28,7 @@ It models the inspiral only and does not include merger or ringdown.
 | `IMRPhenomHM` | Aligned-spin | Yes | No |
 | `IMRPhenomPv2` | Precessing | No | No |
 | `IMRPhenomD_NRTidalv2` | Aligned-spin | No | NRTidalv2 |
+| `IMRPhenomPv2_NRTidalv2` | Precessing | No | NRTidalv2 |
 
 ### IMRPhenomX family
 

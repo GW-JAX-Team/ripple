@@ -148,7 +148,7 @@ def gen_IMRPhenomXP_hphc(
     )[(2, 2)]
     dist_m = D * MPC
     amp0 = (m1 + m2) * MRSUN * (m1 + m2) * MTSUN / dist_m
-    h0_bare = hlm_22 * amp0 * jnp.exp(2j * PI * f * tc)
+    h0_bare = hlm_22 * amp0 * jnp.exp(-2j * PI * f * tc)
 
     # Compute MSA precession constants once (independent of emm and Mf) so they
     # are not redundantly recomputed for each of the 5 modes inside the vmap.

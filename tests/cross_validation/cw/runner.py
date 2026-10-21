@@ -349,7 +349,7 @@ def _hardware_info() -> dict:
         "python": platform.python_version(),
         "jax_version": jax.__version__,
         "jax_devices": [str(d) for d in jax.devices()],
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),  # noqa: DTZ005 - local display timestamp only
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
 
 

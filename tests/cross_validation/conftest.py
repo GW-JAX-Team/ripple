@@ -52,7 +52,7 @@ def _hardware_info() -> dict:
         "jax_version": jax.__version__,
         "float_dtype": str(jnp.zeros(1).dtype),
         "x64_enabled": bool(jax.config.jax_enable_x64),
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),  # noqa: DTZ005 - local display timestamp only
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
 
 
