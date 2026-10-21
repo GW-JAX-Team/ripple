@@ -14,6 +14,7 @@ quadrupole-monopole terms LAL feeds into the IMRPhenomD inspiral phase.
 
 from collections.abc import Mapping
 
+import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Complex, Float
 
@@ -32,7 +33,6 @@ from ripplegw.waveforms.cbc.IMRPhenom_NRTidal.IMRPhenomD_NRTidalv2 import (
     get_tidal_phase,
 )
 from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomD import Amp as PhDAmp
-from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomD_QNMdata import fM_CUT
 from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomD_utils import get_coeffs
 from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomPv2 import (
     PhenomPCoreTwistUp,
@@ -42,39 +42,9 @@ from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomPv2_utils import (
     phP_get_transition_frequencies,
 )
 
-# Number of points of the phase grid LAL uses to estimate the time shift, and the
-# relative half-width of that grid around the merger frequency.
-_N_FIXED = 10
-_FIXED_GRID_HALF_WIDTH = 0.2
-
 # Y_{2,2} normalisation: ripple's IMRPhenomD amplitudes include it, the twist-up
 # (like LAL's PhenomP core) expects it divided out.
 _NORM = 2.0 * jnp.sqrt(5.0 / (64.0 * PI))
-
-
-def _natural_cubic_spline_derivative(
-    x: Float[Array, " n"], y: Float[Array, " n"], x_eval: FloatLike
-) -> FloatLike:
-    """First derivative at ``x_eval`` of the natural cubic spline through ``(x, y)``.
-
-    Equivalent to ``gsl_spline_eval_deriv`` on a ``gsl_interp_cspline`` spline,
-    which is what LAL uses for its time-shift correction.
-    """
-    n = x.shape[0]
-    h = jnp.diff(x)
-    rhs = 6.0 * jnp.diff(jnp.diff(y) / h)
-    # Tridiagonal system for the interior second derivatives; M_0 = M_{n-1} = 0.
-    A = (
-        jnp.diag(2.0 * (h[:-1] + h[1:]))
-        + jnp.diag(h[1:-1], k=1)
-        + jnp.diag(h[1:-1], k=-1)
-    )
-    M = jnp.concatenate([jnp.zeros(1), jnp.linalg.solve(A, rhs), jnp.zeros(1)])
-
-    i = jnp.clip(jnp.searchsorted(x, x_eval, side="right") - 1, 0, n - 2)
-    t = x_eval - x[i]
-    b = (y[i + 1] - y[i]) / h[i] - h[i] * (2.0 * M[i] + M[i + 1]) / 6.0
-    return b + M[i] * t + (M[i + 1] - M[i]) * t**2 / (2.0 * h[i])
 
 
 def _tidal_phase(
@@ -186,13 +156,9 @@ def gen_IMRPhenomPv2_NRTidalv2(
         setup.epsilonoffset,
     )
 
-    # Time shift so that the peak sits at t=0: dPhi/df at the merger frequency,
-    # from the natural cubic spline LAL builds on a small grid around it.
-    f_stop = jnp.minimum((1.0 + _FIXED_GRID_HALF_WIDTH) * f_merger, fM_CUT / M_s)
-    f_fixed = jnp.linspace((1.0 - _FIXED_GRID_HALF_WIDTH) * f_merger, f_stop, _N_FIXED)
-    t0 = _natural_cubic_spline_derivative(
-        f_fixed, -coprecessing_phase(f_fixed), f_merger
-    ) / (2 * PI)
+    # Time shift so that the merger frequency sits at t = 0, from the exact phase
+    # derivative (LAL estimates it from a cubic spline; see the reference notes).
+    t0 = -jax.grad(coprecessing_phase)(f_merger) / (2 * PI)
     phase_corr = jnp.exp(-2j * PI * f * (t0 + tc))
     hp *= phase_corr
     hc *= phase_corr

@@ -3,25 +3,11 @@
 import jax
 import jax.numpy as jnp
 import numpy as np
-import pytest
-from scipy.interpolate import CubicSpline
 
 import ripplegw
-from ripplegw.waveforms.cbc.IMRPhenom_NRTidal.IMRPhenomPv2_NRTidalv2 import (
-    _natural_cubic_spline_derivative,
-)
 from tests.helpers.params import canonical_params
 
 jax.config.update("jax_enable_x64", True)
-
-
-@pytest.mark.parametrize("x_eval", [1.0, 1.13, 1.2, 0.81])
-def test_spline_derivative_matches_scipy_natural_spline(x_eval):
-    x = np.linspace(0.8, 1.2, 10)
-    y = np.sin(7.0 * x) + 0.3 * x**2
-    expected = CubicSpline(x, y, bc_type="natural")(x_eval, 1)
-    got = _natural_cubic_spline_derivative(jnp.asarray(x), jnp.asarray(y), x_eval)
-    np.testing.assert_allclose(got, expected, rtol=1e-12)
 
 
 def test_reduces_to_aligned_waveform_amplitude_without_in_plane_spin():
