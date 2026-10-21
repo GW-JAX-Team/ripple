@@ -1767,7 +1767,8 @@ For the enforcing thresholds, see <a href="../reference_comparisons_and_limits/"
 It is not maximised over time or phase.</p>
 <h3 id="time-origin-and-tc">Time origin and <code>tc</code><a class="headerlink" href="#time-origin-and-tc" title="Permanent link">¤</a></h3>
 <p>LAL's frequency-domain models take no coalescence time.
-Each places a model-specific feature at <code>t = 0</code>, and the choice differs between models: <code>IMRPhenomD</code> uses the exact phase derivative at the peak-amplitude frequency, the <code>IMRPhenomX</code> family a fitted peak-time shift (<code>linb</code>), and the <code>IMRPhenomPv2</code> models a spline estimate at the ringdown or merger frequency.
+Each places a model-specific feature at <code>t = 0</code>, and the choice differs between models: <code>IMRPhenomD</code> uses the exact phase derivative at the peak-amplitude frequency, the <code>IMRPhenomX</code> family a fitted peak-time shift (<code>linb</code>), the <code>IMRPhenomPv2</code> models a spline estimate at the ringdown or merger frequency, and <code>IMRPhenomNSBH</code> the merger-ringdown phase derivative at the requested upper frequency <code>f_max</code>.
+ripple takes <code>f_max</code> from the model's <code>f_max</code> argument, defaulting to LAL's own default <code>Mf = 0.2</code>; the LAL comparison sets it to the grid's upper edge.
 ripple reproduces each model's time origin, except for the two <code>IMRPhenomPv2</code> models described below.
 The <code>tc</code> entry of the <code>gen_*</code> parameter arrays multiplies the strain by <span class="arithmatex">\(e^{-2\pi i f\,t_c}\)</span>, which delays the signal by <code>tc</code> under LAL's Fourier convention <span class="arithmatex">\(\tilde h(f) = \int h(t)\,e^{-2\pi i f t}\,dt\)</span>; the waveform classes fix <code>tc = 0</code>.</p>
 <h3 id="imrphenompv2">IMRPhenomPv2<a class="headerlink" href="#imrphenompv2" title="Permanent link">¤</a></h3>
