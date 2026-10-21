@@ -46,6 +46,7 @@ _APPROXIMANT_NAMES = {
     "IMRPhenomHM": "IMRPhenomHM",
     "IMRPhenomNSBH": "IMRPhenomNSBH",
     "IMRPhenomPv2": "IMRPhenomPv2",
+    "IMRPhenomPv2_NRTidalv2": "IMRPhenomPv2_NRTidalv2",
     "IMRPhenomXAS": "IMRPhenomXAS",
     "IMRPhenomXAS_NRTidalv3": "IMRPhenomXAS_NRTidalv3",
     "IMRPhenomXHM": "IMRPhenomXHM",
@@ -54,7 +55,12 @@ _APPROXIMANT_NAMES = {
     "IMRPhenomXPHM": "IMRPhenomXPHM",
 }
 
-_TIDAL = {"TaylorF2", "IMRPhenomD_NRTidalv2", "IMRPhenomXAS_NRTidalv3"}
+_TIDAL = {
+    "TaylorF2",
+    "IMRPhenomD_NRTidalv2",
+    "IMRPhenomPv2_NRTidalv2",
+    "IMRPhenomXAS_NRTidalv3",
+}
 _PRECESSING = {"IMRPhenomPv2", "IMRPhenomXP", "IMRPhenomXPHM"}
 
 # PhenomXPrecVersion=222 surfaces an MSA-initialization failure as this LAL
@@ -285,11 +291,11 @@ class LALBackend:
             hp, hc = lalsim.SimInspiralChooseFDWaveform(
                 m1_kg,
                 m2_kg,
-                0.0,
-                0.0,
+                params.get("s1_x", 0.0),
+                params.get("s1_y", 0.0),
                 params["s1_z"],
-                0.0,
-                0.0,
+                params.get("s2_x", 0.0),
+                params.get("s2_y", 0.0),
                 params["s2_z"],
                 distance,
                 inclination,

@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from typing import NamedTuple
 
 import jax
 import jax.numpy as jnp
@@ -137,26 +138,42 @@ def PhenomPOneFrequency(
     return hPhenom, Dphi
 
 
-def gen_IMRPhenomPv2(
-    fs: Float[Array, " n_freq"],
-    theta: Float[Array, "12"],
+class PrecessionSetup(NamedTuple):
+    """Spin-frame conversion and precession-angle ingredients shared by the
+    precessing Phenom models built on the IMRPhenomD co-precessing frame."""
+
+    chi1_l: FloatLike
+    chi2_l: FloatLike
+    chip: FloatLike
+    phic: FloatLike
+    M: FloatLike
+    eta: FloatLike
+    angcoeffs: dict[str, FloatLike]
+    Y2m: list
+    alphaoffset: FloatLike
+    epsilonoffset: FloatLike
+    zeta_polariz: FloatLike
+
+
+def get_precession_setup(
+    m1: FloatLike,
+    m2: FloatLike,
     f_ref: float,
-) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
-    """
-    Thetas are waveform parameters.
-    m1 must be larger than m2.
-    """
-    m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, tc, phiRef, incl = theta
+    phiRef: FloatLike,
+    incl: FloatLike,
+    s1x: FloatLike,
+    s1y: FloatLike,
+    s1z: FloatLike,
+    s2x: FloatLike,
+    s2y: FloatLike,
+    s2z: FloatLike,
+) -> PrecessionSetup:
+    """Convert source-frame spins and set up the NNLO precession angles.
 
-    # flip m1 m2. For some reason LAL uses this convention for PhenomPv2
-    m1, m2 = m2, m1
-    s1x, s2x = s2x, s1x
-    s1y, s2y = s2y, s1y
-    s1z, s2z = s2z, s1z
-    # from now on, m1 < m2
-
-    # m1_SI = m1 * MSUN
-    # m2_SI = m2 * MSUN
+    Uses LAL's PhenomP convention ``m1 < m2`` (body 2 is the heavier one, and
+    carries the in-plane spin), so callers holding ``m1 > m2`` must swap
+    masses and spins first.
+    """
     (
         chi1_l,
         chi2_l,
@@ -205,6 +222,51 @@ def gen_IMRPhenomPv2(
     Y22 = SpinWeightedY(thetaJN, 0, -2, 2, 2)
     Y2 = [Y2m2, Y2m1, Y20, Y21, Y22]
 
+    return PrecessionSetup(
+        chi1_l=chi1_l,
+        chi2_l=chi2_l,
+        chip=chip,
+        phic=phic,
+        M=M,
+        eta=eta,
+        angcoeffs=angcoeffs,
+        Y2m=Y2,
+        alphaoffset=alphaNNLOoffset - alpha0,
+        epsilonoffset=epsilonNNLOoffset,
+        zeta_polariz=zeta_polariz,
+    )
+
+
+def gen_IMRPhenomPv2(
+    fs: Float[Array, " n_freq"],
+    theta: Float[Array, "12"],
+    f_ref: float,
+) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
+    """
+    Thetas are waveform parameters.
+    m1 must be larger than m2.
+    """
+    m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, tc, phiRef, incl = theta
+
+    # flip m1 m2. For some reason LAL uses this convention for PhenomPv2
+    m1, m2 = m2, m1
+    s1x, s2x = s2x, s1x
+    s1y, s2y = s2y, s1y
+    s1z, s2z = s2z, s1z
+    # from now on, m1 < m2
+
+    setup = get_precession_setup(
+        m1, m2, f_ref, phiRef, incl, s1x, s1y, s1z, s2x, s2y, s2z
+    )
+    chi1_l, chi2_l, chip, phic, M, eta = (
+        setup.chi1_l,
+        setup.chi2_l,
+        setup.chip,
+        setup.phic,
+        setup.M,
+        setup.eta,
+    )
+
     # Shift phase so that peak amplitude matches t = 0
     theta_intrinsic = jnp.array([m2, m1, chi2_l, chi1_l])
     coeffs = get_coeffs(theta_intrinsic)
@@ -220,17 +282,15 @@ def gen_IMRPhenomPv2(
     hp, hc = PhenomPCoreTwistUp(
         fs,
         hPhenomDs,
-        # phase,
-        # Amp,
         eta,
         chi1_l,
         chi2_l,
         chip,
         M,
-        angcoeffs,
-        Y2,
-        alphaNNLOoffset - alpha0,
-        epsilonNNLOoffset,
+        setup.angcoeffs,
+        setup.Y2m,
+        setup.alphaoffset,
+        setup.epsilonoffset,
     )
     # unpack transition_freqs
     _, _, _, _, f_RD, _ = transition_freqs
@@ -239,15 +299,14 @@ def gen_IMRPhenomPv2(
     #     f, m2, m1, chi2_l, chi1_l, chip, phiRef, M, dist_mpc
     # )
     t0 = jax.grad(phi_IIb)(f_RD) / (2 * jnp.pi)
-    M_s = (m1 + m2) * MTSUN
     # Fuse t0 time-shift and tc time-shift into a single complex exponential per bin.
-    phase_corr = jnp.exp(-1j * fs * (2 * jnp.pi * t0 + M_s * tc))
+    phase_corr = jnp.exp(-2j * jnp.pi * fs * (t0 + tc))
     hp *= phase_corr
     hc *= phase_corr
 
     # final touches to hp and hc, stolen from Scott
-    c2z = jnp.cos(2 * zeta_polariz)
-    s2z = jnp.sin(2 * zeta_polariz)
+    c2z = jnp.cos(2 * setup.zeta_polariz)
+    s2z = jnp.sin(2 * setup.zeta_polariz)
     final_hp = c2z * hp + s2z * hc
     final_hc = c2z * hc - s2z * hp
     return final_hp, final_hc
