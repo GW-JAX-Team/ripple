@@ -12,7 +12,8 @@ It is not maximised over time or phase.
 ### Time origin and `tc`
 
 LAL's frequency-domain models take no coalescence time.
-Each places a model-specific feature at `t = 0`, and the choice differs between models: `IMRPhenomD` uses the exact phase derivative at the peak-amplitude frequency, the `IMRPhenomX` family a fitted peak-time shift (`linb`), and the `IMRPhenomPv2` models a spline estimate at the ringdown or merger frequency.
+Each places a model-specific feature at `t = 0`, and the choice differs between models: `IMRPhenomD` uses the exact phase derivative at the peak-amplitude frequency, the `IMRPhenomX` family a fitted peak-time shift (`linb`), the `IMRPhenomPv2` models a spline estimate at the ringdown or merger frequency, and `IMRPhenomNSBH` the merger-ringdown phase derivative at the requested upper frequency `f_max`.
+ripple takes `f_max` from the model's `f_max` argument, defaulting to LAL's own default `Mf = 0.2`; the LAL comparison sets it to the grid's upper edge.
 ripple reproduces each model's time origin, except for the two `IMRPhenomPv2` models described below.
 The `tc` entry of the `gen_*` parameter arrays multiplies the strain by $e^{-2\pi i f\,t_c}$, which delays the signal by `tc` under LAL's Fourier convention $\tilde h(f) = \int h(t)\,e^{-2\pi i f t}\,dt$; the waveform classes fix `tc = 0`.
 

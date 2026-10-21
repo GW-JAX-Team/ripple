@@ -48,7 +48,6 @@ _REGIME_DEFAULTS = {
     "nsbh": {
         "s1_z": 0.3,
         "s2_z": 0.0,
-        "lambda_1": 0.0,
         "lambda_2": 400.0,
         "d_L": 200.0,
     },
@@ -100,7 +99,7 @@ _REGIME_BOUNDS = {
     },
     # "m" is the BH mass range, "m_ns" the NS one; "chi" is the BH spin, "chi_ns" the NS spin
     "nsbh": {
-        "m": (2.5, 40.0),
+        "m": (3.0, 40.0),
         "m_ns": (1.0, 3.0),
         "chi": (-0.9, 0.9),
         "chi_ns": (-0.05, 0.05),
@@ -162,8 +161,6 @@ def random_params_batch(
 
     m1 = rng.uniform(*bounds["m"], n)
     m2 = rng.uniform(*bounds.get("m_ns", bounds["m"]), n)
-    if reg == "nsbh":
-        m1 = np.maximum(m1, m2)  # the BH is the heavier body
     Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
     values: dict[str, np.ndarray] = {"M_c": np.asarray(Mc), "eta": np.asarray(eta)}
 

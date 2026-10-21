@@ -11,6 +11,7 @@ import pytest
 import ripplegw
 from ripplegw.conversions import ms_to_Mc_eta
 from tests.cross_validation.runner import (
+    anchor_to_band_edge,
     default_grid,
     get_tolerance,
     load_psd,
@@ -61,6 +62,7 @@ def test_reference_phase_convention(
     )
     wf = ripplegw.waveform(waveform_name, f_ref=5.0)
     grid = default_grid(wf, T_override=segment_duration_override)
+    wf = anchor_to_band_edge(wf, grid)
     params = _fiducial_params(wf)
 
     ref = reference.generate(waveform_name, params, grid)
