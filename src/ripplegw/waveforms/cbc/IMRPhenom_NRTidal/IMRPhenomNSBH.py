@@ -965,7 +965,7 @@ def _split_params(params: Mapping[str, FloatLike]):
 class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
     """IMRPhenomNSBH frequency-domain waveform (non-precessing, single deformable body: the NS).
 
-    LAL's parameter limits, not enforced here, are listed in the Waveform Catalogue.
+    LAL's parameter limits, not enforced here, are listed in the Validity Ranges notes.
 
     Attributes:
         f_ref (float): Reference frequency in Hz.

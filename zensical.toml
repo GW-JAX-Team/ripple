@@ -31,6 +31,7 @@ nav = [
         "notes/index.md",
         {"Parameters and Conventions" = "notes/parameters.md"},
         {"Waveform Catalogue" = "notes/catalogue.md"},
+        {"Validity Ranges" = "notes/validity_ranges.md"},
     ]},
     {"Development" = [
         "dev/index.md",
