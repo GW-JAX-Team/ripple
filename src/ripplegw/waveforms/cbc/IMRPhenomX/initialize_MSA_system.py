@@ -308,7 +308,6 @@ def IMRPhenomX_Initialize_MSA_System(
     c_1_over_eta = c_1 / eta
 
     # Average spin couplings over one precession cycle: A9 - A14 of arXiv:1703.03967
-    # omqsq = (1.0 - q) * (1.0 - q) + 1e-16
     omq2 = 1.0 - q * q
 
     # Precession averaged spin couplings, Eq. A9 - A14 of arXiv:1703.03967, note that we only use the initial values
@@ -325,25 +324,6 @@ def IMRPhenomX_Initialize_MSA_System(
         jnp.zeros_like(omq2),
         -q * (c_1 * (1.0 + q) - eta * Seff) / (eta * omq2_safe),
     )
-    # S1S2_pav = 0.5 * SAv2 - 0.5 * (S1_norm_2 + S2_norm_2)
-    # S1Lsq_pav = (S1L_pav*S1L_pav + ((Spl2mSmi2)*(Spl2mSmi2) * v_0_2) / (32.0 * eta2 * omqsq))
-    # S2Lsq_pav = (S2L_pav*S2L_pav + (q*q*(Spl2mSmi2)*(Spl2mSmi2) * v_0_2) / (32.0 * eta2 * omqsq))
-    # S1LS2L_pav = (S1L_pav*S2L_pav - q * (Spl2mSmi2)*(Spl2mSmi2)*v_0_2 / (32.0 * eta2 * omqsq))
-
-    """
-    # Spin couplings in arXiv:1703.03967
-    beta3 = (((113./12.) + (25./4.)*(m2/m1)) * S1L_pav + ((113./12.) + (25./4.)*(m1/m2)) * S2L_pav)
-    beta5 = (((31319./1008.) - (1159./24.)*eta) + (m2/m1)*((809./84) - (281./8.)*eta)) * S1L_pav + \
-            (((31319./1008.) - (1159./24.)*eta) + (m1/m2)*((809./84) - (281./8.)*eta)) * S2L_pav
-    beta6 = jnp.pi * (((75./2.) + (151./6.)*(m2/m1))*S1L_pav + ((75./2.) + (151./6.)*(m1/m2))*S2L_pav)
-    beta7 = (((130325./756) - (796069./2016)*eta + (100019./864.)*eta2) + \
-            (m2/m1)*((1195759./18144) - (257023./1008.)*eta + (2903/32.)*eta2)) * S1L_pav + \
-            (((130325./756) - (796069./2016)*eta + (100019./864.)*eta2) + \
-            (m1/m2)*((1195759./18144) - (257023./1008.)*eta + (2903/32.)*eta2)) * S2L_pav
-    sigma4 = ((1.0/mu) * ((247./48.)*S1S2_pav - (721./48.)*S1L_pav*S2L_pav) + \
-            (1.0/(m1*m1)) * ((233./96.)*S1_norm_2 - (719./96.)*S1Lsq_pav) + \
-            (1.0/(m2*m2)) * ((233./96.)*S2_norm_2 - (719./96.)*S2Lsq_pav))
-    """
     # Line 2597
 
     a0 = eta * domegadt_constants_NS[0]
@@ -404,8 +384,6 @@ def IMRPhenomX_Initialize_MSA_System(
     # Useful powers of delta
     delta = delta_qq
     delta2 = delta * delta
-    # delta3 = delta * delta2
-    # delta4 = delta * delta3
 
     # \psi_1 is defined in Eq. C1 of Appendix C in PRD, 95, 104004, (2017), arXiv:1703.03967
     # Guard: for equal-mass delta2=0, psi1→±inf but delta_qq*psi1→0; set psi1=0 at limit.
@@ -425,7 +403,6 @@ def IMRPhenomX_Initialize_MSA_System(
 
     # This implements the Delta term as in LALSimInspiralFDPrecAngles.c
     # c.f. https://git.ligo.org/lscsoft/lalsuite/-/blob/master/lalsimulation/lib/LALSimInspiralFDPrecAngles_internals.c#L145
-    # if pflag == 222 or pflag == 223:
     Del1 = 4.0 * c_1_over_nu_2 * one_p_q_sq
     Del2 = 8.0 * c_1_over_nu * q * (1.0 + q) * Seff
     Del3 = 4.0 * (one_m_q2_2 * S1_norm_2 - q_2 * Seff_2)
@@ -434,24 +411,8 @@ def IMRPhenomX_Initialize_MSA_System(
     Del6 = 4.0 * (one_m_q2_2 * S2_norm_2 - q_2 * Seff_2)
     Delta = jnp.sqrt(jnp.abs((Del1 - Del2 - Del3) * (Del4 - Del5 - Del6)))
 
-    """
-    else:
-        # Coefficients of \\Delta as defined in Eq. C3 of Appendix C in PRD, 95, 104004, (2017), arXiv:1703.03967.
-        term1 = c1_2 * eta / (q * delta4)
-        term2 = -2.0 * c_1 * eta3 * (1.0 + q) * Seff / (q * delta4)
-        term3 = -eta2 * (delta2 * S1_norm_2 - eta2 * Seff_2) / delta4
-
-        # Is this 1) (c1_2 * q * eta / delta4) or 2) c1_2*eta2/delta4?
-        # - In paper.pdf, the expression 1) is used.
-        # Using eta^2 leads to higher frequency oscillations, use q * eta
-        term4 = c1_2 * eta * q / delta4
-        term5 = -2.0 * c_1 * eta3 * (1.0 + q) * Seff / delta4
-        term6 = -eta2 * (delta2 * S2_norm_2 - eta2 * Seff_2) / delta4
-        Delta = jnp.sqrt(jnp.abs((term1 + term2 + term3) * (term4 + term5 + term6)))
-    """
     # Line 2706
 
-    # if pflag == 222 or pflag == 223:
     u1 = 3.0 * g2 / g0
     # Guard: for equal-mass one_m_q_4=0, u2→+inf but delta_qq*u2→0; set u2=0 at limit.
     _one_m_q_4_safe = jnp.where(one_m_q_4 > 0.0, one_m_q_4, jnp.ones_like(one_m_q_4))
@@ -468,23 +429,6 @@ def IMRPhenomX_Initialize_MSA_System(
 
     # Eq. C2 (1703.03967)
     psi2 = u1 + u2 * (u3 + u4 + u5 - u6 + u7)
-    """
-    else:
-        # \\psi_2 is defined in Eq. C2 of Appendix C in PRD, 95, 104004, (2017). Here we implement system of equations as in paper.pdf
-        term1 = 3.0 * g2 / g0
-
-        # q^2 or no q^2 in term2? Consensus on retaining q^2 term: https://git.ligo.org/waveforms/reviews/phenompv3hm/issues/7
-        term2 = 3.0 * q * q / (2.0 * eta3)
-        term3 = 2.0 * Delta
-        term4 = -2.0 * eta2 * SAv2 / delta2
-        term5 = -10.0 * eta * c1_2 / delta4
-        term6 = 2.0 * eta2 * (7.0 + 6.0 * q + 7.0 * q * q) * c_1 * Seff / (omqsq * delta2)
-        term7 = -eta3 * (3.0 + 4.0 * q + 3.0 * q * q) * Seff_2 / (omqsq * delta2)
-        term8 = eta * (q * (2.0 + q) * S1_norm_2 + (1.0 + 2.0 * q) * S2_norm_2) / omqsq
-
-        # \\psi_2, C2 of Appendix C of PRD, 95, 104004, (2017)
-        psi2 = term1 + term2 * (term3 + term4 + term5 + term6 + term7 + term8)
-    """
     # Eq. D1 of PRD, 95, 104004, (2017), arXiv:1703.03967
     Rm = Spl2 - Smi2
     Rm_2 = Rm * Rm
@@ -1533,20 +1477,7 @@ def IMRPhenomX_Return_MSA_Corrections_MSA(
     atan_psi = jnp.arctan(
         tan_psi
     )  # wraps psi to (-π/2, π/2) — required for the incomplete elliptic integral formula
-    """
-    # C1 = -0.5 * (c0 / d0 - 2.0 * (c0 + c2 + c4) / nc_num)
-
-    C2num = (
-        c0 * (-2.0 * d0 * d4 + d2 * d2 + d2 * d4)
-        - c2 * d0 * (d2 + 2.0 * d4)
-        + c4 * d0 * (two_d0 + d2)
-    )
-    """
     C2den = 2.0 * d0 * sd * (d0 + d2 + d4)
-    # C2 = C2num / C2den
-
-    # Cphi = C1 + C2
-    # Dphi = C1 - C2
 
     def compute_Cphi_term():
         return (

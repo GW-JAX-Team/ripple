@@ -186,7 +186,6 @@ def get_tidal_phase(
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
-    # eta = m1_s * m2_s / (M_s**2.0)
 
     X1 = m1_s / M_s
     X2 = m2_s / M_s

@@ -6627,8 +6627,6 @@ def XLALSimIMRPhenomXHMEvaluateOnehlmMode(
     """
     emm = pWFHM.emm
     # Phase
-    # if pWFHM.MixingOn:
-    #     phase_lm = xhm_phase_ModeMixing(freqs_geom, pPhase, pWFHM, pWF22, t0)
     phase_lm = xhm_phase_noModeMixing(freqs_geom, pPhase, pWFHM, pWF22, t0)
 
     # Amplitude

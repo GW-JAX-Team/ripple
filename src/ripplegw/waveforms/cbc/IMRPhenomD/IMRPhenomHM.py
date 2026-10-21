@@ -186,10 +186,7 @@ def XLALSimIMRPhenomHMGethlmModes(
         ModeArray,
     )
 
-    # FIXME? LAL does some frequency spacing here, I'm not sure yet whether we need to do this
-
-    # line 1288
-    # Might be unused since we use ripple IMRPhenomD, which uses f[Hz]
+    # PhenomD functions take geometric frequencies (LAL line 1288)
     freqs_geom = freqs * pHM["Mtot"] * MTSUN
 
     # Pre-compute mode-independent PhenomD quantities once (used by phase, amplitude, t0)

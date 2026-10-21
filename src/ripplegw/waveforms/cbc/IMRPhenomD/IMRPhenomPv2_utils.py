@@ -65,8 +65,6 @@ def convert_spins(
     FloatLike,
     FloatLike,
 ]:
-    # m1 = m1_SI / MSUN  # Masses in solar masses
-    # m2 = m2_SI / MSUN
     M = m1 + m2
     m1_2 = m1 * m1
     m2_2 = m2 * m2

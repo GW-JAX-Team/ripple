@@ -1,6 +1,5 @@
 from collections.abc import Mapping
 
-import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Complex, Float
 
@@ -19,13 +18,11 @@ from ripplegw.waveforms.cbc.IMRPhenomX.IMRPhenomXPHM import (
     IMRPhenomXWignerdCoefficients_cosbeta,
     apply_polarization_rotation,
     twist_22,
-)  # spaghetti code! FIXME
+)
 from ripplegw.waveforms.cbc.IMRPhenomX.initialize_MSA_system import (
     IMRPhenomX_Initialize_MSA_System,
     lal_M_sec,
 )
-
-jax.config.update("jax_enable_x64", True)
 
 
 def gen_IMRPhenomXP_hphc(

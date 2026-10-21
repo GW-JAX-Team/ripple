@@ -45,7 +45,6 @@ def PhenomPCoreTwistUp(
     Sperp = chip * (
         m2 * m2
     )  # Dimensionfull spin component in the orbital plane. S_perp = S_2_perp
-    # chi_eff = m1 * chi1_l + m2 * chi2_l  # effective spin for M=1
 
     SL = chi1_l * m1 * m1 + chi2_l * m2 * m2  # Dimensionfull aligned spin.
 
@@ -70,7 +69,6 @@ def PhenomPCoreTwistUp(
         + angcoeffs["epsiloncoeff5"] * omega_cbrt
     ) - epsilonoffset
 
-    # print("alpha, epsilon: ", alpha, epsilon)
     cBetah, sBetah = WignerdCoefficients(omega_cbrt, SL, eta, Sperp)
 
     cBetah2 = cBetah * cBetah
@@ -132,7 +130,6 @@ def PhenomPOneFrequency(
     phase -= phic
     Amp = PhDAmp(fs, theta_ripple, coeffs, transition_freqs, D=dist_mpc) / norm
 
-    # phase -= 2. * phic; # line 1316 ???
     hPhenom = Amp * (jnp.exp(-1j * phase))
     return hPhenom, Dphi
 
@@ -277,9 +274,6 @@ def gen_IMRPhenomPv2(
     # unpack transition_freqs
     _, _, _, _, f_RD, _ = transition_freqs
 
-    # phi_IIb = lambda f: PhenomPOneFrequency_phase(
-    #     f, m2, m1, chi2_l, chi1_l, chip, phiRef, M, dist_mpc
-    # )
     t0 = jax.grad(phi_IIb)(f_RD) / (2 * jnp.pi)
     # Fuse t0 time-shift and tc time-shift into a single complex exponential per bin.
     phase_corr = jnp.exp(-2j * jnp.pi * fs * (t0 + tc))

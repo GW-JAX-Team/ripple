@@ -400,10 +400,6 @@ def _phase_of(
     M_s = (m1 + m2) * MTSUN
     piM = PI * M_s
 
-    # TODO: incorporate this into the waveform
-    # vISCO = 1.0 / jnp.sqrt(6.0)
-    # fISCO = vISCO * vISCO * vISCO / piM
-
     # Get the phasing coefficients
     phasing_coeffs, phasing_log_coeffs = get_PNPhasing_F2(
         m1, m2, chi1, chi2, lambda1, lambda2
