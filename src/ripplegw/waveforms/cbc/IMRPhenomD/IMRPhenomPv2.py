@@ -1,5 +1,4 @@
 from collections.abc import Mapping
-from typing import NamedTuple
 
 import jax
 import jax.numpy as jnp
@@ -138,23 +137,6 @@ def PhenomPOneFrequency(
     return hPhenom, Dphi
 
 
-class PrecessionSetup(NamedTuple):
-    """Spin-frame conversion and precession-angle ingredients shared by the
-    precessing Phenom models built on the IMRPhenomD co-precessing frame."""
-
-    chi1_l: FloatLike
-    chi2_l: FloatLike
-    chip: FloatLike
-    phic: FloatLike
-    M: FloatLike
-    eta: FloatLike
-    angcoeffs: dict[str, FloatLike]
-    Y2m: list
-    alphaoffset: FloatLike
-    epsilonoffset: FloatLike
-    zeta_polariz: FloatLike
-
-
 def get_precession_setup(
     m1: FloatLike,
     m2: FloatLike,
@@ -167,7 +149,7 @@ def get_precession_setup(
     s2x: FloatLike,
     s2y: FloatLike,
     s2z: FloatLike,
-) -> PrecessionSetup:
+) -> dict:
     """Convert source-frame spins and set up the NNLO precession angles.
 
     Uses LAL's PhenomP convention ``m1 < m2`` (body 2 is the heavier one, and
@@ -222,19 +204,19 @@ def get_precession_setup(
     Y22 = SpinWeightedY(thetaJN, 0, -2, 2, 2)
     Y2 = [Y2m2, Y2m1, Y20, Y21, Y22]
 
-    return PrecessionSetup(
-        chi1_l=chi1_l,
-        chi2_l=chi2_l,
-        chip=chip,
-        phic=phic,
-        M=M,
-        eta=eta,
-        angcoeffs=angcoeffs,
-        Y2m=Y2,
-        alphaoffset=alphaNNLOoffset - alpha0,
-        epsilonoffset=epsilonNNLOoffset,
-        zeta_polariz=zeta_polariz,
-    )
+    return {
+        "chi1_l": chi1_l,
+        "chi2_l": chi2_l,
+        "chip": chip,
+        "phic": phic,
+        "M": M,
+        "eta": eta,
+        "angcoeffs": angcoeffs,
+        "Y2m": Y2,
+        "alphaoffset": alphaNNLOoffset - alpha0,
+        "epsilonoffset": epsilonNNLOoffset,
+        "zeta_polariz": zeta_polariz,
+    }
 
 
 def gen_IMRPhenomPv2(
@@ -259,12 +241,12 @@ def gen_IMRPhenomPv2(
         m1, m2, f_ref, phiRef, incl, s1x, s1y, s1z, s2x, s2y, s2z
     )
     chi1_l, chi2_l, chip, phic, M, eta = (
-        setup.chi1_l,
-        setup.chi2_l,
-        setup.chip,
-        setup.phic,
-        setup.M,
-        setup.eta,
+        setup["chi1_l"],
+        setup["chi2_l"],
+        setup["chip"],
+        setup["phic"],
+        setup["M"],
+        setup["eta"],
     )
 
     # Shift phase so that peak amplitude matches t = 0
@@ -287,10 +269,10 @@ def gen_IMRPhenomPv2(
         chi2_l,
         chip,
         M,
-        setup.angcoeffs,
-        setup.Y2m,
-        setup.alphaoffset,
-        setup.epsilonoffset,
+        setup["angcoeffs"],
+        setup["Y2m"],
+        setup["alphaoffset"],
+        setup["epsilonoffset"],
     )
     # unpack transition_freqs
     _, _, _, _, f_RD, _ = transition_freqs
@@ -305,8 +287,8 @@ def gen_IMRPhenomPv2(
     hc *= phase_corr
 
     # final touches to hp and hc, stolen from Scott
-    c2z = jnp.cos(2 * setup.zeta_polariz)
-    s2z = jnp.sin(2 * setup.zeta_polariz)
+    c2z = jnp.cos(2 * setup["zeta_polariz"])
+    s2z = jnp.sin(2 * setup["zeta_polariz"])
     final_hp = c2z * hp + s2z * hc
     final_hc = c2z * hc - s2z * hp
     return final_hp, final_hc

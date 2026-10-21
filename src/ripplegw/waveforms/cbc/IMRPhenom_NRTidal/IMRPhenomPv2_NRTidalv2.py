@@ -109,8 +109,8 @@ def gen_IMRPhenomPv2_NRTidalv2(
     setup = get_precession_setup(
         m1, m2, f_ref, phiRef, incl, s1x, s1y, s1z, s2x, s2y, s2z
     )
-    chi1_l, chi2_l, chip = setup.chi1_l, setup.chi2_l, setup.chip
-    M_s = setup.M * MTSUN
+    chi1_l, chi2_l, chip = setup["chi1_l"], setup["chi2_l"], setup["chip"]
+    M_s = setup["M"] * MTSUN
 
     # Co-precessing frame: IMRPhenomD takes the heavier body first, which is also
     # the ordering of the NRTidalv2 building blocks (merger frequency uses m1/m2 >= 1).
@@ -130,7 +130,7 @@ def gen_IMRPhenomPv2_NRTidalv2(
             freq, theta_bbh, theta_intrinsic, coeffs, transition_freqs
         ) + _tidal_phase(freq, theta_intrinsic, kappa)
 
-    phase = coprecessing_phase(f) - setup.phic
+    phase = coprecessing_phase(f) - setup["phic"]
     amp = PhDAmp(f, theta_bbh, coeffs, transition_freqs, D=dist_mpc) / _NORM
     amp += (
         get_tidal_amplitude(
@@ -145,15 +145,15 @@ def gen_IMRPhenomPv2_NRTidalv2(
     hp, hc = PhenomPCoreTwistUp(
         f,
         hPhenom,
-        setup.eta,
+        setup["eta"],
         chi1_l,
         chi2_l,
         chip,
-        setup.M,
-        setup.angcoeffs,
-        setup.Y2m,
-        setup.alphaoffset,
-        setup.epsilonoffset,
+        setup["M"],
+        setup["angcoeffs"],
+        setup["Y2m"],
+        setup["alphaoffset"],
+        setup["epsilonoffset"],
     )
 
     # Time shift so that the merger frequency sits at t = 0, from the exact phase
@@ -163,8 +163,8 @@ def gen_IMRPhenomPv2_NRTidalv2(
     hp *= phase_corr
     hc *= phase_corr
 
-    c2z = jnp.cos(2 * setup.zeta_polariz)
-    s2z = jnp.sin(2 * setup.zeta_polariz)
+    c2z = jnp.cos(2 * setup["zeta_polariz"])
+    s2z = jnp.sin(2 * setup["zeta_polariz"])
     return c2z * hp + s2z * hc, c2z * hc - s2z * hp
 
 
