@@ -1127,6 +1127,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#validity-ranges" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Validity ranges
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1841,6 +1852,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#validity-ranges" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Validity ranges
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2003,6 +2025,72 @@ It models the inspiral only and does not include merger or ringdown.</p>
 </tr>
 </tbody>
 </table>
+<h3 id="validity-ranges">Validity ranges<a class="headerlink" href="#validity-ranges" title="Permanent link">¤</a></h3>
+<p>ripple ports the LAL implementations but does not enforce their parameter checks.
+Outside these ranges the models extrapolate silently.
+The table lists what LAL rejects and where it warns about, or documents, the edge of the calibration, with <span class="arithmatex">\(q = m_1/m_2 \ge 1\)</span>.</p>
+<table>
+<thead>
+<tr>
+<th>Waveform</th>
+<th>LAL rejects</th>
+<th>Outside the calibration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TaylorF2</code></td>
+<td>—</td>
+<td>No range checks</td>
+</tr>
+<tr>
+<td><code>IMRPhenomD</code></td>
+<td><span class="arithmatex">\(\lvert\chi_i\rvert &gt; 1\)</span></td>
+<td><span class="arithmatex">\(q &gt; 18\)</span></td>
+</tr>
+<tr>
+<td><code>IMRPhenomHM</code></td>
+<td><span class="arithmatex">\(\lvert\chi_i\rvert &gt; 1\)</span></td>
+<td><span class="arithmatex">\(q &gt; 20\)</span></td>
+</tr>
+<tr>
+<td><code>IMRPhenomPv2</code></td>
+<td><span class="arithmatex">\(\lvert\vec\chi_i\rvert &gt; 1\)</span></td>
+<td><span class="arithmatex">\(q &gt; 18\)</span>; strongly anti-aligned spins, where the precession opening angle is no longer tracked</td>
+</tr>
+<tr>
+<td><code>IMRPhenomD_NRTidalv2</code></td>
+<td><span class="arithmatex">\(\lvert\chi_i\rvert &gt; 1\)</span>, <span class="arithmatex">\(\Lambda_i &lt; 0\)</span></td>
+<td><span class="arithmatex">\(q &gt; 18\)</span>; tides beyond <span class="arithmatex">\(q = 1.5\)</span> or <span class="arithmatex">\(\kappa_2^T \notin [40, 5000]\)</span></td>
+</tr>
+<tr>
+<td><code>IMRPhenomPv2_NRTidalv2</code></td>
+<td><span class="arithmatex">\(\lvert\vec\chi_i\rvert &gt; 1\)</span>, <span class="arithmatex">\(\Lambda_i &lt; 0\)</span></td>
+<td>As <code>IMRPhenomPv2</code>, with the tides of <code>IMRPhenomD_NRTidalv2</code>; <span class="arithmatex">\(q &lt; 1.5\)</span> with both <span class="arithmatex">\(\Lambda_i &gt; 2000\)</span></td>
+</tr>
+<tr>
+<td><code>IMRPhenomNSBH</code></td>
+<td><span class="arithmatex">\(m_\mathrm{BH} &lt; m_\mathrm{NS}\)</span>, <span class="arithmatex">\(q &gt; 100\)</span>, <span class="arithmatex">\(\Lambda_\mathrm{NS} &gt; 5000\)</span>, <span class="arithmatex">\(m_\mathrm{NS} &gt; 3\,M_\odot\)</span>; a negative inspiral frequency derivative</td>
+<td><span class="arithmatex">\(m_\mathrm{NS} &lt; 1\,M_\odot\)</span>, non-zero NS spin</td>
+</tr>
+<tr>
+<td><code>IMRPhenomXAS</code>, <code>IMRPhenomXHM</code></td>
+<td><span class="arithmatex">\(q &gt; 1000\)</span>, <span class="arithmatex">\(\lvert\chi_i\rvert &gt; 1\)</span></td>
+<td><span class="arithmatex">\(q &gt; 20\)</span>, <span class="arithmatex">\(\lvert\chi_i\rvert &gt; 0.99\)</span></td>
+</tr>
+<tr>
+<td><code>IMRPhenomXP</code>, <code>IMRPhenomXPHM</code></td>
+<td><span class="arithmatex">\(q &gt; 1000\)</span>, <span class="arithmatex">\(\lvert\vec\chi_i\rvert &gt; 1\)</span></td>
+<td><span class="arithmatex">\(q &gt; 20\)</span>, <span class="arithmatex">\(\lvert\vec\chi_i\rvert &gt; 0.99\)</span></td>
+</tr>
+<tr>
+<td><code>IMRPhenomXAS_NRTidalv3</code>, <code>IMRPhenomXP_NRTidalv3</code></td>
+<td>As the BBH model, and <span class="arithmatex">\(\Lambda_i &lt; 0\)</span></td>
+<td>As the BBH model; tides beyond <span class="arithmatex">\(q = 2\)</span> or <span class="arithmatex">\(\kappa_2^T \notin [40, 5000]\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>LAL applies the <code>IMRPhenomNSBH</code> limit <span class="arithmatex">\(m_\mathrm{NS} \le 3\,M_\odot\)</span> to the detector-frame mass, so it also rejects ordinary systems at redshift <span class="arithmatex">\(z \gtrsim 1.15\)</span>; ripple's model has no such limit.</p>
 <h2 id="bursts">Bursts<a class="headerlink" href="#bursts" title="Permanent link">¤</a></h2>
 <p><code>SineGaussian</code> is a short-duration burst model that describes a sine-Gaussian waveform in the time domain.</p>
 <h2 id="continuous-waves">Continuous waves<a class="headerlink" href="#continuous-waves" title="Permanent link">¤</a></h2>
