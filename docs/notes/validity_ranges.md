@@ -64,8 +64,11 @@ Under ordinary per-sample `vmap`, conditionals become selections and both
 branches are evaluated, so invalid samples do not save waveform work. Use
 `lax.scan` or `lax.map` when per-sample early rejection is required; their
 sequential execution can cost more than vectorization for valid batches.
-Masking invalid outputs also does not guarantee meaningful gradients at invalid parameters;
-gradient samplers should keep proposals in their physical domain.
+Derivatives (`jax.grad`, `jax.jacfwd`, `jax.jvp`) evaluate the guards as
+selections too, which avoids keeping every branch's intermediates across the
+conditionals; values and derivatives of valid samples are unchanged. At an
+invalid sample the value is `NaN` and the derivative may be `NaN` or
+meaningless, so gradient samplers should keep proposals in their physical domain.
 
 For optional error messages, enable diagnostics and functionalize the checks:
 

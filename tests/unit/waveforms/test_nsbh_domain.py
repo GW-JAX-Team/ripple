@@ -373,3 +373,59 @@ def test_python_chirp_coordinates_preserve_array_conversion_dtype(
         }
     result = jax.jit(getattr(wf, method))(F.astype(jnp.float32), params)
     assert all(np.isfinite(x).all() for x in jax.tree.leaves(result))
+
+
+def _overlap(p):
+    # Phase-sensitive: |h|^2 would hide the phase derivatives.
+    h = nsbh.gen_IMRPhenomNSBH(F, p, 20.0)
+    return jnp.real(jnp.sum(h * jnp.exp(-1j * F / 37.0))) * 1e23
+
+
+def test_differentiation_uses_branchless_guards(monkeypatch):
+    calls = []
+    select = nsbh._select
+
+    def spy(*args):
+        calls.append(None)
+        return select(*args)
+
+    monkeypatch.setattr(nsbh, "_select", spy)
+    jax.make_jaxpr(lambda p: nsbh.gen_IMRPhenomNSBH(F, p, 20.0))(theta())
+    assert not calls  # plain evaluation keeps the staged early exit
+    jax.make_jaxpr(jax.grad(_overlap))(theta())
+    assert len(calls) == 3  # one per staged guard
+
+
+def test_branchless_gradient_matches_staged_differentiation():
+    def staged(p):
+        h = nsbh._amp_phase_staged(
+            jax.lax.cond, 20.0, None, False, "strain", F, *p, 0.0
+        )
+        return jnp.real(jnp.sum(h * jnp.exp(-1j * F / 37.0))) * 1e23
+
+    for p in (theta(), theta(m1=50.0, chi=-0.7, lam=50.0), theta(lam=5000.0)):
+        expected = jax.jit(jax.grad(staged))(p)
+        actual = jax.jit(jax.grad(_overlap))(p)
+        assert np.isfinite(actual).all()
+        np.testing.assert_allclose(actual, expected, atol=0.0, rtol=1e-10)
+
+
+def test_forward_and_reverse_derivatives_agree():
+    def strain(p):
+        h = nsbh.gen_IMRPhenomNSBH(F, p, 20.0) * 1e23
+        return jnp.concatenate([jnp.real(h), jnp.imag(h)])
+
+    forward = np.asarray(jax.jit(jax.jacfwd(strain))(theta()))
+    reverse = np.asarray(jax.jit(jax.jacrev(strain))(theta()))
+    # Per-parameter scale: some entries are exactly zero analytically.
+    scale = np.max(np.abs(reverse), axis=0)
+    assert (scale > 0).all()
+    assert (np.abs(forward - reverse) <= 1e-10 * scale).all()
+
+
+def test_rejected_sample_does_not_contaminate_batch_gradients():
+    batch = jnp.stack([theta(), theta(lam=-1.0), theta(m1=20.0)])
+    values, gradients = jax.jit(jax.vmap(jax.value_and_grad(_overlap)))(batch)
+    assert np.isnan(values[1])
+    assert np.isfinite(np.asarray(values)[[0, 2]]).all()
+    assert np.isfinite(np.asarray(gradients)[[0, 2]]).all()

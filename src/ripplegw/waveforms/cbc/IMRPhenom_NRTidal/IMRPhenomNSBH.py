@@ -23,6 +23,7 @@ Notes on LAL conventions that are reproduced on purpose:
 * There is no frequency cutoff: every requested frequency is filled, as LAL fills its band up to ``f_max``.
 """
 
+import functools
 from collections.abc import Mapping
 from typing import Optional
 
@@ -979,6 +980,65 @@ def _amp_phase(
     """Amplitude ``A >= 0`` and phase of ``h0 = A exp(i phase)`` (see module docstring for the sign convention)."""
     if f.size == 0:
         raise ValueError("IMRPhenomNSBH requires a nonempty frequency array")
+    return _amp_phase_guarded(
+        f_ref,
+        f_max,
+        diagnostics,
+        output,
+        f,
+        mc,
+        eta,
+        chi1,
+        chi2,
+        lambda2,
+        d_L,
+        tc,
+        phase_c,
+        inclination,
+    )
+
+
+def _select(pred, true_fun, false_fun, operand):
+    """Branchless ``lax.cond``: evaluate both branches and select."""
+    accepted, rejected = true_fun(operand), false_fun(operand)
+    return jax.tree.map(lambda a, r: jnp.where(pred, a, r), accepted, rejected)
+
+
+@functools.partial(jax.custom_jvp, nondiff_argnums=(0, 1, 2, 3))
+def _amp_phase_guarded(f_ref, f_max, diagnostics, output, *args):
+    """Stage the domain guards with ``lax.cond`` so rejected samples skip work."""
+    return _amp_phase_staged(jax.lax.cond, f_ref, f_max, diagnostics, output, *args)
+
+
+@_amp_phase_guarded.defjvp
+def _amp_phase_guarded_jvp(f_ref, f_max, diagnostics, output, primals, tangents):
+    # Differentiating through the staged conditionals keeps every branch residual
+    # live across the cond boundaries (slower, ~3x memory). The branchless form
+    # gives the same values and derivatives for valid samples; at rejected samples
+    # the value is still NaN and the derivative is not meaningful.
+    def branchless(*args):
+        return _amp_phase_staged(_select, f_ref, f_max, diagnostics, output, *args)
+
+    return jax.jvp(branchless, primals, tangents)
+
+
+def _amp_phase_staged(
+    cond,
+    f_ref,
+    f_max,
+    diagnostics,
+    output,
+    f,
+    mc,
+    eta,
+    chi1,
+    chi2,
+    lambda2,
+    d_L,
+    tc,
+    phase_c,
+    inclination,
+):
     valid = _valid_parameters(mc, eta, lambda2, diagnostics)
     # Match the conversion's array promotion, including weak Python scalars,
     # without performing mass conversion before the parameter guard.
@@ -1032,13 +1092,14 @@ def _amp_phase(
                 )
                 return _format_output(A, phi, output, inclination)
 
-            return jax.lax.cond(inspiral[-1], valid_inspiral, rejected, None)
+            return cond(inspiral[-1], valid_inspiral, rejected, None)
 
-        return jax.lax.cond(jnp.abs(afin) <= 1.0, valid_remnant, rejected, None)
+        return cond(jnp.abs(afin) <= 1.0, valid_remnant, rejected, None)
 
     # Scalar conditionals skip rejected stages under jit and scan. Mapping over
-    # per-sample predicates with vmap instead selects between evaluated branches.
-    return jax.lax.cond(valid, valid_parameters, rejected, None)
+    # per-sample predicates with vmap instead selects between evaluated branches,
+    # as does differentiation (see ``_amp_phase_guarded_jvp``).
+    return cond(valid, valid_parameters, rejected, None)
 
 
 def _amp_phase_from_inspiral(
@@ -1202,7 +1263,8 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
     Errors are returned as values; throwing them is the caller's choice.
     Scalar ``jit`` and ``scan`` calls skip waveform work as soon as a domain
     guard fails. Under ``vmap``, per-sample conditionals become selections and
-    do not promise to skip computation. Bounds are checked before mass
+    do not promise to skip computation; derivatives also use selections, and
+    may be NaN at rejected samples. Bounds are checked before mass
     conversion, remnant spin before coefficients, and the frequency derivative
     before merger properties or phase. Derived intermediates are reused.
     There is no neutron-star mass cut. Nonzero NS spin and NS masses below one
