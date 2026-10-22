@@ -170,7 +170,10 @@ def _xi_poly(z: FloatLike, q: FloatLike, a: FloatLike, mu: FloatLike) -> FloatLi
 
 
 _XI_GRID = 2048
-_XI_BISECT_ITERS = 64
+# The grid bracket is already ~bound/2048 wide; 32 halvings take it below 1e-12 relative,
+# and the implicit-function Newton step below refines the value to machine precision.
+# 64 iterations (the old value) are far beyond double precision and dominate the waveform.
+_XI_BISECT_ITERS = 32
 
 
 def xi_tide(q: FloatLike, a: FloatLike, mu: FloatLike) -> FloatLike:
@@ -224,13 +227,19 @@ def xi_tide(q: FloatLike, a: FloatLike, mu: FloatLike) -> FloatLike:
     return jnp.where(has_root, z**2, 0.0)
 
 
+def _torus_mass_from_xi(
+    mu: FloatLike, C: FloatLike, a: FloatLike, xi: FloatLike
+) -> FloatLike:
+    """Torus-mass fit from an already evaluated tidal correction ``xi``."""
+    alpha, beta = 0.296, 0.171
+    Mtorus = alpha * xi * (1.0 - 2.0 * C) - beta * mu * kerr_isco_radius(a)
+    return jnp.where(Mtorus < 0.0, 0.0, Mtorus)
+
+
 def torus_mass_fit(q: FloatLike, a: FloatLike, C: FloatLike) -> FloatLike:
     """Baryonic torus mass in units of the NS baryonic mass (``XLALSimNSBH_torus_mass_fit``, Eq. 11 of 1509.00512)."""
     mu = q * C
-    alpha, beta = 0.296, 0.171
-    xi = xi_tide(q, a, mu)
-    Mtorus = alpha * xi * (1.0 - 2.0 * C) - beta * mu * kerr_isco_radius(a)
-    return jnp.where(Mtorus < 0.0, 0.0, Mtorus)
+    return _torus_mass_from_xi(mu, C, a, xi_tide(q, a, mu))
 
 
 def f_gw_in_kerr(r: FloatLike, M: FloatLike, a: FloatLike) -> FloatLike:
@@ -662,14 +671,15 @@ def nsbh_merger_properties(
         del2 = phenomC_amp_coeffs(eta, chi_eff)["del2"]
 
     C = compactness_from_lambda(lam)
-    Mtorus = torus_mass_fit(q, chi_BH, C)
+    # Evaluate the expensive tidal root once and reuse it for the torus mass and rtide.
+    mu = q * C
+    xi = xi_tide(q, chi_BH, mu)
+    Mtorus = _torus_mass_from_xi(mu, C, chi_BH, xi)
     chif = bhns_final_spin_aligned(mBH, mNS, chi_BH, lam)
     final_mass = bhns_final_mass_aligned(mBH, mNS, chi_BH, lam) / M
 
     om = omega_tilde(chif)
     f_RD = jnp.real(om) / 2.0 / PI / final_mass
-    mu = q * C
-    xi = xi_tide(q, chi_BH, mu)
     rtide = xi * (1.0 - 2.0 * C) / mu  # follows arXiv:1207.6304v1 (in M_BH units)
     q_factor = jnp.real(om) / jnp.imag(om) / 2.0
     # a spinning BH with vanishing rtide (BH limit) gives an infinite tidal frequency; keep it finite so
@@ -891,8 +901,13 @@ def _fRD_fdamp_from_chif(m1, m2, chi1, chi2, chif):
     return f_RD / M_s, f_damp / M_s
 
 
-def _phenomD_phase_at(f, theta_bbh, coeffs, transition_freqs, lambda2):
-    """IMRPhenomD phase (inspiral + NS quadrupole-monopole shift, intermediate, merger-ringdown), C^1 glued."""
+def _phenomD_phase_evaluator(theta_bbh, coeffs, transition_freqs, lambda2):
+    """Return an ``f -> phase`` callable with the C^1 gluing constants computed once.
+
+    The gluing involves four scalar ``value_and_grad`` evaluations at the transition
+    frequencies; they are independent of ``f``. Evaluating the phase at two frequency
+    sets (the band and the reference frequency) therefore shares this work.
+    """
     m1, m2, chi1, chi2 = theta_bbh
     M_s = (m1 + m2) * MTSUN
     f1, f2, _, _, f_RD, f_damp = transition_freqs
@@ -902,7 +917,6 @@ def _phenomD_phase_at(f, theta_bbh, coeffs, transition_freqs, lambda2):
             fM_s, m1, m2, chi1, chi2, lambda2
         )
 
-    phi_Ins = inspiral_phase(f * M_s)
     phi_Ins_f1, dphi_Ins_f1 = jax.value_and_grad(inspiral_phase)(f1 * M_s)
     phi_IIa_f1, dphi_IIa_f1 = jax.value_and_grad(get_IIa_raw_phase)(
         f1 * M_s, theta_bbh, coeffs
@@ -913,24 +927,28 @@ def _phenomD_phase_at(f, theta_bbh, coeffs, transition_freqs, lambda2):
     def phi_IIa_func(fM_s):
         return get_IIa_raw_phase(fM_s, theta_bbh, coeffs) + beta1_correction * fM_s
 
-    phi_IIa = phi_IIa_func(f * M_s) + beta0
     phi_IIa_f2, dphi_IIa_f2 = jax.value_and_grad(phi_IIa_func)(f2 * M_s)
     phi_IIb_f2, dphi_IIb_f2 = jax.value_and_grad(get_IIb_raw_phase)(
         f2 * M_s, theta_bbh, coeffs, f_RD, f_damp
     )
     a1_correction = dphi_IIa_f2 - dphi_IIb_f2
     a0 = phi_IIa_f2 + beta0 - a1_correction * (f2 * M_s) - phi_IIb_f2
-    phi_IIb = (
-        get_IIb_raw_phase(f * M_s, theta_bbh, coeffs, f_RD, f_damp)
-        + a0
-        + a1_correction * (f * M_s)
-    )
 
-    return (
-        phi_Ins * jnp.heaviside(f1 - f, 0.5)
-        + jnp.heaviside(f - f1, 0.5) * phi_IIa * jnp.heaviside(f2 - f, 0.5)
-        + phi_IIb * jnp.heaviside(f - f2, 0.5)
-    )
+    def evaluate(f):
+        phi_Ins = inspiral_phase(f * M_s)
+        phi_IIa = phi_IIa_func(f * M_s) + beta0
+        phi_IIb = (
+            get_IIb_raw_phase(f * M_s, theta_bbh, coeffs, f_RD, f_damp)
+            + a0
+            + a1_correction * (f * M_s)
+        )
+        return (
+            phi_Ins * jnp.heaviside(f1 - f, 0.5)
+            + jnp.heaviside(f - f1, 0.5) * phi_IIa * jnp.heaviside(f2 - f, 0.5)
+            + phi_IIb * jnp.heaviside(f - f2, 0.5)
+        )
+
+    return evaluate
 
 
 #######################################################################################################
@@ -1040,17 +1058,17 @@ def _amp_phase_from_inspiral(
         theta_bbh, coeffs[5], coeffs[6], f_RD, f_damp
     )
 
-    Psi = _phenomD_phase_at(f, theta_bbh, coeffs, transition_freqs, lambda2)
-    Psi_ref = _phenomD_phase_at(
-        jnp.array([f_ref]), theta_bbh, coeffs, transition_freqs, lambda2
-    )[0]
+    phase = _phenomD_phase_evaluator(theta_bbh, coeffs, transition_freqs, lambda2)
+    Psi = phase(f)
+    Psi_ref = phase(jnp.array([f_ref]))[0]
     # time shift: derivative of the merger-ringdown ansatz at f_max (NOT at the peak, cf. PhenomD);
     # without f_max, LAL's default upper frequency Mf = 0.2
     Mf_max = 0.2 if f_max is None else f_max * M_s
     t0 = jax.grad(get_IIb_raw_phase)(Mf_max, theta_bbh, coeffs, f_RD, f_damp)
     Mf_ref = f_ref * M_s
 
-    x = (PI * M_s * f) ** (2.0 / 3.0)
+    # (pi M f)^(2/3) is the v^2 already computed by the SPA guard.
+    x = inspiral[1]
     # only the NS is deformable: lambda_1 = 0
     theta_intrinsic = jnp.array([m1, m2, chi1, chi2, 0.0, lambda2])
     psi_T = get_tidal_phase(x, theta_intrinsic, get_kappa(theta_intrinsic))
