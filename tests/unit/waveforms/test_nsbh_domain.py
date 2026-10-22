@@ -199,6 +199,27 @@ def test_checkified_vmap_preserves_good_samples():
     assert np.isfinite(np.asarray(output)[[0, 2]]).all()
 
 
+@pytest.mark.parametrize(
+    "p, message",
+    [
+        (theta().at[0].set(jnp.nan), "finite positive M_c"),
+        (theta().at[1].set(0.0), "1 <= q <= 100"),
+        (theta(lam=-1.0), "lambda_2"),
+        (theta(chi=4.0), "remnant spin"),
+    ],
+)
+def test_checkified_vmap_reports_first_failed_guard(p, message):
+    # Batched conditionals evaluate both branches; only the taken branch's
+    # check may be reported, the same as for the sample on its own.
+    checked = checkify.checkify(
+        lambda q: nsbh.gen_IMRPhenomNSBH(F, q, 20.0, diagnostics=True)
+    )
+    errors, _ = jax.jit(jax.vmap(checked))(jnp.stack([theta(), p]))
+    alone, _ = jax.jit(checked)(p)
+    assert message in alone.get()
+    assert errors.get() == f"at mapped index 1: {alone.get()}"
+
+
 def test_empty_frequency_array_is_rejected_at_trace_time():
     with pytest.raises(ValueError, match="nonempty frequency"):
         jax.jit(nsbh.gen_IMRPhenomNSBH)(jnp.array([]), theta(), 20.0)
