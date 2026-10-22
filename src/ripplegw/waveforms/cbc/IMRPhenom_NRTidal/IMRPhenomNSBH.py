@@ -1379,21 +1379,24 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
             dict[str, Complex[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
                 polarizations.
         """
-        theta = jnp.array(
-            [
-                params["M_c"],
-                params["eta"],
-                params["s1_z"],
-                params["s2_z"],
-                params["lambda_2"],
-                params["d_L"],
-                0.0,
-                params["phase_c"],
-                params["iota"],
-            ]
-        )
-        hp, hc = gen_IMRPhenomNSBH_hphc(
-            frequency, theta, self.f_ref, f_max=self.f_max, diagnostics=self.diagnostics
+        # Pass fields separately: packing them into one array would promote eta
+        # before the mass-ratio guard, which sizes its tolerance from eta's dtype.
+        mc, eta, chi1, chi2, lam, d_L, phase_c = _split_params(params)
+        hp, hc = _amp_phase(
+            frequency,
+            mc,
+            eta,
+            chi1,
+            chi2,
+            lam,
+            d_L,
+            0.0,
+            phase_c,
+            self.f_ref,
+            self.f_max,
+            diagnostics=self.diagnostics,
+            output="polarizations",
+            inclination=params["iota"],
         )
         return {"p": hp, "c": hc}
 

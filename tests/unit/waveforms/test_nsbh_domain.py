@@ -429,3 +429,17 @@ def test_rejected_sample_does_not_contaminate_batch_gradients():
     assert np.isnan(values[1])
     assert np.isfinite(np.asarray(values)[[0, 2]]).all()
     assert np.isfinite(np.asarray(gradients)[[0, 2]]).all()
+
+
+
+def test_mass_ratio_endpoint_agrees_across_public_methods():
+    # Exact float32 masses with q = 100 whose float32 eta rounds below the
+    # boundary; a float64 M_c must not promote eta before the guard.
+    _, eta = ms_to_Mc_eta(jnp.array([100.09765625, 1.0009765625], dtype=jnp.float32))
+    assert eta < np.float32(100.0 / 101.0**2)
+    wf = ripplegw.waveform("IMRPhenomNSBH")
+    params = canonical_params(wf)
+    params = {**params, "M_c": jnp.float64(params["M_c"]), "eta": eta}
+    for method in ("__call__", "amplitude", "phase", "strain"):
+        output = jax.jit(getattr(wf, method))(F, params)
+        assert all(np.isfinite(x).all() for x in jax.tree.leaves(output)), method
