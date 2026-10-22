@@ -14,7 +14,7 @@ The 22-mode reuses ripple's existing IMRPhenomXAS.py (Phase + Amp functions).
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, TypeAlias
+from typing import Any
 
 import jax
 import jax.numpy as jnp
@@ -43,8 +43,8 @@ from ripplegw.waveforms.cbc.IMRPhenomX.IMRPhenomXAS import (
     get_mergerringdown_Amp,
 )
 
-PNCoefficient: TypeAlias = FloatLike | ComplexLike
-PNCoefficients: TypeAlias = tuple[
+type PNCoefficient = FloatLike | ComplexLike
+type PNCoefficients = tuple[
     PNCoefficient,
     PNCoefficient,
     PNCoefficient,

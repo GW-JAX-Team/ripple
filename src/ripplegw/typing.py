@@ -1,11 +1,9 @@
 """Convenience type aliases for jaxtyping scalar annotations."""
 
-from typing import TypeAlias
-
 from jaxtyping import Array, Complex, Float, Int
 
-FloatScalar: TypeAlias = Float[Array, ""]
-IntScalar: TypeAlias = Int[Array, ""]
-ComplexScalar: TypeAlias = Complex[Array, ""]
-FloatLike: TypeAlias = float | Float[Array, ""]
-ComplexLike: TypeAlias = complex | ComplexScalar
+type FloatScalar = Float[Array, ""]
+type IntScalar = Int[Array, ""]
+type ComplexScalar = Complex[Array, ""]
+type FloatLike = float | Float[Array, ""]
+type ComplexLike = complex | ComplexScalar

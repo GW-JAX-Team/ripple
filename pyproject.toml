@@ -3,7 +3,7 @@ name = "rippleGW"
 dynamic = ["version"]
 description = "A JAX-based package for differentiable gravitational-wave waveform generation"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 authors = [
     { name = "Thomas Edwards", email = "tedwards2412@gmail.com" },
 ]
@@ -13,9 +13,9 @@ maintainers = [
 license = { file = "LICENSE" }
 keywords = ["gravitational waves", "jax"]
 classifiers = [
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "License :: OSI Approved :: MIT License",
     "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",
