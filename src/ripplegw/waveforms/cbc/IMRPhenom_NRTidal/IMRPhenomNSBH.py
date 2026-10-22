@@ -76,8 +76,10 @@ def _valid_parameters(mc, eta, lam, diagnostics=False):
     just below it, is accepted as LAL accepts the masses. No neutron-star
     mass cut is applied.
     """
+    # Converting exact q = 100 masses lands at most ~2.4 eps below the bound
+    # (float32 and float64); q = 100.0001 is ~9 eps below in float32.
     eps = jnp.finfo(jnp.result_type(eta, 1.0)).eps
-    valid_eta = (eta >= 100.0 / 101.0**2 * (1.0 - 16.0 * eps)) & (eta <= 0.25)
+    valid_eta = (eta >= 100.0 / 101.0**2 * (1.0 - 4.0 * eps)) & (eta <= 0.25)
     valid_mc = jnp.isfinite(mc) & (mc > 0.0)
     valid_tides = (lam >= 0.0) & (lam <= 5000.0)
     if diagnostics:

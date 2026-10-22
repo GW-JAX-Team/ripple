@@ -432,6 +432,18 @@ def test_rejected_sample_does_not_contaminate_batch_gradients():
 
 
 
+@pytest.mark.parametrize("dtype", [jnp.float32, jnp.float64])
+def test_mass_ratio_endpoint_tolerance_in_each_precision(dtype):
+    def generate(q, m2):
+        mc, eta = ms_to_Mc_eta(jnp.array([q * m2, m2], dtype=dtype))
+        p = jnp.array([mc, eta, 0.3, 0.0, 400.0, 200.0, 0.0, 0.0], dtype=dtype)
+        return jax.jit(nsbh.gen_IMRPhenomNSBH)(F.astype(dtype), p, 20.0)
+
+    for m2 in (1.0009765625, 1.3, 1.4, 2.0):
+        assert np.isfinite(generate(100.0, m2)).all()
+    assert np.isnan(generate(100.0001, 1.4)).all()
+
+
 def test_mass_ratio_endpoint_agrees_across_public_methods():
     # Exact float32 masses with q = 100 whose float32 eta rounds below the
     # boundary; a float64 M_c must not promote eta before the guard.
