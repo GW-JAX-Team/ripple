@@ -35,6 +35,8 @@ frequency, before the NSBH corrections. Chirp mass must also be finite and
 positive, and the PhenomC remnant-spin fit must give a physical matching frequency.
 The mass-ratio bound is checked in the supplied symmetric mass ratio before
 conversion to component masses; this also rejects unphysical `eta > 0.25`.
+The lower bound allows a few units in the last place, so `eta` converted from
+masses with $q = 100$ exactly is accepted, as LAL accepts those masses.
 No neutron-star mass cutoff is applied. Nonzero NS spin and NS masses below
 one solar mass remain calibration caveats rather than rejection rules.
 

@@ -38,7 +38,21 @@ def test_mass_ratio_endpoint_in_chirp_coordinates():
     boundary = 100.0 / 101.0**2
     p = theta().at[1].set(boundary)
     assert np.isfinite(evaluate(p)).all()
-    assert np.isnan(evaluate(p.at[1].set(np.nextafter(boundary, 0.0)))).all()
+    q = 100.01
+    assert np.isnan(evaluate(p.at[1].set(q / (1.0 + q) ** 2))).all()
+
+
+@pytest.mark.parametrize("m2", [1.3, 1.4, 2.0])
+def test_mass_ratio_100_from_component_masses_is_accepted(m2):
+    # LAL compares the masses (mBH <= 100 mNS); converting q = 100 exactly to
+    # eta can round one ulp below 100/101**2, which must not reject the sample.
+    assert np.isfinite(evaluate(theta(m1=100.0 * m2, m2=m2))).all()
+
+
+def test_mass_ratio_100_rounding_reaches_below_boundary():
+    # Keeps the test above discriminating: some exact q = 100 pairs round low.
+    etas = [float(ms_to_Mc_eta(jnp.array([100.0 * m, m]))[1]) for m in (1.3, 1.4)]
+    assert min(etas) < 100.0 / 101.0**2
 
 
 @pytest.mark.parametrize("eta", [0.0, -0.1, 0.2501, np.nan])

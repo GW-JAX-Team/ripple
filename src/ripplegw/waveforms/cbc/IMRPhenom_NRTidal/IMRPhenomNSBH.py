@@ -70,9 +70,13 @@ def _valid_parameters(mc, eta, lam, diagnostics=False):
     """Check raw chirp coordinates before mass conversion or waveform work.
 
     The LAL bound ``1 <= mBH/mNS <= 100`` is equivalent to
-    ``100/101**2 <= eta <= 1/4``. No neutron-star mass cut is applied.
+    ``100/101**2 <= eta <= 1/4``. The lower bound allows a few ulp so that
+    ``eta`` converted from masses with ``q = 100`` exactly, which can round
+    just below it, is accepted as LAL accepts the masses. No neutron-star
+    mass cut is applied.
     """
-    valid_eta = (eta >= 100.0 / 101.0**2) & (eta <= 0.25)
+    eps = jnp.finfo(jnp.result_type(eta, 1.0)).eps
+    valid_eta = (eta >= 100.0 / 101.0**2 * (1.0 - 16.0 * eps)) & (eta <= 0.25)
     valid_mc = jnp.isfinite(mc) & (mc > 0.0)
     valid_tides = (lam >= 0.0) & (lam <= 5000.0)
     if diagnostics:
