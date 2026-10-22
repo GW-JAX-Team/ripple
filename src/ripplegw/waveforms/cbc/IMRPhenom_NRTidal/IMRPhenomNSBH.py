@@ -483,7 +483,7 @@ def omega_tilde(a: FloatLike) -> Complex[Array, ""]:
 #######################################################################################################
 
 
-def _remnant_spin(eta, chi, diagnostics=False):
+def _remnant_spin(eta, chi, diagnostics=False, reached=True):
     eta2 = eta * eta
     # LAL ComputeIMRPhenomCParams: this BBH fit sets the SPA matching
     # frequency used by the negative-xdot guard, before NSBH corrections.
@@ -498,8 +498,10 @@ def _remnant_spin(eta, chi, diagnostics=False):
         + 2.353 * eta2 * eta
     )
     if diagnostics:
+        # ``reached``: the earlier guards passed, so this stage would run.
         checkify.debug_check(
-            jnp.abs(afin) <= 1.0, "IMRPhenomNSBH PhenomC remnant spin exceeds unity"
+            jnp.logical_not(reached) | (jnp.abs(afin) <= 1.0),
+            "IMRPhenomNSBH PhenomC remnant spin exceeds unity",
         )
     return afin
 
@@ -798,7 +800,7 @@ def nsbh_amplitude(
     )
 
 
-def _inspiral_quantities(Mf, cc, diagnostics=False):
+def _inspiral_quantities(Mf, cc, diagnostics=False, reached=True):
     """Compute the SPA guard and retain its powers for amplitude evaluation."""
     if Mf.size == 0:
         raise ValueError("IMRPhenomNSBH requires a nonempty frequency array")
@@ -825,7 +827,7 @@ def _inspiral_quantities(Mf, cc, diagnostics=False):
     valid = ~jnp.any((xdot < 0.0) & (Mf < cc["Mf1"])) & jnp.isfinite(cc["Mf1"])
     if diagnostics:
         checkify.debug_check(
-            valid,
+            jnp.logical_not(reached) | valid,
             "IMRPhenomNSBH omegaDot < 0 below the SPA matching frequency, or invalid matching frequency",
         )
     return v, v2, v3, v4, v5, v6, logv2, xdot, valid
@@ -982,22 +984,13 @@ def _amp_phase(
     """Amplitude ``A >= 0`` and phase of ``h0 = A exp(i phase)`` (see module docstring for the sign convention)."""
     if f.size == 0:
         raise ValueError("IMRPhenomNSBH requires a nonempty frequency array")
-    return _amp_phase_guarded(
-        f_ref,
-        f_max,
-        diagnostics,
-        output,
-        f,
-        mc,
-        eta,
-        chi1,
-        chi2,
-        lambda2,
-        d_L,
-        tc,
-        phase_c,
-        inclination,
-    )
+    # Integer constants become weak floats (promoting as the integers did) so the
+    # derivative rule can substitute float values without integer tangents.
+    args = [
+        x if jnp.issubdtype(jnp.result_type(x), jnp.inexact) else jnp.asarray(x) * 1.0
+        for x in (f, mc, eta, chi1, chi2, lambda2, d_L, tc, phase_c, inclination)
+    ]
+    return _amp_phase_guarded(f_ref, f_max, diagnostics, output, *args)
 
 
 def _select(pred, true_fun, false_fun, operand):
@@ -1012,43 +1005,68 @@ def _amp_phase_guarded(f_ref, f_max, diagnostics, output, *args):
     return _amp_phase_staged(jax.lax.cond, f_ref, f_max, diagnostics, output, *args)
 
 
-# A point inside every guard with finite derivatives: (M_c, eta) of 7 + 1.4 Msun,
-# chi_BH = 0.3, chi_NS = 0, Lambda_2 = 400. (chi_BH = 0 would not do: the Kerr ISCO
-# radius has a NaN derivative there.)
-_IN_DOMAIN = (2.5696843973845533, 5.0 / 36.0, 0.3, 0.0, 400.0)
+# Finite inputs inside every guard, with finite derivatives, in the order of
+# ``_amp_phase_staged``'s differentiable arguments: f, (M_c, eta) of 7 + 1.4 Msun,
+# chi_BH = 0.3, chi_NS = 0, Lambda_2 = 400, d_L, t_c, phase_c, inclination.
+# (chi_BH = 0 would not do: the Kerr ISCO radius has a NaN derivative there.)
+_IN_DOMAIN = (
+    20.0,
+    2.5696843973845533,
+    5.0 / 36.0,
+    0.3,
+    0.0,
+    400.0,
+    200.0,
+    0.0,
+    0.0,
+    0.0,
+)
 
 
-def _domain_valid(f, mc, eta, chi1, chi2, lambda2, diagnostics):
-    """The combined decision of the guards staged in ``_amp_phase_staged``."""
+def _differentiable_at(
+    f, mc, eta, chi1, chi2, lambda2, d_L, tc, phase_c, inclination, diagnostics
+):
+    """Whether a sample can be differentiated where it is.
+
+    True when the guards staged in ``_amp_phase_staged`` accept the sample and the
+    remaining inputs are finite (frequencies positive, distance nonzero). Checks
+    are reported in the staged order: a later guard only after the earlier pass.
+    """
+    bounds = _valid_parameters(mc, eta, lambda2, diagnostics)
     m1, m2 = Mc_eta_to_ms(jnp.array([mc, eta]))
     M = m1 + m2
     eta_mass = m1 * m2 / (M * M)
     chi_eff = (m1 * chi1 + m2 * chi2) / M
-    afin = _remnant_spin(eta_mass, chi_eff, diagnostics)
+    afin = _remnant_spin(eta_mass, chi_eff, diagnostics, reached=bounds)
+    remnant = bounds & (jnp.abs(afin) <= 1.0)
     cc = _inspiral_coeffs(eta_mass, chi_eff, afin)
-    inspiral = _inspiral_quantities(f * (M * MTSUN), cc, diagnostics)
-    return (
-        _valid_parameters(mc, eta, lambda2, diagnostics)
-        & (jnp.abs(afin) <= 1.0)
-        & inspiral[-1]
+    inspiral = _inspiral_quantities(f * (M * MTSUN), cc, diagnostics, reached=remnant)
+    finite = (
+        jnp.all(jnp.isfinite(f) & (f > 0.0))
+        & jnp.isfinite(d_L)
+        & (d_L != 0.0)
+        & jnp.isfinite(tc)
+        & jnp.isfinite(phase_c)
+        & jnp.isfinite(inclination)
     )
+    return remnant & inspiral[-1] & finite
 
 
 @_amp_phase_guarded.defjvp
 def _amp_phase_guarded_jvp(f_ref, f_max, diagnostics, output, primals, tangents):
     # Differentiating through the staged conditionals keeps every branch residual
     # live across the cond boundaries (slower, ~3x memory), so differentiate a
-    # branchless form instead. A rejected sample is evaluated at an in-domain
-    # point: its local derivatives stay finite, so a zero cotangent cannot turn
-    # into NaN and leak into parameters or losses it shares with valid samples.
-    f, *physical = primals[:6]
-    valid = jax.lax.stop_gradient(_domain_valid(f, *physical, diagnostics))
-    safe = [jnp.where(valid, x, x0) for x, x0 in zip(physical, _IN_DOMAIN)]
+    # branchless form instead. A sample that is rejected, or has non-finite inputs,
+    # is evaluated at an in-domain point: its local derivatives stay finite, so a
+    # zero cotangent cannot turn into NaN and leak into parameters or losses it
+    # shares with valid samples.
+    valid = jax.lax.stop_gradient(_differentiable_at(*primals, diagnostics))
+    safe = tuple(jnp.where(valid, x, x0) for x, x0 in zip(primals, _IN_DOMAIN))
 
     def branchless(*args):
         return _amp_phase_staged(_select, f_ref, f_max, False, output, *args)
 
-    out, tangent = jax.jvp(branchless, (f, *safe, *primals[6:]), tangents)
+    out, tangent = jax.jvp(branchless, safe, tangents)
     out = jax.tree.map(lambda x: jnp.where(valid, x, jnp.nan), out)
     tangent = jax.tree.map(lambda t: jnp.where(valid, t, 0.0), tangent)
     return out, tangent

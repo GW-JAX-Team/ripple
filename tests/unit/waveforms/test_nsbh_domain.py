@@ -473,13 +473,104 @@ def test_rejected_sample_has_zero_gradient():
     assert (np.asarray(gradient) == 0.0).all()
 
 
-def test_checkified_gradient_reports_rejection():
+@pytest.mark.parametrize(
+    "p, message",
+    [
+        (theta(lam=-1.0), "lambda_2"),
+        (theta().at[0].set(jnp.nan), "finite positive M_c"),
+        (theta().at[0].set(0.0), "finite positive M_c"),
+        (theta().at[1].set(0.0), "1 <= q <= 100"),
+        (theta(chi=4.0), "remnant spin"),
+    ],
+)
+def test_checkified_gradient_reports_first_failed_guard(p, message):
+    # The derivative must report the guard the staged evaluation stops at.
     def loss(p):
         h = nsbh.gen_IMRPhenomNSBH(F, p, 20.0, diagnostics=True)
         return jnp.sum(jnp.abs(h * 1e23) ** 2)
 
-    err, _ = jax.jit(checkify.checkify(jax.value_and_grad(loss)))(theta(lam=-1.0))
-    assert err.get() is not None and "lambda_2" in err.get()
+    err, (_, gradient) = jax.jit(checkify.checkify(jax.value_and_grad(loss)))(p)
+    assert err.get() is not None and message in err.get()
+    assert (np.asarray(gradient) == 0.0).all()
+
+
+def test_checkified_gradient_of_valid_sample_reports_nothing():
+    def loss(p):
+        h = nsbh.gen_IMRPhenomNSBH(F, p, 20.0, diagnostics=True)
+        return jnp.sum(jnp.abs(h * 1e23) ** 2)
+
+    err, _ = jax.jit(checkify.checkify(jax.value_and_grad(loss)))(theta())
+    assert err.get() is None
+
+
+@pytest.mark.parametrize(
+    "invalid",
+    [
+        theta(chi=4.0).at[5].set(0.0),
+        theta(chi=4.0).at[6].set(jnp.nan),
+        theta(chi=4.0).at[7].set(jnp.nan),
+    ],
+    ids=["zero_distance", "nan_tc", "nan_phase"],
+)
+@pytest.mark.parametrize("layout", ["scan", "vmap"])
+def test_rejected_sample_with_nonfinite_inputs_does_not_leak(invalid, layout):
+    batch = jnp.stack([theta(), invalid])
+
+    def valid_loss(scale):
+        def loss(p):
+            return _masked_loglike(p, p[5] * scale)
+
+        if layout == "scan":
+            return jax.lax.scan(lambda c, p: (c, loss(p)), None, batch)[1][0]
+        return jax.vmap(loss)(batch)[0]
+
+    value, gradient = jax.jit(jax.value_and_grad(valid_loss))(1.0)
+    # The loss scales as scale**-2.
+    np.testing.assert_allclose(gradient, -2.0 * value, atol=0.0, rtol=1e-12)
+
+
+@pytest.mark.parametrize("d_L", [0.0, jnp.nan])
+def test_rejected_sample_at_nonfinite_distance_has_zero_gradient(d_L):
+    value, gradient = jax.jit(jax.value_and_grad(_masked_loglike, argnums=1))(
+        theta(lam=-1.0), d_L
+    )
+    assert value == -np.inf
+    assert gradient == 0.0
+
+
+@pytest.mark.parametrize(
+    "frequencies",
+    [F.at[0].set(0.0), -F, F.at[1].set(jnp.nan)],
+    ids=["zero", "negative", "nan"],
+)
+def test_nonfinite_frequency_sample_has_zero_gradient(frequencies):
+    def loss(p):
+        h = nsbh.gen_IMRPhenomNSBH(frequencies, p, 20.0)
+        valid = jnp.all(jnp.isfinite(h))
+        safe = jnp.where(valid, h, 0.0)
+        return jnp.where(valid, -jnp.sum(jnp.abs(safe * 1e23) ** 2), -jnp.inf)
+
+    for p in (theta(), theta(lam=-1.0)):
+        value, gradient = jax.jit(jax.value_and_grad(loss))(p)
+        assert value == -np.inf
+        assert (np.asarray(gradient) == 0.0).all()
+        assert not nsbh._differentiable_at(frequencies, *p, 0.0, False)
+
+
+@pytest.mark.parametrize("method", ["__call__", "amplitude", "phase", "strain"])
+def test_integer_constant_fields_are_differentiable(method):
+    wf = ripplegw.waveform("IMRPhenomNSBH")
+    floats = canonical_params(wf, s2_z=0.0, lambda_2=400.0)
+    integers = {**floats, "s2_z": 0, "lambda_2": 400}
+
+    def power(params, d_L):
+        output = getattr(wf, method)(F, {**params, "d_L": d_L})
+        return sum(jnp.sum(jnp.abs(x * 1e23) ** 2) for x in jax.tree.leaves(output))
+
+    expected = jax.jit(jax.grad(lambda d: power(floats, d)))(200.0)
+    actual = jax.jit(jax.grad(lambda d: power(integers, d)))(200.0)
+    assert np.isfinite(actual)
+    np.testing.assert_allclose(actual, expected, atol=0.0, rtol=1e-12)
 
 
 @pytest.mark.parametrize(
@@ -498,7 +589,7 @@ def test_checkified_gradient_reports_rejection():
 )
 def test_derivative_domain_matches_staged_rejection(p):
     rejected = np.isnan(evaluate(p)).all()
-    valid = nsbh._domain_valid(F, *p[:5], False)
+    valid = nsbh._differentiable_at(F, *p, 0.0, False)
     assert bool(valid) == (not rejected)
 
 

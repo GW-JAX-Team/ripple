@@ -66,10 +66,15 @@ branches are evaluated, so invalid samples do not save waveform work. Use
 sequential execution can cost more than vectorization for valid batches.
 Derivatives (`jax.grad`, `jax.jacfwd`, `jax.jvp`) evaluate the guards as
 selections too, which avoids keeping every branch's intermediates across the
-conditionals; values and derivatives of valid samples are unchanged. A rejected
-sample's derivative is zero, so it does not turn the pattern above, a batch sum,
-or a parameter shared with valid samples into `NaN`. The zero is not a physical
-derivative: gradient samplers should keep proposals in their physical domain.
+conditionals; values and derivatives of valid samples are unchanged. The
+derivative is zero for a sample the guards reject, and for one with a
+non-finite, zero or negative frequency, a zero distance, or a non-finite
+distance, time or phase shift, or inclination. Such a sample therefore does not turn the
+pattern above, a batch sum, or a parameter shared with valid samples into `NaN`.
+Frequencies at the edge of the floating-point range (around 1e300 Hz or
+1e-300 Hz) overflow inside the model and are not covered. The zero is not a
+physical derivative: gradient samplers should keep proposals in their physical
+domain.
 
 For optional error messages, enable diagnostics and functionalize the checks:
 
