@@ -51,8 +51,18 @@ def log_likelihood(params):
 ```
 
 This rejects individual samples under `jit`, `vmap`, and `lax.scan` without
-throwing an exception. It does not skip waveform computation. Masking invalid
-outputs also does not guarantee meaningful gradients at invalid parameters;
+throwing an exception. For scalar `jit` and `lax.scan` calls, the waveform
+stops at the first failed domain guard: raw chirp/tidal bounds before mass
+conversion, remnant spin before inspiral coefficients, and the frequency
+derivative before remaining amplitude fits, merger properties, and phase.
+Strain construction and polarization factors are inside the accepted branch.
+Intermediates used by the guards are reused by the waveform.
+
+Under ordinary per-sample `vmap`, conditionals become selections and both
+branches are evaluated, so invalid samples do not save waveform work. Use
+`lax.scan` or `lax.map` when per-sample early rejection is required; their
+sequential execution can cost more than vectorization for valid batches.
+Masking invalid outputs also does not guarantee meaningful gradients at invalid parameters;
 gradient samplers should keep proposals in their physical domain.
 
 For optional error messages, enable diagnostics and functionalize the checks:

@@ -951,16 +951,29 @@ def _amp_phase(
     f_ref: float,
     f_max: Optional[float],
     diagnostics: bool = False,
-) -> tuple[Float[Array, " n_freq"], Float[Array, " n_freq"]]:
+    output: str = "amp_phase",
+    inclination: FloatLike = 0.0,
+):
     """Amplitude ``A >= 0`` and phase of ``h0 = A exp(i phase)`` (see module docstring for the sign convention)."""
     if f.size == 0:
         raise ValueError("IMRPhenomNSBH requires a nonempty frequency array")
     valid = _valid_parameters(mc, eta, lambda2, diagnostics)
 
     def rejected(_):
-        nan = _nan_frequency(f, mc, eta, chi1, chi2, lambda2, d_L, tc, phase_c, f_ref)
+        nan = _nan_frequency(f, mc, eta, chi1, chi2, lambda2, d_L)
         # PhenomD's phase interpolation promotes to its QNM table dtype.
-        return nan, _nan_frequency(nan, QNMData_fRD)
+        # Infer the public output structure without executing its trigonometry.
+        spec = jax.eval_shape(
+            lambda a, p, i: _format_output(a, p, output, i),
+            nan,
+            _nan_frequency(
+                f, mc, eta, chi1, chi2, lambda2, tc, phase_c, f_ref, QNMData_fRD
+            ),
+            inclination,
+        )
+        return jax.tree.map(
+            lambda leaf: jnp.full(leaf.shape, jnp.nan, leaf.dtype), spec
+        )
 
     def valid_parameters(_):
         m1, m2 = Mc_eta_to_ms(jnp.array([mc, eta]))
@@ -977,7 +990,7 @@ def _amp_phase(
 
             def valid_inspiral(_):
                 complete_cc = {**cc, **_amplitude_coeffs(eta_mass, chi_eff)}
-                return _amp_phase_from_inspiral(
+                A, phi = _amp_phase_from_inspiral(
                     f,
                     m1,
                     m2,
@@ -992,6 +1005,7 @@ def _amp_phase(
                     complete_cc,
                     inspiral,
                 )
+                return _format_output(A, phi, output, inclination)
 
             return jax.lax.cond(inspiral[-1], valid_inspiral, rejected, None)
 
@@ -1045,6 +1059,23 @@ def _amp_phase_from_inspiral(
     return jnp.where(valid, A, jnp.nan), jnp.where(valid, -Psi + PI, jnp.nan)
 
 
+def _format_output(A, phi, output, inclination):
+    """Keep strain construction and polarization work inside the accepted branch."""
+    if output == "amp_phase":
+        return A, phi
+    if output == "amplitude":
+        return A
+    if output == "phase":
+        return phi
+    h0 = A * jnp.cos(phi) + 1j * (A * jnp.sin(phi))
+    if output == "strain":
+        return h0
+    if output == "polarizations":
+        cosi = jnp.cos(inclination)
+        return h0 * (0.5 * (1.0 + cosi**2)), -1j * h0 * cosi
+    raise ValueError(f"Unknown NSBH output: {output}")
+
+
 def gen_IMRPhenomNSBH(
     f: Float[Array, " n_freq"],
     params: Float[Array, "8"],
@@ -1072,7 +1103,7 @@ def gen_IMRPhenomNSBH(
         h0 (array): Strain.
     """
     chi1, chi2, lambda2, d_L, tc, phase_c = params[2:]
-    A, phi = _amp_phase(
+    return _amp_phase(
         f,
         params[0],
         params[1],
@@ -1085,8 +1116,8 @@ def gen_IMRPhenomNSBH(
         f_ref,
         f_max,
         diagnostics=diagnostics,
+        output="strain",
     )
-    return A * jnp.cos(phi) + 1j * (A * jnp.sin(phi))
 
 
 def gen_IMRPhenomNSBH_hphc(
@@ -1110,11 +1141,15 @@ def gen_IMRPhenomNSBH_hphc(
     ``diagnostics`` is a static flag with the same meaning as in
     ``gen_IMRPhenomNSBH``.
     """
-    iota = params[-1]
-    h0 = gen_IMRPhenomNSBH(f, params[:-1], f_ref, f_max=f_max, diagnostics=diagnostics)
-    hp = h0 * (0.5 * (1.0 + jnp.cos(iota) ** 2))
-    hc = -1j * h0 * jnp.cos(iota)
-    return hp, hc
+    return _amp_phase(
+        f,
+        *params[:8],
+        f_ref,
+        f_max,
+        diagnostics=diagnostics,
+        output="polarizations",
+        inclination=params[-1],
+    )
 
 
 def _split_params(params: Mapping[str, FloatLike]):
@@ -1185,7 +1220,7 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
     ) -> Float[Array, " n_freq"]:
         """Amplitude of ``h0`` (non-negative; includes distance scaling)."""
         mc, eta, chi1, chi2, lam, d_L, phase_c = _split_params(params)
-        A, _ = _amp_phase(
+        return _amp_phase(
             frequency,
             mc,
             eta,
@@ -1198,15 +1233,15 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
             self.f_ref,
             self.f_max,
             diagnostics=self.diagnostics,
+            output="amplitude",
         )
-        return A
 
     def phase(
         self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> Float[Array, " n_freq"]:
         """Phase of ``h0`` (includes the ``pi`` that carries LAL's negative amplitude)."""
         mc, eta, chi1, chi2, lam, d_L, phase_c = _split_params(params)
-        _, phi = _amp_phase(
+        return _amp_phase(
             frequency,
             mc,
             eta,
@@ -1219,8 +1254,29 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
             self.f_ref,
             self.f_max,
             diagnostics=self.diagnostics,
+            output="phase",
         )
-        return phi
+
+    def strain(
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
+    ) -> Complex[Array, " n_freq"]:
+        """Pre-polarization strain, using one guarded waveform evaluation."""
+        mc, eta, chi1, chi2, lam, d_L, phase_c = _split_params(params)
+        return _amp_phase(
+            frequency,
+            mc,
+            eta,
+            chi1,
+            chi2,
+            lam,
+            d_L,
+            0.0,
+            phase_c,
+            self.f_ref,
+            self.f_max,
+            diagnostics=self.diagnostics,
+            output="strain",
+        )
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]

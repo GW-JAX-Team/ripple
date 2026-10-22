@@ -291,3 +291,56 @@ def test_mixed_frequency_and_parameter_dtypes(dtype, parameter_dtype):
     fn = jax.jit(lambda p: nsbh.gen_IMRPhenomNSBH(F.astype(dtype), p, 20.0))
     assert np.isfinite(fn(theta().astype(parameter_dtype))).all()
     assert np.isnan(fn(theta(lam=-1.0).astype(parameter_dtype))).all()
+
+
+@pytest.mark.parametrize("method", ["__call__", "amplitude", "phase", "strain"])
+def test_public_output_construction_is_skipped_on_rejection(monkeypatch, method):
+    calls = []
+    original = nsbh._format_output
+
+    def observed(*args):
+        jax.debug.callback(lambda: calls.append("output"))
+        return original(*args)
+
+    monkeypatch.setattr(nsbh, "_format_output", observed)
+    wf = ripplegw.waveform("IMRPhenomNSBH")
+    fn = jax.jit(getattr(wf, method))
+    bad = fn(F, canonical_params(wf, lambda_2=-1.0))
+    jax.block_until_ready(bad)
+    jax.effects_barrier()
+    assert calls == []
+    assert all(np.isnan(x).all() for x in jax.tree.leaves(bad))
+    good = fn(F, canonical_params(wf))
+    jax.block_until_ready(good)
+    jax.effects_barrier()
+    assert calls == ["output"]
+    assert all(np.isfinite(x).all() for x in jax.tree.leaves(good))
+
+
+@pytest.mark.parametrize("method", ["__call__", "amplitude", "phase", "strain"])
+@pytest.mark.parametrize("field", ["phase_c", "d_L", "lambda_2"])
+def test_individual_parameter_field_can_promote_independently(method, field):
+    wf = ripplegw.waveform("IMRPhenomNSBH")
+    params = {
+        k: jnp.asarray(v, dtype=jnp.float32) for k, v in canonical_params(wf).items()
+    }
+    params[field] = params[field].astype(jnp.float64)
+    result = jax.jit(getattr(wf, method))(F.astype(jnp.float32), params)
+    assert all(np.isfinite(x).all() for x in jax.tree.leaves(result))
+
+
+def test_reference_frequency_can_promote_independently():
+    result = jax.jit(nsbh.gen_IMRPhenomNSBH)(
+        F.astype(jnp.float32), theta().astype(jnp.float32), jnp.float64(20.0)
+    )
+    assert np.isfinite(result).all()
+
+
+def test_shared_strain_matches_separate_amplitude_and_phase():
+    wf = ripplegw.waveform("IMRPhenomNSBH")
+    params = canonical_params(wf)
+    amplitude = jax.jit(wf.amplitude)(F, params)
+    phase = jax.jit(wf.phase)(F, params)
+    actual = jax.jit(wf.strain)(F, params)
+    expected = amplitude * jnp.cos(phase) + 1j * amplitude * jnp.sin(phase)
+    np.testing.assert_allclose(actual, expected, atol=0.0, rtol=1e-10)
