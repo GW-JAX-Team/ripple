@@ -68,13 +68,15 @@ Derivatives (`jax.grad`, `jax.jacfwd`, `jax.jvp`) evaluate the guards as
 selections too, which avoids keeping every branch's intermediates across the
 conditionals; values and derivatives of valid samples are unchanged. The
 derivative is zero for a sample the guards reject, and for one with a
-non-finite, zero or negative frequency, a zero distance, or a non-finite
-distance, time or phase shift, or inclination. Such a sample therefore does not turn the
-pattern above, a batch sum, or a parameter shared with valid samples into `NaN`.
-Frequencies at the edge of the floating-point range (around 1e300 Hz or
-1e-300 Hz) overflow inside the model and are not covered. The zero is not a
-physical derivative: gradient samplers should keep proposals in their physical
-domain.
+non-finite, zero or negative frequency, reference frequency or `f_max`, a zero
+distance, or a non-finite distance, time or phase shift, or inclination. Such a
+sample therefore does not turn the pattern above, a batch sum, or a parameter
+shared with valid samples into `NaN`. This holds for inputs of ordinary scale:
+finite values near the edge of the floating-point range (for example
+frequencies or a reference frequency around 1e300 Hz or 1e-300 Hz, a chirp mass
+of 1e-100, or time and phase shifts near 1e308) overflow inside the model and
+are not covered. The zero is not a physical derivative: gradient samplers should
+keep proposals in their physical domain.
 
 For optional error messages, enable diagnostics and functionalize the checks:
 

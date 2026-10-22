@@ -1021,6 +1021,17 @@ _IN_DOMAIN = (
     0.0,
     0.0,
 )
+# Reference and time-shift anchor frequencies (Hz) used with ``_IN_DOMAIN``.
+_IN_DOMAIN_F_REF = 20.0
+_IN_DOMAIN_F_MAX = 1000.0
+
+
+def _settings_valid(f_ref, f_max):
+    """Reference and anchor frequencies are finite and positive (``f_max`` may be None)."""
+    valid = jnp.isfinite(f_ref) & (f_ref > 0.0)
+    if f_max is not None:
+        valid = valid & jnp.isfinite(f_max) & (f_max > 0.0)
+    return valid
 
 
 def _differentiable_at(
@@ -1060,11 +1071,16 @@ def _amp_phase_guarded_jvp(f_ref, f_max, diagnostics, output, primals, tangents)
     # is evaluated at an in-domain point: its local derivatives stay finite, so a
     # zero cotangent cannot turn into NaN and leak into parameters or losses it
     # shares with valid samples.
-    valid = jax.lax.stop_gradient(_differentiable_at(*primals, diagnostics))
+    valid = jax.lax.stop_gradient(
+        _differentiable_at(*primals, diagnostics) & _settings_valid(f_ref, f_max)
+    )
     safe = tuple(jnp.where(valid, x, x0) for x, x0 in zip(primals, _IN_DOMAIN))
+    # The settings are not differentiated, but they enter the evaluation too.
+    safe_f_ref = jnp.where(valid, f_ref, _IN_DOMAIN_F_REF)
+    safe_f_max = None if f_max is None else jnp.where(valid, f_max, _IN_DOMAIN_F_MAX)
 
     def branchless(*args):
-        return _amp_phase_staged(_select, f_ref, f_max, False, output, *args)
+        return _amp_phase_staged(_select, safe_f_ref, safe_f_max, False, output, *args)
 
     out, tangent = jax.jvp(branchless, safe, tangents)
     out = jax.tree.map(lambda x: jnp.where(valid, x, jnp.nan), out)

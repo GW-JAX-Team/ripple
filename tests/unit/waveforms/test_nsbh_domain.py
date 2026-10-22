@@ -557,6 +557,75 @@ def test_nonfinite_frequency_sample_has_zero_gradient(frequencies):
         assert not nsbh._differentiable_at(frequencies, *p, 0.0, False)
 
 
+@pytest.mark.parametrize(
+    "f_ref, f_max",
+    [
+        (0.0, None),
+        (np.nan, None),
+        (1e300, None),
+        (20.0, np.nan),
+        (20.0, -1.0),
+        (20.0, 0.0),
+    ],
+)
+@pytest.mark.parametrize(
+    "p", [theta(chi=4.0), theta(lam=-1.0)], ids=["remnant", "tides"]
+)
+def test_rejected_sample_with_bad_settings_has_zero_gradient(p, f_ref, f_max):
+    def loss(p):
+        h = nsbh.gen_IMRPhenomNSBH(F, p, f_ref, f_max=f_max)
+        valid = jnp.all(jnp.isfinite(h))
+        safe = jnp.where(valid, h, 0.0)
+        return jnp.where(valid, -jnp.sum(jnp.abs(safe * 1e23) ** 2), -jnp.inf)
+
+    value, gradient = jax.jit(jax.value_and_grad(loss))(p)
+    assert value == -np.inf
+    assert (np.asarray(gradient) == 0.0).all()
+
+
+@pytest.mark.parametrize("f_ref, f_max", [(0.0, None), (np.nan, None), (20.0, np.nan)])
+def test_valid_sample_with_bad_settings_has_zero_gradient(f_ref, f_max):
+    def loss(p):
+        h = nsbh.gen_IMRPhenomNSBH(F, p, f_ref, f_max=f_max)
+        valid = jnp.all(jnp.isfinite(h))
+        return jnp.where(
+            valid, -jnp.sum(jnp.abs(jnp.where(valid, h, 0.0)) ** 2), -jnp.inf
+        )
+
+    value, gradient = jax.jit(jax.value_and_grad(loss))(theta())
+    assert value == -np.inf
+    assert (np.asarray(gradient) == 0.0).all()
+
+
+def test_traced_settings_select_the_in_domain_point():
+    def loss(p, f_ref):
+        h = nsbh.gen_IMRPhenomNSBH(F, p, f_ref)
+        valid = jnp.all(jnp.isfinite(h))
+        return jnp.where(
+            valid, -jnp.sum(jnp.abs(jnp.where(valid, h, 0.0)) ** 2), -jnp.inf
+        )
+
+    grad = jax.jit(jax.grad(loss))
+    assert (np.asarray(grad(theta(lam=-1.0), 0.0)) == 0.0).all()
+    assert np.isfinite(grad(theta(), 20.0)).all()
+
+
+@pytest.mark.parametrize("method", ["__call__", "amplitude", "phase", "strain"])
+def test_integer_constant_fields_match_float_values(method):
+    wf = ripplegw.waveform("IMRPhenomNSBH")
+    floats = {
+        k: jnp.float32(v)
+        for k, v in canonical_params(wf, s2_z=0.0, lambda_2=400.0).items()
+    }
+    integers = {**floats, "s2_z": 0, "lambda_2": 400}
+    grid = F.astype(jnp.float32)
+    expected = jax.jit(getattr(wf, method))(grid, floats)
+    actual = jax.jit(getattr(wf, method))(grid, integers)
+    for e, a in zip(jax.tree.leaves(expected), jax.tree.leaves(actual)):
+        assert a.dtype == e.dtype
+        np.testing.assert_allclose(a, e, atol=0.0, rtol=1e-6)
+
+
 @pytest.mark.parametrize("method", ["__call__", "amplitude", "phase", "strain"])
 def test_integer_constant_fields_are_differentiable(method):
     wf = ripplegw.waveform("IMRPhenomNSBH")
