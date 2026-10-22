@@ -188,3 +188,106 @@ def test_checkified_vmap_preserves_good_samples():
 def test_empty_frequency_array_is_rejected_at_trace_time():
     with pytest.raises(ValueError, match="nonempty frequency"):
         jax.jit(nsbh.gen_IMRPhenomNSBH)(jnp.array([]), theta(), 20.0)
+
+
+@pytest.mark.parametrize("case", ["eta", "tides", "spin", "derivative"])
+@pytest.mark.parametrize("diagnostics", [False, True])
+@pytest.mark.parametrize("layout", ["scalar", "scan"])
+def test_invalid_parameters_skip_merger_and_phase(
+    monkeypatch, case, diagnostics, layout
+):
+    """Runtime callbacks distinguish a skipped branch from a NaN mask."""
+    calls = []
+    merger = nsbh.nsbh_merger_properties
+    phase = nsbh.get_coeffs
+
+    def observed_merger(*args, **kwargs):
+        jax.debug.callback(lambda: calls.append("merger"))
+        return merger(*args, **kwargs)
+
+    def observed_phase(*args, **kwargs):
+        jax.debug.callback(lambda: calls.append("phase"))
+        return phase(*args, **kwargs)
+
+    monkeypatch.setattr(nsbh, "nsbh_merger_properties", observed_merger)
+    monkeypatch.setattr(nsbh, "get_coeffs", observed_phase)
+    coeffs = nsbh._inspiral_coeffs
+    if case == "derivative":
+
+        def negative_derivative(*args, **kwargs):
+            return {**coeffs(*args, **kwargs), "xdota2": -1e6, "Mf1": 0.01}
+
+        monkeypatch.setattr(nsbh, "_inspiral_coeffs", negative_derivative)
+    p = theta()
+    if case == "eta":
+        p = p.at[1].set(0.3)
+    elif case == "tides":
+        p = p.at[4].set(-1.0)
+    elif case == "spin":
+        p = p.at[2].set(4.0)
+    fn = lambda p: nsbh.gen_IMRPhenomNSBH(F, p, 20.0, diagnostics=diagnostics)
+    if diagnostics:
+        fn = checkify.checkify(fn)
+    if layout == "scan":
+        scalar = fn
+        fn = lambda batch: jax.lax.scan(lambda c, x: (c, scalar(x)), None, batch)[1]
+        p = jnp.stack([p, p])
+    result = jax.jit(fn)(p)
+    jax.block_until_ready(result)
+    jax.effects_barrier()
+    output = result[1] if diagnostics else result
+    assert np.isnan(output).all()
+    if diagnostics:
+        assert result[0].get() is not None
+    assert calls == [], f"Invalid {case} still executed {calls}"
+
+
+@pytest.mark.parametrize("case", ["eta", "tides", "spin", "valid"])
+def test_domain_stages_execute_in_order(monkeypatch, case):
+    calls = []
+    for name in (
+        "Mc_eta_to_ms",
+        "_remnant_spin",
+        "_inspiral_coeffs",
+        "_inspiral_quantities",
+        "_amplitude_coeffs",
+        "nsbh_merger_properties",
+        "get_coeffs",
+    ):
+        original = getattr(nsbh, name)
+
+        def observed(*args, _original=original, _name=name, **kwargs):
+            jax.debug.callback(lambda: calls.append(_name), ordered=True)
+            return _original(*args, **kwargs)
+
+        monkeypatch.setattr(nsbh, name, observed)
+    p = theta()
+    if case == "eta":
+        p = p.at[1].set(0.3)
+    elif case == "tides":
+        p = p.at[4].set(-1.0)
+    elif case == "spin":
+        p = p.at[2].set(4.0)
+    output = jax.jit(lambda p: nsbh.gen_IMRPhenomNSBH(F, p, 20.0))(p)
+    jax.block_until_ready(output)
+    jax.effects_barrier()
+    stages = [
+        "Mc_eta_to_ms",
+        "_remnant_spin",
+        "_inspiral_coeffs",
+        "_inspiral_quantities",
+        "_amplitude_coeffs",
+        "nsbh_merger_properties",
+        "get_coeffs",
+    ]
+    assert calls == (
+        stages if case == "valid" else stages[:2] if case == "spin" else []
+    )
+
+
+@pytest.mark.parametrize("dtype", [jnp.float32, jnp.float64])
+@pytest.mark.parametrize("parameter_dtype", [jnp.float32, jnp.float64])
+def test_mixed_frequency_and_parameter_dtypes(dtype, parameter_dtype):
+    fn = jax.jit(lambda p: nsbh.gen_IMRPhenomNSBH(F.astype(dtype), p, 20.0))
+    assert np.isfinite(fn(theta().astype(parameter_dtype))).all()
+    assert np.isnan(fn(theta(lam=-1.0).astype(parameter_dtype))).all()
