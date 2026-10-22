@@ -344,3 +344,18 @@ def test_shared_strain_matches_separate_amplitude_and_phase():
     actual = jax.jit(wf.strain)(F, params)
     expected = amplitude * jnp.cos(phase) + 1j * amplitude * jnp.sin(phase)
     np.testing.assert_allclose(actual, expected, atol=0.0, rtol=1e-10)
+
+
+@pytest.mark.parametrize("method", ["__call__", "amplitude", "phase", "strain"])
+@pytest.mark.parametrize("strong_fields", [False, True])
+def test_python_chirp_coordinates_preserve_array_conversion_dtype(
+    method, strong_fields
+):
+    wf = ripplegw.waveform("IMRPhenomNSBH")
+    params = {k: float(v) for k, v in canonical_params(wf).items()}
+    if strong_fields:
+        params = {
+            k: v if k in ("M_c", "eta") else jnp.float32(v) for k, v in params.items()
+        }
+    result = jax.jit(getattr(wf, method))(F.astype(jnp.float32), params)
+    assert all(np.isfinite(x).all() for x in jax.tree.leaves(result))

@@ -958,16 +958,19 @@ def _amp_phase(
     if f.size == 0:
         raise ValueError("IMRPhenomNSBH requires a nonempty frequency array")
     valid = _valid_parameters(mc, eta, lambda2, diagnostics)
+    # Match the conversion's array promotion, including weak Python scalars,
+    # without performing mass conversion before the parameter guard.
+    chirp = jnp.array([mc, eta])
 
     def rejected(_):
-        nan = _nan_frequency(f, mc, eta, chi1, chi2, lambda2, d_L)
+        nan = _nan_frequency(f, chirp, chi1, chi2, lambda2, d_L)
         # PhenomD's phase interpolation promotes to its QNM table dtype.
         # Infer the public output structure without executing its trigonometry.
         spec = jax.eval_shape(
             lambda a, p, i: _format_output(a, p, output, i),
             nan,
             _nan_frequency(
-                f, mc, eta, chi1, chi2, lambda2, tc, phase_c, f_ref, QNMData_fRD
+                f, chirp, chi1, chi2, lambda2, tc, phase_c, f_ref, QNMData_fRD
             ),
             inclination,
         )
@@ -976,7 +979,7 @@ def _amp_phase(
         )
 
     def valid_parameters(_):
-        m1, m2 = Mc_eta_to_ms(jnp.array([mc, eta]))
+        m1, m2 = Mc_eta_to_ms(chirp)
         M = m1 + m2
         M_s = M * MTSUN
         # Use the same converted coordinates as the waveform coefficients.
