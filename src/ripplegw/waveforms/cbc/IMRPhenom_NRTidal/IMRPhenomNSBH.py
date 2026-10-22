@@ -1012,16 +1012,46 @@ def _amp_phase_guarded(f_ref, f_max, diagnostics, output, *args):
     return _amp_phase_staged(jax.lax.cond, f_ref, f_max, diagnostics, output, *args)
 
 
+# A point inside every guard with finite derivatives: (M_c, eta) of 7 + 1.4 Msun,
+# chi_BH = 0.3, chi_NS = 0, Lambda_2 = 400. (chi_BH = 0 would not do: the Kerr ISCO
+# radius has a NaN derivative there.)
+_IN_DOMAIN = (2.5696843973845533, 5.0 / 36.0, 0.3, 0.0, 400.0)
+
+
+def _domain_valid(f, mc, eta, chi1, chi2, lambda2, diagnostics):
+    """The combined decision of the guards staged in ``_amp_phase_staged``."""
+    m1, m2 = Mc_eta_to_ms(jnp.array([mc, eta]))
+    M = m1 + m2
+    eta_mass = m1 * m2 / (M * M)
+    chi_eff = (m1 * chi1 + m2 * chi2) / M
+    afin = _remnant_spin(eta_mass, chi_eff, diagnostics)
+    cc = _inspiral_coeffs(eta_mass, chi_eff, afin)
+    inspiral = _inspiral_quantities(f * (M * MTSUN), cc, diagnostics)
+    return (
+        _valid_parameters(mc, eta, lambda2, diagnostics)
+        & (jnp.abs(afin) <= 1.0)
+        & inspiral[-1]
+    )
+
+
 @_amp_phase_guarded.defjvp
 def _amp_phase_guarded_jvp(f_ref, f_max, diagnostics, output, primals, tangents):
     # Differentiating through the staged conditionals keeps every branch residual
-    # live across the cond boundaries (slower, ~3x memory). The branchless form
-    # gives the same values and derivatives for valid samples; at rejected samples
-    # the value is still NaN and the derivative is not meaningful.
-    def branchless(*args):
-        return _amp_phase_staged(_select, f_ref, f_max, diagnostics, output, *args)
+    # live across the cond boundaries (slower, ~3x memory), so differentiate a
+    # branchless form instead. A rejected sample is evaluated at an in-domain
+    # point: its local derivatives stay finite, so a zero cotangent cannot turn
+    # into NaN and leak into parameters or losses it shares with valid samples.
+    f, *physical = primals[:6]
+    valid = jax.lax.stop_gradient(_domain_valid(f, *physical, diagnostics))
+    safe = [jnp.where(valid, x, x0) for x, x0 in zip(physical, _IN_DOMAIN)]
 
-    return jax.jvp(branchless, primals, tangents)
+    def branchless(*args):
+        return _amp_phase_staged(_select, f_ref, f_max, False, output, *args)
+
+    out, tangent = jax.jvp(branchless, (f, *safe, *primals[6:]), tangents)
+    out = jax.tree.map(lambda x: jnp.where(valid, x, jnp.nan), out)
+    tangent = jax.tree.map(lambda t: jnp.where(valid, t, 0.0), tangent)
+    return out, tangent
 
 
 def _amp_phase_staged(
@@ -1266,7 +1296,7 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
     Scalar ``jit`` and ``scan`` calls skip waveform work as soon as a domain
     guard fails. Under ``vmap``, per-sample conditionals become selections and
     do not promise to skip computation; derivatives also use selections, and
-    may be NaN at rejected samples. Bounds are checked before mass
+    are zero at rejected samples. Bounds are checked before mass
     conversion, remnant spin before coefficients, and the frequency derivative
     before merger properties or phase. Derived intermediates are reused.
     There is no neutron-star mass cut. Nonzero NS spin and NS masses below one

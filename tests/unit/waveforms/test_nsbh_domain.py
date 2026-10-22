@@ -431,6 +431,76 @@ def test_rejected_sample_does_not_contaminate_batch_gradients():
     assert np.isfinite(np.asarray(gradients)[[0, 2]]).all()
 
 
+def _masked_loglike(p, d_L):
+    # The likelihood pattern documented for rejected samples.
+    h = nsbh.gen_IMRPhenomNSBH(F, p.at[5].set(d_L), 20.0)
+    valid = jnp.all(jnp.isfinite(h))
+    safe = jnp.where(valid, h, 0.0)
+    return jnp.where(valid, -jnp.sum(jnp.abs(safe * 1e23) ** 2), -jnp.inf)
+
+
+@pytest.mark.parametrize(
+    "invalid",
+    [theta(chi=4.0), theta(lam=-1.0), theta().at[0].set(-1.0), theta().at[1].set(0.0)],
+    ids=["remnant", "tides", "chirp_mass", "eta"],
+)
+@pytest.mark.parametrize("layout", ["scan", "vmap"])
+def test_rejected_sample_does_not_leak_into_shared_gradients(invalid, layout):
+    batch = jnp.stack([theta(), invalid])
+
+    def losses(d_L):
+        if layout == "scan":
+            step = lambda c, p: (c, _masked_loglike(p, d_L))
+            return jax.lax.scan(step, None, batch)[1]
+        return jax.vmap(_masked_loglike, (0, None))(batch, d_L)
+
+    d_L = 200.0
+    value, gradient = jax.jit(jax.value_and_grad(lambda d: losses(d)[0]))(d_L)
+    # h scales as 1/d_L, so the valid loss has derivative -2 L / d_L.
+    np.testing.assert_allclose(gradient, -2.0 * value / d_L, atol=0.0, rtol=1e-12)
+    total, total_gradient = jax.jit(jax.value_and_grad(lambda d: jnp.sum(losses(d))))(
+        d_L
+    )
+    assert total == -np.inf
+    np.testing.assert_allclose(total_gradient, gradient, atol=0.0, rtol=1e-12)
+
+
+def test_rejected_sample_has_zero_gradient():
+    value, gradient = jax.jit(jax.value_and_grad(_masked_loglike))(
+        theta(lam=-1.0), 200.0
+    )
+    assert value == -np.inf
+    assert (np.asarray(gradient) == 0.0).all()
+
+
+def test_checkified_gradient_reports_rejection():
+    def loss(p):
+        h = nsbh.gen_IMRPhenomNSBH(F, p, 20.0, diagnostics=True)
+        return jnp.sum(jnp.abs(h * 1e23) ** 2)
+
+    err, _ = jax.jit(checkify.checkify(jax.value_and_grad(loss)))(theta(lam=-1.0))
+    assert err.get() is not None and "lambda_2" in err.get()
+
+
+@pytest.mark.parametrize(
+    "p",
+    [
+        theta(),
+        theta(m1=140.0),
+        theta(m1=141.4),
+        theta(lam=5000.0),
+        theta(lam=5001.0),
+        theta(chi=1.0),
+        theta(chi=1.2),
+        theta().at[1].set(0.26),
+        theta().at[0].set(jnp.nan),
+    ],
+)
+def test_derivative_domain_matches_staged_rejection(p):
+    rejected = np.isnan(evaluate(p)).all()
+    valid = nsbh._domain_valid(F, *p[:5], False)
+    assert bool(valid) == (not rejected)
+
 
 @pytest.mark.parametrize("dtype", [jnp.float32, jnp.float64])
 def test_mass_ratio_endpoint_tolerance_in_each_precision(dtype):
