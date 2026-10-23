@@ -980,10 +980,33 @@ def _amp_phase(
     diagnostics: bool = False,
     output: str = "amp_phase",
     inclination: FloatLike = 0.0,
+    domain_checks: bool = True,
 ):
     """Amplitude ``A >= 0`` and phase of ``h0 = A exp(i phase)`` (see module docstring for the sign convention)."""
     if f.size == 0:
         raise ValueError("IMRPhenomNSBH requires a nonempty frequency array")
+    if not domain_checks:
+        if diagnostics:
+            raise ValueError("IMRPhenomNSBH diagnostics require domain_checks=True")
+        # Every guard accepts, so under jit the predicates are dead code and the
+        # waveform is differentiated directly, without the custom derivative rule.
+        return _amp_phase_staged(
+            _accept,
+            f_ref,
+            f_max,
+            False,
+            output,
+            f,
+            mc,
+            eta,
+            chi1,
+            chi2,
+            lambda2,
+            d_L,
+            tc,
+            phase_c,
+            inclination,
+        )
     # Integer constants become weak floats (promoting as the integers did) so the
     # derivative rule can substitute float values without integer tangents.
     args = [
@@ -991,6 +1014,11 @@ def _amp_phase(
         for x in (f, mc, eta, chi1, chi2, lambda2, d_L, tc, phase_c, inclination)
     ]
     return _amp_phase_guarded(f_ref, f_max, diagnostics, output, *args)
+
+
+def _accept(pred, true_fun, false_fun, operand):
+    """Unchecked ``lax.cond``: always take the accepted branch."""
+    return true_fun(operand)
 
 
 def _select(pred, true_fun, false_fun, operand):
@@ -1141,7 +1169,7 @@ def _amp_phase_staged(
 
             def valid_inspiral(_):
                 complete_cc = {**cc, **_amplitude_coeffs(eta_mass, chi_eff)}
-                A, phi = _amp_phase_from_inspiral(
+                A, phi, finite = _amp_phase_from_inspiral(
                     f,
                     m1,
                     m2,
@@ -1156,7 +1184,12 @@ def _amp_phase_staged(
                     complete_cc,
                     inspiral,
                 )
-                return _format_output(A, phi, output, inclination)
+                return cond(
+                    finite,
+                    lambda _: _format_output(A, phi, output, inclination),
+                    rejected,
+                    None,
+                )
 
             return cond(inspiral[-1], valid_inspiral, rejected, None)
 
@@ -1206,9 +1239,8 @@ def _amp_phase_from_inspiral(
 
     Psi = Psi + psi_T - t0 * (f * M_s - Mf_ref) - Psi_ref
     Psi = Psi + 2.0 * PI * f * tc - 2.0 * phase_c
-    # +pi carries the sign of LAL's negative amplitude
-    valid = jnp.all(jnp.isfinite(amp))
-    return jnp.where(valid, A, jnp.nan), jnp.where(valid, -Psi + PI, jnp.nan)
+    # +pi carries the sign of LAL's negative amplitude; the flag feeds the last guard
+    return A, -Psi + PI, jnp.all(jnp.isfinite(amp))
 
 
 def _format_output(A, phi, output, inclination):
@@ -1235,6 +1267,7 @@ def gen_IMRPhenomNSBH(
     f_max: Optional[float] = None,
     *,
     diagnostics: bool = False,
+    domain_checks: bool = True,
 ) -> Complex[Array, " n_freq"]:
     """
     Generate the IMRPhenomNSBH strain ``h0``.
@@ -1250,6 +1283,10 @@ def gen_IMRPhenomNSBH(
             ``None`` uses LAL's default upper frequency ``Mf = 0.2``.
         diagnostics (bool): Add optional checkify annotations. Keep this static
             under ``jit``; wrap in ``checkify.checkify`` to collect error messages.
+        domain_checks (bool): Return NaN for samples outside LAL's domain. Static.
+            ``False`` skips the checks, and their cost, and extrapolates outside the
+            domain as LAL would not; use it only when inputs are known to be valid
+            (e.g. a prior inside the domain). Requires ``diagnostics=False``.
 
     Returns:
         h0 (array): Strain.
@@ -1269,6 +1306,7 @@ def gen_IMRPhenomNSBH(
         f_max,
         diagnostics=diagnostics,
         output="strain",
+        domain_checks=domain_checks,
     )
 
 
@@ -1279,6 +1317,7 @@ def gen_IMRPhenomNSBH_hphc(
     f_max: Optional[float] = None,
     *,
     diagnostics: bool = False,
+    domain_checks: bool = True,
 ) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     Generate the IMRPhenomNSBH plus and cross polarizations.
@@ -1290,8 +1329,8 @@ def gen_IMRPhenomNSBH_hphc(
         hp (array): Strain of the plus polarization
         hc (array): Strain of the cross polarization
 
-    ``diagnostics`` is a static flag with the same meaning as in
-    ``gen_IMRPhenomNSBH``.
+    ``diagnostics`` and ``domain_checks`` are static flags with the same meaning
+    as in ``gen_IMRPhenomNSBH``.
     """
     return _amp_phase(
         f,
@@ -1301,6 +1340,7 @@ def gen_IMRPhenomNSBH_hphc(
         diagnostics=diagnostics,
         output="polarizations",
         inclination=params[-1],
+        domain_checks=domain_checks,
     )
 
 
@@ -1335,12 +1375,15 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
     before merger properties or phase. Derived intermediates are reused.
     There is no neutron-star mass cut. Nonzero NS spin and NS masses below one
     solar mass are outside LAL's calibration, but are not rejected here.
+    Set ``domain_checks=False`` to skip every check and its cost: the waveform
+    then extrapolates outside the domain, and derivatives are taken directly.
 
     Attributes:
         f_ref (float): Reference frequency in Hz.
         f_max (Optional[float]): Frequency in Hz at which the coalescence-time shift is anchored
             (LAL's upper frequency ``f_max``). ``None`` uses LAL's default, ``Mf = 0.2``.
         diagnostics (bool): Enable optional checkify annotations. Defaults to False.
+        domain_checks (bool): Return NaN outside LAL's domain. Defaults to True.
     """
 
     f_ref: float
@@ -1352,6 +1395,7 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
         f_max: Optional[float] = None,
         *,
         diagnostics: bool = False,
+        domain_checks: bool = True,
     ) -> None:
         """
         Args:
@@ -1359,10 +1403,16 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
             f_max (Optional[float]): Time-shift anchor frequency in Hz. Defaults to None
                 (``Mf = 0.2``).
             diagnostics (bool): Add optional checkify annotations. Defaults to False.
+            domain_checks (bool): Return NaN outside LAL's domain. ``False`` skips
+                the checks and extrapolates; it requires ``diagnostics=False``.
+                Defaults to True.
         """
+        if diagnostics and not domain_checks:
+            raise ValueError("IMRPhenomNSBH diagnostics require domain_checks=True")
         self.f_ref = f_ref
         self.f_max = f_max
         self.diagnostics = diagnostics
+        self.domain_checks = domain_checks
 
     @property
     def parameter_names(self) -> tuple[str, ...]:
@@ -1386,6 +1436,7 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
             self.f_ref,
             self.f_max,
             diagnostics=self.diagnostics,
+            domain_checks=self.domain_checks,
             output="amplitude",
         )
 
@@ -1407,6 +1458,7 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
             self.f_ref,
             self.f_max,
             diagnostics=self.diagnostics,
+            domain_checks=self.domain_checks,
             output="phase",
         )
 
@@ -1428,6 +1480,7 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
             self.f_ref,
             self.f_max,
             diagnostics=self.diagnostics,
+            domain_checks=self.domain_checks,
             output="strain",
         )
 
@@ -1461,10 +1514,14 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
             self.f_ref,
             self.f_max,
             diagnostics=self.diagnostics,
+            domain_checks=self.domain_checks,
             output="polarizations",
             inclination=params["iota"],
         )
         return {"p": hp, "c": hc}
 
     def __repr__(self):
-        return f"IMRPhenomNSBH(f_ref={self.f_ref}, f_max={self.f_max}, diagnostics={self.diagnostics})"
+        return (
+            f"IMRPhenomNSBH(f_ref={self.f_ref}, f_max={self.f_max}, "
+            f"diagnostics={self.diagnostics}, domain_checks={self.domain_checks})"
+        )

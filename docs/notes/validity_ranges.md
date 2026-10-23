@@ -95,8 +95,26 @@ message = err.get()  # Host inspection; returns None for a valid sample.
 applies. Leave diagnostics disabled in the normal sampling path to avoid
 effect annotations. Host inspection of error messages synchronizes execution.
 
+#### Skipping the checks
+
+The checks have a cost that early rejection does not repay when samples are
+evaluated as a `vmap` batch, where every sample computes the full waveform:
+they add conditionals to the compiled graph and replace autodiff with the
+branchless derivative rule above. When the inputs are known to lie inside the
+domain, for example because the prior already restricts them, turn the checks
+off:
+
+```python
+waveform = ripplegw.waveform("IMRPhenomNSBH", domain_checks=False)
+```
+
+The waveform is then compiled with no conditionals and differentiated directly.
+Inside the domain it returns the same values as the checked model. Outside it,
+the model extrapolates instead of returning `NaN`, and a derivative there may be
+`NaN`. `domain_checks=False` cannot be combined with `diagnostics=True`.
+
 The low-level `gen_IMRPhenomNSBH` and `gen_IMRPhenomNSBH_hphc` functions accept
-the same static `diagnostics` keyword.
+the same static `diagnostics` and `domain_checks` keywords.
 
 ## Bursts
 

@@ -414,7 +414,7 @@ def test_differentiation_uses_branchless_guards(monkeypatch):
     jax.make_jaxpr(lambda p: nsbh.gen_IMRPhenomNSBH(F, p, 20.0))(theta())
     assert not calls  # plain evaluation keeps the staged early exit
     jax.make_jaxpr(jax.grad(_overlap))(theta())
-    assert len(calls) == 3  # one per staged guard
+    assert len(calls) == 4  # one per staged guard
 
 
 def test_branchless_gradient_matches_staged_differentiation():
@@ -706,3 +706,74 @@ def test_mass_ratio_endpoint_agrees_across_public_methods():
     for method in ("__call__", "amplitude", "phase", "strain"):
         output = jax.jit(getattr(wf, method))(F, params)
         assert all(np.isfinite(x).all() for x in jax.tree.leaves(output)), method
+
+
+unchecked = jax.jit(lambda p: nsbh.gen_IMRPhenomNSBH(F, p, 20.0, domain_checks=False))
+
+
+def _unchecked_overlap(p):
+    h = nsbh.gen_IMRPhenomNSBH(F, p, 20.0, domain_checks=False)
+    return jnp.real(jnp.sum(h * jnp.exp(-1j * F / 37.0))) * 1e23
+
+
+@pytest.mark.parametrize("p", [theta(), theta(m1=70.0), theta(lam=5000.0)])
+def test_unchecked_mode_matches_checked_inside_domain(p):
+    # Only XLA's fusion differs between the graphs, so agreement is to rounding.
+    np.testing.assert_allclose(unchecked(p), evaluate(p), atol=0.0, rtol=1e-11)
+    np.testing.assert_allclose(
+        jax.jit(jax.grad(_unchecked_overlap))(p),
+        jax.jit(jax.grad(_overlap))(p),
+        atol=0.0,
+        rtol=1e-9,
+    )
+
+
+@pytest.mark.parametrize("p", [theta(m1=141.4), theta(lam=5001.0)])
+def test_unchecked_mode_extrapolates_outside_domain(p):
+    assert np.isnan(evaluate(p)).all()
+    assert np.isfinite(unchecked(p)).all()
+
+
+def test_unchecked_mode_compiles_without_guards(monkeypatch):
+    def compiled(domain_checks):
+        def generate(p):
+            return nsbh.gen_IMRPhenomNSBH(F, p, 20.0, domain_checks=domain_checks)
+
+        return jax.jit(generate).lower(theta()).compile().as_text()
+
+    assert "conditional" in compiled(True)
+    assert "conditional" not in compiled(False)
+
+    # Gradients bypass the custom derivative rule and its domain predicate.
+    calls = []
+    differentiable_at = nsbh._differentiable_at
+
+    def spy(*args):
+        calls.append(None)
+        return differentiable_at(*args)
+
+    monkeypatch.setattr(nsbh, "_differentiable_at", spy)
+    jax.make_jaxpr(jax.grad(_overlap))(theta())
+    assert calls
+    calls.clear()
+    jax.make_jaxpr(jax.grad(_unchecked_overlap))(theta())
+    assert not calls
+
+
+def test_unchecked_mode_rejects_diagnostics():
+    with pytest.raises(ValueError, match="domain_checks"):
+        nsbh.gen_IMRPhenomNSBH(F, theta(), 20.0, diagnostics=True, domain_checks=False)
+    with pytest.raises(ValueError, match="domain_checks"):
+        ripplegw.waveform("IMRPhenomNSBH", diagnostics=True, domain_checks=False)
+
+
+def test_unchecked_mode_across_public_methods():
+    checked = ripplegw.waveform("IMRPhenomNSBH")
+    fast = ripplegw.waveform("IMRPhenomNSBH", domain_checks=False)
+    assert "domain_checks=False" in repr(fast)
+    params = canonical_params(checked)
+    for method in ("__call__", "amplitude", "phase", "strain"):
+        expected = jax.jit(getattr(checked, method))(F, params)
+        actual = jax.jit(getattr(fast, method))(F, params)
+        for a, e in zip(jax.tree.leaves(actual), jax.tree.leaves(expected)):
+            np.testing.assert_allclose(a, e, atol=0.0, rtol=1e-11, err_msg=method)
