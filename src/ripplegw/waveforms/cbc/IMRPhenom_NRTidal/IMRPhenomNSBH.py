@@ -143,7 +143,10 @@ def _xi_poly(z: FloatLike, q: FloatLike, a: FloatLike, mu: FloatLike) -> FloatLi
 
 
 _XI_GRID = 2048
-_XI_BISECT_ITERS = 64
+# The grid bracket is already ~bound/2048 wide; 32 halvings take it below 1e-12 relative,
+# and the implicit-function Newton step below refines the value to machine precision.
+# 64 iterations (the old value) are far beyond double precision and dominate the waveform.
+_XI_BISECT_ITERS = 32
 
 
 def xi_tide(q: FloatLike, a: FloatLike, mu: FloatLike) -> FloatLike:
@@ -197,13 +200,19 @@ def xi_tide(q: FloatLike, a: FloatLike, mu: FloatLike) -> FloatLike:
     return jnp.where(has_root, z**2, 0.0)
 
 
+def _torus_mass_from_xi(
+    mu: FloatLike, C: FloatLike, a: FloatLike, xi: FloatLike
+) -> FloatLike:
+    """Torus-mass fit from an already evaluated tidal correction ``xi``."""
+    alpha, beta = 0.296, 0.171
+    Mtorus = alpha * xi * (1.0 - 2.0 * C) - beta * mu * kerr_isco_radius(a)
+    return jnp.where(Mtorus < 0.0, 0.0, Mtorus)
+
+
 def torus_mass_fit(q: FloatLike, a: FloatLike, C: FloatLike) -> FloatLike:
     """Baryonic torus mass in units of the NS baryonic mass (``XLALSimNSBH_torus_mass_fit``, Eq. 11 of 1509.00512)."""
     mu = q * C
-    alpha, beta = 0.296, 0.171
-    xi = xi_tide(q, a, mu)
-    Mtorus = alpha * xi * (1.0 - 2.0 * C) - beta * mu * kerr_isco_radius(a)
-    return jnp.where(Mtorus < 0.0, 0.0, Mtorus)
+    return _torus_mass_from_xi(mu, C, a, xi_tide(q, a, mu))
 
 
 def f_gw_in_kerr(r: FloatLike, M: FloatLike, a: FloatLike) -> FloatLike:
@@ -440,6 +449,23 @@ def omega_tilde(a: FloatLike) -> Complex[Array, ""]:
 #######################################################################################################
 
 
+def _remnant_spin(eta, chi):
+    eta2 = eta * eta
+    # LAL ComputeIMRPhenomCParams: this BBH fit sets the SPA matching
+    # frequency, before NSBH corrections.
+    etachi = eta * chi
+    afin = (
+        chi
+        - 0.129 * chi * etachi
+        - 0.384 * etachi * eta
+        - 2.686 * etachi
+        + 2.0 * jnp.sqrt(3.0) * eta
+        - 3.454 * eta2
+        + 2.353 * eta2 * eta
+    )
+    return afin
+
+
 def phenomC_amp_coeffs(eta: FloatLike, chi: FloatLike) -> dict[str, FloatLike]:
     """IMRPhenomC PN amplitude coefficients and phenomenological fits ``g1, del1, del2``.
 
@@ -449,12 +475,17 @@ def phenomC_amp_coeffs(eta: FloatLike, chi: FloatLike) -> dict[str, FloatLike]:
 
     The clamps applied by ``IMRPhenomNSBH_Core`` (``g1 >= 0``, ``del1 >= 0``, ``del2 >= 1e-4``) are included.
     """
+    afin = _remnant_spin(eta, chi)
+    return {**_inspiral_coeffs(eta, chi, afin), **_amplitude_coeffs(eta, chi)}
+
+
+def _inspiral_coeffs(eta, chi, afin):
+    """Coefficients of the inspiral frequency derivative and the SPA matching frequency."""
     pi, pi2, gam = PI, PI * PI, EULERGAMMA
     eta2 = eta * eta
     chisum = chi + chi
     chiprod = chi * chi
     chi2 = chi * chi
-
     xdotaN = 64.0 * eta / 5.0
     xdota2 = -7.43 / 3.36 - 11.0 * eta / 4.0
     xdota3 = 4.0 * pi - 11.3 * chi / 1.2 + 19.0 * eta * chisum / 6.0
@@ -501,6 +532,22 @@ def phenomC_amp_coeffs(eta: FloatLike, chi: FloatLike) -> dict[str, FloatLike]:
         + chi * chiprod * (10.1 * eta / 2.4 + 3.0 * eta2 / 8.0)
     )
 
+    Mf1 = 0.1 * (1.5251 - 1.1568 * (1.0 - jnp.abs(afin)) ** 0.1292) / (2.0 * PI)
+
+    return {
+        "xdotaN": xdotaN, "xdota2": xdota2, "xdota3": xdota3, "xdota4": xdota4,
+        "xdota5": xdota5, "xdota6": xdota6, "xdota6log": xdota6log, "xdota7": xdota7,
+        "Mf1": Mf1,
+    }  # fmt: skip
+
+
+def _amplitude_coeffs(eta, chi):
+    """Remaining IMRPhenomC amplitude coefficients and fits."""
+    pi, pi2, gam = PI, PI * PI, EULERGAMMA
+    eta2 = eta * eta
+    chisum = chi + chi
+    chiprod = chi * chi
+    chi2 = chi * chi
     AN = 8.0 * eta * jnp.sqrt(pi / 5.0)
     A2 = (-107.0 + 55.0 * eta) / 42.0
     A3 = 2.0 * pi - 4.0 * chi / 3.0 + 2.0 * eta * chisum / 3.0
@@ -548,8 +595,6 @@ def phenomC_amp_coeffs(eta: FloatLike, chi: FloatLike) -> dict[str, FloatLike]:
     del2 = jnp.maximum(del2, 1.0e-4)
 
     return {
-        "xdotaN": xdotaN, "xdota2": xdota2, "xdota3": xdota3, "xdota4": xdota4,
-        "xdota5": xdota5, "xdota6": xdota6, "xdota6log": xdota6log, "xdota7": xdota7,
         "AN": AN, "A2": A2, "A3": A3, "A4": A4, "A5": A5, "A5imag": A5imag,
         "A6": A6, "A6log": A6log, "A6imag": A6imag,
         "g1": g1, "del1": del1, "del2": del2, "d0": 0.015,
@@ -592,14 +637,15 @@ def nsbh_merger_properties(
         del2 = phenomC_amp_coeffs(eta, chi_eff)["del2"]
 
     C = compactness_from_lambda(lam)
-    Mtorus = torus_mass_fit(q, chi_BH, C)
+    # Evaluate the expensive tidal root once and reuse it for the torus mass and rtide.
+    mu = q * C
+    xi = xi_tide(q, chi_BH, mu)
+    Mtorus = _torus_mass_from_xi(mu, C, chi_BH, xi)
     chif = bhns_final_spin_aligned(mBH, mNS, chi_BH, lam)
     final_mass = bhns_final_mass_aligned(mBH, mNS, chi_BH, lam) / M
 
     om = omega_tilde(chif)
     f_RD = jnp.real(om) / 2.0 / PI / final_mass
-    mu = q * C
-    xi = xi_tide(q, chi_BH, mu)
     rtide = xi * (1.0 - 2.0 * C) / mu  # follows arXiv:1207.6304v1 (in M_BH units)
     q_factor = jnp.real(om) / jnp.imag(om) / 2.0
     # a spinning BH with vanishing rtide (BH limit) gives an infinite tidal frequency; keep it finite so
@@ -692,13 +738,20 @@ def nsbh_merger_properties(
 
 
 def nsbh_amplitude(
-    Mf: Float[Array, " n_freq"], cc: dict[str, FloatLike], props: dict[str, FloatLike]
+    Mf: Float[Array, " n_freq"],
+    cc: dict[str, FloatLike],
+    props: dict[str, FloatLike],
 ) -> Float[Array, " n_freq"]:
     """``|PhenomNSBHAmplitudeOneFrequency|`` (dimensionless, before ``amp0 * ylm_fac``) at geometric frequency ``Mf``.
 
     LAL's amplitude is ``-(aPN wMinus + aPM wMinus + aRD wPlus)``, i.e. non-positive; the sign is returned
     separately through the phase (see module docstring).
     """
+    return _amplitude_from_inspiral(Mf, cc, props, _inspiral_quantities(Mf, cc))
+
+
+def _inspiral_quantities(Mf, cc):
+    """Inspiral frequency derivative and the powers of ``v`` reused by the amplitude and tidal phase."""
     v = (PI * Mf) ** (1.0 / 3.0)
     v2 = v * v
     v3 = v * v2
@@ -719,6 +772,11 @@ def nsbh_amplitude(
         + cc["xdota7"] * v7
     )
     xdot = xdot * (cc["xdotaN"] * v10)
+    return v, v2, v3, v4, v5, v6, logv2, xdot
+
+
+def _amplitude_from_inspiral(Mf, cc, props, inspiral):
+    v, v2, v3, v4, v5, v6, logv2, xdot = inspiral
     omgdot = 1.5 * v * xdot
     ampfac = jnp.sqrt(jnp.abs(PI / omgdot))
     AmpPNre = (
@@ -793,8 +851,13 @@ def _fRD_fdamp_from_chif(m1, m2, chi1, chi2, chif):
     return f_RD / M_s, f_damp / M_s
 
 
-def _phenomD_phase_at(f, theta_bbh, coeffs, transition_freqs, lambda2):
-    """IMRPhenomD phase (inspiral + NS quadrupole-monopole shift, intermediate, merger-ringdown), C^1 glued."""
+def _phenomD_phase_evaluator(theta_bbh, coeffs, transition_freqs, lambda2):
+    """Return an ``f -> phase`` callable with the C^1 gluing constants computed once.
+
+    The gluing involves four scalar ``value_and_grad`` evaluations at the transition
+    frequencies; they are independent of ``f``. Evaluating the phase at two frequency
+    sets (the band and the reference frequency) therefore shares this work.
+    """
     m1, m2, chi1, chi2 = theta_bbh
     M_s = (m1 + m2) * MTSUN
     f1, f2, _, _, f_RD, f_damp = transition_freqs
@@ -804,7 +867,6 @@ def _phenomD_phase_at(f, theta_bbh, coeffs, transition_freqs, lambda2):
             fM_s, m1, m2, chi1, chi2, lambda2
         )
 
-    phi_Ins = inspiral_phase(f * M_s)
     phi_Ins_f1, dphi_Ins_f1 = jax.value_and_grad(inspiral_phase)(f1 * M_s)
     phi_IIa_f1, dphi_IIa_f1 = jax.value_and_grad(get_IIa_raw_phase)(
         f1 * M_s, theta_bbh, coeffs
@@ -815,24 +877,28 @@ def _phenomD_phase_at(f, theta_bbh, coeffs, transition_freqs, lambda2):
     def phi_IIa_func(fM_s):
         return get_IIa_raw_phase(fM_s, theta_bbh, coeffs) + beta1_correction * fM_s
 
-    phi_IIa = phi_IIa_func(f * M_s) + beta0
     phi_IIa_f2, dphi_IIa_f2 = jax.value_and_grad(phi_IIa_func)(f2 * M_s)
     phi_IIb_f2, dphi_IIb_f2 = jax.value_and_grad(get_IIb_raw_phase)(
         f2 * M_s, theta_bbh, coeffs, f_RD, f_damp
     )
     a1_correction = dphi_IIa_f2 - dphi_IIb_f2
     a0 = phi_IIa_f2 + beta0 - a1_correction * (f2 * M_s) - phi_IIb_f2
-    phi_IIb = (
-        get_IIb_raw_phase(f * M_s, theta_bbh, coeffs, f_RD, f_damp)
-        + a0
-        + a1_correction * (f * M_s)
-    )
 
-    return (
-        phi_Ins * jnp.heaviside(f1 - f, 0.5)
-        + jnp.heaviside(f - f1, 0.5) * phi_IIa * jnp.heaviside(f2 - f, 0.5)
-        + phi_IIb * jnp.heaviside(f - f2, 0.5)
-    )
+    def evaluate(f):
+        phi_Ins = inspiral_phase(f * M_s)
+        phi_IIa = phi_IIa_func(f * M_s) + beta0
+        phi_IIb = (
+            get_IIb_raw_phase(f * M_s, theta_bbh, coeffs, f_RD, f_damp)
+            + a0
+            + a1_correction * (f * M_s)
+        )
+        return (
+            phi_Ins * jnp.heaviside(f1 - f, 0.5)
+            + jnp.heaviside(f - f1, 0.5) * phi_IIa * jnp.heaviside(f2 - f, 0.5)
+            + phi_IIb * jnp.heaviside(f - f2, 0.5)
+        )
+
+    return evaluate
 
 
 #######################################################################################################
@@ -842,8 +908,8 @@ def _phenomD_phase_at(f, theta_bbh, coeffs, transition_freqs, lambda2):
 
 def _amp_phase(
     f: Float[Array, " n_freq"],
-    m1: FloatLike,
-    m2: FloatLike,
+    mc: FloatLike,
+    eta: FloatLike,
     chi1: FloatLike,
     chi2: FloatLike,
     lambda2: FloatLike,
@@ -852,17 +918,46 @@ def _amp_phase(
     phase_c: FloatLike,
     f_ref: float,
     f_max: Optional[float],
-) -> tuple[Float[Array, " n_freq"], Float[Array, " n_freq"]]:
+    output: str = "amp_phase",
+    inclination: FloatLike = 0.0,
+):
     """Amplitude ``A >= 0`` and phase of ``h0 = A exp(i phase)`` (see module docstring for the sign convention)."""
+    m1, m2 = Mc_eta_to_ms(jnp.array([mc, eta]))
+    M = m1 + m2
+    # Use the same converted coordinates as the waveform coefficients.
+    eta_mass = m1 * m2 / (M * M)
+    chi_eff = (m1 * chi1 + m2 * chi2) / M
+    afin = _remnant_spin(eta_mass, chi_eff)
+    cc = _inspiral_coeffs(eta_mass, chi_eff, afin)
+    inspiral = _inspiral_quantities(f * (M * MTSUN), cc)
+    complete_cc = {**cc, **_amplitude_coeffs(eta_mass, chi_eff)}
+    A, phi = _amp_phase_from_inspiral(
+        f,
+        m1,
+        m2,
+        chi1,
+        chi2,
+        lambda2,
+        d_L,
+        tc,
+        phase_c,
+        f_ref,
+        f_max,
+        complete_cc,
+        inspiral,
+    )
+    return _format_output(A, phi, output, inclination)
+
+
+def _amp_phase_from_inspiral(
+    f, m1, m2, chi1, chi2, lambda2, d_L, tc, phase_c, f_ref, f_max, cc, inspiral
+):
+    """Evaluate the waveform from the inspiral quantities and the IMRPhenomC coefficients."""
     M = m1 + m2
     M_s = M * MTSUN
-    eta = m1 * m2 / (M * M)
-
     # ---- amplitude
-    chi_eff = (m1 * chi1 + m2 * chi2) / M
-    cc = phenomC_amp_coeffs(eta, chi_eff)
     props = nsbh_merger_properties(m1, m2, chi1, lambda2, chi_NS=chi2, del2=cc["del2"])
-    amp = nsbh_amplitude(f * M_s, cc, props)
+    amp = _amplitude_from_inspiral(f * M_s, cc, props, inspiral)
     # amp0 * ylm_fac, with the distance in metres
     amp0 = 2.0 * jnp.sqrt(5.0 / (64.0 * PI)) * M * MRSUN * M * MTSUN / (d_L * MPC)
     A = amp0 * amp
@@ -875,17 +970,17 @@ def _amp_phase(
         theta_bbh, coeffs[5], coeffs[6], f_RD, f_damp
     )
 
-    Psi = _phenomD_phase_at(f, theta_bbh, coeffs, transition_freqs, lambda2)
-    Psi_ref = _phenomD_phase_at(
-        jnp.array([f_ref]), theta_bbh, coeffs, transition_freqs, lambda2
-    )[0]
+    phase = _phenomD_phase_evaluator(theta_bbh, coeffs, transition_freqs, lambda2)
+    Psi = phase(f)
+    Psi_ref = phase(jnp.array([f_ref]))[0]
     # time shift: derivative of the merger-ringdown ansatz at f_max (NOT at the peak, cf. PhenomD);
     # without f_max, LAL's default upper frequency Mf = 0.2
     Mf_max = 0.2 if f_max is None else f_max * M_s
     t0 = jax.grad(get_IIb_raw_phase)(Mf_max, theta_bbh, coeffs, f_RD, f_damp)
     Mf_ref = f_ref * M_s
 
-    x = (PI * M_s * f) ** (2.0 / 3.0)
+    # (pi M f)^(2/3) is the v^2 already computed for the amplitude.
+    x = inspiral[1]
     # only the NS is deformable: lambda_1 = 0
     theta_intrinsic = jnp.array([m1, m2, chi1, chi2, 0.0, lambda2])
     psi_T = get_tidal_phase(x, theta_intrinsic, get_kappa(theta_intrinsic))
@@ -894,6 +989,23 @@ def _amp_phase(
     Psi = Psi + 2.0 * PI * f * tc - 2.0 * phase_c
     # +pi carries the sign of LAL's negative amplitude
     return A, -Psi + PI
+
+
+def _format_output(A, phi, output, inclination):
+    """Build the requested output from the amplitude and phase."""
+    if output == "amp_phase":
+        return A, phi
+    if output == "amplitude":
+        return A
+    if output == "phase":
+        return phi
+    h0 = A * jnp.cos(phi) + 1j * (A * jnp.sin(phi))
+    if output == "strain":
+        return h0
+    if output == "polarizations":
+        cosi = jnp.cos(inclination)
+        return h0 * (0.5 * (1.0 + cosi**2)), -1j * h0 * cosi
+    raise ValueError(f"Unknown NSBH output: {output}")
 
 
 def gen_IMRPhenomNSBH(
@@ -918,10 +1030,21 @@ def gen_IMRPhenomNSBH(
     Returns:
         h0 (array): Strain.
     """
-    m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
     chi1, chi2, lambda2, d_L, tc, phase_c = params[2:]
-    A, phi = _amp_phase(f, m1, m2, chi1, chi2, lambda2, d_L, tc, phase_c, f_ref, f_max)
-    return A * jnp.cos(phi) + 1j * (A * jnp.sin(phi))
+    return _amp_phase(
+        f,
+        params[0],
+        params[1],
+        chi1,
+        chi2,
+        lambda2,
+        d_L,
+        tc,
+        phase_c,
+        f_ref,
+        f_max,
+        output="strain",
+    )
 
 
 def gen_IMRPhenomNSBH_hphc(
@@ -939,20 +1062,22 @@ def gen_IMRPhenomNSBH_hphc(
     Returns:
         hp (array): Strain of the plus polarization
         hc (array): Strain of the cross polarization
+
     """
-    iota = params[-1]
-    h0 = gen_IMRPhenomNSBH(f, params[:-1], f_ref, f_max=f_max)
-    hp = h0 * (0.5 * (1.0 + jnp.cos(iota) ** 2))
-    hc = -1j * h0 * jnp.cos(iota)
-    return hp, hc
+    return _amp_phase(
+        f,
+        *params[:8],
+        f_ref,
+        f_max,
+        output="polarizations",
+        inclination=params[-1],
+    )
 
 
 def _split_params(params: Mapping[str, FloatLike]):
-    # Mc_eta_to_ms returns m1 >= m2: m1 is the BH, m2 the NS
-    m1, m2 = Mc_eta_to_ms(jnp.array([params["M_c"], params["eta"]]))
     return (
-        m1,
-        m2,
+        params["M_c"],
+        params["eta"],
         params["s1_z"],
         params["s2_z"],
         params["lambda_2"],
@@ -994,11 +1119,11 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
         self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> Float[Array, " n_freq"]:
         """Amplitude of ``h0`` (non-negative; includes distance scaling)."""
-        m1, m2, chi1, chi2, lam, d_L, phase_c = _split_params(params)
-        A, _ = _amp_phase(
+        mc, eta, chi1, chi2, lam, d_L, phase_c = _split_params(params)
+        return _amp_phase(
             frequency,
-            m1,
-            m2,
+            mc,
+            eta,
             chi1,
             chi2,
             lam,
@@ -1007,18 +1132,18 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
             phase_c,
             self.f_ref,
             self.f_max,
+            output="amplitude",
         )
-        return A
 
     def phase(
         self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> Float[Array, " n_freq"]:
         """Phase of ``h0`` (includes the ``pi`` that carries LAL's negative amplitude)."""
-        m1, m2, chi1, chi2, lam, d_L, phase_c = _split_params(params)
-        _, phi = _amp_phase(
+        mc, eta, chi1, chi2, lam, d_L, phase_c = _split_params(params)
+        return _amp_phase(
             frequency,
-            m1,
-            m2,
+            mc,
+            eta,
             chi1,
             chi2,
             lam,
@@ -1027,8 +1152,28 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
             phase_c,
             self.f_ref,
             self.f_max,
+            output="phase",
         )
-        return phi
+
+    def strain(
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
+    ) -> Complex[Array, " n_freq"]:
+        """Pre-polarization strain, using one waveform evaluation."""
+        mc, eta, chi1, chi2, lam, d_L, phase_c = _split_params(params)
+        return _amp_phase(
+            frequency,
+            mc,
+            eta,
+            chi1,
+            chi2,
+            lam,
+            d_L,
+            0.0,
+            phase_c,
+            self.f_ref,
+            self.f_max,
+            output="strain",
+        )
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
@@ -1044,20 +1189,22 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
             dict[str, Complex[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
                 polarizations.
         """
-        theta = jnp.array(
-            [
-                params["M_c"],
-                params["eta"],
-                params["s1_z"],
-                params["s2_z"],
-                params["lambda_2"],
-                params["d_L"],
-                0.0,
-                params["phase_c"],
-                params["iota"],
-            ]
+        mc, eta, chi1, chi2, lam, d_L, phase_c = _split_params(params)
+        hp, hc = _amp_phase(
+            frequency,
+            mc,
+            eta,
+            chi1,
+            chi2,
+            lam,
+            d_L,
+            0.0,
+            phase_c,
+            self.f_ref,
+            self.f_max,
+            output="polarizations",
+            inclination=params["iota"],
         )
-        hp, hc = gen_IMRPhenomNSBH_hphc(frequency, theta, self.f_ref, f_max=self.f_max)
         return {"p": hp, "c": hc}
 
     def __repr__(self):
