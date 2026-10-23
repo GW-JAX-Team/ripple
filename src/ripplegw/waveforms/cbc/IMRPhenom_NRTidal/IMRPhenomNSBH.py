@@ -772,11 +772,12 @@ def _inspiral_quantities(Mf, cc):
         + cc["xdota7"] * v7
     )
     xdot = xdot * (cc["xdotaN"] * v10)
-    return v, v2, v3, v4, v5, v6, logv2, xdot
+    return {"v": v, "v2": v2, "v3": v3, "v4": v4, "v5": v5, "v6": v6, "logv2": logv2, "xdot": xdot}  # fmt: skip
 
 
 def _amplitude_from_inspiral(Mf, cc, props, inspiral):
-    v, v2, v3, v4, v5, v6, logv2, xdot = inspiral
+    v, v2, v3, v4, v5, v6 = (inspiral[k] for k in ("v", "v2", "v3", "v4", "v5", "v6"))
+    logv2, xdot = inspiral["logv2"], inspiral["xdot"]
     omgdot = 1.5 * v * xdot
     ampfac = jnp.sqrt(jnp.abs(PI / omgdot))
     AmpPNre = (
@@ -980,7 +981,7 @@ def _amp_phase_from_inspiral(
     Mf_ref = f_ref * M_s
 
     # (pi M f)^(2/3) is the v^2 already computed for the amplitude.
-    x = inspiral[1]
+    x = inspiral["v2"]
     # only the NS is deformable: lambda_1 = 0
     theta_intrinsic = jnp.array([m1, m2, chi1, chi2, 0.0, lambda2])
     psi_T = get_tidal_phase(x, theta_intrinsic, get_kappa(theta_intrinsic))
