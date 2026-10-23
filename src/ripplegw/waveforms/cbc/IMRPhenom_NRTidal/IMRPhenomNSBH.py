@@ -449,23 +449,6 @@ def omega_tilde(a: FloatLike) -> Complex[Array, ""]:
 #######################################################################################################
 
 
-def _remnant_spin(eta, chi):
-    eta2 = eta * eta
-    # LAL ComputeIMRPhenomCParams: this BBH fit sets the SPA matching
-    # frequency, before NSBH corrections.
-    etachi = eta * chi
-    afin = (
-        chi
-        - 0.129 * chi * etachi
-        - 0.384 * etachi * eta
-        - 2.686 * etachi
-        + 2.0 * jnp.sqrt(3.0) * eta
-        - 3.454 * eta2
-        + 2.353 * eta2 * eta
-    )
-    return afin
-
-
 def phenomC_amp_coeffs(eta: FloatLike, chi: FloatLike) -> dict[str, FloatLike]:
     """IMRPhenomC PN amplitude coefficients and phenomenological fits ``g1, del1, del2``.
 
@@ -475,12 +458,11 @@ def phenomC_amp_coeffs(eta: FloatLike, chi: FloatLike) -> dict[str, FloatLike]:
 
     The clamps applied by ``IMRPhenomNSBH_Core`` (``g1 >= 0``, ``del1 >= 0``, ``del2 >= 1e-4``) are included.
     """
-    afin = _remnant_spin(eta, chi)
-    return {**_inspiral_coeffs(eta, chi, afin), **_amplitude_coeffs(eta, chi)}
+    return {**_inspiral_coeffs(eta, chi), **_amplitude_coeffs(eta, chi)}
 
 
-def _inspiral_coeffs(eta, chi, afin):
-    """Coefficients of the inspiral frequency derivative and the SPA matching frequency."""
+def _inspiral_coeffs(eta, chi):
+    """Coefficients of the inspiral frequency derivative."""
     pi, pi2, gam = PI, PI * PI, EULERGAMMA
     eta2 = eta * eta
     chisum = chi + chi
@@ -532,12 +514,9 @@ def _inspiral_coeffs(eta, chi, afin):
         + chi * chiprod * (10.1 * eta / 2.4 + 3.0 * eta2 / 8.0)
     )
 
-    Mf1 = 0.1 * (1.5251 - 1.1568 * (1.0 - jnp.abs(afin)) ** 0.1292) / (2.0 * PI)
-
     return {
         "xdotaN": xdotaN, "xdota2": xdota2, "xdota3": xdota3, "xdota4": xdota4,
         "xdota5": xdota5, "xdota6": xdota6, "xdota6log": xdota6log, "xdota7": xdota7,
-        "Mf1": Mf1,
     }  # fmt: skip
 
 
@@ -928,8 +907,7 @@ def _amp_phase(
     # Use the same converted coordinates as the waveform coefficients.
     eta_mass = m1 * m2 / (M * M)
     chi_eff = (m1 * chi1 + m2 * chi2) / M
-    afin = _remnant_spin(eta_mass, chi_eff)
-    cc = _inspiral_coeffs(eta_mass, chi_eff, afin)
+    cc = _inspiral_coeffs(eta_mass, chi_eff)
     inspiral = _inspiral_quantities(f * (M * MTSUN), cc)
     complete_cc = {**cc, **_amplitude_coeffs(eta_mass, chi_eff)}
     A, phi = _amp_phase_from_inspiral(

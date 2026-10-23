@@ -35,6 +35,7 @@ def _reference_xi(q, a, mu):
 
 @pytest.mark.parametrize(("q", "a", "C"), CORNERS)
 def test_xi_tide_matches_polynomial_roots(q, a, C):
+    # Pins the bisection: too few halvings leave the bracket wider than rtol.
     expected = _reference_xi(q, a, q * C)
     actual = float(jax.jit(nsbh.xi_tide)(q, a, q * C))
     np.testing.assert_allclose(actual, expected, atol=0.0, rtol=1e-12)
@@ -42,8 +43,9 @@ def test_xi_tide_matches_polynomial_roots(q, a, C):
 
 @pytest.mark.parametrize(("q", "a", "C"), CORNERS[::7])
 def test_xi_tide_gradient_matches_finite_differences(q, a, C):
-    # The implicit-function step must carry the root's derivatives through the
+    # Pins the implicit-function step, the only path for derivatives through the
     # stopped bisection; compare with central differences of the reference.
+    # The tolerance is the differences' own error (up to ~1e-6) with margin.
     theta = np.array([q, a, q * C])
     actual = np.asarray(jax.grad(lambda t: nsbh.xi_tide(*t))(theta))
     expected = np.empty(3)
@@ -53,4 +55,4 @@ def test_xi_tide_gradient_matches_finite_differences(q, a, C):
         up[i] += step
         down[i] -= step
         expected[i] = (_reference_xi(*up) - _reference_xi(*down)) / (2.0 * step)
-    np.testing.assert_allclose(actual, expected, atol=0.0, rtol=1e-6)
+    np.testing.assert_allclose(actual, expected, atol=0.0, rtol=1e-5)
