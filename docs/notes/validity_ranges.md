@@ -1,7 +1,8 @@
 # Validity Ranges
 
-ripple ports the LAL implementations but does not enforce their parameter checks.
-Outside these ranges the models extrapolate silently.
+ripple ports the LAL implementations. Most models do not enforce their parameter
+checks and extrapolate silently outside these ranges. `IMRPhenomNSBH` applies
+the recoverable checks described below.
 Each model links to its LAL 7.26 documentation; limits that page does not state are checks in the [LALSuite 7.26.16 source](https://git.ligo.org/lscsoft/lalsuite/-/tree/lalsuite-v7.26.16).
 
 ## Compact-binary coalescences
@@ -23,6 +24,97 @@ LAL documents every model as usable outside its calibrated range, with unverifie
 | [`IMRPhenomXAS_NRTidalv3`](https://lscsoft.docs.ligo.org/lalsuite/7.26/lalsimulation/_l_a_l_sim_i_m_r_phenom_x_8c.html), [`IMRPhenomXP_NRTidalv3`](https://lscsoft.docs.ligo.org/lalsuite/7.26/lalsimulation/_l_a_l_sim_i_m_r_phenom_x_8c.html) | As the BBH model, and $\Lambda_i < 0$ | As the BBH model; [tides](https://lscsoft.docs.ligo.org/lalsuite/7.26/lalsimulation/_l_a_l_sim_n_r_tuned_tides_8c.html) to $q = 2$ and $\kappa_2^T \in [40, 5000]$ |
 
 LAL applies the `IMRPhenomNSBH` limit $m_\mathrm{NS} \le 3\,M_\odot$ to the detector-frame mass, so it also rejects ordinary systems at redshift $z \gtrsim 1.15$; ripple's model has no such limit.
+
+### Recoverable IMRPhenomNSBH validation
+
+`IMRPhenomNSBH` returns `NaN` for an entire sample when $q$ is outside
+$[1, 100]$, $\Lambda_2$ is outside $[0, 5000]$, or the inspiral frequency
+derivative is negative at any requested frequency below LAL's SPA matching
+frequency. The matching frequency is $0.1$ times the **PhenomC BBH** ringdown
+frequency, before the NSBH corrections. Chirp mass must also be finite and
+positive, and the PhenomC remnant-spin fit must give a physical matching frequency.
+The mass-ratio bound is checked in the supplied symmetric mass ratio before
+conversion to component masses; this also rejects unphysical `eta > 0.25`.
+The lower bound allows a few units in the last place, so `eta` converted from
+masses with $q = 100$ exactly is accepted, as LAL accepts those masses.
+No neutron-star mass cutoff is applied. Nonzero NS spin and NS masses below
+one solar mass remain calibration caveats rather than rejection rules.
+
+Normal evaluation uses array operations without error side effects. In a
+compiled inference loop, reject nonfinite waveforms explicitly:
+
+```python
+@jax.jit
+def log_likelihood(params):
+    h = waveform(frequencies, params)
+    valid = jnp.all(jnp.isfinite(h["p"])) & jnp.all(jnp.isfinite(h["c"]))
+    safe_h = jax.tree.map(lambda x: jnp.where(valid, x, 0.0), h)
+    return jnp.where(valid, evaluate_likelihood(safe_h), -jnp.inf)
+```
+
+This rejects individual samples under `jit`, `vmap`, and `lax.scan` without
+throwing an exception. For scalar `jit` and `lax.scan` calls, the waveform
+stops at the first failed domain guard: raw chirp/tidal bounds before mass
+conversion, remnant spin before inspiral coefficients, and the frequency
+derivative before remaining amplitude fits, merger properties, and phase.
+Strain construction and polarization factors are inside the accepted branch.
+Intermediates used by the guards are reused by the waveform.
+
+Under ordinary per-sample `vmap`, conditionals become selections and both
+branches are evaluated, so invalid samples do not save waveform work. Use
+`lax.scan` or `lax.map` when per-sample early rejection is required; their
+sequential execution can cost more than vectorization for valid batches.
+Derivatives (`jax.grad`, `jax.jacfwd`, `jax.jvp`) evaluate the guards as
+selections too, which avoids keeping every branch's intermediates across the
+conditionals; values and derivatives of valid samples are unchanged. The
+derivative is zero for a sample the guards reject, and for one with a
+non-finite, zero or negative frequency, reference frequency or `f_max`, a zero
+distance, or a non-finite distance, time or phase shift, or inclination. Such a
+sample therefore does not turn the pattern above, a batch sum, or a parameter
+shared with valid samples into `NaN`. This holds for inputs of ordinary scale:
+finite values near the edge of the floating-point range (for example
+frequencies or a reference frequency around 1e300 Hz or 1e-300 Hz, a chirp mass
+of 1e-100, or time and phase shifts near 1e308) overflow inside the model and
+are not covered. The zero is not a physical derivative: gradient samplers should
+keep proposals in their physical domain.
+
+For optional error messages, enable diagnostics and functionalize the checks:
+
+```python
+from jax.experimental import checkify
+
+waveform = ripplegw.waveform("IMRPhenomNSBH", diagnostics=True)
+checked = jax.jit(checkify.checkify(waveform))
+err, h = checked(frequencies, params)
+message = err.get()  # Host inspection; returns None for a valid sample.
+# err.throw() is optional and explicitly raises on a failed check.
+```
+
+`diagnostics=True` adds `checkify.debug_check` annotations; without
+`checkify.checkify` they do not report errors, while the NaN rejection still
+applies. Leave diagnostics disabled in the normal sampling path to avoid
+effect annotations. Host inspection of error messages synchronizes execution.
+
+#### Skipping the checks
+
+The checks have a cost that early rejection does not repay when samples are
+evaluated as a `vmap` batch, where every sample computes the full waveform:
+they add conditionals to the compiled graph and replace autodiff with the
+branchless derivative rule above. When the inputs are known to lie inside the
+domain, for example because the prior already restricts them, turn the checks
+off:
+
+```python
+waveform = ripplegw.waveform("IMRPhenomNSBH", domain_checks=False)
+```
+
+The waveform is then compiled with no conditionals and differentiated directly.
+Inside the domain it returns the same values as the checked model. Outside it,
+the model extrapolates instead of returning `NaN`, and a derivative there may be
+`NaN`. `domain_checks=False` cannot be combined with `diagnostics=True`.
+
+The low-level `gen_IMRPhenomNSBH` and `gen_IMRPhenomNSBH_hphc` functions accept
+the same static `diagnostics` and `domain_checks` keywords.
 
 ## Bursts
 
