@@ -12,36 +12,37 @@
         <meta name="author" content="GW JAX Team">
       
       
-        <link rel="canonical" href="https://gw-jax-team.github.io/ripple/stable/guides/parameters/">
+        <link rel="canonical" href="https://gw-jax-team.github.io/ripple/stable/notes/validity_ranges/">
       
       
-        <link rel="prev" href="../waveforms/">
+      
+        <link rel="prev" href="../catalogue/">
       
       
-        <link rel="next" href="../jax/">
+        <link rel="next" href="../../dev/">
       
       
         
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.69">
+      <meta name="generator" content="zensical-0.0.72">
     
     
       
-        <title>Parameters and Conventions - ripple</title>
+        <title>Validity Ranges - ripple</title>
       
     
     
       
         
       
-      <link rel="stylesheet" href="../../assets/stylesheets/modern/main.e15858d4.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/modern/main.4ab2de0c.min.css">
       
         
           
         
-        <link rel="stylesheet" href="../../assets/stylesheets/modern/palette.b27955a4.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/modern/palette.b60ce83d.min.css">
       
       
 
@@ -106,9 +107,10 @@
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 5v16M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg>
 
     </a>
-    <label class="md-header__button md-icon" for="__drawer" aria-label="Navigation">
+    <label class="md-header__button md-icon" for="__drawer">
       
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+      <span class="md-visually-hidden">Navigation</span>
     </label>
     <div class="md-header__title" data-md-component="header-title">
       <div class="md-header__ellipsis">
@@ -120,7 +122,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Parameters and Conventions
+              Validity Ranges
             
           </span>
         </div>
@@ -160,9 +162,10 @@
     
       
       
-        <label class="md-header__button md-icon" for="__search" aria-label="Search">
+        <label class="md-header__button md-icon" for="__search">
           
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+          <span class="md-visually-hidden">Search</span>
         </label>
         <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
   <button type="button" class="md-search__button">
@@ -250,7 +253,27 @@
   
   
   
+  
     
+      
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../tutorials/" class="md-tabs__link">
+          
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
   
   
     
@@ -258,8 +281,8 @@
     
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../guides/" class="md-tabs__link">
           
   
   Guides
@@ -281,10 +304,56 @@
     
     
       <li class="md-tabs__item">
+        <a href="../../how-to/" class="md-tabs__link">
+          
+  
+  How-to
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+      
+    
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  Technical Notes
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+    
+    
+    
+      <li class="md-tabs__item">
         <a href="../../dev/" class="md-tabs__link">
           
   
-  Developer Guide
+  Development
 
         </a>
       </li>
@@ -502,36 +571,31 @@
       
   
   
-    
   
   
-  
     
     
     
     
       
-        
-        
-      
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
             
   
   
   <span class="md-ellipsis">
     
   
-  Guides
+  Tutorials
 
     
   </span>
@@ -542,12 +606,12 @@
           </label>
         
         
-          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
             <label class="md-nav__title" for="__nav_4">
               <span class="md-nav__icon md-icon"></span>
               
   
-  Guides
+  Tutorials
 
             </label>
             <ul class="md-nav__list" data-md-scrollfix>
@@ -559,357 +623,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../" class="md-nav__link">
+      <a href="../../tutorials/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Guides
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../waveforms/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Working with Waveforms
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-    
-  
-  
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Parameters and Conventions
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="././" class="md-nav__link md-nav__link--active">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Parameters and Conventions
-
-    
-  </span>
-  
-  
-
-      </a>
-      
-        
-
-
-<nav class="md-nav md-nav--secondary" aria-label="On this page">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      On this page
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#compact-binary-coalescences" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Compact-binary coalescences
-      </span>
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Compact-binary coalescences">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#mass" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Mass
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#spin" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Spin
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#tidal-deformability" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Tidal deformability
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#extrinsic-parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Extrinsic parameters
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#bursts" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Bursts
-      </span>
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Bursts">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#sinegaussian" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        <code>SineGaussian</code>
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#continuous-waves" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Continuous waves
-      </span>
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Continuous waves">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#sky-position-and-polarization" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Sky position and polarization
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#phase-evolution" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Phase evolution
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#site-location" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Site location
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#binary-pulsar-orbit-binarypulsarsignal" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Binary-pulsar orbit (<code>BinaryPulsarSignal</code>)
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#physical-constants" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Physical constants
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../jax/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  JAX Transformations
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../catalogue/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Waveform Catalogue
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../benchmarking/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Benchmarking
+  Tutorials
 
     
   </span>
@@ -958,7 +679,7 @@
   <span class="md-ellipsis">
     
   
-  Developer Guide
+  Guides
 
     
   </span>
@@ -974,7 +695,506 @@
               <span class="md-nav__icon md-icon"></span>
               
   
-  Developer Guide
+  Guides
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Guides
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/waveforms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Working with Waveforms
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/jax/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  JAX Transformations
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  How-to
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_6">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  How-to
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  How-to
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/benchmarking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Benchmarking
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Technical Notes
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+            <label class="md-nav__title" for="__nav_7">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Technical Notes
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Technical Notes
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../parameters/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Parameters and Conventions
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../catalogue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Waveform Catalogue
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Validity Ranges
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Validity Ranges
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#compact-binary-coalescences" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Compact-binary coalescences
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bursts" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Bursts
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#continuous-waves" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Continuous waves
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Development
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_8">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Development
 
             </label>
             <ul class="md-nav__list" data-md-scrollfix>
@@ -993,7 +1213,7 @@
   <span class="md-ellipsis">
     
   
-  Developer Guide
+  Development
 
     
   </span>
@@ -1245,10 +1465,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12" >
         
           
-          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_12" id="__nav_12_label" tabindex="0">
             
   
   
@@ -1266,8 +1486,8 @@
           </label>
         
         
-          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_9">
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_12_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_12">
               <span class="md-nav__icon md-icon"></span>
               
   
@@ -1294,10 +1514,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_1" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12_1" >
         
           
-          <label class="md-nav__link" for="__nav_9_1" id="__nav_9_1_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_12_1" id="__nav_12_1_label" tabindex="0">
             
   
   
@@ -1315,8 +1535,8 @@
           </label>
         
         
-          <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_1_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_9_1">
+          <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_12_1_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_12_1">
               <span class="md-nav__icon md-icon"></span>
               
   
@@ -1553,56 +1773,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Compact-binary coalescences">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#mass" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Mass
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#spin" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Spin
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#tidal-deformability" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Tidal deformability
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#extrinsic-parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Extrinsic parameters
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
         <li class="md-nav__item">
@@ -1614,23 +1784,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Bursts">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#sinegaussian" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        <code>SineGaussian</code>
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
         <li class="md-nav__item">
@@ -1638,67 +1791,6 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         Continuous waves
-      </span>
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Continuous waves">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#sky-position-and-polarization" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Sky position and polarization
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#phase-evolution" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Phase evolution
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#site-location" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Site location
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#binary-pulsar-orbit-binarypulsarsignal" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Binary-pulsar orbit (<code>BinaryPulsarSignal</code>)
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#physical-constants" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Physical constants
       </span>
     </span>
   </a>
@@ -1725,295 +1817,83 @@
   
 
 
-<h1 id="parameters-and-conventions">Parameters and Conventions<a class="headerlink" href="#parameters-and-conventions" title="Permanent link">¤</a></h1>
-<p>Every waveform's <code>params</code> dict uses a name from this glossary.
-Consult a model's <code>parameter_names</code> for the ordered set a specific model expects — not every model uses every parameter below.</p>
+<h1 id="validity-ranges">Validity Ranges<a class="headerlink" href="#validity-ranges" title="Permanent link">¤</a></h1>
+<p>ripple ports the LAL implementations but does not enforce their parameter checks.
+Outside these ranges the models extrapolate silently.
+Each model links to its LAL 7.26 documentation; limits that page does not state are checks in the <a href="https://git.ligo.org/lscsoft/lalsuite/-/tree/lalsuite-v7.26.16">LALSuite 7.26.16 source</a>.</p>
 <h2 id="compact-binary-coalescences">Compact-binary coalescences<a class="headerlink" href="#compact-binary-coalescences" title="Permanent link">¤</a></h2>
-<h3 id="mass">Mass<a class="headerlink" href="#mass" title="Permanent link">¤</a></h3>
+<p>The table lists what LAL rejects and the calibrated range stated in LAL's reviewed model documentation, with <span class="arithmatex">\(q = m_1/m_2 \ge 1\)</span>.
+LAL documents every model as usable outside its calibrated range, with unverified accuracy there.</p>
 <table>
 <thead>
 <tr>
-<th>Name</th>
-<th>Meaning</th>
-<th>Units</th>
+<th>Waveform</th>
+<th>LAL rejects</th>
+<th>Calibrated range</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>M_c</code></td>
-<td>Chirp mass <span class="arithmatex">\(\mathcal{M} = (m_1 m_2)^{3/5} / (m_1+m_2)^{1/5}\)</span></td>
-<td>solar masses</td>
+<td><a href="https://lscsoft.docs.ligo.org/lalsuite/7.26/lalsimulation/_l_a_l_sim_inspiral_taylor_f2_8c.html"><code>TaylorF2</code></a></td>
+<td>—</td>
+<td>Post-Newtonian; no calibration</td>
 </tr>
 <tr>
-<td><code>eta</code></td>
-<td>Symmetric mass ratio <span class="arithmatex">\(\eta = m_1 m_2 / (m_1+m_2)^2 \in (0, 0.25]\)</span></td>
-<td>dimensionless</td>
+<td><a href="https://lscsoft.docs.ligo.org/lalsuite/7.26/lalsimulation/_l_a_l_sim_i_m_r_phenom_d_8c.html"><code>IMRPhenomD</code></a></td>
+<td><span class="arithmatex">\(\lvert\chi_i\rvert &gt; 1\)</span></td>
+<td><span class="arithmatex">\(q = 1, 4, 8, 18\)</span> with spins in <span class="arithmatex">\([-0.95, 0.98]\)</span>, <span class="arithmatex">\([-0.75, 0.75]\)</span>, <span class="arithmatex">\([-0.85, 0.85]\)</span>, <span class="arithmatex">\([-0.8, 0.4]\)</span> respectively</td>
+</tr>
+<tr>
+<td><a href="https://lscsoft.docs.ligo.org/lalsuite/7.26/lalsimulation/_l_a_l_sim_i_m_r_phenom_h_m_8c.html"><code>IMRPhenomHM</code></a></td>
+<td><span class="arithmatex">\(\lvert\chi_i\rvert &gt; 1\)</span></td>
+<td>As <code>IMRPhenomD</code>; the higher modes are not calibrated to numerical relativity</td>
+</tr>
+<tr>
+<td><a href="https://lscsoft.docs.ligo.org/lalsuite/7.26/lalsimulation/_l_a_l_sim_i_m_r_phenom_p_8c.html"><code>IMRPhenomPv2</code></a></td>
+<td><span class="arithmatex">\(\lvert\boldsymbol{\chi}_i\rvert &gt; 1\)</span></td>
+<td>As <code>IMRPhenomD</code>; LAL also warns for strongly anti-aligned spins, where the precession opening angle is no longer tracked</td>
+</tr>
+<tr>
+<td><a href="https://lscsoft.docs.ligo.org/lalsuite/7.26/lalsimulation/_l_a_l_sim_i_m_r_phenom_d___n_r_tidal_8c.html"><code>IMRPhenomD_NRTidalv2</code></a></td>
+<td><span class="arithmatex">\(\lvert\chi_i\rvert &gt; 1\)</span>, <span class="arithmatex">\(\Lambda_i &lt; 0\)</span></td>
+<td>As <code>IMRPhenomD</code>; <a href="https://lscsoft.docs.ligo.org/lalsuite/7.26/lalsimulation/_l_a_l_sim_n_r_tuned_tides_8c.html">tides</a> to <span class="arithmatex">\(q = 1.5\)</span> and <span class="arithmatex">\(\kappa_2^T \in [40, 5000]\)</span></td>
+</tr>
+<tr>
+<td><a href="https://lscsoft.docs.ligo.org/lalsuite/7.26/lalsimulation/_l_a_l_sim_i_m_r_phenom_p_8c.html"><code>IMRPhenomPv2_NRTidalv2</code></a></td>
+<td><span class="arithmatex">\(\lvert\boldsymbol{\chi}_i\rvert &gt; 1\)</span>, <span class="arithmatex">\(\Lambda_i &lt; 0\)</span></td>
+<td>As <code>IMRPhenomD_NRTidalv2</code>; the review found unphysical features for <span class="arithmatex">\(q &lt; 1.5\)</span> with both <span class="arithmatex">\(\Lambda_i &gt; 2000\)</span></td>
+</tr>
+<tr>
+<td><a href="https://lscsoft.docs.ligo.org/lalsuite/7.26/lalsimulation/_l_a_l_sim_i_m_r_phenom_n_s_b_h_8c.html"><code>IMRPhenomNSBH</code></a></td>
+<td><span class="arithmatex">\(m_\mathrm{NS} &gt; 3\,M_\odot\)</span>, <span class="arithmatex">\(q \notin [1, 100]\)</span>, <span class="arithmatex">\(\Lambda_\mathrm{NS} \notin [0, 5000]\)</span>; a negative inspiral frequency derivative</td>
+<td>Amplitude at <span class="arithmatex">\(q = 2, 3\)</span> with BH spin in <span class="arithmatex">\([-0.5, 0.75]\)</span> and <span class="arithmatex">\(q = 4, 5\)</span> with BH spin in <span class="arithmatex">\([0, 0.75]\)</span>; non-spinning NS with <span class="arithmatex">\(m_\mathrm{NS} \ge 1\,M_\odot\)</span>; phase as <code>IMRPhenomD_NRTidalv2</code></td>
+</tr>
+<tr>
+<td><a href="https://lscsoft.docs.ligo.org/lalsuite/7.26/lalsimulation/_l_a_l_sim_i_m_r_phenom_x_8c.html"><code>IMRPhenomXAS</code></a>, <a href="https://lscsoft.docs.ligo.org/lalsuite/7.26/lalsimulation/_l_a_l_sim_i_m_r_phenom_x_h_m_8c.html"><code>IMRPhenomXHM</code></a></td>
+<td><span class="arithmatex">\(q &gt; 1000\)</span>, <span class="arithmatex">\(\lvert\chi_i\rvert &gt; 1\)</span></td>
+<td><span class="arithmatex">\(q\)</span> from 1 to 1000; LAL warns beyond the numerical-relativity data (<span class="arithmatex">\(q &gt; 20\)</span>) and for <span class="arithmatex">\(\lvert\chi_i\rvert &gt; 0.99\)</span></td>
+</tr>
+<tr>
+<td><a href="https://lscsoft.docs.ligo.org/lalsuite/7.26/lalsimulation/_l_a_l_sim_i_m_r_phenom_x_8c.html"><code>IMRPhenomXP</code></a>, <a href="https://lscsoft.docs.ligo.org/lalsuite/7.26/lalsimulation/_l_a_l_sim_i_m_r_phenom_x_p_h_m_8c.html"><code>IMRPhenomXPHM</code></a></td>
+<td><span class="arithmatex">\(q &gt; 1000\)</span>, <span class="arithmatex">\(\lvert\boldsymbol{\chi}_i\rvert &gt; 1\)</span></td>
+<td>As <code>IMRPhenomXAS</code></td>
+</tr>
+<tr>
+<td><a href="https://lscsoft.docs.ligo.org/lalsuite/7.26/lalsimulation/_l_a_l_sim_i_m_r_phenom_x_8c.html"><code>IMRPhenomXAS_NRTidalv3</code></a>, <a href="https://lscsoft.docs.ligo.org/lalsuite/7.26/lalsimulation/_l_a_l_sim_i_m_r_phenom_x_8c.html"><code>IMRPhenomXP_NRTidalv3</code></a></td>
+<td>As the BBH model, and <span class="arithmatex">\(\Lambda_i &lt; 0\)</span></td>
+<td>As the BBH model; <a href="https://lscsoft.docs.ligo.org/lalsuite/7.26/lalsimulation/_l_a_l_sim_n_r_tuned_tides_8c.html">tides</a> to <span class="arithmatex">\(q = 2\)</span> and <span class="arithmatex">\(\kappa_2^T \in [40, 5000]\)</span></td>
 </tr>
 </tbody>
 </table>
-<p>ripple parameterises by <span class="arithmatex">\((\mathcal{M}, \eta)\)</span> rather than component masses <span class="arithmatex">\((m_1, m_2)\)</span> — use <code>ripplegw.conversions</code> to convert between them:</p>
-<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ripplegw.conversions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Mc_eta_to_ms</span><span class="p">,</span> <span class="n">ms_to_Mc_eta</span>
-
-<span class="n">m1</span><span class="p">,</span> <span class="n">m2</span> <span class="o">=</span> <span class="n">Mc_eta_to_ms</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">Mc</span><span class="p">,</span> <span class="n">eta</span><span class="p">]))</span>    <span class="c1"># -&gt; component masses, m1 &gt;= m2</span>
-<span class="n">Mc</span><span class="p">,</span> <span class="n">eta</span> <span class="o">=</span> <span class="n">ms_to_Mc_eta</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">m1</span><span class="p">,</span> <span class="n">m2</span><span class="p">]))</span>    <span class="c1"># -&gt; chirp mass, symmetric mass ratio</span>
-</code></pre></div>
-<div class="admonition warning">
-<p class="admonition-title">Packed arrays, not separate scalars</p>
-<p>Every <code>ripplegw.conversions</code> function takes a single packed array — <code>Mc_eta_to_ms(jnp.array([Mc, eta]))</code>, not <code>Mc_eta_to_ms(Mc, eta)</code>.</p>
-</div>
-<p><code>ripplegw.conversions</code> and <code>ripplegw.constants</code> are not re-exported at the top level; import them explicitly.</p>
-<h3 id="spin">Spin<a class="headerlink" href="#spin" title="Permanent link">¤</a></h3>
-<p>Aligned-spin models use only the spin components along the orbital angular momentum:</p>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Meaning</th>
-<th>Range</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>s1_z</code>, <code>s2_z</code></td>
-<td>Dimensionless aligned spin of the primary/secondary</td>
-<td><span class="arithmatex">\([-1, 1]\)</span></td>
-</tr>
-</tbody>
-</table>
-<p>Precessing models (<code>IMRPhenomPv2</code>, <code>IMRPhenomXP</code>, <code>IMRPhenomXPHM</code>) additionally take the in-plane components:</p>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Meaning</th>
-<th>Range</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>s1_x</code>, <code>s1_y</code>, <code>s2_x</code>, <code>s2_y</code></td>
-<td>In-plane dimensionless spin components</td>
-<td><span class="arithmatex">\([-1, 1]\)</span></td>
-</tr>
-</tbody>
-</table>
-<h3 id="tidal-deformability">Tidal deformability<a class="headerlink" href="#tidal-deformability" title="Permanent link">¤</a></h3>
-<p>Tidal models (<code>TaylorF2</code>, <code>IMRPhenomD_NRTidalv2</code>, <code>IMRPhenomXAS_NRTidalv3</code>) take the dimensionless tidal deformability of each body, in one of two parameterisations selected by the model's <code>use_lambda_tildes</code> constructor argument:</p>
-<table>
-<thead>
-<tr>
-<th><code>use_lambda_tildes</code></th>
-<th>Parameters</th>
-<th>Meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>False</code> (default)</td>
-<td><code>lambda_1</code>, <code>lambda_2</code></td>
-<td>Dimensionless tidal deformability of the primary/secondary</td>
-</tr>
-<tr>
-<td><code>True</code></td>
-<td><code>lambda_tilde</code>, <code>delta_lambda_tilde</code></td>
-<td>The mass-weighted combinations of arXiv:1402.5156 Eq. 5–6</td>
-</tr>
-</tbody>
-</table>
-<p>Convert between them with <code>ripplegw.conversions.lambdas_to_lambda_tildes</code> / <code>lambda_tildes_to_lambdas</code> (also packed-array signatures, <code>(lambda_1, lambda_2, mass_1, mass_2)</code>).</p>
-<h3 id="extrinsic-parameters">Extrinsic parameters<a class="headerlink" href="#extrinsic-parameters" title="Permanent link">¤</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Meaning</th>
-<th>Units</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>d_L</code></td>
-<td>Luminosity distance</td>
-<td>Mpc</td>
-</tr>
-<tr>
-<td><code>phase_c</code></td>
-<td>Coalescence phase</td>
-<td>radians</td>
-</tr>
-<tr>
-<td><code>iota</code></td>
-<td>Inclination angle between the orbital angular momentum and the line of sight</td>
-<td>radians</td>
-</tr>
-</tbody>
-</table>
-<p><code>d_L</code> is what <a href="../waveforms/#evaluating-at-a-fixed-distance"><code>at_unit_distance</code></a> sets to 1.0.
-There is no <code>t_c</code> (time of coalescence) parameter — see the <a href="../../FAQ/">FAQ</a> for why.</p>
+<p>LAL applies the <code>IMRPhenomNSBH</code> limit <span class="arithmatex">\(m_\mathrm{NS} \le 3\,M_\odot\)</span> to the detector-frame mass, so it also rejects ordinary systems at redshift <span class="arithmatex">\(z \gtrsim 1.15\)</span>; ripple's model has no such limit.</p>
 <h2 id="bursts">Bursts<a class="headerlink" href="#bursts" title="Permanent link">¤</a></h2>
-<h3 id="sinegaussian"><code>SineGaussian</code><a class="headerlink" href="#sinegaussian" title="Permanent link">¤</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Meaning</th>
-<th>Units</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>Q</code></td>
-<td>Quality factor of the sine-Gaussian envelope</td>
-<td>dimensionless</td>
-</tr>
-<tr>
-<td><code>f_0</code></td>
-<td>Central frequency</td>
-<td>Hz</td>
-</tr>
-<tr>
-<td><code>hrss</code></td>
-<td>Root-sum-squared strain amplitude</td>
-<td>dimensionless (strain)</td>
-</tr>
-<tr>
-<td><code>phase</code></td>
-<td>Phase</td>
-<td>radians</td>
-</tr>
-<tr>
-<td><code>e</code></td>
-<td>Eccentricity — controls the relative <span class="arithmatex">\(h_+\)</span>/<span class="arithmatex">\(h_\times\)</span> amplitude</td>
-<td><span class="arithmatex">\([0, 1]\)</span></td>
-</tr>
-</tbody>
-</table>
-<p><code>SineGaussian</code>'s axis is a <strong>time</strong> grid centred at zero, not a frequency grid: <code>t = jnp.arange(-duration/2, duration/2, 1/fs)</code>.</p>
+<p><a href="https://git.ligo.org/lscsoft/lalsuite/-/blob/lalsuite-v7.26.16/lalsimulation/lib/LALSimBurst.c">LAL</a> rejects a negative <code>Q</code>, <code>f_0</code> or <code>hrss</code> for <code>SineGaussian</code>, and an eccentricity <code>e</code> outside <span class="arithmatex">\([0, 1]\)</span>.</p>
 <h2 id="continuous-waves">Continuous waves<a class="headerlink" href="#continuous-waves" title="Permanent link">¤</a></h2>
-<p>The pulsar models use a time axis and share the following source parameters.
-The ephemerides, observation start time, and number of spin-down terms are set when constructing the waveform, rather than in <code>params</code>.
-The observing site's location, however, <em>is</em> a <code>params</code> entry (see <a href="#site-location">Site location</a> below) -- it needs to vary per call so a single model instance can be <code>jax.vmap</code>ed over multiple sites.</p>
-<h3 id="sky-position-and-polarization">Sky position and polarization<a class="headerlink" href="#sky-position-and-polarization" title="Permanent link">¤</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Meaning</th>
-<th>Units</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>alpha</code></td>
-<td>Right ascension (α)</td>
-<td>radians</td>
-</tr>
-<tr>
-<td><code>delta</code></td>
-<td>Declination (δ)</td>
-<td>radians</td>
-</tr>
-<tr>
-<td><code>aplus</code></td>
-<td>Plus-polarization amplitude <span class="arithmatex">\(A_+\)</span></td>
-<td>dimensionless (strain)</td>
-</tr>
-<tr>
-<td><code>across</code></td>
-<td>Cross-polarization amplitude <span class="arithmatex">\(A_\times\)</span></td>
-<td>dimensionless (strain)</td>
-</tr>
-</tbody>
-</table>
-<h3 id="phase-evolution">Phase evolution<a class="headerlink" href="#phase-evolution" title="Permanent link">¤</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Meaning</th>
-<th>Units</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>f0</code></td>
-<td>Gravitational-wave frequency at the reference epoch</td>
-<td>Hz</td>
-</tr>
-<tr>
-<td><code>phi0</code></td>
-<td>Phase at the reference epoch</td>
-<td>radians</td>
-</tr>
-<tr>
-<td><code>f1</code>, <code>f2</code>, ..., <code>fN</code></td>
-<td>First through <span class="arithmatex">\(N\)</span>th frequency derivatives</td>
-<td>Hz/s, Hz/s<span class="arithmatex">\(^2\)</span>, ..., Hz/s<span class="arithmatex">\(^N\)</span></td>
-</tr>
-</tbody>
-</table>
-<p>The waveform includes <code>f1</code> through <code>fN</code> when it is constructed with <code>n_spindowns=N</code>.
-With the default <code>n_spindowns=0</code>, only <code>f0</code> is used.</p>
-<h3 id="site-location">Site location<a class="headerlink" href="#site-location" title="Permanent link">¤</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Meaning</th>
-<th>Units</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>site_x</code>, <code>site_y</code>, <code>site_z</code></td>
-<td>Observing site's geocentric Cartesian location</td>
-<td>metres</td>
-</tr>
-</tbody>
-</table>
-<p>This is fixed instrument/site metadata (e.g. a <code>LALDetectors.h</code> vertex for H1/L1/V1) -- <strong>not</strong> a physical source parameter -- and should never be treated as a quantity to sample or place a prior on.
-It lives in <code>params</code> rather than in the constructor purely so a single model instance can be <code>jax.vmap</code>ed over multiple observing sites in one call, sharing the expensive site-independent part of the barycentering (Earth ephemeris, rotation, precession/nutation, Einstein delay) across sites instead of recomputing it once per site.</p>
-<h3 id="binary-pulsar-orbit-binarypulsarsignal">Binary-pulsar orbit (<code>BinaryPulsarSignal</code>)<a class="headerlink" href="#binary-pulsar-orbit-binarypulsarsignal" title="Permanent link">¤</a></h3>
-<p><code>BinaryPulsarSignal</code> uses all the parameters above and adds the orbital elements below.</p>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Meaning</th>
-<th>Units</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>asini</code></td>
-<td>Projected semi-major axis, <span class="arithmatex">\(a\sin i\)</span></td>
-<td>light-seconds</td>
-</tr>
-<tr>
-<td><code>ecc</code></td>
-<td>Orbital eccentricity</td>
-<td>dimensionless</td>
-</tr>
-<tr>
-<td><code>period</code></td>
-<td>Orbital period</td>
-<td>seconds</td>
-</tr>
-<tr>
-<td><code>argp</code></td>
-<td>Argument of periapsis</td>
-<td>radians</td>
-</tr>
-<tr>
-<td><code>tp_ssb</code></td>
-<td>Time of periapsis at the Solar System barycentre</td>
-<td>GPS seconds</td>
-</tr>
-</tbody>
-</table>
-<h2 id="physical-constants">Physical constants<a class="headerlink" href="#physical-constants" title="Permanent link">¤</a></h2>
-<p><code>ripplegw.constants</code> exposes the constants used internally (<code>MSUN</code>, <code>MRSUN</code>, <code>MTSUN</code>, <code>G</code>, <code>C</code>, <code>PI</code>, <code>TWO_PI</code>, <code>MPC</code>, <code>EULERGAMMA</code>) as plain Python floats, for anyone building parameter conversions of their own.</p>
+<ul>
+<li>All sample times must lie within the span of the ephemeris files. <a href="https://lscsoft.docs.ligo.org/lalsuite/7.26/lalpulsar/_l_a_l_barycenter_8c.html">LAL</a> rejects other times; ripple clamps to the ends of the tables and returns unphysical values.</li>
+<li>LAL rejects a right ascension outside <span class="arithmatex">\([-2\pi, 2\pi]\)</span> or a declination outside <span class="arithmatex">\([-\pi/2, \pi/2]\)</span>.</li>
+<li><code>BinaryPulsarSignal</code> models elliptical orbits only, <span class="arithmatex">\(0 \le\)</span> <code>ecc</code> <span class="arithmatex">\(&lt; 1\)</span>. <a href="https://lscsoft.docs.ligo.org/lalsuite/7.26/lalpulsar/_generate_spin_orbit_c_w_8c.html">LAL</a> rejects a negative eccentricity; ripple returns non-finite values for <code>ecc</code> <span class="arithmatex">\(\ge 1\)</span>.</li>
+</ul>
 
 
 
@@ -2075,10 +1955,10 @@ It lives in <code>params</code> rather than in the constructor purely so a singl
       
         
         
-      <script id="__config" type="application/json">{"annotate":null,"base":"../..","features":["content.code.copy","navigation.instant","navigation.tabs","navigation.top","toc.follow","header.autohide"],"redirect":null,"search":"../../assets/javascripts/workers/search.7d14d953.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"default":"stable","provider":"mike"}}</script>
+      <script id="__config" type="application/json">{"annotate":null,"base":"../..","features":["content.code.copy","navigation.instant","navigation.tabs","navigation.top","toc.follow","header.autohide"],"redirect":null,"search":"../../assets/javascripts/workers/search.c47bb847.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"default":"stable","provider":"mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.8b1c90bd.min.js"></script>
+      <script src="../../assets/javascripts/bundle.10ee5ab6.min.js"></script>
       
         <script src="../../javascripts/mathjax.js"></script>
       

@@ -12,36 +12,37 @@
         <meta name="author" content="GW JAX Team">
       
       
-        <link rel="canonical" href="https://gw-jax-team.github.io/ripple/stable/guides/benchmarking/">
+        <link rel="canonical" href="https://gw-jax-team.github.io/ripple/stable/tutorials/">
       
       
-        <link rel="prev" href="../catalogue/">
+      
+        <link rel="prev" href="../quickstart/">
       
       
-        <link rel="next" href="../../dev/">
+        <link rel="next" href="../guides/">
       
       
         
       
       
-      <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.69">
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="zensical-0.0.72">
     
     
       
-        <title>Benchmarking - ripple</title>
+        <title>Tutorials - ripple</title>
       
     
     
       
         
       
-      <link rel="stylesheet" href="../../assets/stylesheets/modern/main.e15858d4.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.4ab2de0c.min.css">
       
         
           
         
-        <link rel="stylesheet" href="../../assets/stylesheets/modern/palette.b27955a4.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.b60ce83d.min.css">
       
       
 
@@ -60,7 +61,7 @@
       
     
     
-    <script>__md_scope=new URL("../..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    <script>__md_scope=new URL("..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
     
       
 
@@ -100,15 +101,16 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="ripple" class="md-header__button md-logo" aria-label="ripple" data-md-component="logo">
+    <a href="./.." title="ripple" class="md-header__button md-logo" aria-label="ripple" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 5v16M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg>
 
     </a>
-    <label class="md-header__button md-icon" for="__drawer" aria-label="Navigation">
+    <label class="md-header__button md-icon" for="__drawer">
       
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+      <span class="md-visually-hidden">Navigation</span>
     </label>
     <div class="md-header__title" data-md-component="header-title">
       <div class="md-header__ellipsis">
@@ -120,7 +122,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Benchmarking
+              Tutorials
             
           </span>
         </div>
@@ -160,9 +162,10 @@
     
       
       
-        <label class="md-header__button md-icon" for="__search" aria-label="Search">
+        <label class="md-header__button md-icon" for="__search">
           
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+          <span class="md-visually-hidden">Search</span>
         </label>
         <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
   <button type="button" class="md-search__button">
@@ -204,7 +207,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../.." class="md-tabs__link">
+      <a href="./.." class="md-tabs__link">
         
   
   Home
@@ -220,7 +223,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../installation/" class="md-tabs__link">
+      <a href="../installation/" class="md-tabs__link">
         
   
   Installation
@@ -236,7 +239,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../quickstart/" class="md-tabs__link">
+      <a href="../quickstart/" class="md-tabs__link">
         
   
   Quick Start
@@ -259,7 +262,29 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../" class="md-tabs__link">
+        <a href="././" class="md-tabs__link">
+          
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../guides/" class="md-tabs__link">
           
   
   Guides
@@ -281,10 +306,54 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../dev/" class="md-tabs__link">
+        <a href="../how-to/" class="md-tabs__link">
           
   
-  Developer Guide
+  How-to
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../notes/" class="md-tabs__link">
+          
+  
+  Technical Notes
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../dev/" class="md-tabs__link">
+          
+  
+  Development
 
         </a>
       </li>
@@ -298,7 +367,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../FAQ/" class="md-tabs__link">
+      <a href="../FAQ/" class="md-tabs__link">
         
   
   FAQ
@@ -314,7 +383,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../citing/" class="md-tabs__link">
+      <a href="../citing/" class="md-tabs__link">
         
   
   Citing ripple
@@ -330,7 +399,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../contributing/" class="md-tabs__link">
+      <a href="../contributing/" class="md-tabs__link">
         
   
   Contributing
@@ -361,7 +430,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../api/ripplegw/" class="md-tabs__link">
+        <a href="../api/ripplegw/" class="md-tabs__link">
           
   
   API Reference
@@ -397,7 +466,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="ripple" class="md-nav__button md-logo" aria-label="ripple" data-md-component="logo">
+    <a href="./.." title="ripple" class="md-nav__button md-logo" aria-label="ripple" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 5v16M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg>
@@ -427,7 +496,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
+      <a href="./.." class="md-nav__link">
         
   
   
@@ -453,7 +522,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../installation/" class="md-nav__link">
+      <a href="../installation/" class="md-nav__link">
         
   
   
@@ -479,7 +548,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../quickstart/" class="md-nav__link">
+      <a href="../quickstart/" class="md-nav__link">
         
   
   
@@ -531,7 +600,7 @@
   <span class="md-ellipsis">
     
   
-  Guides
+  Tutorials
 
     
   </span>
@@ -547,145 +616,10 @@
               <span class="md-nav__icon md-icon"></span>
               
   
-  Guides
+  Tutorials
 
             </label>
             <ul class="md-nav__list" data-md-scrollfix>
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Guides
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../waveforms/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Working with Waveforms
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../parameters/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Parameters and Conventions
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../jax/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  JAX Transformations
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../catalogue/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Waveform Catalogue
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
               
                 
                   
@@ -703,23 +637,6 @@
         
       
       
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Benchmarking
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
       <a href="././" class="md-nav__link md-nav__link--active">
         
   
@@ -727,7 +644,7 @@
   <span class="md-ellipsis">
     
   
-  Benchmarking
+  Tutorials
 
     
   </span>
@@ -735,98 +652,6 @@
   
 
       </a>
-      
-        
-
-
-<nav class="md-nav md-nav--secondary" aria-label="On this page">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      On this page
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#1-run-a-benchmark" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        1. Run a benchmark
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#2-recommended-script-workflows" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        2. Recommended script workflows
-      </span>
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="2. Recommended script workflows">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#local-cpu-smoke-test-postprocessing" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Local CPU smoke test + postprocessing
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#slurm-gpu-batch-postprocessing" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Slurm GPU batch + postprocessing
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#htcondor-dag-postprocessing" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        HTCondor DAG + postprocessing
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#3-understand-the-timing-output" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        3. Understand the timing output
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
       
     </li>
   
@@ -869,7 +694,7 @@
   <span class="md-ellipsis">
     
   
-  Developer Guide
+  Guides
 
     
   </span>
@@ -885,7 +710,7 @@
               <span class="md-nav__icon md-icon"></span>
               
   
-  Developer Guide
+  Guides
 
             </label>
             <ul class="md-nav__list" data-md-scrollfix>
@@ -897,14 +722,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../dev/" class="md-nav__link">
+      <a href="../guides/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Developer Guide
+  Guides
 
     
   </span>
@@ -924,7 +749,421 @@
   
   
     <li class="md-nav__item">
-      <a href="../../dev/architecture/" class="md-nav__link">
+      <a href="../guides/waveforms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Working with Waveforms
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/jax/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  JAX Transformations
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  How-to
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_6">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  How-to
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  How-to
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/benchmarking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Benchmarking
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Technical Notes
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_7">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Technical Notes
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../notes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Technical Notes
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../notes/parameters/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Parameters and Conventions
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../notes/catalogue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Waveform Catalogue
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../notes/validity_ranges/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Validity Ranges
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Development
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_8">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Development
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dev/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Development
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dev/architecture/" class="md-nav__link">
         
   
   
@@ -951,7 +1190,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../dev/adding_a_waveform/" class="md-nav__link">
+      <a href="../dev/adding_a_waveform/" class="md-nav__link">
         
   
   
@@ -978,7 +1217,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../dev/test_coverage/" class="md-nav__link">
+      <a href="../dev/test_coverage/" class="md-nav__link">
         
   
   
@@ -1005,7 +1244,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../dev/run_reference_checks/" class="md-nav__link">
+      <a href="../dev/run_reference_checks/" class="md-nav__link">
         
   
   
@@ -1032,7 +1271,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../dev/reference_comparisons_and_limits/" class="md-nav__link">
+      <a href="../dev/reference_comparisons_and_limits/" class="md-nav__link">
         
   
   
@@ -1067,7 +1306,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../FAQ/" class="md-nav__link">
+      <a href="../FAQ/" class="md-nav__link">
         
   
   
@@ -1093,7 +1332,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../citing/" class="md-nav__link">
+      <a href="../citing/" class="md-nav__link">
         
   
   
@@ -1119,7 +1358,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/" class="md-nav__link">
+      <a href="../contributing/" class="md-nav__link">
         
   
   
@@ -1156,10 +1395,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12" >
         
           
-          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_12" id="__nav_12_label" tabindex="0">
             
   
   
@@ -1177,8 +1416,8 @@
           </label>
         
         
-          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_9">
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_12_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_12">
               <span class="md-nav__icon md-icon"></span>
               
   
@@ -1205,10 +1444,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_1" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12_1" >
         
           
-          <label class="md-nav__link" for="__nav_9_1" id="__nav_9_1_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_12_1" id="__nav_12_1_label" tabindex="0">
             
   
   
@@ -1226,8 +1465,8 @@
           </label>
         
         
-          <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_1_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_9_1">
+          <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_12_1_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_12_1">
               <span class="md-nav__icon md-icon"></span>
               
   
@@ -1243,7 +1482,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/ripplegw/" class="md-nav__link">
+      <a href="../api/ripplegw/" class="md-nav__link">
         
   
   
@@ -1270,7 +1509,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/ripplegw/constants/" class="md-nav__link">
+      <a href="../api/ripplegw/constants/" class="md-nav__link">
         
   
   
@@ -1297,7 +1536,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/ripplegw/conversions/" class="md-nav__link">
+      <a href="../api/ripplegw/conversions/" class="md-nav__link">
         
   
   
@@ -1324,7 +1563,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/ripplegw/interfaces/" class="md-nav__link">
+      <a href="../api/ripplegw/interfaces/" class="md-nav__link">
         
   
   
@@ -1351,7 +1590,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/ripplegw/registry/" class="md-nav__link">
+      <a href="../api/ripplegw/registry/" class="md-nav__link">
         
   
   
@@ -1378,7 +1617,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/ripplegw/typing/" class="md-nav__link">
+      <a href="../api/ripplegw/typing/" class="md-nav__link">
         
   
   
@@ -1432,11 +1671,6 @@
                       
                     
                     
-                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-                      <div class="md-sidebar-button__wrapper">
-                        <label class="md-sidebar-button" for="__toc"></label>
-                      </div>
-                    
                   
                   <div class="md-sidebar__inner">
                     
@@ -1448,86 +1682,6 @@
   
     
   
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      On this page
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#1-run-a-benchmark" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        1. Run a benchmark
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#2-recommended-script-workflows" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        2. Recommended script workflows
-      </span>
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="2. Recommended script workflows">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#local-cpu-smoke-test-postprocessing" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Local CPU smoke test + postprocessing
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#slurm-gpu-batch-postprocessing" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Slurm GPU batch + postprocessing
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#htcondor-dag-postprocessing" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        HTCondor DAG + postprocessing
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#3-understand-the-timing-output" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        3. Understand the timing output
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
   
 </nav>
                   </div>
@@ -1547,51 +1701,9 @@
   
 
 
-<h1 id="benchmarking">Benchmarking<a class="headerlink" href="#benchmarking" title="Permanent link">¤</a></h1>
-<p>This guide shows how to benchmark waveform generation in ripple.</p>
-<p>The recommended workflow is to use the maintained scripts in <code>timings/</code>, which run benchmarks and postprocessing for you.</p>
-<h2 id="1-run-a-benchmark">1. Run a benchmark<a class="headerlink" href="#1-run-a-benchmark" title="Permanent link">¤</a></h2>
-<p>ripple installs the <code>ripple-benchmark</code> command, which times waveform generation for a chosen approximant.</p>
-<div class="highlight"><pre><span></span><code>ripple-benchmark<span class="w"> </span>IMRPhenomXAS<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--device<span class="w"> </span>gpu<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--precision<span class="w"> </span>float64<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--n-waveforms<span class="w"> </span><span class="m">20000</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--n-runs<span class="w"> </span><span class="m">5</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--duration<span class="w"> </span><span class="m">4</span>.0<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--f-min<span class="w"> </span><span class="m">20</span>.0<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--f-max<span class="w"> </span><span class="m">2048</span>.0<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--f-ref<span class="w"> </span><span class="m">50</span>.0
-</code></pre></div>
-<p>By default, results are written to <code>timings/outdir/&lt;waveform&gt;_&lt;device&gt;_&lt;precision&gt;.json</code>.</p>
-<h2 id="2-recommended-script-workflows">2. Recommended script workflows<a class="headerlink" href="#2-recommended-script-workflows" title="Permanent link">¤</a></h2>
-<h3 id="local-cpu-smoke-test-postprocessing">Local CPU smoke test + postprocessing<a class="headerlink" href="#local-cpu-smoke-test-postprocessing" title="Permanent link">¤</a></h3>
-<p>From the repository root:</p>
-<div class="highlight"><pre><span></span><code>bash<span class="w"> </span>timings/test.sh
-</code></pre></div>
-<p>This runs a small benchmark sweep and then automatically runs postprocessing.</p>
-<h3 id="slurm-gpu-batch-postprocessing">Slurm GPU batch + postprocessing<a class="headerlink" href="#slurm-gpu-batch-postprocessing" title="Permanent link">¤</a></h3>
-<div class="highlight"><pre><span></span><code>bash<span class="w"> </span>timings/submit_slurm.sh
-</code></pre></div>
-<p>This submits one job per <code>(model, precision)</code> pair and then submits a dependent postprocessing job.</p>
-<h3 id="htcondor-dag-postprocessing">HTCondor DAG + postprocessing<a class="headerlink" href="#htcondor-dag-postprocessing" title="Permanent link">¤</a></h3>
-<div class="highlight"><pre><span></span><code>bash<span class="w"> </span>timings/submit_condor.sh
-</code></pre></div>
-<p>This generates a DAG, submits all timing jobs, and runs postprocessing after all timing jobs complete.</p>
-<h2 id="3-understand-the-timing-output">3. Understand the timing output<a class="headerlink" href="#3-understand-the-timing-output" title="Permanent link">¤</a></h2>
-<p>Each run reports:</p>
-<ul>
-<li>first-run time (includes JIT compilation)</li>
-<li>mean/std/min/max execution time over timed runs</li>
-<li>mean time per waveform (ms)</li>
-<li>mean waveforms per second</li>
-</ul>
-<p>For fair comparisons, use the timed runs and treat the first run separately.</p>
-<p>The postprocessing step creates bar plots for:</p>
-<ul>
-<li>time per waveform</li>
-<li>throughput (waveforms per second)</li>
-</ul>
-<p>By default, generated figures are written to <code>timings/figures</code>.</p>
+<h1 id="tutorials">Tutorials<a class="headerlink" href="#tutorials" title="Permanent link">¤</a></h1>
+<p>Complete worked examples, each taking one task from start to finish.</p>
+<p>None have been written yet.</p>
 
 
 
@@ -1653,12 +1765,12 @@
       
         
         
-      <script id="__config" type="application/json">{"annotate":null,"base":"../..","features":["content.code.copy","navigation.instant","navigation.tabs","navigation.top","toc.follow","header.autohide"],"redirect":null,"search":"../../assets/javascripts/workers/search.7d14d953.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"default":"stable","provider":"mike"}}</script>
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.code.copy","navigation.instant","navigation.tabs","navigation.top","toc.follow","header.autohide"],"redirect":null,"search":"../assets/javascripts/workers/search.c47bb847.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"default":"stable","provider":"mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.8b1c90bd.min.js"></script>
+      <script src="../assets/javascripts/bundle.10ee5ab6.min.js"></script>
       
-        <script src="../../javascripts/mathjax.js"></script>
+        <script src="../javascripts/mathjax.js"></script>
       
         <script src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
       
