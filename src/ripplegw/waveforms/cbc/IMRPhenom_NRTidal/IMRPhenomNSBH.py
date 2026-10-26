@@ -23,11 +23,13 @@ Notes on LAL conventions that are reproduced on purpose:
 * There is no frequency cutoff: every requested frequency is filled, as LAL fills its band up to ``f_max``.
 """
 
+import functools
 from collections.abc import Mapping
 from typing import Optional
 
 import jax
 import jax.numpy as jnp
+from jax.experimental import checkify
 from jaxtyping import Array, Complex, Float
 
 from ripplegw.constants import EULERGAMMA, MPC, MRSUN, MTSUN, PI
@@ -63,6 +65,38 @@ from ripplegw.waveforms.cbc.Taylor.TaylorF2 import (
 #######################################################################################################
 ### Small helpers
 #######################################################################################################
+
+
+def _valid_parameters(mc, eta, lam, diagnostics=False):
+    """Check raw chirp coordinates before mass conversion or waveform work.
+
+    The LAL bound ``1 <= mBH/mNS <= 100`` is equivalent to
+    ``100/101**2 <= eta <= 1/4``. The lower bound allows a few ulp so that
+    ``eta`` converted from masses with ``q = 100`` exactly, which can round
+    just below it, is accepted as LAL accepts the masses. No neutron-star
+    mass cut is applied.
+    """
+    # Converting exact q = 100 masses lands at most ~2.4 eps below the bound
+    # (float32 and float64); q = 100.0001 is ~9 eps below in float32.
+    eps = jnp.finfo(jnp.result_type(eta, 1.0)).eps
+    valid_eta = (eta >= 100.0 / 101.0**2 * (1.0 - 4.0 * eps)) & (eta <= 0.25)
+    valid_mc = jnp.isfinite(mc) & (mc > 0.0)
+    valid_tides = (lam >= 0.0) & (lam <= 5000.0)
+    if diagnostics:
+        checkify.debug_check(
+            valid_eta,
+            "IMRPhenomNSBH requires 1 <= q <= 100 (eta in [100/101**2, 0.25])",
+        )
+        checkify.debug_check(valid_mc, "IMRPhenomNSBH requires a finite positive M_c")
+        checkify.debug_check(
+            valid_tides, "IMRPhenomNSBH requires lambda_2 in [0, 5000]"
+        )
+    return valid_eta & valid_mc & valid_tides
+
+
+def _nan_frequency(f, *parameters):
+    """Match the floating dtype of the waveform branch, including mixed inputs."""
+    return jnp.full(f.shape, jnp.nan, dtype=jnp.result_type(f, *parameters, 1.0))
 
 
 def _window_plus(x: FloatLike, x0: FloatLike, d: FloatLike) -> FloatLike:
@@ -143,7 +177,10 @@ def _xi_poly(z: FloatLike, q: FloatLike, a: FloatLike, mu: FloatLike) -> FloatLi
 
 
 _XI_GRID = 2048
-_XI_BISECT_ITERS = 64
+# The grid bracket is already ~bound/2048 wide; 32 halvings take it below 1e-12 relative,
+# and the implicit-function Newton step below refines the value to machine precision.
+# 64 iterations (the old value) are far beyond double precision and dominate the waveform.
+_XI_BISECT_ITERS = 32
 
 
 def xi_tide(q: FloatLike, a: FloatLike, mu: FloatLike) -> FloatLike:
@@ -197,13 +234,19 @@ def xi_tide(q: FloatLike, a: FloatLike, mu: FloatLike) -> FloatLike:
     return jnp.where(has_root, z**2, 0.0)
 
 
+def _torus_mass_from_xi(
+    mu: FloatLike, C: FloatLike, a: FloatLike, xi: FloatLike
+) -> FloatLike:
+    """Torus-mass fit from an already evaluated tidal correction ``xi``."""
+    alpha, beta = 0.296, 0.171
+    Mtorus = alpha * xi * (1.0 - 2.0 * C) - beta * mu * kerr_isco_radius(a)
+    return jnp.where(Mtorus < 0.0, 0.0, Mtorus)
+
+
 def torus_mass_fit(q: FloatLike, a: FloatLike, C: FloatLike) -> FloatLike:
     """Baryonic torus mass in units of the NS baryonic mass (``XLALSimNSBH_torus_mass_fit``, Eq. 11 of 1509.00512)."""
     mu = q * C
-    alpha, beta = 0.296, 0.171
-    xi = xi_tide(q, a, mu)
-    Mtorus = alpha * xi * (1.0 - 2.0 * C) - beta * mu * kerr_isco_radius(a)
-    return jnp.where(Mtorus < 0.0, 0.0, Mtorus)
+    return _torus_mass_from_xi(mu, C, a, xi_tide(q, a, mu))
 
 
 def f_gw_in_kerr(r: FloatLike, M: FloatLike, a: FloatLike) -> FloatLike:
@@ -440,21 +483,52 @@ def omega_tilde(a: FloatLike) -> Complex[Array, ""]:
 #######################################################################################################
 
 
-def phenomC_amp_coeffs(eta: FloatLike, chi: FloatLike) -> dict[str, FloatLike]:
+def _remnant_spin(eta, chi, diagnostics=False, reached=True):
+    eta2 = eta * eta
+    # LAL ComputeIMRPhenomCParams: this BBH fit sets the SPA matching
+    # frequency used by the negative-xdot guard, before NSBH corrections.
+    etachi = eta * chi
+    afin = (
+        chi
+        - 0.129 * chi * etachi
+        - 0.384 * etachi * eta
+        - 2.686 * etachi
+        + 2.0 * jnp.sqrt(3.0) * eta
+        - 3.454 * eta2
+        + 2.353 * eta2 * eta
+    )
+    if diagnostics:
+        # ``reached``: the earlier guards passed, so this stage would run.
+        checkify.debug_check(
+            jnp.logical_not(reached) | (jnp.abs(afin) <= 1.0),
+            "IMRPhenomNSBH PhenomC remnant spin exceeds unity",
+        )
+    return afin
+
+
+def phenomC_amp_coeffs(
+    eta: FloatLike, chi: FloatLike, diagnostics: bool = False
+) -> dict[str, FloatLike]:
     """IMRPhenomC PN amplitude coefficients and phenomenological fits ``g1, del1, del2``.
 
     Args:
         eta: Symmetric mass ratio.
         chi: Reduced spin of the binary, ``(m1 chi1 + m2 chi2) / M`` (IMRPhenomB ``chi``).
+        diagnostics: Add optional checkify annotations (static Python flag).
 
     The clamps applied by ``IMRPhenomNSBH_Core`` (``g1 >= 0``, ``del1 >= 0``, ``del2 >= 1e-4``) are included.
     """
+    afin = _remnant_spin(eta, chi, diagnostics)
+    return {**_inspiral_coeffs(eta, chi, afin), **_amplitude_coeffs(eta, chi)}
+
+
+def _inspiral_coeffs(eta, chi, afin):
+    """Only coefficients needed to decide the frequency-derivative guard."""
     pi, pi2, gam = PI, PI * PI, EULERGAMMA
     eta2 = eta * eta
     chisum = chi + chi
     chiprod = chi * chi
     chi2 = chi * chi
-
     xdotaN = 64.0 * eta / 5.0
     xdota2 = -7.43 / 3.36 - 11.0 * eta / 4.0
     xdota3 = 4.0 * pi - 11.3 * chi / 1.2 + 19.0 * eta * chisum / 6.0
@@ -501,6 +575,22 @@ def phenomC_amp_coeffs(eta: FloatLike, chi: FloatLike) -> dict[str, FloatLike]:
         + chi * chiprod * (10.1 * eta / 2.4 + 3.0 * eta2 / 8.0)
     )
 
+    Mf1 = 0.1 * (1.5251 - 1.1568 * (1.0 - jnp.abs(afin)) ** 0.1292) / (2.0 * PI)
+
+    return {
+        "xdotaN": xdotaN, "xdota2": xdota2, "xdota3": xdota3, "xdota4": xdota4,
+        "xdota5": xdota5, "xdota6": xdota6, "xdota6log": xdota6log, "xdota7": xdota7,
+        "Mf1": Mf1,
+    }  # fmt: skip
+
+
+def _amplitude_coeffs(eta, chi):
+    """Remaining amplitude fits, evaluated only after the guards pass."""
+    pi, pi2, gam = PI, PI * PI, EULERGAMMA
+    eta2 = eta * eta
+    chisum = chi + chi
+    chiprod = chi * chi
+    chi2 = chi * chi
     AN = 8.0 * eta * jnp.sqrt(pi / 5.0)
     A2 = (-107.0 + 55.0 * eta) / 42.0
     A3 = 2.0 * pi - 4.0 * chi / 3.0 + 2.0 * eta * chisum / 3.0
@@ -548,8 +638,6 @@ def phenomC_amp_coeffs(eta: FloatLike, chi: FloatLike) -> dict[str, FloatLike]:
     del2 = jnp.maximum(del2, 1.0e-4)
 
     return {
-        "xdotaN": xdotaN, "xdota2": xdota2, "xdota3": xdota3, "xdota4": xdota4,
-        "xdota5": xdota5, "xdota6": xdota6, "xdota6log": xdota6log, "xdota7": xdota7,
         "AN": AN, "A2": A2, "A3": A3, "A4": A4, "A5": A5, "A5imag": A5imag,
         "A6": A6, "A6log": A6log, "A6imag": A6imag,
         "g1": g1, "del1": del1, "del2": del2, "d0": 0.015,
@@ -592,14 +680,15 @@ def nsbh_merger_properties(
         del2 = phenomC_amp_coeffs(eta, chi_eff)["del2"]
 
     C = compactness_from_lambda(lam)
-    Mtorus = torus_mass_fit(q, chi_BH, C)
+    # Evaluate the expensive tidal root once and reuse it for the torus mass and rtide.
+    mu = q * C
+    xi = xi_tide(q, chi_BH, mu)
+    Mtorus = _torus_mass_from_xi(mu, C, chi_BH, xi)
     chif = bhns_final_spin_aligned(mBH, mNS, chi_BH, lam)
     final_mass = bhns_final_mass_aligned(mBH, mNS, chi_BH, lam) / M
 
     om = omega_tilde(chif)
     f_RD = jnp.real(om) / 2.0 / PI / final_mass
-    mu = q * C
-    xi = xi_tide(q, chi_BH, mu)
     rtide = xi * (1.0 - 2.0 * C) / mu  # follows arXiv:1207.6304v1 (in M_BH units)
     q_factor = jnp.real(om) / jnp.imag(om) / 2.0
     # a spinning BH with vanishing rtide (BH limit) gives an infinite tidal frequency; keep it finite so
@@ -692,13 +781,29 @@ def nsbh_merger_properties(
 
 
 def nsbh_amplitude(
-    Mf: Float[Array, " n_freq"], cc: dict[str, FloatLike], props: dict[str, FloatLike]
+    Mf: Float[Array, " n_freq"],
+    cc: dict[str, FloatLike],
+    props: dict[str, FloatLike],
+    diagnostics: bool = False,
 ) -> Float[Array, " n_freq"]:
     """``|PhenomNSBHAmplitudeOneFrequency|`` (dimensionless, before ``amp0 * ylm_fac``) at geometric frequency ``Mf``.
 
     LAL's amplitude is ``-(aPN wMinus + aPM wMinus + aRD wPlus)``, i.e. non-positive; the sign is returned
     separately through the phase (see module docstring).
     """
+    inspiral = _inspiral_quantities(Mf, cc, diagnostics)
+    return jax.lax.cond(
+        inspiral[-1],
+        lambda _: _amplitude_from_inspiral(Mf, cc, props, inspiral),
+        lambda _: _nan_frequency(Mf, *cc.values(), *props.values()),
+        operand=None,
+    )
+
+
+def _inspiral_quantities(Mf, cc, diagnostics=False, reached=True):
+    """Compute the SPA guard and retain its powers for amplitude evaluation."""
+    if Mf.size == 0:
+        raise ValueError("IMRPhenomNSBH requires a nonempty frequency array")
     v = (PI * Mf) ** (1.0 / 3.0)
     v2 = v * v
     v3 = v * v2
@@ -719,6 +824,17 @@ def nsbh_amplitude(
         + cc["xdota7"] * v7
     )
     xdot = xdot * (cc["xdotaN"] * v10)
+    valid = ~jnp.any((xdot < 0.0) & (Mf < cc["Mf1"])) & jnp.isfinite(cc["Mf1"])
+    if diagnostics:
+        checkify.debug_check(
+            jnp.logical_not(reached) | valid,
+            "IMRPhenomNSBH omegaDot < 0 below the SPA matching frequency, or invalid matching frequency",
+        )
+    return v, v2, v3, v4, v5, v6, logv2, xdot, valid
+
+
+def _amplitude_from_inspiral(Mf, cc, props, inspiral):
+    v, v2, v3, v4, v5, v6, logv2, xdot, _ = inspiral
     omgdot = 1.5 * v * xdot
     ampfac = jnp.sqrt(jnp.abs(PI / omgdot))
     AmpPNre = (
@@ -747,7 +863,8 @@ def nsbh_amplitude(
     wMinus_PN = _w_minus(Mf, props["epsilon_ins"] * props["f0_PN"], d)
     wMinus_PM = _w_minus(Mf, props["f0_PM"], d)
     wPlus_RD = _w_plus(Mf, props["f0_RD"], d)
-    return aPN * wMinus_PN + aPM * wMinus_PM + aRD * wPlus_RD
+    amp = aPN * wMinus_PN + aPM * wMinus_PM + aRD * wPlus_RD
+    return amp
 
 
 #######################################################################################################
@@ -793,8 +910,13 @@ def _fRD_fdamp_from_chif(m1, m2, chi1, chi2, chif):
     return f_RD / M_s, f_damp / M_s
 
 
-def _phenomD_phase_at(f, theta_bbh, coeffs, transition_freqs, lambda2):
-    """IMRPhenomD phase (inspiral + NS quadrupole-monopole shift, intermediate, merger-ringdown), C^1 glued."""
+def _phenomD_phase_evaluator(theta_bbh, coeffs, transition_freqs, lambda2):
+    """Return an ``f -> phase`` callable with the C^1 gluing constants computed once.
+
+    The gluing involves four scalar ``value_and_grad`` evaluations at the transition
+    frequencies; they are independent of ``f``. Evaluating the phase at two frequency
+    sets (the band and the reference frequency) therefore shares this work.
+    """
     m1, m2, chi1, chi2 = theta_bbh
     M_s = (m1 + m2) * MTSUN
     f1, f2, _, _, f_RD, f_damp = transition_freqs
@@ -804,7 +926,6 @@ def _phenomD_phase_at(f, theta_bbh, coeffs, transition_freqs, lambda2):
             fM_s, m1, m2, chi1, chi2, lambda2
         )
 
-    phi_Ins = inspiral_phase(f * M_s)
     phi_Ins_f1, dphi_Ins_f1 = jax.value_and_grad(inspiral_phase)(f1 * M_s)
     phi_IIa_f1, dphi_IIa_f1 = jax.value_and_grad(get_IIa_raw_phase)(
         f1 * M_s, theta_bbh, coeffs
@@ -815,24 +936,28 @@ def _phenomD_phase_at(f, theta_bbh, coeffs, transition_freqs, lambda2):
     def phi_IIa_func(fM_s):
         return get_IIa_raw_phase(fM_s, theta_bbh, coeffs) + beta1_correction * fM_s
 
-    phi_IIa = phi_IIa_func(f * M_s) + beta0
     phi_IIa_f2, dphi_IIa_f2 = jax.value_and_grad(phi_IIa_func)(f2 * M_s)
     phi_IIb_f2, dphi_IIb_f2 = jax.value_and_grad(get_IIb_raw_phase)(
         f2 * M_s, theta_bbh, coeffs, f_RD, f_damp
     )
     a1_correction = dphi_IIa_f2 - dphi_IIb_f2
     a0 = phi_IIa_f2 + beta0 - a1_correction * (f2 * M_s) - phi_IIb_f2
-    phi_IIb = (
-        get_IIb_raw_phase(f * M_s, theta_bbh, coeffs, f_RD, f_damp)
-        + a0
-        + a1_correction * (f * M_s)
-    )
 
-    return (
-        phi_Ins * jnp.heaviside(f1 - f, 0.5)
-        + jnp.heaviside(f - f1, 0.5) * phi_IIa * jnp.heaviside(f2 - f, 0.5)
-        + phi_IIb * jnp.heaviside(f - f2, 0.5)
-    )
+    def evaluate(f):
+        phi_Ins = inspiral_phase(f * M_s)
+        phi_IIa = phi_IIa_func(f * M_s) + beta0
+        phi_IIb = (
+            get_IIb_raw_phase(f * M_s, theta_bbh, coeffs, f_RD, f_damp)
+            + a0
+            + a1_correction * (f * M_s)
+        )
+        return (
+            phi_Ins * jnp.heaviside(f1 - f, 0.5)
+            + jnp.heaviside(f - f1, 0.5) * phi_IIa * jnp.heaviside(f2 - f, 0.5)
+            + phi_IIb * jnp.heaviside(f - f2, 0.5)
+        )
+
+    return evaluate
 
 
 #######################################################################################################
@@ -842,8 +967,8 @@ def _phenomD_phase_at(f, theta_bbh, coeffs, transition_freqs, lambda2):
 
 def _amp_phase(
     f: Float[Array, " n_freq"],
-    m1: FloatLike,
-    m2: FloatLike,
+    mc: FloatLike,
+    eta: FloatLike,
     chi1: FloatLike,
     chi2: FloatLike,
     lambda2: FloatLike,
@@ -852,17 +977,239 @@ def _amp_phase(
     phase_c: FloatLike,
     f_ref: float,
     f_max: Optional[float],
-) -> tuple[Float[Array, " n_freq"], Float[Array, " n_freq"]]:
+    diagnostics: bool = False,
+    output: str = "amp_phase",
+    inclination: FloatLike = 0.0,
+    domain_checks: bool = True,
+):
     """Amplitude ``A >= 0`` and phase of ``h0 = A exp(i phase)`` (see module docstring for the sign convention)."""
+    if f.size == 0:
+        raise ValueError("IMRPhenomNSBH requires a nonempty frequency array")
+    if not domain_checks:
+        if diagnostics:
+            raise ValueError("IMRPhenomNSBH diagnostics require domain_checks=True")
+        # Every guard accepts, so under jit the predicates are dead code and the
+        # waveform is differentiated directly, without the custom derivative rule.
+        return _amp_phase_staged(
+            _accept,
+            f_ref,
+            f_max,
+            False,
+            output,
+            f,
+            mc,
+            eta,
+            chi1,
+            chi2,
+            lambda2,
+            d_L,
+            tc,
+            phase_c,
+            inclination,
+        )
+    # Integer constants become weak floats (promoting as the integers did) so the
+    # derivative rule can substitute float values without integer tangents.
+    args = [
+        x if jnp.issubdtype(jnp.result_type(x), jnp.inexact) else jnp.asarray(x) * 1.0
+        for x in (f, mc, eta, chi1, chi2, lambda2, d_L, tc, phase_c, inclination)
+    ]
+    return _amp_phase_guarded(f_ref, f_max, diagnostics, output, *args)
+
+
+def _accept(pred, true_fun, false_fun, operand):
+    """Unchecked ``lax.cond``: always take the accepted branch."""
+    return true_fun(operand)
+
+
+def _select(pred, true_fun, false_fun, operand):
+    """Branchless ``lax.cond``: evaluate both branches and select."""
+    accepted, rejected = true_fun(operand), false_fun(operand)
+    return jax.tree.map(lambda a, r: jnp.where(pred, a, r), accepted, rejected)
+
+
+@functools.partial(jax.custom_jvp, nondiff_argnums=(0, 1, 2, 3))
+def _amp_phase_guarded(f_ref, f_max, diagnostics, output, *args):
+    """Stage the domain guards with ``lax.cond`` so rejected samples skip work."""
+    return _amp_phase_staged(jax.lax.cond, f_ref, f_max, diagnostics, output, *args)
+
+
+# Finite inputs inside every guard, with finite derivatives, in the order of
+# ``_amp_phase_staged``'s differentiable arguments: f, (M_c, eta) of 7 + 1.4 Msun,
+# chi_BH = 0.3, chi_NS = 0, Lambda_2 = 400, d_L, t_c, phase_c, inclination.
+# (chi_BH = 0 would not do: the Kerr ISCO radius has a NaN derivative there.)
+_IN_DOMAIN = (
+    20.0,
+    2.5696843973845533,
+    5.0 / 36.0,
+    0.3,
+    0.0,
+    400.0,
+    200.0,
+    0.0,
+    0.0,
+    0.0,
+)
+# Reference and time-shift anchor frequencies (Hz) used with ``_IN_DOMAIN``.
+_IN_DOMAIN_F_REF = 20.0
+_IN_DOMAIN_F_MAX = 1000.0
+
+
+def _settings_valid(f_ref, f_max):
+    """Reference and anchor frequencies are finite and positive (``f_max`` may be None)."""
+    valid = jnp.isfinite(f_ref) & (f_ref > 0.0)
+    if f_max is not None:
+        valid = valid & jnp.isfinite(f_max) & (f_max > 0.0)
+    return valid
+
+
+def _differentiable_at(
+    f, mc, eta, chi1, chi2, lambda2, d_L, tc, phase_c, inclination, diagnostics
+):
+    """Whether a sample can be differentiated where it is.
+
+    True when the guards staged in ``_amp_phase_staged`` accept the sample and the
+    remaining inputs are finite (frequencies positive, distance nonzero). Checks
+    are reported in the staged order: a later guard only after the earlier pass.
+    """
+    bounds = _valid_parameters(mc, eta, lambda2, diagnostics)
+    m1, m2 = Mc_eta_to_ms(jnp.array([mc, eta]))
+    M = m1 + m2
+    eta_mass = m1 * m2 / (M * M)
+    chi_eff = (m1 * chi1 + m2 * chi2) / M
+    afin = _remnant_spin(eta_mass, chi_eff, diagnostics, reached=bounds)
+    remnant = bounds & (jnp.abs(afin) <= 1.0)
+    cc = _inspiral_coeffs(eta_mass, chi_eff, afin)
+    inspiral = _inspiral_quantities(f * (M * MTSUN), cc, diagnostics, reached=remnant)
+    finite = (
+        jnp.all(jnp.isfinite(f) & (f > 0.0))
+        & jnp.isfinite(d_L)
+        & (d_L != 0.0)
+        & jnp.isfinite(tc)
+        & jnp.isfinite(phase_c)
+        & jnp.isfinite(inclination)
+    )
+    return remnant & inspiral[-1] & finite
+
+
+@_amp_phase_guarded.defjvp
+def _amp_phase_guarded_jvp(f_ref, f_max, diagnostics, output, primals, tangents):
+    # Differentiating through the staged conditionals keeps every branch residual
+    # live across the cond boundaries (slower, ~3x memory), so differentiate a
+    # branchless form instead. A sample that is rejected, or has non-finite inputs,
+    # is evaluated at an in-domain point: its local derivatives stay finite, so a
+    # zero cotangent cannot turn into NaN and leak into parameters or losses it
+    # shares with valid samples.
+    valid = jax.lax.stop_gradient(
+        _differentiable_at(*primals, diagnostics) & _settings_valid(f_ref, f_max)
+    )
+    safe = tuple(jnp.where(valid, x, x0) for x, x0 in zip(primals, _IN_DOMAIN))
+    # The settings are not differentiated, but they enter the evaluation too.
+    safe_f_ref = jnp.where(valid, f_ref, _IN_DOMAIN_F_REF)
+    safe_f_max = None if f_max is None else jnp.where(valid, f_max, _IN_DOMAIN_F_MAX)
+
+    def branchless(*args):
+        return _amp_phase_staged(_select, safe_f_ref, safe_f_max, False, output, *args)
+
+    out, tangent = jax.jvp(branchless, safe, tangents)
+    out = jax.tree.map(lambda x: jnp.where(valid, x, jnp.nan), out)
+    tangent = jax.tree.map(lambda t: jnp.where(valid, t, 0.0), tangent)
+    return out, tangent
+
+
+def _amp_phase_staged(
+    cond,
+    f_ref,
+    f_max,
+    diagnostics,
+    output,
+    f,
+    mc,
+    eta,
+    chi1,
+    chi2,
+    lambda2,
+    d_L,
+    tc,
+    phase_c,
+    inclination,
+):
+    valid = _valid_parameters(mc, eta, lambda2, diagnostics)
+    # Match the conversion's array promotion, including weak Python scalars,
+    # without performing mass conversion before the parameter guard.
+    chirp = jnp.array([mc, eta])
+
+    def rejected(_):
+        nan = _nan_frequency(f, chirp, chi1, chi2, lambda2, d_L)
+        # PhenomD's phase interpolation promotes to its QNM table dtype.
+        # Infer the public output structure without executing its trigonometry.
+        spec = jax.eval_shape(
+            lambda a, p, i: _format_output(a, p, output, i),
+            nan,
+            _nan_frequency(
+                f, chirp, chi1, chi2, lambda2, tc, phase_c, f_ref, QNMData_fRD
+            ),
+            inclination,
+        )
+        return jax.tree.map(
+            lambda leaf: jnp.full(leaf.shape, jnp.nan, leaf.dtype), spec
+        )
+
+    def valid_parameters(_):
+        m1, m2 = Mc_eta_to_ms(chirp)
+        M = m1 + m2
+        M_s = M * MTSUN
+        # Use the same converted coordinates as the waveform coefficients.
+        eta_mass = m1 * m2 / (M * M)
+        chi_eff = (m1 * chi1 + m2 * chi2) / M
+        afin = _remnant_spin(eta_mass, chi_eff, diagnostics)
+
+        def valid_remnant(_):
+            cc = _inspiral_coeffs(eta_mass, chi_eff, afin)
+            inspiral = _inspiral_quantities(f * M_s, cc, diagnostics)
+
+            def valid_inspiral(_):
+                complete_cc = {**cc, **_amplitude_coeffs(eta_mass, chi_eff)}
+                A, phi, finite = _amp_phase_from_inspiral(
+                    f,
+                    m1,
+                    m2,
+                    chi1,
+                    chi2,
+                    lambda2,
+                    d_L,
+                    tc,
+                    phase_c,
+                    f_ref,
+                    f_max,
+                    complete_cc,
+                    inspiral,
+                )
+                return cond(
+                    finite,
+                    lambda _: _format_output(A, phi, output, inclination),
+                    rejected,
+                    None,
+                )
+
+            return cond(inspiral[-1], valid_inspiral, rejected, None)
+
+        return cond(jnp.abs(afin) <= 1.0, valid_remnant, rejected, None)
+
+    # Scalar conditionals skip rejected stages under jit and scan. Mapping over
+    # per-sample predicates with vmap instead selects between evaluated branches,
+    # as does differentiation (see ``_amp_phase_guarded_jvp``).
+    return cond(valid, valid_parameters, rejected, None)
+
+
+def _amp_phase_from_inspiral(
+    f, m1, m2, chi1, chi2, lambda2, d_L, tc, phase_c, f_ref, f_max, cc, inspiral
+):
+    """Evaluate the waveform only after every model-domain guard passes."""
     M = m1 + m2
     M_s = M * MTSUN
-    eta = m1 * m2 / (M * M)
-
     # ---- amplitude
-    chi_eff = (m1 * chi1 + m2 * chi2) / M
-    cc = phenomC_amp_coeffs(eta, chi_eff)
     props = nsbh_merger_properties(m1, m2, chi1, lambda2, chi_NS=chi2, del2=cc["del2"])
-    amp = nsbh_amplitude(f * M_s, cc, props)
+    amp = _amplitude_from_inspiral(f * M_s, cc, props, inspiral)
     # amp0 * ylm_fac, with the distance in metres
     amp0 = 2.0 * jnp.sqrt(5.0 / (64.0 * PI)) * M * MRSUN * M * MTSUN / (d_L * MPC)
     A = amp0 * amp
@@ -875,25 +1222,42 @@ def _amp_phase(
         theta_bbh, coeffs[5], coeffs[6], f_RD, f_damp
     )
 
-    Psi = _phenomD_phase_at(f, theta_bbh, coeffs, transition_freqs, lambda2)
-    Psi_ref = _phenomD_phase_at(
-        jnp.array([f_ref]), theta_bbh, coeffs, transition_freqs, lambda2
-    )[0]
+    phase = _phenomD_phase_evaluator(theta_bbh, coeffs, transition_freqs, lambda2)
+    Psi = phase(f)
+    Psi_ref = phase(jnp.array([f_ref]))[0]
     # time shift: derivative of the merger-ringdown ansatz at f_max (NOT at the peak, cf. PhenomD);
     # without f_max, LAL's default upper frequency Mf = 0.2
     Mf_max = 0.2 if f_max is None else f_max * M_s
     t0 = jax.grad(get_IIb_raw_phase)(Mf_max, theta_bbh, coeffs, f_RD, f_damp)
     Mf_ref = f_ref * M_s
 
-    x = (PI * M_s * f) ** (2.0 / 3.0)
+    # (pi M f)^(2/3) is the v^2 already computed by the SPA guard.
+    x = inspiral[1]
     # only the NS is deformable: lambda_1 = 0
     theta_intrinsic = jnp.array([m1, m2, chi1, chi2, 0.0, lambda2])
     psi_T = get_tidal_phase(x, theta_intrinsic, get_kappa(theta_intrinsic))
 
     Psi = Psi + psi_T - t0 * (f * M_s - Mf_ref) - Psi_ref
     Psi = Psi + 2.0 * PI * f * tc - 2.0 * phase_c
-    # +pi carries the sign of LAL's negative amplitude
-    return A, -Psi + PI
+    # +pi carries the sign of LAL's negative amplitude; the flag feeds the last guard
+    return A, -Psi + PI, jnp.all(jnp.isfinite(amp))
+
+
+def _format_output(A, phi, output, inclination):
+    """Keep strain construction and polarization work inside the accepted branch."""
+    if output == "amp_phase":
+        return A, phi
+    if output == "amplitude":
+        return A
+    if output == "phase":
+        return phi
+    h0 = A * jnp.cos(phi) + 1j * (A * jnp.sin(phi))
+    if output == "strain":
+        return h0
+    if output == "polarizations":
+        cosi = jnp.cos(inclination)
+        return h0 * (0.5 * (1.0 + cosi**2)), -1j * h0 * cosi
+    raise ValueError(f"Unknown NSBH output: {output}")
 
 
 def gen_IMRPhenomNSBH(
@@ -901,6 +1265,9 @@ def gen_IMRPhenomNSBH(
     params: Float[Array, "8"],
     f_ref: float,
     f_max: Optional[float] = None,
+    *,
+    diagnostics: bool = False,
+    domain_checks: bool = True,
 ) -> Complex[Array, " n_freq"]:
     """
     Generate the IMRPhenomNSBH strain ``h0``.
@@ -914,14 +1281,33 @@ def gen_IMRPhenomNSBH(
         f_ref (float): Reference frequency in Hz.
         f_max (Optional[float]): Frequency in Hz at which the time shift is anchored;
             ``None`` uses LAL's default upper frequency ``Mf = 0.2``.
+        diagnostics (bool): Add optional checkify annotations. Keep this static
+            under ``jit``; wrap in ``checkify.checkify`` to collect error messages.
+        domain_checks (bool): Return NaN for samples outside LAL's domain. Static.
+            ``False`` skips the checks, and their cost, and extrapolates outside the
+            domain as LAL would not; use it only when inputs are known to be valid
+            (e.g. a prior inside the domain). Requires ``diagnostics=False``.
 
     Returns:
         h0 (array): Strain.
     """
-    m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
     chi1, chi2, lambda2, d_L, tc, phase_c = params[2:]
-    A, phi = _amp_phase(f, m1, m2, chi1, chi2, lambda2, d_L, tc, phase_c, f_ref, f_max)
-    return A * jnp.cos(phi) + 1j * (A * jnp.sin(phi))
+    return _amp_phase(
+        f,
+        params[0],
+        params[1],
+        chi1,
+        chi2,
+        lambda2,
+        d_L,
+        tc,
+        phase_c,
+        f_ref,
+        f_max,
+        diagnostics=diagnostics,
+        output="strain",
+        domain_checks=domain_checks,
+    )
 
 
 def gen_IMRPhenomNSBH_hphc(
@@ -929,6 +1315,9 @@ def gen_IMRPhenomNSBH_hphc(
     params: Float[Array, "9"],
     f_ref: float,
     f_max: Optional[float] = None,
+    *,
+    diagnostics: bool = False,
+    domain_checks: bool = True,
 ) -> tuple[Complex[Array, " n_freq"], Complex[Array, " n_freq"]]:
     """
     Generate the IMRPhenomNSBH plus and cross polarizations.
@@ -939,20 +1328,26 @@ def gen_IMRPhenomNSBH_hphc(
     Returns:
         hp (array): Strain of the plus polarization
         hc (array): Strain of the cross polarization
+
+    ``diagnostics`` and ``domain_checks`` are static flags with the same meaning
+    as in ``gen_IMRPhenomNSBH``.
     """
-    iota = params[-1]
-    h0 = gen_IMRPhenomNSBH(f, params[:-1], f_ref, f_max=f_max)
-    hp = h0 * (0.5 * (1.0 + jnp.cos(iota) ** 2))
-    hc = -1j * h0 * jnp.cos(iota)
-    return hp, hc
+    return _amp_phase(
+        f,
+        *params[:8],
+        f_ref,
+        f_max,
+        diagnostics=diagnostics,
+        output="polarizations",
+        inclination=params[-1],
+        domain_checks=domain_checks,
+    )
 
 
 def _split_params(params: Mapping[str, FloatLike]):
-    # Mc_eta_to_ms returns m1 >= m2: m1 is the BH, m2 the NS
-    m1, m2 = Mc_eta_to_ms(jnp.array([params["M_c"], params["eta"]]))
     return (
-        m1,
-        m2,
+        params["M_c"],
+        params["eta"],
         params["s1_z"],
         params["s2_z"],
         params["lambda_2"],
@@ -965,26 +1360,59 @@ def _split_params(params: Mapping[str, FloatLike]):
 class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
     """IMRPhenomNSBH frequency-domain waveform (non-precessing, single deformable body: the NS).
 
-    LAL's parameter limits, not enforced here, are listed in the Validity Ranges notes.
+    Invalid mass ratios (outside ``[1, 100]``), tidal deformabilities (outside
+    ``[0, 5000]``), or a negative inspiral frequency derivative below LAL's
+    SPA matching frequency return NaN for the entire sample. Evaluation remains
+    compatible with ``jit``, ``vmap`` and ``scan``; other batch samples continue.
+    Set ``diagnostics=True`` and wrap evaluation in ``checkify.checkify`` for
+    optional error diagnostics. Normal evaluation has no error effects.
+    Errors are returned as values; throwing them is the caller's choice.
+    Scalar ``jit`` and ``scan`` calls skip waveform work as soon as a domain
+    guard fails. Under ``vmap``, per-sample conditionals become selections and
+    do not promise to skip computation; derivatives also use selections, and
+    are zero at rejected samples. Bounds are checked before mass
+    conversion, remnant spin before coefficients, and the frequency derivative
+    before merger properties or phase. Derived intermediates are reused.
+    There is no neutron-star mass cut. Nonzero NS spin and NS masses below one
+    solar mass are outside LAL's calibration, but are not rejected here.
+    Set ``domain_checks=False`` to skip every check and its cost: the waveform
+    then extrapolates outside the domain, and derivatives are taken directly.
 
     Attributes:
         f_ref (float): Reference frequency in Hz.
         f_max (Optional[float]): Frequency in Hz at which the coalescence-time shift is anchored
             (LAL's upper frequency ``f_max``). ``None`` uses LAL's default, ``Mf = 0.2``.
+        diagnostics (bool): Enable optional checkify annotations. Defaults to False.
+        domain_checks (bool): Return NaN outside LAL's domain. Defaults to True.
     """
 
     f_ref: float
     f_max: Optional[float]
 
-    def __init__(self, f_ref: float = 20.0, f_max: Optional[float] = None) -> None:
+    def __init__(
+        self,
+        f_ref: float = 20.0,
+        f_max: Optional[float] = None,
+        *,
+        diagnostics: bool = False,
+        domain_checks: bool = True,
+    ) -> None:
         """
         Args:
             f_ref (float): Reference frequency in Hz. Defaults to 20.0.
             f_max (Optional[float]): Time-shift anchor frequency in Hz. Defaults to None
                 (``Mf = 0.2``).
+            diagnostics (bool): Add optional checkify annotations. Defaults to False.
+            domain_checks (bool): Return NaN outside LAL's domain. ``False`` skips
+                the checks and extrapolates; it requires ``diagnostics=False``.
+                Defaults to True.
         """
+        if diagnostics and not domain_checks:
+            raise ValueError("IMRPhenomNSBH diagnostics require domain_checks=True")
         self.f_ref = f_ref
         self.f_max = f_max
+        self.diagnostics = diagnostics
+        self.domain_checks = domain_checks
 
     @property
     def parameter_names(self) -> tuple[str, ...]:
@@ -994,11 +1422,11 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
         self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> Float[Array, " n_freq"]:
         """Amplitude of ``h0`` (non-negative; includes distance scaling)."""
-        m1, m2, chi1, chi2, lam, d_L, phase_c = _split_params(params)
-        A, _ = _amp_phase(
+        mc, eta, chi1, chi2, lam, d_L, phase_c = _split_params(params)
+        return _amp_phase(
             frequency,
-            m1,
-            m2,
+            mc,
+            eta,
             chi1,
             chi2,
             lam,
@@ -1007,18 +1435,20 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
             phase_c,
             self.f_ref,
             self.f_max,
+            diagnostics=self.diagnostics,
+            domain_checks=self.domain_checks,
+            output="amplitude",
         )
-        return A
 
     def phase(
         self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
     ) -> Float[Array, " n_freq"]:
         """Phase of ``h0`` (includes the ``pi`` that carries LAL's negative amplitude)."""
-        m1, m2, chi1, chi2, lam, d_L, phase_c = _split_params(params)
-        _, phi = _amp_phase(
+        mc, eta, chi1, chi2, lam, d_L, phase_c = _split_params(params)
+        return _amp_phase(
             frequency,
-            m1,
-            m2,
+            mc,
+            eta,
             chi1,
             chi2,
             lam,
@@ -1027,8 +1457,32 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
             phase_c,
             self.f_ref,
             self.f_max,
+            diagnostics=self.diagnostics,
+            domain_checks=self.domain_checks,
+            output="phase",
         )
-        return phi
+
+    def strain(
+        self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
+    ) -> Complex[Array, " n_freq"]:
+        """Pre-polarization strain, using one guarded waveform evaluation."""
+        mc, eta, chi1, chi2, lam, d_L, phase_c = _split_params(params)
+        return _amp_phase(
+            frequency,
+            mc,
+            eta,
+            chi1,
+            chi2,
+            lam,
+            d_L,
+            0.0,
+            phase_c,
+            self.f_ref,
+            self.f_max,
+            diagnostics=self.diagnostics,
+            domain_checks=self.domain_checks,
+            output="strain",
+        )
 
     def __call__(
         self, frequency: Float[Array, " n_freq"], params: Mapping[str, FloatLike]
@@ -1044,21 +1498,30 @@ class IMRPhenomNSBH(AmplitudePhaseWaveform, DistanceScaledWaveform):
             dict[str, Complex[Array, " n_freq"]]: Plus (``"p"``) and cross (``"c"``)
                 polarizations.
         """
-        theta = jnp.array(
-            [
-                params["M_c"],
-                params["eta"],
-                params["s1_z"],
-                params["s2_z"],
-                params["lambda_2"],
-                params["d_L"],
-                0.0,
-                params["phase_c"],
-                params["iota"],
-            ]
+        # Pass fields separately: packing them into one array would promote eta
+        # before the mass-ratio guard, which sizes its tolerance from eta's dtype.
+        mc, eta, chi1, chi2, lam, d_L, phase_c = _split_params(params)
+        hp, hc = _amp_phase(
+            frequency,
+            mc,
+            eta,
+            chi1,
+            chi2,
+            lam,
+            d_L,
+            0.0,
+            phase_c,
+            self.f_ref,
+            self.f_max,
+            diagnostics=self.diagnostics,
+            domain_checks=self.domain_checks,
+            output="polarizations",
+            inclination=params["iota"],
         )
-        hp, hc = gen_IMRPhenomNSBH_hphc(frequency, theta, self.f_ref, f_max=self.f_max)
         return {"p": hp, "c": hc}
 
     def __repr__(self):
-        return f"IMRPhenomNSBH(f_ref={self.f_ref}, f_max={self.f_max})"
+        return (
+            f"IMRPhenomNSBH(f_ref={self.f_ref}, f_max={self.f_max}, "
+            f"diagnostics={self.diagnostics}, domain_checks={self.domain_checks})"
+        )

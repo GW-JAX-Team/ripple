@@ -1,0 +1,779 @@
+"""Recoverable NSBH domain checks, anchored to LAL's model boundaries."""
+
+import importlib
+
+import jax
+import jax.numpy as jnp
+import numpy as np
+import pytest
+from jax.experimental import checkify
+
+import ripplegw
+from ripplegw.conversions import ms_to_Mc_eta
+from tests.helpers.params import canonical_params
+
+nsbh = importlib.import_module("ripplegw.waveforms.cbc.IMRPhenom_NRTidal.IMRPhenomNSBH")
+F = jnp.array([20.0, 40.0, 80.0])
+
+
+def theta(m1=7.0, m2=1.4, lam=400.0, chi=0.3):
+    mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
+    return jnp.array([mc, eta, chi, 0.0, lam, 200.0, 0.0, 0.0])
+
+
+evaluate = jax.jit(lambda p: nsbh.gen_IMRPhenomNSBH(F, p, 20.0))
+
+
+@pytest.mark.parametrize("lam", [-1.0, 5000.0001])
+def test_invalid_tides_return_nan_without_raising(lam):
+    assert np.isnan(evaluate(theta(lam=lam))).all()
+    assert np.isfinite(evaluate(theta())).all()
+
+
+def test_mass_ratio_above_100_is_rejected():
+    assert np.isnan(evaluate(theta(m1=141.4))).all()
+
+
+def test_mass_ratio_endpoint_in_chirp_coordinates():
+    boundary = 100.0 / 101.0**2
+    p = theta().at[1].set(boundary)
+    assert np.isfinite(evaluate(p)).all()
+    q = 100.01
+    assert np.isnan(evaluate(p.at[1].set(q / (1.0 + q) ** 2))).all()
+
+
+@pytest.mark.parametrize("m2", [1.3, 1.4, 2.0])
+def test_mass_ratio_100_from_component_masses_is_accepted(m2):
+    # LAL compares the masses (mBH <= 100 mNS); converting q = 100 exactly to
+    # eta can round one ulp below 100/101**2, which must not reject the sample.
+    assert np.isfinite(evaluate(theta(m1=100.0 * m2, m2=m2))).all()
+
+
+def test_mass_ratio_100_rounding_reaches_below_boundary():
+    # Keeps the test above discriminating: some exact q = 100 pairs round low.
+    etas = [float(ms_to_Mc_eta(jnp.array([100.0 * m, m]))[1]) for m in (1.3, 1.4)]
+    assert min(etas) < 100.0 / 101.0**2
+
+
+@pytest.mark.parametrize("eta", [0.0, -0.1, 0.2501, np.nan])
+def test_invalid_eta_is_not_hidden_by_mass_conversion(eta):
+    assert np.isnan(evaluate(theta().at[1].set(eta))).all()
+
+
+@pytest.mark.parametrize("m2", [0.7, 4.2])
+def test_no_neutron_star_mass_cut(m2):
+    assert np.isfinite(evaluate(theta(m1=5 * m2, m2=m2))).all()
+
+
+def test_redshift_scaling_is_preserved_above_mass_cut():
+    # Fixed dimensionless parameters: h(f/k, k*m)/h(f, m) = k**2 at fixed distance.
+    scale = 3.0
+    original = nsbh.gen_IMRPhenomNSBH(F, theta(), 20.0)
+    redshifted = nsbh.gen_IMRPhenomNSBH(
+        F / scale, theta(m1=7.0 * scale, m2=1.4 * scale), 20.0 / scale
+    )
+    np.testing.assert_allclose(redshifted, scale**2 * original, atol=0.0, rtol=1e-9)
+
+
+@pytest.mark.parametrize("lam", [0.0, 5000.0])
+def test_tidal_endpoints_are_inclusive(lam):
+    assert np.isfinite(evaluate(theta(lam=lam))).all()
+
+
+def test_checkify_returns_error_without_aborting():
+    checked = jax.jit(
+        checkify.checkify(
+            lambda p: nsbh.gen_IMRPhenomNSBH(F, p, 20.0, diagnostics=True)
+        )
+    )
+    err, output = checked(theta(lam=5001.0))
+    assert err.get() is not None and "lambda_2" in err.get()
+    assert np.isnan(output).all()
+    err, output = checked(theta())
+    assert err.get() is None
+    assert np.isfinite(output).all()
+
+
+def test_mixed_batch_rejects_only_invalid_samples_inside_scan():
+    batch = jnp.stack([theta(), theta(lam=5001.0), theta(m2=4.2, m1=21.0)])
+
+    def loglike(p):
+        h = nsbh.gen_IMRPhenomNSBH(F, p, 20.0)
+        valid = jnp.all(jnp.isfinite(h))
+        safe_h = jnp.where(valid, h, 0.0)
+        return jnp.where(valid, -jnp.sum(jnp.abs(safe_h * 1e23) ** 2), -jnp.inf)
+
+    @jax.jit
+    def run(samples):
+        return jax.lax.scan(lambda c, p: (c, loglike(p)), None, samples)[1]
+
+    output = run(batch)
+    assert np.isfinite(np.asarray(output)[[0, 2]]).all()
+    assert np.isneginf(output[1])
+    mapped = jax.jit(jax.vmap(loglike))(batch)
+    np.testing.assert_allclose(mapped, output, atol=0.0, rtol=1e-12)
+
+
+def test_negative_derivative_only_rejected_below_matching_frequency():
+    cc = nsbh.phenomC_amp_coeffs(0.14, 0.3)
+    props = nsbh.nsbh_merger_properties(7.0, 1.4, 0.3, 400.0)
+    # Force xdot negative on both sides of a known matching frequency.
+    cc = {**cc, "xdota2": -1e6, "Mf1": 0.01}
+    amplitude = jax.jit(nsbh.nsbh_amplitude)
+    assert np.isnan(amplitude(jnp.array([0.005, 0.02]), cc, props)).all()
+    assert np.isfinite(amplitude(jnp.array([0.01, 0.02]), cc, props)).all()
+
+
+@pytest.mark.parametrize("method", ["__call__", "amplitude", "phase", "strain"])
+def test_all_public_interfaces_reject_invalid_sample(method):
+    wf = ripplegw.waveform("IMRPhenomNSBH")
+    params = canonical_params(wf, lambda_2=5001.0)
+    output = jax.jit(getattr(wf, method))(F, params)
+    for array in jax.tree.leaves(output):
+        assert np.isnan(array).all()
+
+
+def test_valid_gradient_survives_checkify():
+    def power(p):
+        return jnp.sum(
+            jnp.abs(nsbh.gen_IMRPhenomNSBH(F, p, 20.0, diagnostics=True) * 1e23) ** 2
+        )
+
+    checked = jax.jit(checkify.checkify(jax.value_and_grad(power)))
+    err, (value, gradient) = checked(theta())
+    assert err.get() is None
+    assert np.isfinite(value)
+    assert np.isfinite(gradient).all()
+
+
+def test_lal_parameter_rejection_and_valid_amplitude():
+    lal = pytest.importorskip("lal")
+    lalsim = pytest.importorskip("lalsimulation")
+    freq = lal.CreateREAL8Sequence(len(F))
+    freq.data[:] = np.asarray(F)
+
+    def reference(m1, lam):
+        extra = lal.CreateDict()
+        lalsim.SimInspiralWaveformParamsInsertTidalLambda2(extra, lam)
+        return lalsim.SimIMRPhenomNSBHFrequencySequence(
+            freq,
+            0.0,
+            20.0,
+            200.0e6 * lal.PC_SI,
+            m1 * lal.MSUN_SI,
+            1.4 * lal.MSUN_SI,
+            0.3,
+            0.0,
+            extra,
+        ).data.data
+
+    for m1, lam in [(141.4, 400.0), (7.0, -1.0), (7.0, 5001.0)]:
+        with pytest.raises(RuntimeError):
+            reference(m1, lam)
+        assert np.isnan(evaluate(theta(m1=m1, lam=lam))).all()
+    expected = reference(7.0, 400.0)
+    actual = nsbh.gen_IMRPhenomNSBH(F, theta(), 20.0, f_max=float(F[-1]))
+    np.testing.assert_allclose(np.abs(actual), np.abs(expected), atol=0.0, rtol=1e-7)
+
+
+def test_default_has_no_error_effects():
+    assert not jax.make_jaxpr(evaluate)(theta()).effects
+    wf = ripplegw.waveform("IMRPhenomNSBH", diagnostics=True)
+    checked = jax.jit(checkify.checkify(wf))
+    err, output = checked(F, canonical_params(wf, lambda_2=-1.0))
+    assert err.get() is not None and "lambda_2" in err.get()
+    assert np.isnan(output["p"]).all()
+
+
+def test_checkified_vmap_preserves_good_samples():
+    checked = jax.jit(
+        jax.vmap(
+            checkify.checkify(
+                lambda p: nsbh.gen_IMRPhenomNSBH(F, p, 20.0, diagnostics=True)
+            )
+        )
+    )
+    errors, output = checked(jnp.stack([theta(), theta(lam=-1.0), theta()]))
+    assert "mapped index 1" in errors.get()
+    assert np.isnan(output[1]).all()
+    assert np.isfinite(np.asarray(output)[[0, 2]]).all()
+
+
+@pytest.mark.parametrize(
+    "p, message",
+    [
+        (theta().at[0].set(jnp.nan), "finite positive M_c"),
+        (theta().at[1].set(0.0), "1 <= q <= 100"),
+        (theta(lam=-1.0), "lambda_2"),
+        (theta(chi=4.0), "remnant spin"),
+    ],
+)
+def test_checkified_vmap_reports_first_failed_guard(p, message):
+    # Batched conditionals evaluate both branches; only the taken branch's
+    # check may be reported, the same as for the sample on its own.
+    checked = checkify.checkify(
+        lambda q: nsbh.gen_IMRPhenomNSBH(F, q, 20.0, diagnostics=True)
+    )
+    errors, _ = jax.jit(jax.vmap(checked))(jnp.stack([theta(), p]))
+    alone, _ = jax.jit(checked)(p)
+    assert message in alone.get()
+    assert errors.get() == f"at mapped index 1: {alone.get()}"
+
+
+def test_empty_frequency_array_is_rejected_at_trace_time():
+    with pytest.raises(ValueError, match="nonempty frequency"):
+        jax.jit(nsbh.gen_IMRPhenomNSBH)(jnp.array([]), theta(), 20.0)
+
+
+@pytest.mark.parametrize("case", ["eta", "tides", "spin", "derivative"])
+@pytest.mark.parametrize("diagnostics", [False, True])
+@pytest.mark.parametrize("layout", ["scalar", "scan"])
+def test_invalid_parameters_skip_merger_and_phase(
+    monkeypatch, case, diagnostics, layout
+):
+    """Runtime callbacks distinguish a skipped branch from a NaN mask."""
+    calls = []
+    merger = nsbh.nsbh_merger_properties
+    phase = nsbh.get_coeffs
+
+    def observed_merger(*args, **kwargs):
+        jax.debug.callback(lambda: calls.append("merger"))
+        return merger(*args, **kwargs)
+
+    def observed_phase(*args, **kwargs):
+        jax.debug.callback(lambda: calls.append("phase"))
+        return phase(*args, **kwargs)
+
+    monkeypatch.setattr(nsbh, "nsbh_merger_properties", observed_merger)
+    monkeypatch.setattr(nsbh, "get_coeffs", observed_phase)
+    coeffs = nsbh._inspiral_coeffs
+    if case == "derivative":
+
+        def negative_derivative(*args, **kwargs):
+            return {**coeffs(*args, **kwargs), "xdota2": -1e6, "Mf1": 0.01}
+
+        monkeypatch.setattr(nsbh, "_inspiral_coeffs", negative_derivative)
+    p = theta()
+    if case == "eta":
+        p = p.at[1].set(0.3)
+    elif case == "tides":
+        p = p.at[4].set(-1.0)
+    elif case == "spin":
+        p = p.at[2].set(4.0)
+    fn = lambda p: nsbh.gen_IMRPhenomNSBH(F, p, 20.0, diagnostics=diagnostics)
+    if diagnostics:
+        fn = checkify.checkify(fn)
+    if layout == "scan":
+        scalar = fn
+        fn = lambda batch: jax.lax.scan(lambda c, x: (c, scalar(x)), None, batch)[1]
+        p = jnp.stack([p, p])
+    result = jax.jit(fn)(p)
+    jax.block_until_ready(result)
+    jax.effects_barrier()
+    output = result[1] if diagnostics else result
+    assert np.isnan(output).all()
+    if diagnostics:
+        assert result[0].get() is not None
+    assert calls == [], f"Invalid {case} still executed {calls}"
+
+
+@pytest.mark.parametrize("case", ["eta", "tides", "spin", "valid"])
+def test_domain_stages_execute_in_order(monkeypatch, case):
+    calls = []
+    for name in (
+        "Mc_eta_to_ms",
+        "_remnant_spin",
+        "_inspiral_coeffs",
+        "_inspiral_quantities",
+        "_amplitude_coeffs",
+        "nsbh_merger_properties",
+        "get_coeffs",
+    ):
+        original = getattr(nsbh, name)
+
+        def observed(*args, _original=original, _name=name, **kwargs):
+            jax.debug.callback(lambda: calls.append(_name), ordered=True)
+            return _original(*args, **kwargs)
+
+        monkeypatch.setattr(nsbh, name, observed)
+    p = theta()
+    if case == "eta":
+        p = p.at[1].set(0.3)
+    elif case == "tides":
+        p = p.at[4].set(-1.0)
+    elif case == "spin":
+        p = p.at[2].set(4.0)
+    output = jax.jit(lambda p: nsbh.gen_IMRPhenomNSBH(F, p, 20.0))(p)
+    jax.block_until_ready(output)
+    jax.effects_barrier()
+    stages = [
+        "Mc_eta_to_ms",
+        "_remnant_spin",
+        "_inspiral_coeffs",
+        "_inspiral_quantities",
+        "_amplitude_coeffs",
+        "nsbh_merger_properties",
+        "get_coeffs",
+    ]
+    assert calls == (
+        stages if case == "valid" else stages[:2] if case == "spin" else []
+    )
+
+
+@pytest.mark.parametrize("dtype", [jnp.float32, jnp.float64])
+@pytest.mark.parametrize("parameter_dtype", [jnp.float32, jnp.float64])
+def test_mixed_frequency_and_parameter_dtypes(dtype, parameter_dtype):
+    fn = jax.jit(lambda p: nsbh.gen_IMRPhenomNSBH(F.astype(dtype), p, 20.0))
+    assert np.isfinite(fn(theta().astype(parameter_dtype))).all()
+    assert np.isnan(fn(theta(lam=-1.0).astype(parameter_dtype))).all()
+
+
+@pytest.mark.parametrize("method", ["__call__", "amplitude", "phase", "strain"])
+def test_public_output_construction_is_skipped_on_rejection(monkeypatch, method):
+    calls = []
+    original = nsbh._format_output
+
+    def observed(*args):
+        jax.debug.callback(lambda: calls.append("output"))
+        return original(*args)
+
+    monkeypatch.setattr(nsbh, "_format_output", observed)
+    wf = ripplegw.waveform("IMRPhenomNSBH")
+    fn = jax.jit(getattr(wf, method))
+    bad = fn(F, canonical_params(wf, lambda_2=-1.0))
+    jax.block_until_ready(bad)
+    jax.effects_barrier()
+    assert calls == []
+    assert all(np.isnan(x).all() for x in jax.tree.leaves(bad))
+    good = fn(F, canonical_params(wf))
+    jax.block_until_ready(good)
+    jax.effects_barrier()
+    assert calls == ["output"]
+    assert all(np.isfinite(x).all() for x in jax.tree.leaves(good))
+
+
+@pytest.mark.parametrize("method", ["__call__", "amplitude", "phase", "strain"])
+@pytest.mark.parametrize("field", ["phase_c", "d_L", "lambda_2"])
+def test_individual_parameter_field_can_promote_independently(method, field):
+    wf = ripplegw.waveform("IMRPhenomNSBH")
+    params = {
+        k: jnp.asarray(v, dtype=jnp.float32) for k, v in canonical_params(wf).items()
+    }
+    params[field] = params[field].astype(jnp.float64)
+    result = jax.jit(getattr(wf, method))(F.astype(jnp.float32), params)
+    assert all(np.isfinite(x).all() for x in jax.tree.leaves(result))
+
+
+def test_reference_frequency_can_promote_independently():
+    result = jax.jit(nsbh.gen_IMRPhenomNSBH)(
+        F.astype(jnp.float32), theta().astype(jnp.float32), jnp.float64(20.0)
+    )
+    assert np.isfinite(result).all()
+
+
+def test_shared_strain_matches_separate_amplitude_and_phase():
+    wf = ripplegw.waveform("IMRPhenomNSBH")
+    params = canonical_params(wf)
+    amplitude = jax.jit(wf.amplitude)(F, params)
+    phase = jax.jit(wf.phase)(F, params)
+    actual = jax.jit(wf.strain)(F, params)
+    expected = amplitude * jnp.cos(phase) + 1j * amplitude * jnp.sin(phase)
+    np.testing.assert_allclose(actual, expected, atol=0.0, rtol=1e-10)
+
+
+@pytest.mark.parametrize("method", ["__call__", "amplitude", "phase", "strain"])
+@pytest.mark.parametrize("strong_fields", [False, True])
+def test_python_chirp_coordinates_preserve_array_conversion_dtype(
+    method, strong_fields
+):
+    wf = ripplegw.waveform("IMRPhenomNSBH")
+    params = {k: float(v) for k, v in canonical_params(wf).items()}
+    if strong_fields:
+        params = {
+            k: v if k in ("M_c", "eta") else jnp.float32(v) for k, v in params.items()
+        }
+    result = jax.jit(getattr(wf, method))(F.astype(jnp.float32), params)
+    assert all(np.isfinite(x).all() for x in jax.tree.leaves(result))
+
+
+def _overlap(p):
+    # Phase-sensitive: |h|^2 would hide the phase derivatives.
+    h = nsbh.gen_IMRPhenomNSBH(F, p, 20.0)
+    return jnp.real(jnp.sum(h * jnp.exp(-1j * F / 37.0))) * 1e23
+
+
+def test_differentiation_uses_branchless_guards(monkeypatch):
+    calls = []
+    select = nsbh._select
+
+    def spy(*args):
+        calls.append(None)
+        return select(*args)
+
+    monkeypatch.setattr(nsbh, "_select", spy)
+    jax.make_jaxpr(lambda p: nsbh.gen_IMRPhenomNSBH(F, p, 20.0))(theta())
+    assert not calls  # plain evaluation keeps the staged early exit
+    jax.make_jaxpr(jax.grad(_overlap))(theta())
+    assert len(calls) == 4  # one per staged guard
+
+
+def test_branchless_gradient_matches_staged_differentiation():
+    def staged(p):
+        h = nsbh._amp_phase_staged(
+            jax.lax.cond, 20.0, None, False, "strain", F, *p, 0.0
+        )
+        return jnp.real(jnp.sum(h * jnp.exp(-1j * F / 37.0))) * 1e23
+
+    for p in (theta(), theta(m1=50.0, chi=-0.7, lam=50.0), theta(lam=5000.0)):
+        expected = jax.jit(jax.grad(staged))(p)
+        actual = jax.jit(jax.grad(_overlap))(p)
+        assert np.isfinite(actual).all()
+        np.testing.assert_allclose(actual, expected, atol=0.0, rtol=1e-10)
+
+
+def test_forward_and_reverse_derivatives_agree():
+    def strain(p):
+        h = nsbh.gen_IMRPhenomNSBH(F, p, 20.0) * 1e23
+        return jnp.concatenate([jnp.real(h), jnp.imag(h)])
+
+    forward = np.asarray(jax.jit(jax.jacfwd(strain))(theta()))
+    reverse = np.asarray(jax.jit(jax.jacrev(strain))(theta()))
+    # Per-parameter scale: some entries are exactly zero analytically.
+    scale = np.max(np.abs(reverse), axis=0)
+    assert (scale > 0).all()
+    assert (np.abs(forward - reverse) <= 1e-10 * scale).all()
+
+
+def test_rejected_sample_does_not_contaminate_batch_gradients():
+    batch = jnp.stack([theta(), theta(lam=-1.0), theta(m1=20.0)])
+    values, gradients = jax.jit(jax.vmap(jax.value_and_grad(_overlap)))(batch)
+    assert np.isnan(values[1])
+    assert np.isfinite(np.asarray(values)[[0, 2]]).all()
+    assert np.isfinite(np.asarray(gradients)[[0, 2]]).all()
+
+
+def _masked_loglike(p, d_L):
+    # The likelihood pattern documented for rejected samples.
+    h = nsbh.gen_IMRPhenomNSBH(F, p.at[5].set(d_L), 20.0)
+    valid = jnp.all(jnp.isfinite(h))
+    safe = jnp.where(valid, h, 0.0)
+    return jnp.where(valid, -jnp.sum(jnp.abs(safe * 1e23) ** 2), -jnp.inf)
+
+
+@pytest.mark.parametrize(
+    "invalid",
+    [theta(chi=4.0), theta(lam=-1.0), theta().at[0].set(-1.0), theta().at[1].set(0.0)],
+    ids=["remnant", "tides", "chirp_mass", "eta"],
+)
+@pytest.mark.parametrize("layout", ["scan", "vmap"])
+def test_rejected_sample_does_not_leak_into_shared_gradients(invalid, layout):
+    batch = jnp.stack([theta(), invalid])
+
+    def losses(d_L):
+        if layout == "scan":
+            step = lambda c, p: (c, _masked_loglike(p, d_L))
+            return jax.lax.scan(step, None, batch)[1]
+        return jax.vmap(_masked_loglike, (0, None))(batch, d_L)
+
+    d_L = 200.0
+    value, gradient = jax.jit(jax.value_and_grad(lambda d: losses(d)[0]))(d_L)
+    # h scales as 1/d_L, so the valid loss has derivative -2 L / d_L.
+    np.testing.assert_allclose(gradient, -2.0 * value / d_L, atol=0.0, rtol=1e-12)
+    total, total_gradient = jax.jit(jax.value_and_grad(lambda d: jnp.sum(losses(d))))(
+        d_L
+    )
+    assert total == -np.inf
+    np.testing.assert_allclose(total_gradient, gradient, atol=0.0, rtol=1e-12)
+
+
+def test_rejected_sample_has_zero_gradient():
+    value, gradient = jax.jit(jax.value_and_grad(_masked_loglike))(
+        theta(lam=-1.0), 200.0
+    )
+    assert value == -np.inf
+    assert (np.asarray(gradient) == 0.0).all()
+
+
+@pytest.mark.parametrize(
+    "p, message",
+    [
+        (theta(lam=-1.0), "lambda_2"),
+        (theta().at[0].set(jnp.nan), "finite positive M_c"),
+        (theta().at[0].set(0.0), "finite positive M_c"),
+        (theta().at[1].set(0.0), "1 <= q <= 100"),
+        (theta(chi=4.0), "remnant spin"),
+    ],
+)
+def test_checkified_gradient_reports_first_failed_guard(p, message):
+    # The derivative must report the guard the staged evaluation stops at.
+    def loss(p):
+        h = nsbh.gen_IMRPhenomNSBH(F, p, 20.0, diagnostics=True)
+        return jnp.sum(jnp.abs(h * 1e23) ** 2)
+
+    err, (_, gradient) = jax.jit(checkify.checkify(jax.value_and_grad(loss)))(p)
+    assert err.get() is not None and message in err.get()
+    assert (np.asarray(gradient) == 0.0).all()
+
+
+def test_checkified_gradient_of_valid_sample_reports_nothing():
+    def loss(p):
+        h = nsbh.gen_IMRPhenomNSBH(F, p, 20.0, diagnostics=True)
+        return jnp.sum(jnp.abs(h * 1e23) ** 2)
+
+    err, _ = jax.jit(checkify.checkify(jax.value_and_grad(loss)))(theta())
+    assert err.get() is None
+
+
+@pytest.mark.parametrize(
+    "invalid",
+    [
+        theta(chi=4.0).at[5].set(0.0),
+        theta(chi=4.0).at[6].set(jnp.nan),
+        theta(chi=4.0).at[7].set(jnp.nan),
+    ],
+    ids=["zero_distance", "nan_tc", "nan_phase"],
+)
+@pytest.mark.parametrize("layout", ["scan", "vmap"])
+def test_rejected_sample_with_nonfinite_inputs_does_not_leak(invalid, layout):
+    batch = jnp.stack([theta(), invalid])
+
+    def valid_loss(scale):
+        def loss(p):
+            return _masked_loglike(p, p[5] * scale)
+
+        if layout == "scan":
+            return jax.lax.scan(lambda c, p: (c, loss(p)), None, batch)[1][0]
+        return jax.vmap(loss)(batch)[0]
+
+    value, gradient = jax.jit(jax.value_and_grad(valid_loss))(1.0)
+    # The loss scales as scale**-2.
+    np.testing.assert_allclose(gradient, -2.0 * value, atol=0.0, rtol=1e-12)
+
+
+@pytest.mark.parametrize("d_L", [0.0, jnp.nan])
+def test_rejected_sample_at_nonfinite_distance_has_zero_gradient(d_L):
+    value, gradient = jax.jit(jax.value_and_grad(_masked_loglike, argnums=1))(
+        theta(lam=-1.0), d_L
+    )
+    assert value == -np.inf
+    assert gradient == 0.0
+
+
+@pytest.mark.parametrize(
+    "frequencies",
+    [F.at[0].set(0.0), -F, F.at[1].set(jnp.nan)],
+    ids=["zero", "negative", "nan"],
+)
+def test_nonfinite_frequency_sample_has_zero_gradient(frequencies):
+    def loss(p):
+        h = nsbh.gen_IMRPhenomNSBH(frequencies, p, 20.0)
+        valid = jnp.all(jnp.isfinite(h))
+        safe = jnp.where(valid, h, 0.0)
+        return jnp.where(valid, -jnp.sum(jnp.abs(safe * 1e23) ** 2), -jnp.inf)
+
+    for p in (theta(), theta(lam=-1.0)):
+        value, gradient = jax.jit(jax.value_and_grad(loss))(p)
+        assert value == -np.inf
+        assert (np.asarray(gradient) == 0.0).all()
+        assert not nsbh._differentiable_at(frequencies, *p, 0.0, False)
+
+
+@pytest.mark.parametrize(
+    "f_ref, f_max",
+    [
+        (0.0, None),
+        (np.nan, None),
+        (1e300, None),
+        (20.0, np.nan),
+        (20.0, -1.0),
+        (20.0, 0.0),
+    ],
+)
+@pytest.mark.parametrize(
+    "p", [theta(chi=4.0), theta(lam=-1.0)], ids=["remnant", "tides"]
+)
+def test_rejected_sample_with_bad_settings_has_zero_gradient(p, f_ref, f_max):
+    def loss(p):
+        h = nsbh.gen_IMRPhenomNSBH(F, p, f_ref, f_max=f_max)
+        valid = jnp.all(jnp.isfinite(h))
+        safe = jnp.where(valid, h, 0.0)
+        return jnp.where(valid, -jnp.sum(jnp.abs(safe * 1e23) ** 2), -jnp.inf)
+
+    value, gradient = jax.jit(jax.value_and_grad(loss))(p)
+    assert value == -np.inf
+    assert (np.asarray(gradient) == 0.0).all()
+
+
+@pytest.mark.parametrize("f_ref, f_max", [(0.0, None), (np.nan, None), (20.0, np.nan)])
+def test_valid_sample_with_bad_settings_has_zero_gradient(f_ref, f_max):
+    def loss(p):
+        h = nsbh.gen_IMRPhenomNSBH(F, p, f_ref, f_max=f_max)
+        valid = jnp.all(jnp.isfinite(h))
+        return jnp.where(
+            valid, -jnp.sum(jnp.abs(jnp.where(valid, h, 0.0)) ** 2), -jnp.inf
+        )
+
+    value, gradient = jax.jit(jax.value_and_grad(loss))(theta())
+    assert value == -np.inf
+    assert (np.asarray(gradient) == 0.0).all()
+
+
+def test_traced_settings_select_the_in_domain_point():
+    def loss(p, f_ref):
+        h = nsbh.gen_IMRPhenomNSBH(F, p, f_ref)
+        valid = jnp.all(jnp.isfinite(h))
+        return jnp.where(
+            valid, -jnp.sum(jnp.abs(jnp.where(valid, h, 0.0)) ** 2), -jnp.inf
+        )
+
+    grad = jax.jit(jax.grad(loss))
+    assert (np.asarray(grad(theta(lam=-1.0), 0.0)) == 0.0).all()
+    assert np.isfinite(grad(theta(), 20.0)).all()
+
+
+@pytest.mark.parametrize("method", ["__call__", "amplitude", "phase", "strain"])
+def test_integer_constant_fields_match_float_values(method):
+    wf = ripplegw.waveform("IMRPhenomNSBH")
+    floats = {
+        k: jnp.float32(v)
+        for k, v in canonical_params(wf, s2_z=0.0, lambda_2=400.0).items()
+    }
+    integers = {**floats, "s2_z": 0, "lambda_2": 400}
+    grid = F.astype(jnp.float32)
+    expected = jax.jit(getattr(wf, method))(grid, floats)
+    actual = jax.jit(getattr(wf, method))(grid, integers)
+    for e, a in zip(jax.tree.leaves(expected), jax.tree.leaves(actual)):
+        assert a.dtype == e.dtype
+        np.testing.assert_allclose(a, e, atol=0.0, rtol=1e-6)
+
+
+@pytest.mark.parametrize("method", ["__call__", "amplitude", "phase", "strain"])
+def test_integer_constant_fields_are_differentiable(method):
+    wf = ripplegw.waveform("IMRPhenomNSBH")
+    floats = canonical_params(wf, s2_z=0.0, lambda_2=400.0)
+    integers = {**floats, "s2_z": 0, "lambda_2": 400}
+
+    def power(params, d_L):
+        output = getattr(wf, method)(F, {**params, "d_L": d_L})
+        return sum(jnp.sum(jnp.abs(x * 1e23) ** 2) for x in jax.tree.leaves(output))
+
+    expected = jax.jit(jax.grad(lambda d: power(floats, d)))(200.0)
+    actual = jax.jit(jax.grad(lambda d: power(integers, d)))(200.0)
+    assert np.isfinite(actual)
+    np.testing.assert_allclose(actual, expected, atol=0.0, rtol=1e-12)
+
+
+@pytest.mark.parametrize(
+    "p",
+    [
+        theta(),
+        theta(m1=140.0),
+        theta(m1=141.4),
+        theta(lam=5000.0),
+        theta(lam=5001.0),
+        theta(chi=1.0),
+        theta(chi=1.2),
+        theta().at[1].set(0.26),
+        theta().at[0].set(jnp.nan),
+    ],
+)
+def test_derivative_domain_matches_staged_rejection(p):
+    rejected = np.isnan(evaluate(p)).all()
+    valid = nsbh._differentiable_at(F, *p, 0.0, False)
+    assert bool(valid) == (not rejected)
+
+
+@pytest.mark.parametrize("dtype", [jnp.float32, jnp.float64])
+def test_mass_ratio_endpoint_tolerance_in_each_precision(dtype):
+    def generate(q, m2):
+        mc, eta = ms_to_Mc_eta(jnp.array([q * m2, m2], dtype=dtype))
+        p = jnp.array([mc, eta, 0.3, 0.0, 400.0, 200.0, 0.0, 0.0], dtype=dtype)
+        return jax.jit(nsbh.gen_IMRPhenomNSBH)(F.astype(dtype), p, 20.0)
+
+    for m2 in (1.0009765625, 1.3, 1.4, 2.0):
+        assert np.isfinite(generate(100.0, m2)).all()
+    assert np.isnan(generate(100.0001, 1.4)).all()
+
+
+def test_mass_ratio_endpoint_agrees_across_public_methods():
+    # Exact float32 masses with q = 100 whose float32 eta rounds below the
+    # boundary; a float64 M_c must not promote eta before the guard.
+    _, eta = ms_to_Mc_eta(jnp.array([100.09765625, 1.0009765625], dtype=jnp.float32))
+    assert eta < np.float32(100.0 / 101.0**2)
+    wf = ripplegw.waveform("IMRPhenomNSBH")
+    params = canonical_params(wf)
+    params = {**params, "M_c": jnp.float64(params["M_c"]), "eta": eta}
+    for method in ("__call__", "amplitude", "phase", "strain"):
+        output = jax.jit(getattr(wf, method))(F, params)
+        assert all(np.isfinite(x).all() for x in jax.tree.leaves(output)), method
+
+
+unchecked = jax.jit(lambda p: nsbh.gen_IMRPhenomNSBH(F, p, 20.0, domain_checks=False))
+
+
+def _unchecked_overlap(p):
+    h = nsbh.gen_IMRPhenomNSBH(F, p, 20.0, domain_checks=False)
+    return jnp.real(jnp.sum(h * jnp.exp(-1j * F / 37.0))) * 1e23
+
+
+@pytest.mark.parametrize("p", [theta(), theta(m1=70.0), theta(lam=5000.0)])
+def test_unchecked_mode_matches_checked_inside_domain(p):
+    # Only XLA's fusion differs between the graphs, so agreement is to rounding.
+    np.testing.assert_allclose(unchecked(p), evaluate(p), atol=0.0, rtol=1e-11)
+    np.testing.assert_allclose(
+        jax.jit(jax.grad(_unchecked_overlap))(p),
+        jax.jit(jax.grad(_overlap))(p),
+        atol=0.0,
+        rtol=1e-9,
+    )
+
+
+@pytest.mark.parametrize("p", [theta(m1=141.4), theta(lam=5001.0)])
+def test_unchecked_mode_extrapolates_outside_domain(p):
+    assert np.isnan(evaluate(p)).all()
+    assert np.isfinite(unchecked(p)).all()
+
+
+def test_unchecked_mode_compiles_without_guards(monkeypatch):
+    def compiled(domain_checks):
+        def generate(p):
+            return nsbh.gen_IMRPhenomNSBH(F, p, 20.0, domain_checks=domain_checks)
+
+        return jax.jit(generate).lower(theta()).compile().as_text()
+
+    assert "conditional" in compiled(True)
+    assert "conditional" not in compiled(False)
+
+    # Gradients bypass the custom derivative rule and its domain predicate.
+    calls = []
+    differentiable_at = nsbh._differentiable_at
+
+    def spy(*args):
+        calls.append(None)
+        return differentiable_at(*args)
+
+    monkeypatch.setattr(nsbh, "_differentiable_at", spy)
+    jax.make_jaxpr(jax.grad(_overlap))(theta())
+    assert calls
+    calls.clear()
+    jax.make_jaxpr(jax.grad(_unchecked_overlap))(theta())
+    assert not calls
+
+
+def test_unchecked_mode_rejects_diagnostics():
+    with pytest.raises(ValueError, match="domain_checks"):
+        nsbh.gen_IMRPhenomNSBH(F, theta(), 20.0, diagnostics=True, domain_checks=False)
+    with pytest.raises(ValueError, match="domain_checks"):
+        ripplegw.waveform("IMRPhenomNSBH", diagnostics=True, domain_checks=False)
+
+
+def test_unchecked_mode_across_public_methods():
+    checked = ripplegw.waveform("IMRPhenomNSBH")
+    fast = ripplegw.waveform("IMRPhenomNSBH", domain_checks=False)
+    assert "domain_checks=False" in repr(fast)
+    params = canonical_params(checked)
+    for method in ("__call__", "amplitude", "phase", "strain"):
+        expected = jax.jit(getattr(checked, method))(F, params)
+        actual = jax.jit(getattr(fast, method))(F, params)
+        for a, e in zip(jax.tree.leaves(actual), jax.tree.leaves(expected)):
+            np.testing.assert_allclose(a, e, atol=0.0, rtol=1e-11, err_msg=method)
