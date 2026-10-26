@@ -30,11 +30,10 @@ from tests.cross_validation.cw._lal_helpers import (
     find_ephemeris,
     log10_str,
     make_fake_data_v5,
-    overlap_loss,
 )
 from tests.cross_validation.cw.runner import MAX_RELATIVE_NORM_ERROR
 from tests.cross_validation.cw.runner import mismatch_threshold as _threshold
-from tests.helpers.metrics import relative_norm_error
+from tests.helpers.metrics import relative_norm_error, time_domain_overlap_loss
 
 EARTH_FILE, SUN_FILE = find_ephemeris()
 pytestmark = [
@@ -116,7 +115,7 @@ def test_pulsar_signal_matches_makefakedata_v5():
     )
     h_ref = tseries.data.data
 
-    loss = overlap_loss(h_mine, h_ref)
+    loss = time_domain_overlap_loss(h_mine, h_ref)
     norm_error = relative_norm_error(h_mine, h_ref)
     threshold = _threshold(_F0, is_binary=False)
     print(
@@ -203,7 +202,7 @@ def test_binary_pulsar_signal_matches_makefakedata_v5():
     )
     h_ref = tseries.data.data
 
-    loss = overlap_loss(h_mine, h_ref)
+    loss = time_domain_overlap_loss(h_mine, h_ref)
     norm_error = relative_norm_error(h_mine, h_ref)
     threshold = _threshold(_F0, is_binary=True)
     print(

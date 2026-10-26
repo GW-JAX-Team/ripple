@@ -44,5 +44,5 @@ See [Working with Waveforms](guides/waveforms.md) for the full interface and `ri
 ## Where is `t_c` (time of coalescence)?
 
 It isn't exposed.
-Every built-in model fixes the time of coalescence internally and only exposes `phase_c` (coalescence phase) and `iota` (inclination) as extrinsic parameters — see [Parameters and Conventions](guides/parameters.md).
-If your use case needs to vary `t_c`, you currently need to apply the standard linear-in-frequency phase shift ($e^{2\pi i f\,\delta t_c}$) yourself on the returned strain.
+Every built-in model fixes the time of coalescence internally and only exposes `phase_c` (coalescence phase) and `iota` (inclination) as extrinsic parameters — see [Parameters and Conventions](notes/parameters.md).
+If your use case needs to vary `t_c`, you currently need to apply the standard linear-in-frequency phase shift ($e^{-2\pi i f\,\delta t_c}$) yourself on the returned strain.

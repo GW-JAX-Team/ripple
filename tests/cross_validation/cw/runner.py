@@ -28,9 +28,8 @@ from tests.cross_validation.cw._lal_helpers import (
     detector_strain_from_am_response,
     find_ephemeris,
     make_fake_data_v5,
-    overlap_loss,
 )
-from tests.helpers.metrics import relative_norm_error
+from tests.helpers.metrics import relative_norm_error, time_domain_overlap_loss
 
 _SITES = ("H1", "L1", "V1")
 _DURATIONS = (16.0, 100.0, 1000.0, 3600.0)  # seconds
@@ -130,7 +129,7 @@ def run_trial(
     """Run one trial and return ``(mismatch, relative_norm_error, error)``.
 
     The mismatch is the FFT-free, white, normalized inner-product loss implemented
-    by :func:`tests.cross_validation.cw._lal_helpers.overlap_loss`. ``error`` is
+    by :func:`tests.helpers.metrics.time_domain_overlap_loss`. ``error`` is
     ``None`` on success; otherwise both metrics are ``nan`` so one bad sample cannot
     kill the sweep. ``relative_norm_error`` separately detects a global amplitude
     scale regression that normalized mismatch intentionally cannot see.
@@ -247,7 +246,11 @@ def run_trial(
             lal, det, trial.alpha, trial.delta, trial.psi, tseries, hp, hc
         )
         h_ref = tseries.data.data
-        return overlap_loss(h_mine, h_ref), relative_norm_error(h_mine, h_ref), None
+        return (
+            time_domain_overlap_loss(h_mine, h_ref),
+            relative_norm_error(h_mine, h_ref),
+            None,
+        )
     except Exception as exc:  # noqa: BLE001 - one bad trial must not kill the sweep
         return float("nan"), float("nan"), str(exc)
 
@@ -349,7 +352,7 @@ def _hardware_info() -> dict:
         "python": platform.python_version(),
         "jax_version": jax.__version__,
         "jax_devices": [str(d) for d in jax.devices()],
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),  # noqa: DTZ005 - local display timestamp only
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
 
 

@@ -2,6 +2,8 @@
 #
 # overlap_loss: maximum PSD-weighted ``1 - overlap`` across the sampled points.
 # phase_offset: maximum absolute inner-product phase at ``tc = phi_c = 0``.
+# time_aligned_overlap_loss: maximum ``overlap_loss`` after removing the fitted time
+#   shift (test_time_shift_convention.py; IMRPhenomPv2 models only).
 #
 # Waveforms inherit an omitted metric from ``[lal.defaults]``. The tolerance-table
 # test keeps these overlap-loss values aligned with the developer documentation.
@@ -26,8 +28,18 @@ phase_offset = 1e-9
 overlap_loss = 1e-15
 phase_offset = 1e-11
 
+[lal.IMRPhenomNSBH]
+overlap_loss = 1e-15
+phase_offset = 1e-9
+
 [lal.IMRPhenomPv2]
 overlap_loss = 1e-4
+time_aligned_overlap_loss = 1e-15
+# phase_offset: precessing; not checked by test_phase_convention.py.
+
+[lal.IMRPhenomPv2_NRTidalv2]
+overlap_loss = 1e-4
+time_aligned_overlap_loss = 1e-15
 # phase_offset: precessing; not checked by test_phase_convention.py.
 
 [lal.IMRPhenomXAS]

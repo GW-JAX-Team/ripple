@@ -50,6 +50,8 @@ Tidal models (`TaylorF2`, `IMRPhenomD_NRTidalv2`, `IMRPhenomXAS_NRTidalv3`) take
 | `False` (default) | `lambda_1`, `lambda_2` | Dimensionless tidal deformability of the primary/secondary |
 | `True` | `lambda_tilde`, `delta_lambda_tilde` | The mass-weighted combinations of arXiv:1402.5156 Eq. 5–6 |
 
+`IMRPhenomNSBH` is the exception: only the neutron star (the secondary) is deformable, so it takes a single `lambda_2` and `s1_z` is the black-hole spin.
+
 Convert between them with `ripplegw.conversions.lambdas_to_lambda_tildes` / `lambda_tildes_to_lambdas` (also packed-array signatures, `(lambda_1, lambda_2, mass_1, mass_2)`).
 
 ### Extrinsic parameters
@@ -60,7 +62,7 @@ Convert between them with `ripplegw.conversions.lambdas_to_lambda_tildes` / `lam
 | `phase_c` | Coalescence phase | radians |
 | `iota` | Inclination angle between the orbital angular momentum and the line of sight | radians |
 
-`d_L` is what [`at_unit_distance`](waveforms.md#evaluating-at-a-fixed-distance) sets to 1.0.
+`d_L` is what [`at_unit_distance`](../guides/waveforms.md#evaluating-at-a-fixed-distance) sets to 1.0.
 There is no `t_c` (time of coalescence) parameter — see the [FAQ](../FAQ.md) for why.
 
 ## Bursts

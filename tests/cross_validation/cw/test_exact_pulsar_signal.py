@@ -25,8 +25,8 @@ from ripplegw.waveforms.cw.pulsar_signal import exact_pulsar_polarizations
 from tests.cross_validation.cw._lal_helpers import (
     find_ephemeris,
     log10_str,
-    overlap_loss,
 )
+from tests.helpers.metrics import time_domain_overlap_loss
 
 EARTH_FILE, SUN_FILE = find_ephemeris()
 pytestmark = [
@@ -130,7 +130,7 @@ def test_exact_pulsar_matches_lal_reference():
     f_cross = sin_zeta * (b * c2 - a * s2)
     h_ripple = f_plus * np.asarray(hp) + f_cross * np.asarray(hc)
 
-    loss = overlap_loss(h_ripple, h_lal)
+    loss = time_domain_overlap_loss(h_ripple, h_lal)
     print(f"\nexact pulsar: overlap loss = {loss:.2e} (log10 = {log10_str(loss)})")
     assert loss < 1e-10, f"overlap loss {loss:.2e} (log10={log10_str(loss)})"
 

@@ -225,7 +225,6 @@ def get_coeffs(theta: Float[Array, "4"]) -> Float[Array, "19"]:
         )
     )
 
-    # FIXME: Change to dictionary lookup
     return coeff
 
 

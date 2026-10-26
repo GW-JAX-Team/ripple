@@ -7,9 +7,9 @@ For the developer workflow, including the single local/Slurm/HTCondor cross-vali
 
 ```
 tests/
-├── unit/                 # focused registry and utility checks
+├── unit/                 # mirrors `src/ripplegw/`
 ├── integration/          # public behaviour of every registered waveform
-├── cross_validation/     # reference tests and their launcher
+├── cross_validation/     # reference tests that need the cross-validation group, and checks of their tooling
 ├── helpers/              # parameter, grid, metric, and configuration helpers
 └── psds/                 # PSD data used by frequency-domain validation
 ```
@@ -22,4 +22,4 @@ python -m tests.cross_validation.submit --scheduler local --waveform IMRPhenomD 
 ```
 
 Use `--scheduler slurm` or `--scheduler condor` to submit the same test to HPC, and `--plots` to retain figures.
-See the developer guide for prerequisites, CW ephemerides, result locations, and troubleshooting.
+See the Development section of the docs for prerequisites, CW ephemerides, result locations, and troubleshooting.

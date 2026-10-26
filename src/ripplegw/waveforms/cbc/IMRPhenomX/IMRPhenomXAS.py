@@ -1,4 +1,3 @@
-# from math import PI
 from collections.abc import Mapping
 from typing import Optional
 
@@ -583,8 +582,6 @@ def get_mergerringdown_raw_phase(
     delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
     mm1 = 0.5 * (1.0 + delta)
     mm2 = 0.5 * (1.0 - delta)
-    # chi_eff = mm1 * chi1 + mm2 * chi2
-    # S = (chi_eff - (38.0 / 113.0) * eta * (chi1 + chi2)) / (1.0 - (76.0 * eta / 113.0))
     chia = chi1 - chi2
     StotR = (mm1**2 * chi1 + mm2**2 * chi2) / (mm1**2 + mm2**2)
 
@@ -1179,7 +1176,6 @@ def get_intermediate_Amp(
     m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
-    # eta2 = eta * eta
     delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
 
     mm1 = 0.5 * (1.0 + delta)
@@ -1541,7 +1537,7 @@ def _phase_of(
         -(Phase(f_ref, theta_intrinsic, phase_coeffs) + linb * (f_ref * M_s) + lina)
         + PI / 4.0
     )
-    ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] + 2 * theta_extrinsic[2]
+    ext_phase_contrib = -2.0 * PI * f * theta_extrinsic[1] + 2 * theta_extrinsic[2]
     Psi = Psi + (linb * fM_s) + lina + phifRef - 2 * PI + ext_phase_contrib
     return Psi
 

@@ -23,8 +23,8 @@ from ripplegw.waveforms.cw.pulsar_signal import generate_pulsar_polarizations
 from tests.cross_validation.cw._lal_helpers import (
     find_ephemeris,
     log10_str,
-    overlap_loss,
 )
+from tests.helpers.metrics import time_domain_overlap_loss
 
 EARTH_FILE, SUN_FILE = find_ephemeris()
 pytestmark = [
@@ -98,6 +98,6 @@ def test_full_pulsar_matches_lal_barycenter_reference():
         ref_time_ssb=tref,
     )
     h_mine = f_plus * np.asarray(hp) + f_cross * np.asarray(hc)
-    loss = overlap_loss(h_mine, h_ref)
+    loss = time_domain_overlap_loss(h_mine, h_ref)
     print(f"\nfull pulsar: overlap loss = {loss:.2e} (log10 = {log10_str(loss)})")
     assert loss < 1e-10, f"overlap loss {loss:.2e} (log10={log10_str(loss)})"

@@ -1,6 +1,6 @@
 # Benchmarking
 
-This guide shows how to benchmark waveform generation in ripple.
+This page shows how to benchmark waveform generation in ripple.
 
 The recommended workflow is to use the maintained scripts in `timings/`, which run benchmarks and postprocessing for you.
 

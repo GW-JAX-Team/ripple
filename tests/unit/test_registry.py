@@ -23,7 +23,9 @@ BUILTINS = {
     "IMRPhenomD",
     "IMRPhenomD_NRTidalv2",
     "IMRPhenomHM",
+    "IMRPhenomNSBH",
     "IMRPhenomPv2",
+    "IMRPhenomPv2_NRTidalv2",
     "IMRPhenomXAS",
     "IMRPhenomXAS_NRTidalv3",
     "IMRPhenomXHM",
@@ -99,6 +101,7 @@ def test_list_waveforms_filter_metadata():
     prec = set(ripplegw.list_waveforms(is_precessing=True))
     assert prec == {
         "IMRPhenomPv2",
+        "IMRPhenomPv2_NRTidalv2",
         "IMRPhenomXP",
         "IMRPhenomXP_NRTidalv3",
         "IMRPhenomXPHM",

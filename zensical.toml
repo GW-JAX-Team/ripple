@@ -15,15 +15,25 @@ nav = [
     {"Home" = "index.md"},
     {"Installation" = "installation.md"},
     {"Quick Start" = "quickstart.md"},
+    {"Tutorials" = [
+        "tutorials/index.md",
+    ]},
     {"Guides" = [
         "guides/index.md",
         {"Working with Waveforms" = "guides/waveforms.md"},
-        {"Parameters and Conventions" = "guides/parameters.md"},
         {"JAX Transformations" = "guides/jax.md"},
-        {"Waveform Catalogue" = "guides/catalogue.md"},
-        {"Benchmarking" = "guides/benchmarking.md"},
     ]},
-    {"Developer Guide" = [
+    {"How-to" = [
+        "how-to/index.md",
+        {"Benchmarking" = "how-to/benchmarking.md"},
+    ]},
+    {"Technical Notes" = [
+        "notes/index.md",
+        {"Parameters and Conventions" = "notes/parameters.md"},
+        {"Waveform Catalogue" = "notes/catalogue.md"},
+        {"Validity Ranges" = "notes/validity_ranges.md"},
+    ]},
+    {"Development" = [
         "dev/index.md",
         {"Architecture" = "dev/architecture.md"},
         {"Adding a Waveform" = "dev/adding_a_waveform.md"},
@@ -65,7 +75,7 @@ generic = true
 
 [project.markdown_extensions.toc]
 permalink = "¤"
-toc_depth = 4
+toc_depth = 3
 
 [project.plugins.mkdocstrings.handlers.python]
 paths = ["src"]
@@ -83,4 +93,4 @@ show_if_no_docstring = false
 show_signature_annotations = true
 show_source = false
 members_order = ["__all__", "alphabetical"]
-heading_level = 3
+heading_level = 2

@@ -28,7 +28,9 @@ The overlap loss is a raw same-grid comparison at identical inputs; it is not ma
 | IMRPhenomD | 1e-15 | 1e-11 |
 | IMRPhenomD_NRTidalv2 | 1e-15 | 1e-9 |
 | IMRPhenomHM | 1e-15 | 1e-11 |
+| IMRPhenomNSBH | 1e-15 | 1e-9 |
 | IMRPhenomPv2 | 1e-4 | — |
+| IMRPhenomPv2_NRTidalv2 | 1e-4 | — |
 | IMRPhenomXAS | 1e-15 | 1e-12 |
 | IMRPhenomXAS_NRTidalv3 | 1e-12 | 1e-7 |
 | IMRPhenomXHM | 1e-6 | 1e-6 |
@@ -40,8 +42,9 @@ The overlap-loss values mirror `tests/cross_validation/tolerances.toml`.
 
 ### Reference limits
 
-- **IMRPhenomPv2:** LAL and ripple use different procedures for the coalescence-time correction.
-  The resulting comparison is dominated by a linear phase ramp rather than an amplitude discrepancy.
+- **IMRPhenomPv2** and **IMRPhenomPv2_NRTidalv2:** ripple computes the coalescence-time correction exactly with autodiff, while LAL estimates it from a cubic spline.
+  The waveforms differ by a microsecond-scale time shift, so the comparison is dominated by a linear phase ramp rather than an amplitude discrepancy.
+  `tests/cross_validation/fd/test_time_shift_convention.py` fits and removes that shift; it requires the shift to stay below 100 μs and the realigned overlap loss below 1e-15 (`time_aligned_overlap_loss` in `tolerances.toml`).
 - **IMRPhenomXAS_NRTidalv3:** the non-machine-precision threshold remains under investigation.
 - **IMRPhenomXHM:** the threshold covers sensitivity of the `(3, 2)` mode near ringdown, where spheroidal-to-spherical mixing makes the phase derivative numerically delicate.
 - **IMRPhenomXP** and **IMRPhenomXPHM:** the MSA precession correction is ill-conditioned where the spin-evolution cubic has a near-double root, which is the weakly precessing regime.

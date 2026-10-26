@@ -127,7 +127,6 @@ def _phase_of(
         f_ref * M_s, theta_intrinsic, P_P_fref
     )
 
-    # dphiXAS = jax.grad(Phase, argnums=0)(f_final, theta_intrinsic[:4], bbh_phase_coeffs) / M_s
     dphiXAS = (
         PhaseDerivative(
             f_final, theta_intrinsic[:4], bbh_phase_coeffs, chip, a_prec_override
@@ -135,7 +134,7 @@ def _phase_of(
         / M_s
     )
     linb = dphiT - dphiXAS
-    ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] + 2 * theta_extrinsic[2]
+    ext_phase_contrib = -2.0 * PI * f * theta_extrinsic[1] + 2 * theta_extrinsic[2]
     phase_shift = (
         linb * (f_Ms - f_ref * M_s)
         - Phase(f_ref, theta_intrinsic[:4], bbh_phase_coeffs, chip, a_prec_override)

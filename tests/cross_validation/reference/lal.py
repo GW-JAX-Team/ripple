@@ -44,7 +44,9 @@ _APPROXIMANT_NAMES = {
     "IMRPhenomD": "IMRPhenomD",
     "IMRPhenomD_NRTidalv2": "IMRPhenomD_NRTidalv2",
     "IMRPhenomHM": "IMRPhenomHM",
+    "IMRPhenomNSBH": "IMRPhenomNSBH",
     "IMRPhenomPv2": "IMRPhenomPv2",
+    "IMRPhenomPv2_NRTidalv2": "IMRPhenomPv2_NRTidalv2",
     "IMRPhenomXAS": "IMRPhenomXAS",
     "IMRPhenomXAS_NRTidalv3": "IMRPhenomXAS_NRTidalv3",
     "IMRPhenomXHM": "IMRPhenomXHM",
@@ -53,7 +55,12 @@ _APPROXIMANT_NAMES = {
     "IMRPhenomXPHM": "IMRPhenomXPHM",
 }
 
-_TIDAL = {"TaylorF2", "IMRPhenomD_NRTidalv2", "IMRPhenomXAS_NRTidalv3"}
+_TIDAL = {
+    "TaylorF2",
+    "IMRPhenomD_NRTidalv2",
+    "IMRPhenomPv2_NRTidalv2",
+    "IMRPhenomXAS_NRTidalv3",
+}
 _PRECESSING = {"IMRPhenomPv2", "IMRPhenomXP", "IMRPhenomXPHM"}
 
 # PhenomXPrecVersion=222 surfaces an MSA-initialization failure as this LAL
@@ -244,6 +251,34 @@ class LALBackend:
                 None,
                 approximant,
             )
+        elif waveform == "IMRPhenomNSBH":
+            # LAL requires lambda_1 == 0 and derives the NS quadrupole-monopole parameter itself
+            laldict = lal.CreateDict()
+            lalsim.SimInspiralWaveformParamsInsertTidalLambda2(
+                laldict, params["lambda_2"]
+            )
+            hp, hc = lalsim.SimInspiralChooseFDWaveform(
+                m1_kg,
+                m2_kg,
+                0.0,
+                0.0,
+                params["s1_z"],
+                0.0,
+                0.0,
+                params["s2_z"],
+                distance,
+                inclination,
+                phi_ref,
+                0,
+                0,
+                0,
+                df,
+                f_l,
+                f_u,
+                f_ref,
+                laldict,
+                approximant,
+            )
         elif waveform in _TIDAL:
             l1, l2 = _lambda_1_2(params, m1, m2)
             laldict = lal.CreateDict()
@@ -256,11 +291,11 @@ class LALBackend:
             hp, hc = lalsim.SimInspiralChooseFDWaveform(
                 m1_kg,
                 m2_kg,
-                0.0,
-                0.0,
+                params.get("s1_x", 0.0),
+                params.get("s1_y", 0.0),
                 params["s1_z"],
-                0.0,
-                0.0,
+                params.get("s2_x", 0.0),
+                params.get("s2_y", 0.0),
                 params["s2_z"],
                 distance,
                 inclination,

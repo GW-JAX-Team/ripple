@@ -18,7 +18,8 @@ lal = pytest.importorskip("lal")
 lalpulsar = pytest.importorskip("lalpulsar")
 
 from ripplegw.waveforms.cw.pulsar_signal import _binary_source_phase
-from tests.cross_validation.cw._lal_helpers import log10_str, overlap_loss
+from tests.cross_validation.cw._lal_helpers import log10_str
+from tests.helpers.metrics import time_domain_overlap_loss
 
 pytestmark = pytest.mark.accuracy
 
@@ -71,6 +72,6 @@ def test_binary_source_phase_matches_lal_spinorbit():
         )
     )
     # Compare phase-induced strain shapes with normalized time-domain mismatch.
-    loss = overlap_loss(np.cos(phi_mine), np.cos(phi_lal))
+    loss = time_domain_overlap_loss(np.cos(phi_mine), np.cos(phi_lal))
     print(f"\nbinary phase: overlap loss = {loss:.2e} (log10 = {log10_str(loss)})")
     assert loss < 1e-12, f"overlap loss {loss:.2e} (log10={log10_str(loss)})"

@@ -9,13 +9,30 @@ For the enforcing thresholds, see [Reference Comparisons and Limits](reference_c
 The frequency-domain overlap is a raw same-grid comparison at identical inputs.
 It is not maximised over time or phase.
 
+### Time origin and `tc`
+
+LAL's frequency-domain models take no coalescence time.
+Each places a model-specific feature at `t = 0`, and the choice differs between models: `IMRPhenomD` uses the exact phase derivative at the peak-amplitude frequency, the `IMRPhenomX` family a fitted peak-time shift (`linb`), the `IMRPhenomPv2` models a spline estimate at the ringdown or merger frequency, and `IMRPhenomNSBH` the merger-ringdown phase derivative at the requested upper frequency `f_max`.
+ripple takes `f_max` from the model's `f_max` argument, defaulting to LAL's own default `Mf = 0.2`; the LAL comparison sets it to the grid's upper edge.
+ripple reproduces each model's time origin, except for the two `IMRPhenomPv2` models described below.
+The `tc` entry of the `gen_*` parameter arrays multiplies the strain by $e^{-2\pi i f\,t_c}$, which delays the signal by `tc` under LAL's Fourier convention $\tilde h(f) = \int h(t)\,e^{-2\pi i f t}\,dt$; the waveform classes fix `tc = 0`.
+
 ### IMRPhenomPv2
 
-LAL estimates the coalescence-time correction from the derivative of a natural-cubic spline through a small phase grid around ringdown.
-ripple computes the corresponding derivative directly with JAX autodiff.
-The resulting time correction can differ near the merger-ringdown feature, appearing as a linear phase ramp rather than an amplitude error.
+Both LAL and ripple place the ringdown frequency `f_RD` at `t = 0` using $t_0 = \frac{1}{2\pi}\,\frac{d\Phi}{df}$ at `f_RD`.
+LAL estimates the derivative from a natural cubic spline through 10 phase samples on `[0.8, 1.2] f_RD` (clipped at `Mf = 0.2`); ripple evaluates it exactly with JAX autodiff.
+The spline derivative converges to the autodiff value as its grid is refined, so the difference is LAL's interpolation error rather than a modelling choice.
+The two waveforms differ by a parameter-dependent time shift of order microseconds, which appears as a linear phase ramp and accounts for the whole overlap loss: substituting LAL's spline time shift into ripple reproduces LAL at the float64 floor.
+The shift is applied identically to both polarizations after the twist-up, so it is equivalent to a shift of the coalescence time.
 At zero in-plane spin, both implementations remain continuous.
 `IMRPhenomPv2` is nevertheless not required to reduce to `IMRPhenomD`: its LAL convention swaps the component masses and spins, changing their assignment in asymmetric phase terms.
+
+### IMRPhenomPv2_NRTidalv2
+
+NRTidalv2 is applied to the co-precessing IMRPhenomD waveform before the precession twist-up, as in `LALSimIMRPhenomP.c`.
+Two LAL details must be reproduced: the quadrupole-monopole terms (`dQuadMon`) that LAL feeds into the IMRPhenomD inspiral phase (shared with `IMRPhenomD_NRTidalv2`), and the NRTidalv2 merger frequency computed with the mass ratio `>= 1`.
+The time origin follows `IMRPhenomPv2` at the NRTidalv2 merger frequency: ripple takes the exact derivative of the co-precessing phase, tidal terms included, where LAL uses the same 10-point spline on `[0.8, 1.2] f_merger`.
+The resulting microsecond-scale time shift is the only difference from LAL.
 
 ### IMRPhenomXHM
 

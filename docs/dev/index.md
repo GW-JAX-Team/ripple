@@ -1,6 +1,6 @@
-# Developer Guide
+# Development
 
-This guide covers contributing to ripple's internals — in particular, implementing a new waveform model.
+These pages cover contributing to ripple's internals — in particular, implementing a new waveform model.
 For the process side of contributing (bug reports, pull requests, feature principles), see [Contributing](../contributing.md).
 
 ## Setting up
@@ -14,7 +14,7 @@ uv run pre-commit install
 
 `pre-commit` should pass cleanly before you open a PR.
 
-## In this guide
+## In this section
 
 - **[Architecture](architecture.md)** — Why ripple is organised the way it is: the design goals, the registry, and the `Waveform` class hierarchy.
 - **[Adding a Waveform](adding_a_waveform.md)** — Step by step: implement, register, and validate a new model.

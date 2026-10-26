@@ -11,6 +11,7 @@ import pytest
 import ripplegw
 from ripplegw.conversions import ms_to_Mc_eta
 from tests.cross_validation.runner import (
+    anchor_to_band_edge,
     default_grid,
     get_tolerance,
     load_psd,
@@ -27,8 +28,8 @@ NON_PRECESSING = ripplegw.list_waveforms(domain="FD", is_precessing=False)
 
 def _fiducial_params(wf) -> dict:
     """Return canonical parameters with zero coalescence time and phase."""
-    if regime(wf) == "bns":
-        m1, m2 = 1.4, 1.2
+    if regime(wf) in ("bns", "nsbh"):
+        m1, m2 = (5.0, 1.4) if regime(wf) == "nsbh" else (1.4, 1.2)
         s1_z = s2_z = 0.0  # zero spin/deformability: BBH limit, for a clean phase check
     else:
         m1, m2 = 40.0, 25.0
@@ -61,6 +62,7 @@ def test_reference_phase_convention(
     )
     wf = ripplegw.waveform(waveform_name, f_ref=5.0)
     grid = default_grid(wf, T_override=segment_duration_override)
+    wf = anchor_to_band_edge(wf, grid)
     params = _fiducial_params(wf)
 
     ref = reference.generate(waveform_name, params, grid)

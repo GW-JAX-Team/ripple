@@ -3,7 +3,7 @@ name = "rippleGW"
 dynamic = ["version"]
 description = "A JAX-based package for differentiable gravitational-wave waveform generation"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 authors = [
     { name = "Thomas Edwards", email = "tedwards2412@gmail.com" },
 ]
@@ -13,9 +13,9 @@ maintainers = [
 license = { file = "LICENSE" }
 keywords = ["gravitational waves", "jax"]
 classifiers = [
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "License :: OSI Approved :: MIT License",
     "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",
@@ -43,7 +43,6 @@ test = [
     "pytest-cov>=6.0.0",
     "ruff>=0.12.2",
     "tqdm>=4.66.0",
-    "pyright>=1.1.402",
 ]
 cross-validation = [
     "lalsuite",
@@ -83,7 +82,7 @@ testpaths = ["tests"]
 markers = [
     "accuracy: compares waveform output against its registered reference calculation",
     "smoke: accuracy checks cheap enough to run on every CI gate (few parameter draws)",
-    "slow: heavy compile path already covered by another test; runs on main, skipped by -m 'not slow'",
+    "slow: heavy paths on very large models; runs on main and release, skipped by -m 'not slow'",
 ]
 
 [tool.ruff]
@@ -111,14 +110,14 @@ known-first-party = ["tests"]
 # form part of ripple's public import paths.
 "src/ripplegw/waveforms/**/*.py" = ["N999"]
 
-[tool.pyright]
-include = ["src"]
-reportUnnecessaryTypeIgnoreComment = "error"
-
 [tool.ty.src]
-# Match Pyright's source-only scope; tests have optional LAL dependencies and
-# remain covered by pytest and the explicitly requested Ruff test check.
+# Tests have optional LAL dependencies and remain covered by pytest and the
+# explicitly requested Ruff test check.
 include = ["src"]
+
+[tool.ty.rules]
+possibly-unresolved-reference = "error"
+unused-ignore-comment = "error"
 
 [tool.coverage.report]
 exclude_also = [

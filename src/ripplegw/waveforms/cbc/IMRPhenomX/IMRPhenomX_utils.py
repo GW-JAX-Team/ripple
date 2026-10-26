@@ -26,8 +26,6 @@ def get_cutoff_fMs(
     m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta_s = m1_s * m2_s / (M_s**2.0)
-    # m1Sq = m1_s * m1_s
-    # m2Sq = m2_s * m2_s
 
     delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta_s, 0.0))
     mm1 = 0.5 * (1.0 + delta)

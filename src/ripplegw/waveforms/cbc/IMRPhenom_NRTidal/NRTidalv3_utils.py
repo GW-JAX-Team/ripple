@@ -12,25 +12,6 @@ from ripplegw.waveforms.cbc.Taylor.TaylorF2 import (
     get_6PNQM2SCoeff,
 )
 
-"""
-Corrections from NRTidalv3: (2311.07456)
----------------------------
-
-- Phase
-- Amplitude -> same as NRTidalv2, reuse
-- Spin effects
-- Spin precession effects
-
-Uses merger frequency as stopping point -> tapering
-|_> For (much) later: look into RLO frequency
-"""
-
-
-"""
-Compute the merger frequency of a BNS system for NRTidalv3 (https://arxiv.org/pdf/2311.07456.pdf).
-This uses a new fit from Gonzalez, et. al (2022) Eq. (23) of https://arxiv.org/abs/2210.16366.
-"""
-
 
 def _get_merger_frequency(theta: Float[Array, "6"]) -> FloatLike:
     """
@@ -126,7 +107,6 @@ def fullTidalPhaseCorrection(
     m1, m2, _, _, lambda1, lambda2 = theta_intrinsic
     Xa = m1 / (m1 + m2)
     x = PI * Mf
-    # x_23 = x ** (2.0 / 3.0)
 
     Xb = m2 / (m1 + m2)
     c2pn, c3pn, c3p5pn = _get_phenomx_spin_coefficients(theta_intrinsic)
@@ -146,8 +126,6 @@ def fullTidalPhaseCorrection(
         NRTidalv3_phase * (1 - P_P)
         + get_tidal_phase_PN(x, Xa, lambda1, lambda2, PN_coeffs) * P_P
     )
-    # psi_QM = get_qm_phase_correction(Mf, theta_intrinsic)
-    # psi_SS = get_spin_phase_correction(x_23, theta_intrinsic)
 
     return psi_T + psi_SS
 
@@ -771,8 +749,6 @@ def get_tidalphasePN_coeffs(theta_intrinsic: Float[Array, "6"]) -> Float[Array, 
     Coefficients or the PN tidal phase correction, at 7.5PN, to connect with NRTidalv3 Phase post-merger, see Eq. (45) of https://arxiv.org/pdf/2311.07456.pdf
     XLALSimNRTunedTidesSetFDTidalPhase_PN_Coeffs
     """
-
-    # PN_coeffs = jnp.zeros(10)
 
     m1, m2, _, _, _, _ = theta_intrinsic
     M = m1 + m2
