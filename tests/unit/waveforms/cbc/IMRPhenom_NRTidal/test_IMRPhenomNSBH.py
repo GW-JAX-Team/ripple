@@ -1,9 +1,10 @@
-"""IMRPhenomNSBH tidal root ``xi_tide`` against an independent polynomial solver."""
+"""IMRPhenomNSBH helpers: the tidal root ``xi_tide`` and the Kerr ISCO radius near zero spin."""
 
 import importlib
 import itertools
 
 import jax
+import jax.numpy as jnp
 import numpy as np
 import pytest
 
@@ -56,3 +57,36 @@ def test_xi_tide_gradient_matches_finite_differences(q, a, C):
         down[i] -= step
         expected[i] = (_reference_xi(*up) - _reference_xi(*down)) / (2.0 * step)
     np.testing.assert_allclose(actual, expected, atol=0.0, rtol=1e-5)
+
+
+def test_kerr_isco_radius_at_zero_spin():
+    # r = 6 - (4 sqrt(6) / 3) a + O(a^2); the closed form gives 0/0 for d/da here.
+    value, grad = jax.value_and_grad(nsbh.kerr_isco_radius)(0.0)
+    np.testing.assert_allclose(value, 6.0, atol=0.0, rtol=1e-15)
+    np.testing.assert_allclose(grad, -4.0 * np.sqrt(6.0) / 3.0, atol=0.0, rtol=1e-15)
+
+
+@pytest.mark.parametrize("a", [1e-2, -1e-2])
+def test_kerr_isco_radius_branches_agree_at_switch(a):
+    # Series just inside |a| < 1e-2 against the closed form just outside.
+    fn = jax.value_and_grad(nsbh.kerr_isco_radius)
+    inside, outside = fn(np.nextafter(a, 0.0)), fn(a)
+    np.testing.assert_allclose(inside[0], outside[0], atol=0.0, rtol=1e-14)
+    np.testing.assert_allclose(inside[1], outside[1], atol=0.0, rtol=1e-12)
+
+
+@pytest.mark.parametrize(("a", "expected"), [(1.0, 1.0), (-1.0, 9.0), (0.5, 4.2330025)])
+def test_kerr_isco_radius_closed_form(a, expected):
+    np.testing.assert_allclose(nsbh.kerr_isco_radius(a), expected, rtol=1e-7)
+
+
+def test_waveform_gradient_finite_at_zero_bh_spin():
+    # Mc, eta, chi_BH = 0, chi_NS, lambda_2, d_L, t_c, phase_c
+    theta = jnp.array([3.971, 0.06693, 0.0, -0.01965, 1321.7, 100.0, 0.0, 0.3])
+    f = jnp.geomspace(10.0, 4000.0, 128)
+
+    def loss(t):
+        return jnp.sum(jnp.abs(nsbh.gen_IMRPhenomNSBH(f, t, 20.0)) ** 2)
+
+    assert np.all(np.isfinite(jax.grad(loss)(theta)))
+    assert np.all(np.isfinite(jax.jacfwd(loss)(theta)))

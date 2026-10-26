@@ -3,18 +3,12 @@
 import numpy as np
 import pytest
 
-from tests.cross_validation.cw._lal_helpers import overlap_loss as cw_overlap_loss
 from tests.helpers.metrics import relative_norm_error, time_domain_overlap_loss
 
 
 def test_time_domain_mismatch_is_zero_for_identical_series():
     h = np.array([0.2, -0.4, 0.1, 0.9])
     assert time_domain_overlap_loss(h, h) == pytest.approx(0.0)
-
-
-def test_cw_overlap_loss_remains_a_backward_compatible_alias():
-    h = np.array([0.2, -0.4, 0.1, 0.9])
-    assert cw_overlap_loss(h, h) == pytest.approx(time_domain_overlap_loss(h, h))
 
 
 def test_time_domain_mismatch_is_invariant_to_positive_amplitude_scale():

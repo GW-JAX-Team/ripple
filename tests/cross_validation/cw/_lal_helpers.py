@@ -2,16 +2,13 @@
 
 Direct-LAL tests build reference strains from SWIG-exposed LALPulsar routines;
 the MakeFakeData tests use ``XLALCWMakeFakeData``. This module provides
-ephemeris lookup, same-grid time-domain mismatch, detector projection, and
-MakeFakeData setup. Individual tests own their dependency skips.
+ephemeris lookup, detector projection, and MakeFakeData setup. Individual tests own their dependency skips.
 """
 
 import math
 import os
 
 import numpy as np
-
-from tests.helpers.metrics import time_domain_overlap_loss
 
 
 def find_ephemeris():
@@ -31,11 +28,6 @@ def find_ephemeris():
         if os.path.exists(c) and os.path.exists(s):
             return c, s
     return None, None
-
-
-def overlap_loss(h1, h2) -> float:
-    """CW alias for the shared same-grid time-domain mismatch."""
-    return time_domain_overlap_loss(h1, h2)
 
 
 def log10_str(loss: float) -> str:
