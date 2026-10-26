@@ -117,15 +117,32 @@ def baryonic_mass_from_C(C: FloatLike, Mg: FloatLike) -> FloatLike:
 
 def kerr_isco_radius(a: FloatLike) -> FloatLike:
     """Kerr ISCO radius in units of the BH mass (``XLALSimNSBH_rKerrISCO``)."""
-    # The radicand vanishes like a^2 at a = 0 so d(sqrt)/da is 0/0; nudge exactly-zero spins by 1e-9
-    # (value change < 1e-9, gradient w.r.t. ``a`` kept).
-    a = a + jnp.where(jnp.abs(a) < 1e-9, 1e-9, 0.0)
-    Z1 = 1.0 + (1.0 - a**2) ** (1.0 / 3.0) * (
-        (1.0 + a) ** (1.0 / 3.0) + (1.0 - a) ** (1.0 / 3.0)
+    # The radicand vanishes like a^2 at a = 0, so d(sqrt)/da is 0/0 there and 3 - Z1 loses its digits to
+    # cancellation nearby. For |a| < 1e-2 use the Taylor series through a^7 (truncation < 1e-18 in value,
+    # < 1e-15 in d/da); the closed form gets a safe spin there so its masked gradient stays finite.
+    small = jnp.abs(a) < 1e-2
+    s6 = 6.0**0.5
+    # descending coefficients of a^7 ... a^0
+    series = 0.0
+    for c in (
+        -107459.0 * s6 / 5038848.0,
+        -6935.0 / 104976.0,
+        -833.0 * s6 / 23328.0,
+        -241.0 / 1944.0,
+        -13.0 * s6 / 162.0,
+        -7.0 / 18.0,
+        -4.0 * s6 / 3.0,
+        6.0,
+    ):
+        series = series * a + c
+    a_safe = jnp.where(small, 0.5, a)
+    Z1 = 1.0 + (1.0 - a_safe**2) ** (1.0 / 3.0) * (
+        (1.0 + a_safe) ** (1.0 / 3.0) + (1.0 - a_safe) ** (1.0 / 3.0)
     )
-    Z2 = jnp.sqrt(3.0 * a**2 + Z1**2)
+    Z2 = jnp.sqrt(3.0 * a_safe**2 + Z1**2)
     root = jnp.sqrt((3.0 - Z1) * (3.0 + Z1 + 2.0 * Z2))
-    return jnp.where(a > 0.0, 3.0 + Z2 - root, 3.0 + Z2 + root)
+    closed = jnp.where(a_safe > 0.0, 3.0 + Z2 - root, 3.0 + Z2 + root)
+    return jnp.where(small, series, closed)
 
 
 def _xi_poly(z: FloatLike, q: FloatLike, a: FloatLike, mu: FloatLike) -> FloatLike:
@@ -143,9 +160,8 @@ def _xi_poly(z: FloatLike, q: FloatLike, a: FloatLike, mu: FloatLike) -> FloatLi
 
 
 _XI_GRID = 2048
-# The grid bracket is already ~bound/2048 wide; 32 halvings take it below 1e-12 relative,
-# and the implicit-function Newton step below refines the value to machine precision.
-# 64 iterations (the old value) are far beyond double precision and dominate the waveform.
+# The grid bracket is ~bound/2048 wide and 32 halvings shrink it by 2^-32; the implicit-function
+# Newton step below then squares the remaining error, which leaves the root at float64 precision.
 _XI_BISECT_ITERS = 32
 
 
@@ -901,7 +917,11 @@ def _amp_phase(
     output: str = "amp_phase",
     inclination: FloatLike = 0.0,
 ):
-    """Amplitude ``A >= 0`` and phase of ``h0 = A exp(i phase)`` (see module docstring for the sign convention)."""
+    """Amplitude ``A >= 0`` and phase of ``h0 = A exp(i phase)`` (see module docstring for the sign convention).
+
+    ``output`` selects what is returned: ``"amp_phase"``, ``"amplitude"``, ``"phase"``, ``"strain"`` (``h0``)
+    or ``"polarizations"`` (``hp, hc`` at ``inclination``).
+    """
     m1, m2 = Mc_eta_to_ms(jnp.array([mc, eta]))
     M = m1 + m2
     # Use the same converted coordinates as the waveform coefficients.
