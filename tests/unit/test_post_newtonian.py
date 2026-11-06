@@ -261,6 +261,26 @@ def test_equal_mass_gradient_diverges_for_unequal_spins(s1_z, s2_z):
     assert near > 30 * far
 
 
+@pytest.mark.parametrize("eta", [0.1, 0.2, 0.24, 0.2499])
+@pytest.mark.parametrize(
+    "s1_z,s2_z", [(0.0, 0.0), (0.3, 0.3), (-0.6, -0.6), (0.3, -0.2), (0.4, -0.4)]
+)
+def test_gradient_matches_finite_differences(eta, s1_z, s2_z):
+    # Every parameter, including equal (and zero) spins, where a guard that
+    # is too wide would silently drop part of the spin derivative.
+    f = 20.0
+    params = jnp.array([1.2, eta, s1_z, s2_z])
+    tau = lambda p: time_to_merger(f, p[0], p[1], p[2], p[3])
+    grad = np.asarray(jax.grad(tau)(params))
+    # The eta step shrinks near 1/4, where sqrt(1 - 4 eta) curves sharply.
+    steps = [1e-6, min(1e-6, 1e-4 * (1 - 4 * eta)), 1e-6, 1e-6]
+    for i, h in enumerate(steps):
+        e = np.zeros(4)
+        e[i] = h
+        fd = (float(tau(params + e)) - float(tau(params - e))) / (2 * h)
+        assert grad[i] == pytest.approx(fd, rel=1e-5, abs=1e-12), i
+
+
 def test_jit_vmap_and_grad():
     f = jnp.geomspace(10.0, 100.0, 8)
 

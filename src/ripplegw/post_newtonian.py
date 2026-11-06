@@ -85,8 +85,8 @@ def time_to_merger(
 
     Only ``mode`` is validated. Physical inputs are not checked, so that the
     function stays cheap under ``jax.jit``: a zero frequency gives ``inf``, a
-    negative frequency ``nan``, and $\eta > 1/4$ gives ``nan`` unless the
-    spins are equal. At $\eta = 1/4$ the value and its gradients are finite
+    negative frequency ``nan``, and $\eta > 1/4$ gives ``nan`` for unequal
+    spins (and a finite analytic continuation for equal spins). At $\eta = 1/4$ the value and its gradients are finite
     for equal spins, including non-spinning binaries. For unequal spins the
     derivative with respect to $\eta$ diverges as $\eta \to 1/4$, because
     the component masses depend on $\sqrt{1 - 4\eta}$, and ``jax.grad``
@@ -182,16 +182,20 @@ def _azimuthal_numbers(mode: Mode) -> tuple[np.ndarray, bool]:
 
 
 def _times_delta(c: FloatLike, eta: FloatLike) -> FloatLike:
-    """``c * sqrt(1 - 4 eta)``, with no derivative through the root where ``c == 0``.
+    """``c * sqrt(1 - 4 eta)``, made differentiable where the root is singular.
 
     The root has an infinite derivative at ``eta = 1/4``; multiplied by a zero
     coefficient, automatic differentiation would turn the finite limit into
-    ``nan``. Where ``c`` is non-zero the derivative is left untouched, so it is
-    infinite at ``eta = 1/4`` as it should be.
+    ``nan``. The guard fires only there, at ``eta >= 1/4`` with ``c == 0``,
+    where the product and its derivatives are exactly zero. Everywhere else
+    the expression is differentiated as written, so derivatives through ``c``
+    are kept (for example with respect to equal spins below ``eta = 1/4``) and
+    the derivative is infinite at ``eta = 1/4`` when ``c`` is non-zero.
     """
-    nonzero = c != 0
-    root = jnp.sqrt(jnp.where(nonzero, 1.0 - 4.0 * eta, 1.0))
-    return jnp.where(nonzero, c * root, 0.0)
+    one_minus_4eta = 1.0 - 4.0 * eta
+    guard = (one_minus_4eta <= 0.0) & (c == 0)
+    root = jnp.sqrt(jnp.where(guard, 1.0, one_minus_4eta))
+    return jnp.where(guard, 0.0, c * root)
 
 
 def _time_to_merger_22(
