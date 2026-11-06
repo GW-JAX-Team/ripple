@@ -105,17 +105,25 @@ def test_matches_taylorf2_stationary_phase_time(m1, m2, s1_z, s2_z):
     np.testing.assert_allclose(tau, expected, rtol=1e-12, atol=0.0)
 
 
-@pytest.mark.parametrize("m1,m2,s1_z,s2_z", SYSTEMS)
-def test_spin_terms_are_resolved(m1, m2, s1_z, s2_z):
-    # Each spin variable must change the result: guards against a spin being
-    # dropped while the non-spinning comparison still passes.
-    if s1_z == 0.0 and s2_z == 0.0:
-        pytest.skip("non-spinning system")
+@pytest.mark.parametrize("m1,m2", [(36.0, 29.0), (8.0, 1.4), (1.4, 1.4)])
+@pytest.mark.parametrize("spin", [0.5, -0.5])
+def test_each_spin_changes_the_result(m1, m2, spin):
+    # Each spin must enter on its own: guards against one spin being dropped
+    # while a comparison with both spins set still differs from zero spin.
     f = jnp.array([20.0])
     M_c, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
-    spinning = time_to_merger(f, M_c, eta, s1_z, s2_z)
     non_spinning = time_to_merger(f, M_c, eta)
-    assert not np.allclose(spinning, non_spinning, rtol=1e-8, atol=0.0)
+    primary_only = time_to_merger(f, M_c, eta, spin, 0.0)
+    secondary_only = time_to_merger(f, M_c, eta, 0.0, spin)
+    assert not np.allclose(primary_only, non_spinning, rtol=1e-8, atol=0.0)
+    assert not np.allclose(secondary_only, non_spinning, rtol=1e-8, atol=0.0)
+
+
+def test_bare_int_pair_is_one_ell_m_mode():
+    f = jnp.geomspace(10.0, 100.0, 5)
+    tau = time_to_merger(f, 1.2, 0.24, mode=[3, 2])
+    assert tau.shape == f.shape
+    np.testing.assert_array_equal(tau, time_to_merger(f, 1.2, 0.24, mode=2))
 
 
 def test_newtonian_limit_at_low_frequency():

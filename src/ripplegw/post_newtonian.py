@@ -15,7 +15,14 @@ from jaxtyping import Array, Float, Integer
 from ripplegw.constants import MTSUN, PI
 from ripplegw.typing import FloatLike
 
-Mode = int | tuple[int, int] | Sequence[tuple[int, int]] | Integer[Array, "n_modes 2"]
+# A bare two-int sequence is accepted at runtime and read as one (l, m) pair.
+Mode = (
+    int
+    | tuple[int, int]
+    | Sequence[int]
+    | Sequence[tuple[int, int]]
+    | Integer[Array, "n_modes 2"]
+)
 
 
 def time_to_merger(
@@ -42,8 +49,9 @@ def time_to_merger(
         + \tfrac{617}{144}\eta^2 - \sigma\big)x^2\Big],
     $$
 
-    with $x = (\pi M f_{22})^{2/3}$ and, for spins aligned with the orbital
-    angular momentum,
+    with $x = (\pi M f_{22})^{2/3}$, where $M = \mathcal{M}\,\eta^{-3/5}$
+    is the total mass (not the chirp mass), and, for spins aligned with the
+    orbital angular momentum,
 
     $$
     \beta = \frac{1}{12}\sum_i \big(113\,\hat m_i^2 + 75\,\eta\big)\chi_i,
@@ -57,8 +65,10 @@ def time_to_merger(
     [arXiv:gr-qc/9502040](https://arxiv.org/abs/gr-qc/9502040), Eq. (3.3).
     The self-spin terms in $\sigma$ include the quadrupole-monopole
     coupling for black holes (spin-induced quadrupole parameter equal to 1),
-    so that $\tau$ is the stationary-phase time of the TaylorF2 phasing
-    truncated at 2PN.
+    so that, for black holes or non-spinning bodies, $\tau$ is the
+    stationary-phase time of the TaylorF2 phasing truncated at 2PN. For a
+    spinning neutron star TaylorF2 uses a larger quadrupole parameter; the
+    difference in $\tau$ is small for realistic neutron-star spins.
 
     The non-spinning coefficients, and the spin terms for equal masses with
     equal spins, coincide with the 2PN chirp time of LALSimulation's
@@ -73,13 +83,21 @@ def time_to_merger(
     The expression is an inspiral approximation: it diverges at low frequency
     and loses accuracy near merger, where it can turn negative.
 
+    Only ``mode`` is validated. Physical inputs are not checked, so that the
+    function stays cheap under ``jax.jit``: a zero frequency gives ``inf``, a
+    negative frequency ``nan``, and $\eta > 1/4$ is not rejected (only
+    the component-mass split is clamped to equal masses). At
+    exactly $\eta = 1/4$ the value is finite but, with unequal spins, the
+    derivative with respect to $\eta$ is $-\infty$, because the component
+    masses depend on $\sqrt{1 - 4\eta}$.
+
     Example:
         ```python
         f = jnp.geomspace(20.0, 200.0, 100)
         tau_22 = time_to_merger(f, M_c, eta, s1_z, s2_z)  # shape (100,)
         tau_33 = time_to_merger(f, M_c, eta, s1_z, s2_z, mode=(3, 3))  # shape (100,)
         tau_hm = time_to_merger(
-            f, M_c, eta, s1_z, s2_z, mode=[(2, 2), (2, 1), (3, 3), (4, 4)]
+            f, M_c, eta, s1_z, s2_z, mode=((2, 2), (2, 1), (3, 3), (4, 4))
         )  # shape (4, 100)
         ```
 
@@ -95,8 +113,12 @@ def time_to_merger(
         mode (optional): The mode(s) that ``frequency`` refers to, given as an
             azimuthal number ``m``, a single ``(l, m)`` pair, or a sequence or
             ``(n_modes, 2)`` integer array of ``(l, m)`` pairs (the layout of
-            a waveform's mode array). Only ``|m|`` affects the result. Must be
-            concrete, not traced. Defaults to 2.
+            a waveform's mode array). Only ``|m|`` affects the result. A
+            bare two-element sequence of integers, such as ``[3, 2]``, is one
+            ``(l, m)`` pair, not two azimuthal numbers. ``mode`` must be
+            concrete, not traced; to pass it as a static argument of
+            ``jax.jit`` it must also be hashable, so use tuples rather than
+            lists. Defaults to 2.
 
     Returns:
         Array: Time to merger in seconds. For a single mode it has the shape
