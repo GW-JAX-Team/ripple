@@ -85,11 +85,12 @@ def time_to_merger(
 
     Only ``mode`` is validated. Physical inputs are not checked, so that the
     function stays cheap under ``jax.jit``: a zero frequency gives ``inf``, a
-    negative frequency ``nan``, and $\eta > 1/4$ is not rejected (only
-    the component-mass split is clamped to equal masses). At
-    exactly $\eta = 1/4$ the value is finite but, with unequal spins, the
-    derivative with respect to $\eta$ is $-\infty$, because the component
-    masses depend on $\sqrt{1 - 4\eta}$.
+    negative frequency ``nan``, and $\eta > 1/4$ gives ``nan`` unless the
+    spins are equal. At $\eta = 1/4$ the value and its gradients are finite
+    for equal spins, including non-spinning binaries. For unequal spins the
+    derivative with respect to $\eta$ diverges as $\eta \to 1/4$, because
+    the component masses depend on $\sqrt{1 - 4\eta}$, and ``jax.grad``
+    returns $\pm\infty$ there.
 
     Example:
         ```python
@@ -180,6 +181,19 @@ def _azimuthal_numbers(mode: Mode) -> tuple[np.ndarray, bool]:
     return np.abs(m).astype(float), single
 
 
+def _times_delta(c: FloatLike, eta: FloatLike) -> FloatLike:
+    """``c * sqrt(1 - 4 eta)``, with no derivative through the root where ``c == 0``.
+
+    The root has an infinite derivative at ``eta = 1/4``; multiplied by a zero
+    coefficient, automatic differentiation would turn the finite limit into
+    ``nan``. Where ``c`` is non-zero the derivative is left untouched, so it is
+    infinite at ``eta = 1/4`` as it should be.
+    """
+    nonzero = c != 0
+    root = jnp.sqrt(jnp.where(nonzero, 1.0 - 4.0 * eta, 1.0))
+    return jnp.where(nonzero, c * root, 0.0)
+
+
 def _time_to_merger_22(
     f_22: Float[Array, " *shape"],
     M_c: FloatLike,
@@ -190,29 +204,37 @@ def _time_to_merger_22(
     """2PN time to merger of the dominant mode at frequency ``f_22``."""
     M_s = M_c * eta ** (-3.0 / 5.0) * MTSUN
     M_c_s = M_c * MTSUN
-    delta = jnp.sqrt(jnp.maximum(1.0 - 4.0 * eta, 0.0))
-    m1_hat, m2_hat = (1.0 + delta) / 2.0, (1.0 - delta) / 2.0
 
-    beta = (
-        (113.0 * m1_hat**2 + 75.0 * eta) * s1_z
-        + (113.0 * m2_hat**2 + 75.0 * eta) * s2_z
-    ) / 12.0
-    sigma = 79.0 / 8.0 * eta * s1_z * s2_z + 81.0 / 16.0 * (
-        m1_hat**2 * s1_z**2 + m2_hat**2 * s2_z**2
+    # With m1_hat, m2_hat = (1 +/- delta) / 2 and delta**2 = 1 - 4 eta,
+    #   sum_i m_hat_i**2 a_i = (1 - 2 eta) (a_1 + a_2) / 2 + delta (a_1 - a_2) / 2,
+    # so delta enters only through the spin asymmetries. beta and sigma are
+    # split into a delta-free part and a part linear in delta; the latter is
+    # collected into one coefficient so that its derivative is guarded once.
+    x = (PI * M_s * f_22) ** (2.0 / 3.0)
+    beta_sym = (113.0 * (1.0 - 2.0 * eta) / 2.0 + 75.0 * eta) * (s1_z + s2_z) / 12.0
+    sigma_sym = (
+        79.0 / 8.0 * eta * s1_z * s2_z
+        + 81.0 / 16.0 * (1.0 - 2.0 * eta) * (s1_z**2 + s2_z**2) / 2.0
+    )
+    # delta * d(beta)/d(delta) = delta * 113 / 12 * (s1 - s2) / 2, and likewise
+    # for sigma with 81 / 16 * (s1**2 - s2**2) / 2.
+    delta_coefficient = (
+        8.0 / 5.0 * 113.0 / 12.0 * (s1_z - s2_z) / 2.0 * x**1.5
+        - 2.0 * 81.0 / 16.0 * (s1_z**2 - s2_z**2) / 2.0 * x**2
     )
 
-    x = (PI * M_s * f_22) ** (2.0 / 3.0)
     tau_newtonian = 5.0 / 256.0 * M_c_s * (PI * M_c_s * f_22) ** (-8.0 / 3.0)
     return tau_newtonian * (
         1.0
         + 4.0 / 3.0 * (743.0 / 336.0 + 11.0 / 4.0 * eta) * x
-        - 8.0 / 5.0 * (4.0 * PI - beta) * x**1.5
+        - 8.0 / 5.0 * (4.0 * PI - beta_sym) * x**1.5
         + 2.0
         * (
             3058673.0 / 1016064.0
             + 5429.0 / 1008.0 * eta
             + 617.0 / 144.0 * eta**2
-            - sigma
+            - sigma_sym
         )
         * x**2
+        + _times_delta(delta_coefficient, eta)
     )

@@ -230,9 +230,35 @@ def test_traced_mode_raises():
         jax.jit(lambda m: time_to_merger(20.0, 1.2, 0.24, mode=m))(jnp.array([3, 3]))
 
 
-def test_equal_mass_exact_eta_is_finite():
-    tau = time_to_merger(jnp.array([20.0]), 1.2, 0.25, 0.3, -0.3)
-    assert np.all(np.isfinite(tau))
+def _d_tau_d_eta(eta, s1_z, s2_z):
+    return jax.grad(lambda e: time_to_merger(20.0, 1.2, e, s1_z, s2_z))(eta)
+
+
+@pytest.mark.parametrize("spin", [0.0, 0.3, -0.7])
+def test_equal_mass_gradient_is_finite_for_equal_spins(spin):
+    # delta = sqrt(1 - 4 eta) has an infinite derivative at eta = 1/4, but for
+    # equal spins it drops out, so the limit is finite: compare with the
+    # gradient just below 1/4 and with a one-sided finite difference.
+    eta, h = 0.25, 1e-7
+    grad = _d_tau_d_eta(eta, spin, spin)
+    assert np.isfinite(grad)
+    assert float(grad) == pytest.approx(
+        float(_d_tau_d_eta(eta - 1e-10, spin, spin)), rel=1e-6
+    )
+    tau = lambda e: float(time_to_merger(20.0, 1.2, e, spin, spin))
+    assert float(grad) == pytest.approx((tau(eta) - tau(eta - h)) / h, rel=1e-5)
+
+
+@pytest.mark.parametrize(
+    "s1_z,s2_z", [(0.3, -0.2), (0.0, 0.3), (-0.3, 0.0), (0.4, -0.4)]
+)
+def test_equal_mass_gradient_diverges_for_unequal_spins(s1_z, s2_z):
+    assert np.isfinite(time_to_merger(20.0, 1.2, 0.25, s1_z, s2_z))
+    assert np.isinf(_d_tau_d_eta(0.25, s1_z, s2_z))
+    # Approaching 1/4 the derivative grows like 1/sqrt(1 - 4 eta).
+    near = abs(float(_d_tau_d_eta(0.25 - 1e-8, s1_z, s2_z)))
+    far = abs(float(_d_tau_d_eta(0.25 - 1e-4, s1_z, s2_z)))
+    assert near > 30 * far
 
 
 def test_jit_vmap_and_grad():
