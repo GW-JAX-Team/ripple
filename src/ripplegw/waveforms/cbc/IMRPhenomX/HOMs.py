@@ -3,21 +3,18 @@ from typing import Any
 import jax
 import jax.numpy as jnp
 from jax import Array
-from jaxtyping import Complex, Float
+from jaxtyping import Float
 
-from ripplegw.constants import MPC, MRSUN, MTSUN, PI, C
-from ripplegw.typing import ComplexLike, FloatLike
+from ripplegw.constants import PI
+from ripplegw.typing import FloatLike
 
 from .IMRPhenomXHM import (
-    IMRPhenomX_TimeShift_22, 
+    IMRPhenomX_TimeShift_22,
     IMRPhenomXAS_Phase,
-    xhm_set_waveform_variables,
-    xhm_get_phase_coefficients,
     _compute_32_hlm,
-    xhm_phase_noModeMixing
-)
-from .IMRPhenomXAS import (
-    get_inspiral_phase
+    xhm_get_phase_coefficients,
+    xhm_phase_noModeMixing,
+    xhm_set_waveform_variables,
 )
 
 # This contains the code to generate the amplitude and phase for individual modes
@@ -54,50 +51,41 @@ def get_single_mode_phase(
     freqs_geom: Float[Array, " n_freq"],
     pWF22: dict[str, Any],
     phi0: float | FloatLike,
-    ell_mm_pair: tuple[int, int]
+    ell_mm_pair: tuple[int, int],
 ):
     ell, m = ell_mm_pair
 
     # 3 branches: 22-mode, 32-mode with mode mixing, all others
-    def phase_22(
-        freqs_geom,
-        pWF22,
-        ell,
-        m
-    ):
-        M_s, theta, phase_coeffs, chip, t0, phifRef = extract_22_mode_params(pWF22, phi0)
+    def phase_22(freqs_geom, pWF22, ell, m):
+        M_s, theta, phase_coeffs, chip, t0, phifRef = extract_22_mode_params(
+            pWF22, phi0
+        )
 
         phase_22 = IMRPhenomXAS_Phase(freqs_geom / M_s, theta, phase_coeffs, chip)
         phase_total = t0 * freqs_geom + phase_22 + phifRef
         return phase_total
 
-    def phase_32(
-        freqs_geom,
-        pWF22,
-        ell,
-        m
-    ):
+    def phase_32(freqs_geom, pWF22, ell, m):
         _, _, _, _, t0, phifRef = extract_22_mode_params(pWF22, phi0)
         pWFHM = xhm_set_waveform_variables(ell, m, pWF22)
 
-        phase_32 = jnp.unwrap(jnp.angle( # FIXME This is not the best way to do this as this function also computes the amplitude. We should split these at some point
-            _compute_32_hlm(freqs_geom, pWFHM, pWF22, t0, phifRef, phi0)
-        ))
+        phase_32 = jnp.unwrap(
+            jnp.angle(  # FIXME This is not the best way to do this as this function also computes the amplitude. We should split these at some point
+                _compute_32_hlm(freqs_geom, pWFHM, pWF22, t0, phifRef, phi0)
+            )
+        )
 
-        phase_total = phase_32 + m/2.0 * phifRef + m * phi0
+        phase_total = phase_32 + m / 2.0 * phifRef + m * phi0
         return phase_total
 
-    def phase_other(
-        freqs_geom,
-        pWF22,
-        ell,
-        m
-    ):
+    def phase_other(freqs_geom, pWF22, ell, m):
         _, _, _, _, t0, phifRef = extract_22_mode_params(pWF22, phi0)
         pWFHM = xhm_set_waveform_variables(ell, m, pWF22)
 
         pPhase = xhm_get_phase_coefficients(pWFHM, pWF22, t0)
-        phase_lm = xhm_phase_noModeMixing(freqs_geom, pPhase, pWFHM, pWF22, t0) - m * phi0 # Phase of XLALSimIMRPhenomXHMEvaluateOnehlmMode
+        phase_lm = (
+            xhm_phase_noModeMixing(freqs_geom, pPhase, pWFHM, pWF22, t0) - m * phi0
+        )  # Phase of XLALSimIMRPhenomXHMEvaluateOnehlmMode
 
         phase_total = phase_lm + (m / 2.0) * phifRef + m * phi0
         return phase_total
@@ -106,18 +94,12 @@ def get_single_mode_phase(
         (ell, m) == (2, 2),
         phase_22,
         lambda freqs_geom, pWF22, ell, m: jax.lax.cond(
-            (ell, m) == (3, 2),
-            phase_32,
-            phase_other,
-            freqs_geom,
-            pWF22,
-            ell,
-            m
+            (ell, m) == (3, 2), phase_32, phase_other, freqs_geom, pWF22, ell, m
         ),
         freqs_geom,
         pWF22,
         ell,
-        m
+        m,
     )
     return mode_phase
 
@@ -126,7 +108,7 @@ def get_single_mode_amplitude(
     freqs_geom: Float[Array, " n_freq"],
     pWF22: dict[str, Any],
     phi0: float | FloatLike,
-    ell_mm_pair: tuple[int, int]
+    ell_mm_pair: tuple[int, int],
 ):
     pass
 
