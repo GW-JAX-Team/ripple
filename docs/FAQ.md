@@ -3,7 +3,7 @@
 ## Float precision
 
 JAX defaults to float32, but gravitational-wave waveform computations typically require float64 precision.
-Always enable it at the top of your script, before any JAX operations:
+Always enable it at the top of your script, before importing ripplegw or running any JAX operations:
 
 ```python
 import jax
