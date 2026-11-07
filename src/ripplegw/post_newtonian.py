@@ -218,10 +218,9 @@ def _time_to_merger_2PN(
     x3 = jnp.power(x, 3)
     x4 = jnp.power(x, 4)
     beta_sym = (56.5 - 38.0 * eta) * (s1_z + s2_z) / 12.0
-    # twice of sigma_sym
+    # twice of sigma_sym
     sigma_sym_2 = (
-        79.0 * eta * s1_z * s2_z
-        + 81.0 / 4.0 * (1.0 - 2.0 * eta) * (s1_z**2 + s2_z**2)
+        79.0 * eta * s1_z * s2_z + 81.0 / 4.0 * (1.0 - 2.0 * eta) * (s1_z**2 + s2_z**2)
     ) / 4.0
     # delta * d(beta)/d(delta) = delta * 113 / 12 * (s1 - s2) / 2, and likewise
     # for sigma with 81 / 16 * (s1**2 - s2**2) / 2.
@@ -235,7 +234,8 @@ def _time_to_merger_2PN(
         1.0
         + x2 * (743.0 / 84.0 + 11.0 * eta) / 3.0
         - x3 * 8.0 / 5.0 * (4.0 * PI - beta_sym)
-        + x4 * (
+        + x4
+        * (
             3058673.0 / 508032.0
             + 5429.0 / 504.0 * eta
             + 617.0 / 72.0 * eta**2
