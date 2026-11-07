@@ -37,12 +37,12 @@ def time_to_merger(
 
     Under the stationary-phase approximation a harmonic with azimuthal number
     $m$ is emitted at frequency $f$ when the orbital frequency is $f / |m|$,
-    so its time to merger equals that of the dominant mode at
+    so its time to merger equals that of the GW frequency of the dominant mode
     $f_{22} = 2 f / |m|$; the polar index $\ell$ does not enter. For the
     dominant mode,
 
     $$
-    \tau(f_{22}) = \frac{5}{256}\,\mathcal{M}\,(\pi \mathcal{M} f_{22})^{-8/3}
+    \tau(f_{22}) = \frac{5}{256}\,\frac{M}{\eta \, x^4}\,
         \Big[1 + \tfrac{4}{3}\big(\tfrac{743}{336} + \tfrac{11}{4}\eta\big)x
         - \tfrac{8}{5}(4\pi - \beta)\,x^{3/2}
         + 2\big(\tfrac{3058673}{1016064} + \tfrac{5429}{1008}\eta
@@ -134,7 +134,7 @@ def time_to_merger(
     abs_m, single = _azimuthal_numbers(mode)
     f = jnp.asarray(frequency)
     f_22 = 2.0 * f / abs_m.reshape((-1,) + (1,) * f.ndim)
-    tau = _time_to_merger_22(f_22, M_c, eta, s1_z, s2_z)
+    tau = _time_to_merger_2PN(f_22, M_c, eta, s1_z, s2_z)
     return tau[0] if single else tau
 
 
@@ -198,7 +198,7 @@ def _times_delta(c: FloatLike, eta: FloatLike) -> FloatLike:
     return jnp.where(guard, 0.0, c * root)
 
 
-def _time_to_merger_22(
+def _time_to_merger_2PN(
     f_22: Float[Array, " *shape"],
     M_c: FloatLike,
     eta: FloatLike,
@@ -207,38 +207,39 @@ def _time_to_merger_22(
 ) -> Float[Array, " *shape"]:
     """2PN time to merger of the dominant mode at frequency ``f_22``."""
     M_s = M_c * eta ** (-3.0 / 5.0) * MTSUN
-    M_c_s = M_c * MTSUN
 
     # With m1_hat, m2_hat = (1 +/- delta) / 2 and delta**2 = 1 - 4 eta,
     #   sum_i m_hat_i**2 a_i = (1 - 2 eta) (a_1 + a_2) / 2 + delta (a_1 - a_2) / 2,
     # so delta enters only through the spin asymmetries. beta and sigma are
     # split into a delta-free part and a part linear in delta; the latter is
     # collected into one coefficient so that its derivative is guarded once.
-    x = (PI * M_s * f_22) ** (2.0 / 3.0)
-    beta_sym = (113.0 * (1.0 - 2.0 * eta) / 2.0 + 75.0 * eta) * (s1_z + s2_z) / 12.0
-    sigma_sym = (
-        79.0 / 8.0 * eta * s1_z * s2_z
-        + 81.0 / 16.0 * (1.0 - 2.0 * eta) * (s1_z**2 + s2_z**2) / 2.0
-    )
+    x = jnp.cbrt(PI * M_s * f_22)
+    x2 = jnp.power(x, 2)
+    x3 = jnp.power(x, 3)
+    x4 = jnp.power(x, 4)
+    beta_sym = (56.5 - 38.0 * eta) * (s1_z + s2_z) / 12.0
+    # twice of sigma_sym
+    sigma_sym_2 = (
+        79.0 * eta * s1_z * s2_z
+        + 81.0 / 4.0 * (1.0 - 2.0 * eta) * (s1_z**2 + s2_z**2)
+    ) / 4.0
     # delta * d(beta)/d(delta) = delta * 113 / 12 * (s1 - s2) / 2, and likewise
     # for sigma with 81 / 16 * (s1**2 - s2**2) / 2.
     delta_coefficient = (
-        8.0 / 5.0 * 113.0 / 12.0 * (s1_z - s2_z) / 2.0 * x**1.5
-        - 2.0 * 81.0 / 16.0 * (s1_z**2 - s2_z**2) / 2.0 * x**2
+        8.0 / 5.0 * 113.0 / 12.0 * (s1_z - s2_z) / 2.0 * x3
+        - 2.0 * 81.0 / 16.0 * (s1_z**2 - s2_z**2) / 2.0 * x4
     )
 
-    tau_newtonian = 5.0 / 256.0 * M_c_s * (PI * M_c_s * f_22) ** (-8.0 / 3.0)
+    tau_newtonian = 5.0 * M_s / (256.0 * eta * jnp.power(x, 8))
     return tau_newtonian * (
         1.0
-        + 4.0 / 3.0 * (743.0 / 336.0 + 11.0 / 4.0 * eta) * x
-        - 8.0 / 5.0 * (4.0 * PI - beta_sym) * x**1.5
-        + 2.0
-        * (
-            3058673.0 / 1016064.0
-            + 5429.0 / 1008.0 * eta
-            + 617.0 / 144.0 * eta**2
-            - sigma_sym
+        + x2 * (743.0 / 84.0 + 11.0 * eta) / 3.0
+        - x3 * 8.0 / 5.0 * (4.0 * PI - beta_sym)
+        + x4 * (
+            3058673.0 / 508032.0
+            + 5429.0 / 504.0 * eta
+            + 617.0 / 72.0 * eta**2
+            - sigma_sym_2
         )
-        * x**2
         + _times_delta(delta_coefficient, eta)
     )
