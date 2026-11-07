@@ -41,7 +41,7 @@ waveform = ripplegw.waveform("IMRPhenomD", f_ref=20.0)
 ## Evaluating a waveform
 
 ```python
-import jax.numpy as jnp
+import jax.numpy as jnp  # assumes x64 is enabled, as in the first example on this page
 
 frequency = jnp.arange(20.0, 1024.0, 0.25)
 params = {
