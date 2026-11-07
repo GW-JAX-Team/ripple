@@ -1,6 +1,7 @@
 from typing import Optional
 
 import jax.numpy as jnp
+import numpy as np
 from jaxtyping import Array, Float
 
 from ripplegw.constants import MTSUN, PI
@@ -575,7 +576,7 @@ def Amp_Uneqspin_CV(
     )
 
 
-PhenomX_amp_coeff_table = jnp.array(
+PhenomX_amp_coeff_table = np.array(
     [
         [  # Coeffs for CV_Amp_Ins0 (ind 0)
             -0.015178276424448592,  # No spin
@@ -887,8 +888,10 @@ PhenomX_amp_coeff_table = jnp.array(
         ],
     ]
 )
+# NumPy, not jax, so the precision does not depend on import order (see IMRPhenomD_QNMdata).
+PhenomX_amp_coeff_table.setflags(write=False)
 
-PhenomX_phase_coeff_table = jnp.array(
+PhenomX_phase_coeff_table = np.array(
     [
         [  # Coeffs collocation point 0 of the inspiral phase (ind 0)
             -17294.000000000007,  # No spin
@@ -1555,3 +1558,5 @@ PhenomX_phase_coeff_table = jnp.array(
         ],
     ]
 )
+# NumPy, not jax, so the precision does not depend on import order (see IMRPhenomD_QNMdata).
+PhenomX_phase_coeff_table.setflags(write=False)

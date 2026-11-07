@@ -1,5 +1,6 @@
 import jax
 import jax.numpy as jnp
+import numpy as np
 from jaxtyping import Array, Float
 
 from ripplegw.constants import MTSUN
@@ -21,6 +22,7 @@ def _qnm_interp(x: FloatLike, table: Float[Array, " n_qnm"]) -> FloatLike:
     """Linear interp on the uniform QNMData_a grid in O(1) index arithmetic."""
     t = (x - _QNM_A_MIN) * _QNM_SCALE
     i = jnp.clip(jnp.floor(t).astype(jnp.int32), 0, _QNM_N - 2)
+    table = jnp.asarray(table)
     return table[i] + (t - i) * (table[i + 1] - table[i])
 
 
@@ -202,27 +204,15 @@ def get_coeffs(theta: Float[Array, "4"]) -> Float[Array, "19"]:
     seta = jnp.abs(1 - 4 * eta) ** (1 / 2)
     chiPN = chi_s * (1 - 76 * eta / 113) + seta * chi_a
 
+    table = jnp.asarray(PhenomD_coeff_table)
     coeff = (
-        PhenomD_coeff_table[:, 0]
-        + PhenomD_coeff_table[:, 1] * eta
-        + (chiPN - 1.0)
-        * (
-            PhenomD_coeff_table[:, 2]
-            + PhenomD_coeff_table[:, 3] * eta
-            + PhenomD_coeff_table[:, 4] * (eta**2.0)
-        )
+        table[:, 0]
+        + table[:, 1] * eta
+        + (chiPN - 1.0) * (table[:, 2] + table[:, 3] * eta + table[:, 4] * (eta**2.0))
         + (chiPN - 1.0) ** 2.0
-        * (
-            PhenomD_coeff_table[:, 5]
-            + PhenomD_coeff_table[:, 6] * eta
-            + PhenomD_coeff_table[:, 7] * (eta**2.0)
-        )
+        * (table[:, 5] + table[:, 6] * eta + table[:, 7] * (eta**2.0))
         + (chiPN - 1.0) ** 3.0
-        * (
-            PhenomD_coeff_table[:, 8]
-            + PhenomD_coeff_table[:, 9] * eta
-            + PhenomD_coeff_table[:, 10] * (eta**2.0)
-        )
+        * (table[:, 8] + table[:, 9] * eta + table[:, 10] * (eta**2.0))
     )
 
     return coeff
@@ -404,7 +394,7 @@ def get_delta4(
     ) / ((f1 - f2) ** 2 * (f1 - f3) ** 3 * (f2 - f3) ** 2)
 
 
-PhenomD_coeff_table = jnp.array(
+PhenomD_coeff_table = np.array(
     [
         [  # rho1 (element 0)
             3931.8979897196696,
@@ -655,3 +645,5 @@ PhenomD_coeff_table = jnp.array(
         ],
     ]
 )
+# NumPy, not jax, so the precision does not depend on import order (see IMRPhenomD_QNMdata).
+PhenomD_coeff_table.setflags(write=False)

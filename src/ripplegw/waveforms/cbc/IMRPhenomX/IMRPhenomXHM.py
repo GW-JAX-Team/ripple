@@ -12,6 +12,7 @@ Ports the 122019-release code from:
 The 22-mode reuses ripple's existing IMRPhenomXAS.py (Phase + Amp functions).
 """
 
+import math
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
@@ -459,7 +460,7 @@ def build_pWF22(
     theta = jnp.array([m1, m2, chi1z, chi2z])
     # IMRPhenomXAS_Phase expects the precomputed 2D coefficient table (shape 13×49),
     # not the PhenomD 1D coefficients from get_XAS_coeffs.
-    phase_coeffs = IMRPhenomX_utils.PhenomX_phase_coeff_table
+    phase_coeffs = jnp.asarray(IMRPhenomX_utils.PhenomX_phase_coeff_table)
     Mf_ref = f_ref * M_s
 
     return dict(  # noqa: C408
@@ -2095,7 +2096,7 @@ def _compute_32_hlm(
     etaEMR = pWFHM.etaEMR
     m_over_2 = emm * 0.5  # = 1.0 for (3,2)
 
-    amp_coeffs_22 = IMRPhenomX_utils.PhenomX_amp_coeff_table
+    amp_coeffs_22 = jnp.asarray(IMRPhenomX_utils.PhenomX_amp_coeff_table)
 
     # -----------------------------------------------------------------------
     # Step 1: RD amplitude fits (alambda, lambda_, sigma)
@@ -2932,13 +2933,15 @@ def xhm_phase_noModeMixing(
 # Section 9: Amplitude fits and evaluation
 # ---------------------------------------------------------------------------
 
-# PNglobalfactor prefactors per mode (modeInt 0=21, 1=33, 2=32, 3=44)
-_AMP_PREFACTORS = [
-    jnp.sqrt(2.0) / 3.0,  # 21
-    0.75 * jnp.sqrt(5.0 / 7.0),  # 33
-    jnp.sqrt(5.0 / 7.0) / 3.0,  # 32
-    4.0 * jnp.sqrt(2.0) / 9.0 * jnp.sqrt(5.0 / 7.0),  # 44
-]
+# PNglobalfactor prefactors per mode (modeInt 0=21, 1=33, 2=32, 3=44).
+# Python floats, not jax scalars, so they are not frozen at the precision in
+# force when ripplegw is imported.
+_AMP_PREFACTORS = (
+    math.sqrt(2.0) / 3.0,  # 21
+    0.75 * math.sqrt(5.0 / 7.0),  # 33
+    math.sqrt(5.0 / 7.0) / 3.0,  # 32
+    4.0 * math.sqrt(2.0) / 9.0 * math.sqrt(5.0 / 7.0),  # 44
+)
 
 
 def _xhm_pn_amp_coeffs(
@@ -6701,7 +6704,7 @@ def XLALSimIMRPhenomXHMGethlmModes(
             # Overallamp = amp0_dist * ampNorm.  Dividing out amp0_1mpc leaves
             # ampNorm * Amp_internal * fMs^(-7/6) — the same convention used by
             # the higher-mode amplitudes — so generate_xphm can apply amp0 uniformly.
-            amp_coeffs_22 = IMRPhenomX_utils.PhenomX_amp_coeff_table
+            amp_coeffs_22 = jnp.asarray(IMRPhenomX_utils.PhenomX_amp_coeff_table)
             amp0_1mpc = 2.0 * jnp.sqrt(5.0 / (64.0 * PI)) * M_s**2 / (MPC / C)
             amp_22 = (
                 IMRPhenomXAS_Amp(

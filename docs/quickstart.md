@@ -5,6 +5,10 @@
 To generate a gravitational-wave waveform, construct the model by name via `ripplegw.waveform(...)` and call it with a frequency array and a parameter dictionary:
 
 ```python
+import jax
+
+jax.config.update("jax_enable_x64", True)  # 64-bit precision; see JAX Transformations
+
 import jax.numpy as jnp
 import ripplegw
 

@@ -7,6 +7,10 @@ See [JAX Transformations](jax.md) for `jax.grad` / `jax.jit` / `jax.vmap` in dep
 ## Discovering waveforms
 
 ```python
+import jax
+
+jax.config.update("jax_enable_x64", True)  # see JAX Transformations for why this matters
+
 import ripplegw
 
 ripplegw.list_waveforms()                       # every registered model name
@@ -37,10 +41,7 @@ waveform = ripplegw.waveform("IMRPhenomD", f_ref=20.0)
 ## Evaluating a waveform
 
 ```python
-import jax
-import jax.numpy as jnp
-
-jax.config.update("jax_enable_x64", True)  # see JAX Transformations for why this matters
+import jax.numpy as jnp  # assumes x64 is enabled, as in the first example on this page
 
 frequency = jnp.arange(20.0, 1024.0, 0.25)
 params = {
