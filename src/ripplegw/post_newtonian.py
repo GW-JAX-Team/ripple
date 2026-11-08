@@ -17,6 +17,8 @@ from ripplegw.conversions import Mc_eta_to_ms
 from ripplegw.typing import FloatLike
 from ripplegw.waveforms.cbc.Taylor.TaylorF2 import get_PNPhasing_F2
 
+MAX_PN_2 = 7  # Twice the maximum PN order
+
 # A bare two-int sequence is accepted at runtime and read as one (l, m) pair.
 Mode = (
     int
@@ -272,8 +274,9 @@ def time_to_merger_4p5PN(
     eta: FloatLike,
     s1_z: FloatLike,
     s2_z: FloatLike,
+    max_pn_2: Integer = MAX_PN_2
 ) -> Float[Array, " *shape"]:
-    """Compute the time to merger up to 4.5 PN order.
+    r"""Compute the time to merger up to 4.5 PN order. 
     Based on the relation between the phase and time.
     Assuming the phase can be expanded in a post-Newtonian series as:
     $$
@@ -310,22 +313,22 @@ def time_to_merger_4p5PN(
     from above. In fact, most $D_k$ are simply proportional to $d_k$, except
     $D_8$. The last term is simply $E_8 = (12 / 5) d_8$.
     """
-    MAX_PN_2 = 7  # Twice PN order
-
-    m1, m2 = Mc_eta_to_ms(M_c, eta)
+    m1, m2 = Mc_eta_to_ms(
+        jnp.stack([jnp.asarray(M_c), jnp.asarray(eta)])
+    )
     Mtot = m1 + m2
     c_k, d_k = get_PNPhasing_F2(
-        m1, m2, s1_z, s2_z, lambda1, lambda2
+        m1, m2, s1_z, s2_z, 0.0, 0.0
     )
 
-    v = jnp.cbrt(np.pi * Mtot * f_22)
+    v = jnp.cbrt(np.pi * Mtot * MTSUN * f_22)
     tau_Newt = - (5/256) * (Mtot / eta) / jnp.power(v, 8)
 
     linear_term = 0
     log_term = 0
 
     # Start from the highest order (for precision)
-    if MAX_PN_2 > 7:
+    if max_pn_2 >= 9:
         # k == 9
         lab, llab = "9PN", "9lPN"
         vk = jnp.power(v, 9)
@@ -334,6 +337,7 @@ def time_to_merger_4p5PN(
         linear_term += PHASE_TO_TIME[lab] * (4 * _c_k - 3 * _d_k) * vk
         log_term += PHASE_TO_TIME[llab] * _d_k * vk * jnp.log(v)
 
+    if max_pn_2 >= 8:
         # k == 8
         lab, llab, lllab = "8PN", "8lPN", "8llPN"
         vk = jnp.power(v, 8)
@@ -362,6 +366,9 @@ def time_to_merger_4p5PN(
         _c_k = c_k.get(lab, 0)
         linear_term += PHASE_TO_TIME[lab] * _c_k * jnp.power(v, k)
 
-    return tau_Newt * (1 + linear_term + log_term) * MTSUN
+    # This is to correct for the extra scaling from `get_PNPhasing_F2``
+    pfaN = 3.0 / (128.0 * eta)  # prefactor
+
+    return tau_Newt / pfaN * (1 + linear_term + log_term) * MTSUN
 
 
