@@ -276,7 +276,7 @@ def time_to_merger_4p5PN(
     s2_z: FloatLike,
     max_pn_2: Integer = MAX_PN_2
 ) -> Float[Array, " *shape"]:
-    r"""Compute the time to merger up to 4.5 PN order. 
+    r"""Compute the time to merger up to 4.5 PN order.
     Based on the relation between the phase and time.
     Assuming the phase can be expanded in a post-Newtonian series as:
     $$
@@ -370,5 +370,3 @@ def time_to_merger_4p5PN(
     pfaN = 3.0 / (128.0 * eta)  # prefactor
 
     return tau_Newt / pfaN * (1 + linear_term + log_term) * MTSUN
-
-
