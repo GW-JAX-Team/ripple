@@ -13,7 +13,9 @@ import numpy as np
 from jaxtyping import Array, Float, Integer
 
 from ripplegw.constants import MTSUN, PI
+from ripplegw.conversions import Mc_eta_to_ms
 from ripplegw.typing import FloatLike
+from ripplegw.waveforms.cbc.Taylor.TaylorF2 import get_PNPhasing_F2
 
 # A bare two-int sequence is accepted at runtime and read as one (l, m) pair.
 Mode = (
@@ -243,3 +245,123 @@ def _time_to_merger_2PN(
         )
         + _times_delta(delta_coefficient, eta)
     )
+
+
+PHASE_TO_TIME = dict{
+    "0PN": 1.0,
+    "1PN": 0.0,
+    "2PN": 0.8,   # 4 / 5
+    "3PN": 0.64,  # 16 / 25
+    "4PN": 0.4,   # 2 / 5
+    "5PN": -0.32, # - 8 / 25
+    "6PN": -0.4,  # - 2 / 5
+    "7PN": -1.6,  # - 8 / 5
+    "8PN": 1.6,   # 8 / 5
+    "9PN": 1.6,   # 8 / 5
+    "6lPN": -0.8, # - 4 / 5
+    "7lPN": -3.2, # - 16 / 5
+    "8lPN": 1.6,  # 8 / 5
+    "9lPN": 6.4,  # 32 / 5
+    "8llPN": 2.4, # 12 / 5
+}
+
+
+def time_to_merger_4p5PN(
+    f_22: Float[Array, " *shape"],
+    M_c: FloatLike,
+    eta: FloatLike,
+    s1_z: FloatLike,
+    s2_z: FloatLike,
+) -> Float[Array, " *shape"]:
+    """Compute the time to merger up to 4.5 PN order. 
+    Based on the relation between the phase and time.
+    Assuming the phase can be expanded in a post-Newtonian series as:
+    $$
+    \Phi(v) = \phi_c - \frac{1}{16\eta} v^{-5} \left[
+        1 + \sum_{k = 1}^{9} c_k\, v^k + \sum_{k = 5}^{9} d_k\,\ln(v)v^k
+    \right]
+    $$
+    where $ v = (\pi M f)^{1/3}$ is the PN expansion parameter, and 
+    each term is known as the $k/2$-PN order term.
+
+    The time to merger can then be obtained by noting that:
+    $$
+    \begin{align}
+    \frac{\mathrm{d} t}{\mathrm{d} v} 
+    &= \frac{\mathrm{d} t}{\mathrm{d} \Phi} \,
+        \frac{\mathrm{d} \Phi}{\mathrm{d} v} \\ 
+    &= \frac{M}{v^3}\, \frac{\mathrm{d} \Phi}{\mathrm{d} v} \ .
+    \end{align}
+    $$
+    Therefore, one has
+    $$
+    t(v) = t_\mathrm{c} + M \,\left(
+        \frac{\Phi(v)}{v^3} + 3 \int \frac{\Phi(v)}{v^4} \, \mathrm{d} v
+    \right) \ ,
+    $$
+    which can be again expressed as the following PN series:
+    $$
+    t(v) = t_\mathrm{c} - \frac{5\,M}{256\eta} v^{-8} \left[
+        1 + \sum_{k = 2}^{9} C_k\, v^k + \sum_{k = 5}^{9} D_k\,\ln(v)v^k
+        + E_8\,\ln^2(v)v^8 
+    \right]
+    $$
+    where $C_k$ and $D_k$ are some linear combinations of the $c_k$ and $d_k$
+    from above. In fact, most $D_k$ are simply proportional to $d_k$, except 
+    $D_8$. The last term is simply $E_8 = (12 / 5) d_8$.
+    """
+    MAX_PN_2 = 7  # Twice PN order
+
+    m1, m2 = Mc_eta_to_ms(M_c, eta)
+    Mtot = m1 + m2
+    c_k, d_k = get_PNPhasing_F2(
+        m1, m2, s1_z, s2_z, lambda1, lambda2
+    )
+
+    v = jnp.cbrt(np.pi * Mtot * f_22)
+    tau_Newt = - (5/256) * (Mtot / eta) / jnp.power(v, 8)
+
+    linear_term = 0
+    log_term = 0
+
+    # Start from the highest order (for precision)
+    if MAX_PN_2 > 7:
+        # k == 9
+        lab, llab = "9PN", "9lPN"
+        vk = jnp.power(v, 9)
+        _c_k = c_k.get(lab, 0)
+        _d_k = d_k.get(lab, 0)
+        linear_term += PHASE_TO_TIME[lab] * (4 * _c_k - 3 * _d_k) * vk
+        log_term += PHASE_TO_TIME[llab] * _d_k * vk * jnp.log(v)
+
+        # k == 8
+        lab, llab, lllab = "8PN", "8lPN", "8llPN"
+        vk = jnp.power(v, 8)
+        _c_k = c_k.get(lab, 0)
+        _d_k = d_k.get(lab, 0)
+        linear_term += PHASE_TO_TIME[lab] * _c_k * vk
+        log_term += PHASE_TO_TIME[llab] * (3 * _c_k + _d_k) * vk * jnp.log(v)
+        log_term += PHASE_TO_TIME[lllab] * _d_k * vk * jnp.log(v)**2
+    
+    # k from 6 to 7
+    for k in reversed(range(6, 8)):
+        lab, llab = f"{k}PN", f"{k}lPN"
+        vk = jnp.power(v, k)
+        _c_k = c_k.get(lab, 0)
+        _d_k = d_k.get(lab, 0)
+        linear_term += PHASE_TO_TIME[lab] * (2 * _c_k + 3 * _d_k) * vk
+        log_term += PHASE_TO_TIME[llab] * _d_k * vk * jnp.log(v)
+
+    # k == 5
+    lab = "5PN"
+    linear_term +=  PHASE_TO_TIME[lab] * d_k.get(lab, 0) * jnp.power(v, 5)
+
+    # k from 2 to 4
+    for k in reversed(range(2, 5)):
+        lab = f"{k}PN"
+        _c_k = c_k.get(lab, 0)
+        linear_term += PHASE_TO_TIME[lab] * _c_k * jnp.power(v, k)
+
+    return tau_Newt * (1 + linear_term + log_term) * MTSUN
+
+    
