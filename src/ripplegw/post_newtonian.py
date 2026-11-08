@@ -273,7 +273,7 @@ def time_to_merger_4p5PN(
     s1_z: FloatLike,
     s2_z: FloatLike,
 ) -> Float[Array, " *shape"]:
-    """Compute the time to merger up to 4.5 PN order. 
+    """Compute the time to merger up to 4.5 PN order.
     Based on the relation between the phase and time.
     Assuming the phase can be expanded in a post-Newtonian series as:
     $$
@@ -281,15 +281,15 @@ def time_to_merger_4p5PN(
         1 + \sum_{k = 1}^{9} c_k\, v^k + \sum_{k = 5}^{9} d_k\,\ln(v)v^k
     \right]
     $$
-    where $ v = (\pi M f)^{1/3}$ is the PN expansion parameter, and 
+    where $ v = (\pi M f)^{1/3}$ is the PN expansion parameter, and
     each term is known as the $k/2$-PN order term.
 
     The time to merger can then be obtained by noting that:
     $$
     \begin{align}
-    \frac{\mathrm{d} t}{\mathrm{d} v} 
+    \frac{\mathrm{d} t}{\mathrm{d} v}
     &= \frac{\mathrm{d} t}{\mathrm{d} \Phi} \,
-        \frac{\mathrm{d} \Phi}{\mathrm{d} v} \\ 
+        \frac{\mathrm{d} \Phi}{\mathrm{d} v} \\
     &= \frac{M}{v^3}\, \frac{\mathrm{d} \Phi}{\mathrm{d} v} \ .
     \end{align}
     $$
@@ -303,11 +303,11 @@ def time_to_merger_4p5PN(
     $$
     t(v) = t_\mathrm{c} - \frac{5\,M}{256\eta} v^{-8} \left[
         1 + \sum_{k = 2}^{9} C_k\, v^k + \sum_{k = 5}^{9} D_k\,\ln(v)v^k
-        + E_8\,\ln^2(v)v^8 
+        + E_8\,\ln^2(v)v^8
     \right]
     $$
     where $C_k$ and $D_k$ are some linear combinations of the $c_k$ and $d_k$
-    from above. In fact, most $D_k$ are simply proportional to $d_k$, except 
+    from above. In fact, most $D_k$ are simply proportional to $d_k$, except
     $D_8$. The last term is simply $E_8 = (12 / 5) d_8$.
     """
     MAX_PN_2 = 7  # Twice PN order
@@ -342,7 +342,7 @@ def time_to_merger_4p5PN(
         linear_term += PHASE_TO_TIME[lab] * _c_k * vk
         log_term += PHASE_TO_TIME[llab] * (3 * _c_k + _d_k) * vk * jnp.log(v)
         log_term += PHASE_TO_TIME[lllab] * _d_k * vk * jnp.log(v)**2
-    
+
     # k from 6 to 7
     for k in reversed(range(6, 8)):
         lab, llab = f"{k}PN", f"{k}lPN"
@@ -364,4 +364,4 @@ def time_to_merger_4p5PN(
 
     return tau_Newt * (1 + linear_term + log_term) * MTSUN
 
-    
+
