@@ -222,9 +222,7 @@ def get_Amp0(Mf: Float[Array, " n_freq"], eta: FloatLike) -> Float[Array, " n_fr
     """Amplitude scaling factor defined by eq. 17 in 1508.07253
     The `amp0Func` from LALSimulation.
     """
-    Amp0 = (
-        (2.0 / 3.0 * eta) ** (1.0 / 2.0) * (Mf) ** (-7.0 / 6.0) * PI ** (-1.0 / 6.0)
-    )
+    Amp0 = (2.0 / 3.0 * eta) ** (1.0 / 2.0) * (Mf) ** (-7.0 / 6.0) * PI ** (-1.0 / 6.0)
     return Amp0
 
 
@@ -454,12 +452,8 @@ def Phase(
     # ==> phi_IIa'(f1*M_s) + beta1_correction = phi_Ins'(f1*M_s)
     # ==> beta1_correction = phi_Ins'(f1*M_s) - phi_IIa'(f1*M_s)
     # ==> beta0 = phi_Ins(f1*M_s) - phi_IIa(f1*M_s) - beta1_correction*(f1*M_s)
-    phi_Ins_f1, dphi_Ins_f1 = jax.value_and_grad(get_inspiral_phase)(
-        Mf1, theta, coeffs
-    )
-    phi_IIa_f1, dphi_IIa_f1 = jax.value_and_grad(get_IIa_raw_phase)(
-        Mf1, theta, coeffs
-    )
+    phi_Ins_f1, dphi_Ins_f1 = jax.value_and_grad(get_inspiral_phase)(Mf1, theta, coeffs)
+    phi_IIa_f1, dphi_IIa_f1 = jax.value_and_grad(get_IIa_raw_phase)(Mf1, theta, coeffs)
 
     beta1_correction = dphi_Ins_f1 - dphi_IIa_f1
     beta0 = phi_Ins_f1 - beta1_correction * (f1 * M_s) - phi_IIa_f1
@@ -484,7 +478,8 @@ def Phase(
 
     phi_IIb = (
         get_IIb_raw_phase(Mf, theta, coeffs, f_RD, f_damp, Rholm, Taulm)
-        + a0 + a1_correction * Mf
+        + a0
+        + a1_correction * Mf
     )
 
     # And now we can combine them by multiplying by a set of heaviside functions
@@ -609,7 +604,7 @@ def Amp(
 
     # Need to add in an overall scaling of M_s^2 to make the units correct
     dist_s = (D * MPC) / C
-    return Amp0 * Amp * (M_s*M_s) / dist_s
+    return Amp0 * Amp * (M_s * M_s) / dist_s
 
 
 def _amplitude_of(
