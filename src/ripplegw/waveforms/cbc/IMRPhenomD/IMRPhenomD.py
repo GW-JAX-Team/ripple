@@ -4,7 +4,7 @@ import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Complex, Float
 
-from ripplegw.constants import EULERGAMMA, MPC, MTSUN, PI, C
+from ripplegw.constants import EULERGAMMA, MPC, MTSUN, PI, TWO_PI, C
 from ripplegw.conversions import Mc_eta_to_ms
 from ripplegw.interfaces import AmplitudePhaseWaveform, DistanceScaledWaveform
 from ripplegw.registry import register
@@ -26,7 +26,9 @@ def get_inspiral_phase(
     theta: Float[Array, "4"],
     coeffs: Float[Array, "19"],
 ) -> Float[Array, " n_freq"]:
-    """
+    """Ansatz for the Inspiral phase, defined by Equations 27 and 28 of arXiv:1508.07253
+    The `PhiInsAnsatzInt` and `init_phi_ins_prefactors` from LALSimulation.
+
     Calculate the inspiral phase for the IMRPhenomD waveform.
     """
     # First lets calculate some of the vairables that will be used below
@@ -36,6 +38,7 @@ def get_inspiral_phase(
     m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
+    eta2 = eta * eta
 
     # First lets construct the phase in the inspiral (region I)
     m1M = m1_s / M_s
@@ -47,7 +50,7 @@ def get_inspiral_phase(
     phi3 = -16.0 * PI + (
         m1M * (25.0 + 38.0 / 3.0 * m1M) * chi1 + m2M * (25.0 + 38.0 / 3.0 * m2M) * chi2
     )
-    phi4 = 5.0 * (3058.673 / 7.056 + 5429.0 / 7.0 * eta + 617.0 * eta * eta) / 72.0
+    phi4 = 5.0 * (3058.673 / 7.056 + 5429.0 / 7.0 * eta + 617.0 * eta2) / 72.0
     phi4 += (
         (247.0 / 4.8 * eta) * chi1 * chi2
         + (-721.0 / 4.8 * eta) * chi1 * chi2
@@ -101,8 +104,8 @@ def get_inspiral_phase(
             - 684.8 / 2.1 * EULERGAMMA
         )
         + eta * (-15737.765635 / 3.048192 + 225.5 / 1.2 * PI * PI)
-        + eta * eta * 76.055 / 1.728
-        - eta * eta * eta * 127.825 / 1.296
+        + eta2 * 76.055 / 1.728
+        - eta2 * eta * 127.825 / 1.296
         + (-684.8 / 2.1) * jnp.log(4.0)
     )
     phi6 += (PI * m1M * (1490.0 / 3.0 + m1M * 260.0)) * chi1 + (
@@ -111,19 +114,19 @@ def get_inspiral_phase(
     phi6_log = -684.8 / 2.1
 
     phi7 = PI * (
-        770.96675 / 2.54016 + 378.515 / 1.512 * eta - 740.45 / 7.56 * eta * eta
+        770.96675 / 2.54016 + 378.515 / 1.512 * eta - 740.45 / 7.56 * eta2
     )
     phi7 += (
         m1M
         * (
             -17097.8035 / 4.8384
             + eta * 28764.25 / 6.72
-            + eta * eta * 47.35 / 1.44
+            + eta2 * 47.35 / 1.44
             + m1M
             * (
                 -7189.233785 / 1.524096
                 + eta * 458.555 / 3.024
-                - eta * eta * 534.5 / 7.2
+                - eta2 * 534.5 / 7.2
             )
         )
     ) * chi1 + (
@@ -131,30 +134,31 @@ def get_inspiral_phase(
         * (
             -17097.8035 / 4.8384
             + eta * 28764.25 / 6.72
-            + eta * eta * 47.35 / 1.44
+            + eta2 * 47.35 / 1.44
             + m2M
             * (
                 -7189.233785 / 1.524096
                 + eta * 458.555 / 3.024
-                - eta * eta * 534.5 / 7.2
+                - eta2 * 534.5 / 7.2
             )
         )
     ) * chi2
 
     # Add frequency dependence here
-    v = (PI * fM_s) ** (1.0 / 3.0)
+    v3 = PI * fM_s  # omega
+    v = v3 ** (1.0 / 3.0)
+    v2 = jnp.power(v, 2)
+    logv = jnp.log(v)
 
     phi_TF2 = (
-        phi0 * ((PI * fM_s) ** -(5.0 / 3.0))
-        + phi1 * ((PI * fM_s) ** -(4.0 / 3.0))
-        + phi2 * ((PI * fM_s) ** -1.0)
-        + phi3 * ((PI * fM_s) ** -(2.0 / 3.0))
-        + phi4 * ((PI * fM_s) ** -(1.0 / 3.0))
-        + phi5_log * jnp.log(v)
-        + phi5
-        + phi6_log * jnp.log(v) * ((PI * fM_s) ** (1.0 / 3.0))
-        + phi6 * ((PI * fM_s) ** (1.0 / 3.0))
-        + phi7 * ((PI * fM_s) ** (2.0 / 3.0))
+        phi0 / (v2 * v3)
+        + phi1 / (v2 * v2)
+        + phi2 / v3
+        + phi3 / v2
+        + phi4 / v
+        + phi5 + phi5_log * logv
+        + (phi6 + phi6_log * logv) * v
+        + phi7 * v2
     ) * (3.0 / (128.0 * eta)) - PI / 4.0
     phi_Ins = (
         phi_TF2
@@ -174,6 +178,9 @@ def get_IIa_raw_phase(
     theta: Float[Array, "4"],
     coeffs: Float[Array, "19"],
 ) -> Float[Array, " n_freq"]:
+    """Ansatz for the intermediate phase defined by Equation 16 arXiv:1508.07253
+    The `PhiIntAnsatz` from LALSimulation.
+    """
     m1, m2, _, _ = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -196,6 +203,9 @@ def get_IIb_raw_phase(
     Rholm: float = 1.0,
     Taulm: float = 1.0,
 ) -> Float[Array, " n_freq"]:
+    """Ansatz for the merger-ringdown phase Equation 14 arXiv:1508.07253
+    The `PhiMRDAnsatzInt` from LALSimulation.
+    """
     m1, m2, _, _ = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -218,6 +228,9 @@ def get_IIb_raw_phase(
 
 
 def get_Amp0(fM_s: Float[Array, " n_freq"], eta: FloatLike) -> Float[Array, " n_freq"]:
+    """Amplitude scaling factor defined by eq. 17 in 1508.07253
+    The `amp0Func` from LALSimulation.
+    """
     Amp0 = (
         (2.0 / 3.0 * eta) ** (1.0 / 2.0) * (fM_s) ** (-7.0 / 6.0) * PI ** (-1.0 / 6.0)
     )
@@ -229,7 +242,10 @@ def get_inspiral_Amp(
     theta: Float[Array, "4"],
     coeffs: Float[Array, "19"],
 ) -> Float[Array, " n_freq"]:
-    # Below is taken from https://git.ligo.org/lscsoft/lalsuite/-/blob/master/lalsimulation/lib/LALSimIMRPhenomD_internals.c
+    """Ansatz for the Inspiral amplitude. Equations 29 and 30 of arXiv:1508.07253
+    The `AmpInsAnsatz` and `init_amp_ins_prefactors` from LALSimulation.
+    """
+    # Below is taken from https://git.ligo.org/lscsoft/lalsuite/-/blob/master/lalsimulation/lib/LALSimIMRPhenomD_internals.c#L302-L351
     # Lines 302 --> 351
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
@@ -248,16 +264,12 @@ def get_inspiral_Amp(
 
     # First lets construct the Amplitude in the inspiral (region I)
     A0 = 1.0
-    A2 = ((-969.0 + 1804.0 * eta) * PI ** (2.0 / 3.0)) / 672.0
+    A2 = (-969.0 + 1804.0 * eta) / 672.0
     A3 = (
-        (
             chi1 * (81.0 * SetaPlus1 - 44.0 * eta)
             + chi2 * (81.0 - 81.0 * Seta - 44.0 * eta)
-        )
-        * PI
-    ) / 48.0
+        ) / 48.0
     A4 = (
-        (
             -27312085.0
             - 10287648.0 * chi22
             - 10287648.0 * chi12 * SetaPlus1
@@ -271,13 +283,9 @@ def get_inspiral_Amp(
             )
             * eta
             + 35371056.0 * eta2
-        )
-        * (PI ** (4.0 / 3.0))
     ) / 8.128512e6
 
     A5 = (
-        (PI ** (5.0 / 3.0))
-        * (
             chi2
             * (
                 -285197.0 * (-1 + Seta)
@@ -291,14 +299,10 @@ def get_inspiral_Amp(
                 - 35632.0 * eta2
             )
             + 42840.0 * (-1.0 + 4.0 * eta) * PI
-        )
     ) / 32256.0
 
-    A6 = (
-        -(
-            (PI**2.0)
-            * (
-                -336.0
+    A6 = -(
+            (-336.0
                 * (
                     -3248849057.0
                     + 2943675504.0 * chi12
@@ -324,9 +328,8 @@ def get_inspiral_Amp(
                     + 77616.0 * chi12 * (2610335.0 + 995766.0 * Seta)
                     - 77287373856.0 * chi22 * Seta
                     + 5841690624.0 * (chi1 + chi2) * PI
-                    + 21384760320.0 * (PI**2.0)
+                    + 21384760320.0 * (PI * PI)
                 )
-            )
         )
         / 6.0085960704e10
     )
@@ -334,18 +337,24 @@ def get_inspiral_Amp(
     A8 = coeffs[1]
     A9 = coeffs[2]
 
+    v3 = PI * fM_s  # omega
+    v = v3 ** (1.0 / 3.0)
+    v2 = jnp.power(v, 2)
+    v4 = jnp.power(v, 4)
+    v6 = jnp.power(v3, 2)
+
     Amp_Ins = (
         A0
         # A1 is missed since its zero
-        + A2 * (fM_s ** (2.0 / 3.0))
-        + A3 * fM_s
-        + A4 * (fM_s ** (4.0 / 3.0))
-        + A5 * (fM_s ** (5.0 / 3.0))
-        + A6 * (fM_s**2.0)
+        + A2 * v2
+        + A3 * v3
+        + A4 * v2 * v2
+        + A5 * v2 * v3
+        + A6 * v6
         # Now we add the coefficient terms
-        + A7 * (fM_s ** (7.0 / 3.0))
-        + A8 * (fM_s ** (8.0 / 3.0))
-        + A9 * (fM_s**3.0)
+        + A7 * v * v6
+        + A8 * v4 * v4
+        + A9 * v3 * v6
     )
 
     return Amp_Ins
@@ -360,6 +369,9 @@ def get_IIa_Amp(
     f_RD: FloatLike,
     f_damp: FloatLike,
 ) -> Float[Array, " n_freq"]:
+    """Ansatz for the intermediate amplitude. Equation 21 arXiv:1508.07253
+    The `AmpIntAnsatz` from LALSimulation.
+    """
     m1, m2, _, _ = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -398,6 +410,9 @@ def get_IIb_Amp(
     f_RD: FloatLike,
     f_damp: FloatLike,
 ) -> Float[Array, " n_freq"]:
+    """Ansatz for the merger-ringdown amplitude. Equation 19 arXiv:1508.07253
+    The `AmpMRDAnsatzInt` from LALSimulation.
+    """
     m1, m2, _, _ = theta
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
@@ -654,10 +669,10 @@ def _phase_of(
     Mf_ref = f_ref * M_s
     Psi_ref = Phase(f_ref, theta_intrinsic, coeffs, transition_freqs)
     Psi -= t0 * ((f * M_s) - Mf_ref) + Psi_ref
-    ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] - 2 * theta_extrinsic[2]
+    ext_phase_contrib = TWO_PI * f * theta_extrinsic[1] - 2 * theta_extrinsic[2]
     Psi += ext_phase_contrib
     fcut_true = jnp.floor(fM_CUT / M_s / (f[1] - f[0])) * (f[1] - f[0])
-    Psi = Psi * jnp.heaviside(fcut_true - f, 0.0) + 2.0 * PI * jnp.heaviside(
+    Psi = Psi * jnp.heaviside(fcut_true - f, 0.0) + TWO_PI * jnp.heaviside(
         f - fcut_true, 1.0
     )
     return -Psi
