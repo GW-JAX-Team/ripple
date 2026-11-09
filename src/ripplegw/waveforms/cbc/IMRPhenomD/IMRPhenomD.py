@@ -22,7 +22,7 @@ from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomD_utils import (
 
 
 def get_inspiral_phase(
-    fM_s: Float[Array, " n_freq"],
+    Mf: Float[Array, " n_freq"],
     theta: Float[Array, "4"],
     coeffs: Float[Array, "19"],
 ) -> Float[Array, " n_freq"]:
@@ -37,7 +37,7 @@ def get_inspiral_phase(
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s**2.0)
+    eta = m1_s * m2_s / (M_s * M_s)
     eta2 = eta * eta
 
     # First lets construct the phase in the inspiral (region I)
@@ -135,8 +135,8 @@ def get_inspiral_phase(
     ) * chi2
 
     # Add frequency dependence here
-    v3 = PI * fM_s  # omega
-    v = v3 ** (1.0 / 3.0)
+    v3 = PI * Mf  # omega
+    v = jnp.cbrt(v3)
     v2 = v * v
     logv = jnp.log(v)
 
@@ -154,10 +154,10 @@ def get_inspiral_phase(
     phi_Ins = (
         phi_TF2
         + (
-            coeffs[7] * fM_s
-            + (3.0 / 4.0) * coeffs[8] * (fM_s ** (4.0 / 3.0))
-            + (3.0 / 5.0) * coeffs[9] * (fM_s ** (5.0 / 3.0))
-            + (1.0 / 2.0) * coeffs[10] * (fM_s**2.0)
+            coeffs[7] * Mf
+            + (3.0 / 4.0) * coeffs[8] * (Mf ** (4.0 / 3.0))
+            + (3.0 / 5.0) * coeffs[9] * (Mf ** (5.0 / 3.0))
+            + (1.0 / 2.0) * coeffs[10] * (Mf * Mf)
         )
         / eta
     )
@@ -165,7 +165,7 @@ def get_inspiral_phase(
 
 
 def get_IIa_raw_phase(
-    fM_s: Float[Array, " n_freq"],
+    Mf: Float[Array, " n_freq"],
     theta: Float[Array, "4"],
     coeffs: Float[Array, "19"],
 ) -> Float[Array, " n_freq"]:
@@ -176,17 +176,17 @@ def get_IIa_raw_phase(
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s**2.0)
+    eta = m1_s * m2_s / (M_s * M_s)
 
     phi_IIa_raw = (
-        coeffs[11] * fM_s + coeffs[12] * jnp.log(fM_s) - coeffs[13] * (fM_s**-3.0) / 3.0
+        coeffs[11] * Mf + coeffs[12] * jnp.log(Mf) - coeffs[13] * (Mf**-3.0) / 3.0
     ) / eta
 
     return phi_IIa_raw
 
 
 def get_IIb_raw_phase(
-    fM_s: Float[Array, " n_freq"],
+    Mf: Float[Array, " n_freq"],
     theta: Float[Array, "4"],
     coeffs: Float[Array, "19"],
     f_RD: FloatLike,
@@ -201,35 +201,35 @@ def get_IIb_raw_phase(
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s**2.0)
+    eta = m1_s * m2_s / (M_s * M_s)
 
     f_RDM_s = f_RD * M_s
     f_dampM_s = f_damp * M_s
 
     phi_IIb_raw = (
-        coeffs[14] * fM_s
-        - coeffs[15] * (fM_s**-1.0)
-        + 4.0 * coeffs[16] * (fM_s ** (3.0 / 4.0)) / 3.0
+        coeffs[14] * Mf
+        - coeffs[15] / Mf
+        + 4.0 * coeffs[16] * (Mf ** (3.0 / 4.0)) / 3.0
         + coeffs[17]
         * Rholm
-        * jnp.arctan((fM_s - coeffs[18] * f_RDM_s) / (Rholm * f_dampM_s * Taulm))
+        * jnp.arctan((Mf - coeffs[18] * f_RDM_s) / (Rholm * f_dampM_s * Taulm))
     ) / eta
 
     return phi_IIb_raw
 
 
-def get_Amp0(fM_s: Float[Array, " n_freq"], eta: FloatLike) -> Float[Array, " n_freq"]:
+def get_Amp0(Mf: Float[Array, " n_freq"], eta: FloatLike) -> Float[Array, " n_freq"]:
     """Amplitude scaling factor defined by eq. 17 in 1508.07253
     The `amp0Func` from LALSimulation.
     """
     Amp0 = (
-        (2.0 / 3.0 * eta) ** (1.0 / 2.0) * (fM_s) ** (-7.0 / 6.0) * PI ** (-1.0 / 6.0)
+        (2.0 / 3.0 * eta) ** (1.0 / 2.0) * (Mf) ** (-7.0 / 6.0) * PI ** (-1.0 / 6.0)
     )
     return Amp0
 
 
 def get_inspiral_Amp(
-    fM_s: Float[Array, " n_freq"],
+    Mf: Float[Array, " n_freq"],
     theta: Float[Array, "4"],
     coeffs: Float[Array, "19"],
 ) -> Float[Array, " n_freq"]:
@@ -242,7 +242,7 @@ def get_inspiral_Amp(
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s**2.0)
+    eta = m1_s * m2_s / (M_s * M_s)
     eta2 = eta * eta
     eta3 = eta * eta2
 
@@ -321,8 +321,8 @@ def get_inspiral_Amp(
     A8 = coeffs[1]
     A9 = coeffs[2]
 
-    v3 = PI * fM_s  # omega
-    v = v3 ** (1.0 / 3.0)
+    v3 = PI * Mf  # omega
+    v = jnp.cbrt(v3)
     v2 = v * v
     v4 = v2 * v2
     v6 = v3 * v3
@@ -345,7 +345,7 @@ def get_inspiral_Amp(
 
 
 def get_IIa_Amp(
-    fM_s: Float[Array, " n_freq"],
+    Mf: Float[Array, " n_freq"],
     theta: Float[Array, "4"],
     coeffs: Float[Array, "19"],
     f1: FloatLike,
@@ -356,39 +356,38 @@ def get_IIa_Amp(
     """Ansatz for the intermediate amplitude. Equation 21 arXiv:1508.07253
     The `AmpIntAnsatz` from LALSimulation.
     """
-    m1, m2, _, _ = theta
-    m1_s = m1 * MTSUN
-    m2_s = m2 * MTSUN
-    M_s = m1_s + m2_s
+    M_s = (theta[0] + theta[1]) * MTSUN
+    Mf1 = f1 * M_s
+    Mf3 = f3 * M_s
 
     # Central frequency point
-    f2 = (f1 + f3) / 2
+    Mf2 = (Mf1 + Mf3) / 2
 
     # For this region, we also need to calculate the the values and derivatives
     # of the Ins and IIb regions
-    v1, d1 = jax.value_and_grad(get_inspiral_Amp)(f1 * M_s, theta, coeffs)
-    v3, d3 = jax.value_and_grad(get_IIb_Amp)(f3 * M_s, theta, coeffs, f_RD, f_damp)
+    v1, d1 = jax.value_and_grad(get_inspiral_Amp)(Mf1, theta, coeffs)
+    v3, d3 = jax.value_and_grad(get_IIb_Amp)(Mf3, theta, coeffs, f_RD, f_damp)
 
     # Here we need the delta solutions
-    delta0 = get_delta0(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3)
-    delta1 = get_delta1(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3)
-    delta2 = get_delta2(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3)
-    delta3 = get_delta3(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3)
-    delta4 = get_delta4(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3)
+    delta0 = get_delta0(Mf1, Mf2, Mf3, v1, coeffs[3], v3, d1, d3)
+    delta1 = get_delta1(Mf1, Mf2, Mf3, v1, coeffs[3], v3, d1, d3)
+    delta2 = get_delta2(Mf1, Mf2, Mf3, v1, coeffs[3], v3, d1, d3)
+    delta3 = get_delta3(Mf1, Mf2, Mf3, v1, coeffs[3], v3, d1, d3)
+    delta4 = get_delta4(Mf1, Mf2, Mf3, v1, coeffs[3], v3, d1, d3)
 
     Amp_IIa = (
         delta0
-        + delta1 * fM_s
-        + delta2 * (fM_s**2.0)
-        + delta3 * (fM_s**3.0)
-        + delta4 * (fM_s**4.0)
+        + delta1 * Mf
+        + delta2 * (Mf**2.0)
+        + delta3 * (Mf**3.0)
+        + delta4 * (Mf**4.0)
     )
 
     return Amp_IIa
 
 
 def get_IIb_Amp(
-    fM_s: Float[Array, " n_freq"],
+    Mf: Float[Array, " n_freq"],
     theta: Float[Array, "4"],
     coeffs: Float[Array, "19"],
     f_RD: FloatLike,
@@ -397,10 +396,7 @@ def get_IIb_Amp(
     """Ansatz for the merger-ringdown amplitude. Equation 19 arXiv:1508.07253
     The `AmpMRDAnsatzInt` from LALSimulation.
     """
-    m1, m2, _, _ = theta
-    m1_s = m1 * MTSUN
-    m2_s = m2 * MTSUN
-    M_s = m1_s + m2_s
+    M_s = (theta[0] + theta[1]) * MTSUN
     gamma1 = coeffs[4]
     gamma2 = coeffs[5]
     gamma3 = coeffs[6]
@@ -408,7 +404,7 @@ def get_IIb_Amp(
     fRD = f_RD * M_s
 
     fDMgamma3 = fDM * gamma3
-    fminfRD = fM_s - fRD
+    fminfRD = Mf - fRD
     Amp_IIb = (
         jnp.exp(-(fminfRD) * gamma2 / (fDMgamma3))
         * (fDMgamma3 * gamma1)
@@ -436,22 +432,22 @@ def Phase(
     """
     # First lets calculate some of the vairables that will be used below
     # Mass variables
-    m1, m2, _, _ = theta
-    m1_s = m1 * MTSUN
-    m2_s = m2 * MTSUN
-    M_s = m1_s + m2_s
+    M_s = (theta[0] + theta[1]) * MTSUN
 
     # Next we need to calculate the transition frequencies
     # f1, f2, _, _, f_RD, f_damp = get_transition_frequencies(theta, coeffs[5], coeffs[6])
     f1, f2, _, _, f_RD, f_damp = transition_freqs
+    Mf = f * M_s
+    Mf1 = f1 * M_s
+    Mf2 = f2 * M_s
 
-    phi_Ins = get_inspiral_phase(f * M_s, theta, coeffs)
+    phi_Ins = get_inspiral_phase(Mf, theta, coeffs)
 
     # Next lets construct the phase of the late inspiral (region IIa)
     # beta0 is found by matching the phase between the region I and IIa
     # C(1) continuity must be preserved. We therefore need to solve for an additional
     # contribution to beta1
-    # Note that derivatives seem to be d/d(fM_s), not d/df
+    # Note that derivatives seem to be d/d(Mf), not d/df
 
     # Here I've now defined
     # phi_IIa(f1*M_s) + beta0 + beta1_correction*(f1*M_s) = phi_Ins(f1*M_s)
@@ -459,37 +455,36 @@ def Phase(
     # ==> beta1_correction = phi_Ins'(f1*M_s) - phi_IIa'(f1*M_s)
     # ==> beta0 = phi_Ins(f1*M_s) - phi_IIa(f1*M_s) - beta1_correction*(f1*M_s)
     phi_Ins_f1, dphi_Ins_f1 = jax.value_and_grad(get_inspiral_phase)(
-        f1 * M_s, theta, coeffs
+        Mf1, theta, coeffs
     )
     phi_IIa_f1, dphi_IIa_f1 = jax.value_and_grad(get_IIa_raw_phase)(
-        f1 * M_s, theta, coeffs
+        Mf1, theta, coeffs
     )
 
     beta1_correction = dphi_Ins_f1 - dphi_IIa_f1
     beta0 = phi_Ins_f1 - beta1_correction * (f1 * M_s) - phi_IIa_f1
 
-    phi_IIa_func = lambda fM_s: (
-        get_IIa_raw_phase(fM_s, theta, coeffs) + beta1_correction * fM_s
+    phi_IIa_func = lambda Mf: (
+        get_IIa_raw_phase(Mf, theta, coeffs) + beta1_correction * Mf
     )
-    phi_IIa = phi_IIa_func(f * M_s) + beta0
+    phi_IIa = phi_IIa_func(Mf) + beta0
 
     # And finally, we do the same thing to get the phase of the merger-ringdown (region IIb)
     # phi_IIb(f2*M_s) + a0 + a1_correction*(f2*M_s) = phi_IIa(f2*M_s)
     # ==> phi_IIb'(f2*M_s) + a1_correction = phi_IIa'(f2*M_s)
     # ==> a1_correction = phi_IIa'(f2*M_s) - phi_IIb'(f2*M_s)
     # ==> a0 = phi_IIa(f2*M_s) - phi_IIb(f2*M_s) - beta1_correction*(f2*M_s)
-    phi_IIa_f2, dphi_IIa_f2 = jax.value_and_grad(phi_IIa_func)(f2 * M_s)
+    phi_IIa_f2, dphi_IIa_f2 = jax.value_and_grad(phi_IIa_func)(Mf2)
     phi_IIb_f2, dphi_IIb_f2 = jax.value_and_grad(get_IIb_raw_phase)(
-        f2 * M_s, theta, coeffs, f_RD, f_damp, Rholm, Taulm
+        Mf2, theta, coeffs, f_RD, f_damp, Rholm, Taulm
     )
 
     a1_correction = dphi_IIa_f2 - dphi_IIb_f2
-    a0 = phi_IIa_f2 + beta0 - a1_correction * (f2 * M_s) - phi_IIb_f2
+    a0 = phi_IIa_f2 + beta0 - a1_correction * (Mf2) - phi_IIb_f2
 
     phi_IIb = (
-        get_IIb_raw_phase(f * M_s, theta, coeffs, f_RD, f_damp, Rholm, Taulm)
-        + a0
-        + a1_correction * (f * M_s)
+        get_IIb_raw_phase(Mf, theta, coeffs, f_RD, f_damp, Rholm, Taulm)
+        + a0 + a1_correction * Mf
     )
 
     # And now we can combine them by multiplying by a set of heaviside functions
@@ -513,26 +508,23 @@ def IMRPhenDAmplitude(
     """
     Useful function for IMRPhenomHM. Computes the Amp variable of Amp() (defined below)
     """
-
     # First lets calculate some of the vairables that will be used below
     # Mass variables
-    m1, m2, _, _ = theta
-    m1_s = m1 * MTSUN
-    m2_s = m2 * MTSUN
-    M_s = m1_s + m2_s
+    M_s = (theta[0] + theta[1]) * MTSUN
+    Mf = f * M_s
 
     # _, _, f3, f4, f_RD, f_damp = get_transition_frequencies(theta, coeffs[5], coeffs[6])
     _, _, f3, f4, f_RD, f_damp = transition_frequencies
 
     # First we get the inspiral amplitude
-    Amp_Ins = get_inspiral_Amp(f * M_s, theta, coeffs)
+    Amp_Ins = get_inspiral_Amp(Mf, theta, coeffs)
 
     # Next lets construct the phase of the late inspiral (region IIa)
     # Note that this part is a little harder since we need to solve a system of equations for deltas
-    Amp_IIa = get_IIa_Amp(f * M_s, theta, coeffs, f3, f4, f_RD, f_damp)
+    Amp_IIa = get_IIa_Amp(Mf, theta, coeffs, f3, f4, f_RD, f_damp)
 
     # And finally, we construct the amplitude of the merger-ringdown (region IIb)
-    Amp_IIb = get_IIb_Amp(f * M_s, theta, coeffs, f_RD, f_damp)
+    Amp_IIb = get_IIb_Amp(Mf, theta, coeffs, f_RD, f_damp)
 
     # And now we can combine them by multiplying by a set of heaviside functions
     # fcut_true is the last grid point strictly below fM_CUT/M_s (= floor of the cutoff).
@@ -561,21 +553,19 @@ def IMRPhenDAmplitude_NoCut(
     Same as IMRPhenDAmplitude but without the fM_CUT cutoff.
     Used by IMRPhenomHM where mapped frequencies can exceed fM_CUT.
     """
-    m1, m2, _, _ = theta
-    m1_s = m1 * MTSUN
-    m2_s = m2 * MTSUN
-    M_s = m1_s + m2_s
+    M_s = (theta[0] + theta[1]) * MTSUN
+    Mf = f * M_s
 
     _, _, f3, f4, f_RD, f_damp = transition_frequencies
 
     # First we get the inspiral amplitude
-    Amp_Ins = get_inspiral_Amp(f * M_s, theta, coeffs)
+    Amp_Ins = get_inspiral_Amp(Mf, theta, coeffs)
 
     # Intermediate amplitude (region IIa)
-    Amp_IIa = get_IIa_Amp(f * M_s, theta, coeffs, f3, f4, f_RD, f_damp)
+    Amp_IIa = get_IIa_Amp(Mf, theta, coeffs, f3, f4, f_RD, f_damp)
 
     # Merger-ringdown amplitude (region IIb)
-    Amp_IIb = get_IIb_Amp(f * M_s, theta, coeffs, f_RD, f_damp)
+    Amp_IIb = get_IIb_Amp(Mf, theta, coeffs, f_RD, f_damp)
 
     # Combine WITHOUT the fM_CUT cutoff
     Amp = (
@@ -602,7 +592,6 @@ def Amp(
     Returns:
       Amplitude (array):
     """
-
     # First lets calculate some of the vairables that will be used below
     # Mass variables
     m1, m2, _, _ = theta
@@ -620,7 +609,7 @@ def Amp(
 
     # Need to add in an overall scaling of M_s^2 to make the units correct
     dist_s = (D * MPC) / C
-    return Amp0 * Amp * (M_s**2.0) / dist_s
+    return Amp0 * Amp * (M_s*M_s) / dist_s
 
 
 def _amplitude_of(
