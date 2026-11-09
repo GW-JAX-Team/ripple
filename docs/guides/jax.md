@@ -6,7 +6,7 @@ This page shows the common patterns; see the [FAQ](../FAQ.md) for troubleshootin
 ## Float precision
 
 JAX defaults to 32-bit floats.
-Enable 64-bit precision before doing anything else — without it you may see inaccurate waveforms, particularly at high frequencies or for long signals:
+Enable 64-bit precision right after importing `jax`, before importing ripple or creating any arrays — without it you may see inaccurate waveforms, particularly at high frequencies or for long signals:
 
 ```python
 import jax
@@ -19,10 +19,11 @@ Construct the waveform once, outside the function you differentiate — the mode
 
 ```python
 import jax
-import jax.numpy as jnp
-import ripplegw
 
 jax.config.update("jax_enable_x64", True)
+
+import jax.numpy as jnp
+import ripplegw
 
 frequency = jnp.arange(20.0, 1024.0, 0.25)
 params = {

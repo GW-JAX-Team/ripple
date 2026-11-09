@@ -1,10 +1,12 @@
+import jax
 import jax.numpy as jnp
+import numpy as np
 from scipy.interpolate import CubicSpline
 
 fM_CUT = 0.2
 
 # Tables taken from https://git.ligo.org/lscsoft/lalsuite/-/blob/master/lalsimulation/lib/LALSimIMRPhenomD.h
-_QNMData_a = jnp.array(
+_QNMData_a = np.array(
     [
         -1.0,
         -0.999,
@@ -1012,7 +1014,7 @@ _QNMData_a = jnp.array(
     ]
 )
 
-_QNMData_fRD = jnp.array(
+_QNMData_fRD = np.array(
     [
         0.0464014,
         0.0464110,
@@ -2020,7 +2022,7 @@ _QNMData_fRD = jnp.array(
     ]
 )
 
-_QNMData_fdamp = jnp.array(
+_QNMData_fdamp = np.array(
     [
         0.0140098,
         0.0140102,
@@ -3028,6 +3030,23 @@ _QNMData_fdamp = jnp.array(
     ]
 )
 
-QNMData_a = jnp.linspace(-1, 1, 500_000)
-QNMData_fRD = jnp.array(CubicSpline(_QNMData_a, _QNMData_fRD)(QNMData_a))
-QNMData_fdamp = jnp.array(CubicSpline(_QNMData_a, _QNMData_fdamp)(QNMData_a))
+# The tables are NumPy float64, not jax arrays: a jax array built here would take
+# the default precision in force when ripplegw is imported (float32 unless x64 was
+# enabled first). Callers convert with jnp.asarray inside the traced function.
+# The grid is still computed by jnp.linspace, with x64 forced on for this block only
+# (the setting is thread-local), so its values are bit-identical to the float64
+# jnp.linspace grid used before; np.linspace rounds about half the points differently.
+with jax.enable_x64(True):
+    QNMData_a = np.asarray(jnp.linspace(-1, 1, 500_000))
+QNMData_fRD = CubicSpline(_QNMData_a, _QNMData_fRD)(QNMData_a)
+QNMData_fdamp = CubicSpline(_QNMData_a, _QNMData_fdamp)(QNMData_a)
+for _table in (
+    _QNMData_a,
+    _QNMData_fRD,
+    _QNMData_fdamp,
+    QNMData_a,
+    QNMData_fRD,
+    QNMData_fdamp,
+):
+    _table.setflags(write=False)
+del _table

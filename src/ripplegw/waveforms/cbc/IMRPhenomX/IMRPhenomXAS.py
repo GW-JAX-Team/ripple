@@ -1579,8 +1579,8 @@ def gen_IMRPhenomXAS(
     m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
     theta_intrinsic = jnp.array([m1, m2, params[2], params[3]])
     theta_extrinsic = jnp.array([params[4], params[5], params[6]])
-    phase_coeffs = IMRPhenomX_utils.PhenomX_phase_coeff_table
-    amp_coeffs = IMRPhenomX_utils.PhenomX_amp_coeff_table
+    phase_coeffs = jnp.asarray(IMRPhenomX_utils.PhenomX_phase_coeff_table)
+    amp_coeffs = jnp.asarray(IMRPhenomX_utils.PhenomX_amp_coeff_table)
 
     h22 = _gen_IMRPhenomXAS(
         f, theta_intrinsic, theta_extrinsic, phase_coeffs, amp_coeffs, f_ref
@@ -1672,7 +1672,7 @@ class IMRPhenomXAS(AmplitudePhaseWaveform, DistanceScaledWaveform):
     ) -> Float[Array, " n_freq"]:
         """Amplitude of ``h0``. Works on scalar or array frequencies."""
         theta_intrinsic, theta_extrinsic = _split_params(params)
-        amp_coeffs = IMRPhenomX_utils.PhenomX_amp_coeff_table
+        amp_coeffs = jnp.asarray(IMRPhenomX_utils.PhenomX_amp_coeff_table)
         return _amplitude_of(frequency, theta_intrinsic, theta_extrinsic, amp_coeffs)
 
     def phase(
@@ -1680,7 +1680,7 @@ class IMRPhenomXAS(AmplitudePhaseWaveform, DistanceScaledWaveform):
     ) -> Float[Array, " n_freq"]:
         """Phase of ``h0``. Goes to 0 above the model's high-frequency cutoff."""
         theta_intrinsic, theta_extrinsic = _split_params(params)
-        phase_coeffs = IMRPhenomX_utils.PhenomX_phase_coeff_table
+        phase_coeffs = jnp.asarray(IMRPhenomX_utils.PhenomX_phase_coeff_table)
         return _phase_of(
             frequency, theta_intrinsic, theta_extrinsic, phase_coeffs, self.f_ref
         )
