@@ -222,7 +222,7 @@ def get_Amp0(Mf: Float[Array, " n_freq"], eta: FloatLike) -> Float[Array, " n_fr
     """Amplitude scaling factor defined by eq. 17 in 1508.07253
     The `amp0Func` from LALSimulation.
     """
-    Amp0 = (2.0 / 3.0 * eta) ** (1.0 / 2.0) * (Mf) ** (-7.0 / 6.0) * PI ** (-1.0 / 6.0)
+    Amp0 = (2.0 / 3.0 * eta) ** (1.0 / 2.0) * (Mf ** (-7.0 / 6.0)) * PI ** (-1.0 / 6.0)
     return Amp0
 
 
@@ -456,7 +456,7 @@ def Phase(
     phi_IIa_f1, dphi_IIa_f1 = jax.value_and_grad(get_IIa_raw_phase)(Mf1, theta, coeffs)
 
     beta1_correction = dphi_Ins_f1 - dphi_IIa_f1
-    beta0 = phi_Ins_f1 - beta1_correction * (f1 * M_s) - phi_IIa_f1
+    beta0 = phi_Ins_f1 - beta1_correction * Mf1 - phi_IIa_f1
 
     phi_IIa_func = lambda Mf: (
         get_IIa_raw_phase(Mf, theta, coeffs) + beta1_correction * Mf
@@ -474,7 +474,7 @@ def Phase(
     )
 
     a1_correction = dphi_IIa_f2 - dphi_IIb_f2
-    a0 = phi_IIa_f2 + beta0 - a1_correction * (Mf2) - phi_IIb_f2
+    a0 = phi_IIa_f2 + beta0 - a1_correction * Mf2 - phi_IIb_f2
 
     phi_IIb = (
         get_IIb_raw_phase(Mf, theta, coeffs, f_RD, f_damp, Rholm, Taulm)
@@ -593,7 +593,7 @@ def Amp(
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s**2.0)
+    eta = m1_s * m2_s / (M_s * M_s)
 
     Amp = IMRPhenDAmplitude(f, theta, coeffs, transition_frequencies)
 
