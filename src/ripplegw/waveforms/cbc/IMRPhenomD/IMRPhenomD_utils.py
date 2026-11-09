@@ -52,6 +52,7 @@ def EradRational0815_s(eta: FloatLike, s: FloatLike) -> FloatLike:
     )
 
 
+# OBSOLETE
 def EradRational0815(eta: FloatLike, chi1: FloatLike, chi2: FloatLike) -> FloatLike:
     Seta = jnp.sqrt(jnp.abs(1.0 - 4.0 * eta))
     m1 = 0.5 * (1.0 + Seta)
@@ -86,17 +87,19 @@ def FinalSpin0815_s(eta: FloatLike, S: FloatLike) -> FloatLike:
 def get_fRD_fdamp(
     m1: FloatLike, m2: FloatLike, chi1: FloatLike, chi2: FloatLike
 ) -> tuple[FloatLike, FloatLike]:
-    m1_s = m1 * MTSUN
-    m2_s = m2 * MTSUN
-    M_s = m1_s + m2_s
-    eta_s = m1_s * m2_s / (M_s**2.0)
-    S = (chi1 * m1_s**2 + chi2 * m2_s**2) / (M_s**2.0)
-    a = FinalSpin0815_s(eta_s, S)
-    Erad = EradRational0815(eta_s, chi1, chi2)
+    Mtot = m1 + m2
+    eta = m1 * m2 / (Mtot * Mtot)
+    # See definitions of S and Shat below Eq.(3.3) of arXiv:1508.07250
+    S = (chi1 * m1 + chi2 * m2) / (Mtot * Mtot)
+    Shat = S / (1 - 2 * eta)
+
+    a = FinalSpin0815_s(eta, S)
+    Erad = EradRational0815_s(eta, Shat)
 
     fRD = _qnm_interp(a, QNMData_fRD) / (1.0 - Erad)
     fdamp = _qnm_interp(a, QNMData_fdamp) / (1.0 - Erad)
 
+    M_s = Mtot * MTSUN
     return fRD / M_s, fdamp / M_s
 
 
@@ -113,15 +116,15 @@ def get_transition_frequencies(
     FloatLike,
 ]:
     m1, m2, chi1, chi2 = theta
-    M = m1 + m2
+    M_s = (m1 + m2) * MTSUN
     f_RD, f_damp = get_fRD_fdamp(m1, m2, chi1, chi2)
 
     # Phase transition frequencies
-    f1 = 0.018 / (M * MTSUN)
+    f1 = 0.018 / M_s
     f2 = 0.5 * f_RD
 
     # Amplitude transition frequencies
-    f3 = 0.014 / (M * MTSUN)
+    f3 = 0.014 / M_s
     f4_gammaneg_gtr_1 = lambda f_RD_, f_damp_, gamma3_, gamma2_: jnp.abs(
         f_RD_ + (-f_damp_ * gamma3_) / gamma2_
     )
@@ -155,20 +158,19 @@ def get_transition_frequencies_from_fRD_fdamp(
     FloatLike,
 ]:
     """
-    Compute (dimensionless) transition frequencies using externally provided fRD and fdamp.
+    Compute transition frequencies using externally provided fRD and fdamp.
 
     This is used by IMRPhenomHM where fRD/fdamp are computed using PhenomPv2
     final spin (with chip) rather than FinalSpin0815 (aligned spin only).
     """
-    m1, m2, _chi1, _chi2 = theta
-    M = m1 + m2
+    M_s = (theta[0] + theta[1]) * MTSUN
 
     # Phase transition frequencies
-    f1 = 0.018 / (M * MTSUN)
+    f1 = 0.018 / M_s
     f2 = 0.5 * f_RD
 
     # Amplitude transition frequencies
-    f3 = 0.014 / (M * MTSUN)
+    f3 = 0.014 / M_s
     f4_gammaneg_gtr_1 = lambda f_RD_, f_damp_, gamma3_, gamma2_: jnp.abs(
         f_RD_ + (-f_damp_ * gamma3_) / gamma2_
     )
@@ -202,7 +204,7 @@ def get_coeffs(theta: Float[Array, "4"]) -> Float[Array, "19"]:
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s**2.0)
+    eta = m1_s * m2_s / (M_s * M_s)
 
     # The PN reduced spin parameter, chiPN from LALSimulation
     chi_s = (chi1 + chi2) / 2.0
