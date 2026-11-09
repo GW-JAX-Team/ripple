@@ -137,7 +137,7 @@ def get_inspiral_phase(
     # Add frequency dependence here
     v3 = PI * fM_s  # omega
     v = v3 ** (1.0 / 3.0)
-    v2 = jnp.power(v, 2)
+    v2 = v * v
     logv = jnp.log(v)
 
     phi_TF2 = (
@@ -323,9 +323,9 @@ def get_inspiral_Amp(
 
     v3 = PI * fM_s  # omega
     v = v3 ** (1.0 / 3.0)
-    v2 = jnp.power(v, 2)
-    v4 = jnp.power(v, 4)
-    v6 = jnp.power(v3, 2)
+    v2 = v * v
+    v4 = v2 * v2
+    v6 = v3 * v3
 
     Amp_Ins = (
         A0
