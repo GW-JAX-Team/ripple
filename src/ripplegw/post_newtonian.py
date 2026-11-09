@@ -1,4 +1,4 @@
-r"""
+"""
 Post-Newtonian relations for compact binary inspirals.
 
 These are closed-form approximations that are useful outside a full waveform
@@ -268,13 +268,13 @@ PHASE_TO_TIME = {
 }
 
 
-def time_to_merger_4p5PN(
+def _time_to_merger_4p5PN(
     f_22: Float[Array, " *shape"],
     M_c: FloatLike,
     eta: FloatLike,
     s1_z: FloatLike,
     s2_z: FloatLike,
-    max_pn_2: Integer = MAX_PN_2,
+    max_pn_2: int = MAX_PN_2,
 ) -> Float[Array, " *shape"]:
     r"""Compute the time to merger up to 4.5 PN order.
     Based on the relation between the phase and time.
@@ -317,7 +317,7 @@ def time_to_merger_4p5PN(
     Mtot = m1 + m2
     c_k, d_k = get_PNPhasing_F2(m1, m2, s1_z, s2_z, 0.0, 0.0)
 
-    v = jnp.cbrt(np.pi * Mtot * MTSUN * f_22)
+    v = jnp.cbrt(PI * Mtot * MTSUN * f_22)
     tau_Newt = -(5 / 256) * (Mtot / eta) / jnp.power(v, 8)
 
     linear_term = 0
@@ -344,7 +344,7 @@ def time_to_merger_4p5PN(
         log_term += PHASE_TO_TIME[lllab] * _d_k * vk * jnp.log(v) ** 2
 
     # k from 6 to 7
-    for k in reversed(range(6, 8)):
+    for k in reversed(range(6, min([8, max_pn_2 + 1]))):
         lab, llab = f"{k}PN", f"{k}lPN"
         vk = jnp.power(v, k)
         _c_k = c_k.get(lab, 0)
@@ -352,17 +352,20 @@ def time_to_merger_4p5PN(
         linear_term += PHASE_TO_TIME[lab] * (2 * _c_k + 3 * _d_k) * vk
         log_term += PHASE_TO_TIME[llab] * _d_k * vk * jnp.log(v)
 
-    # k == 5
-    lab = "5PN"
-    linear_term += PHASE_TO_TIME[lab] * d_k.get(lab, 0) * jnp.power(v, 5)
+    if max_pn_2 >= 5:
+        # k == 5
+        lab = "5PN"
+        linear_term += PHASE_TO_TIME[lab] * d_k.get(lab, 0) * jnp.power(v, 5)
 
     # k from 2 to 4
-    for k in reversed(range(2, 5)):
+    for k in reversed(range(2, min([5, max_pn_2 + 1]))):
         lab = f"{k}PN"
         _c_k = c_k.get(lab, 0)
         linear_term += PHASE_TO_TIME[lab] * _c_k * jnp.power(v, k)
 
     # This is to correct for the extra scaling from `get_PNPhasing_F2``
     pfaN = 3.0 / (128.0 * eta)  # prefactor
+    linear_term /= pfaN
+    log_term /= pfaN
 
-    return tau_Newt / pfaN * (1 + linear_term + log_term) * MTSUN
+    return tau_Newt * (1 + linear_term + log_term) * MTSUN
