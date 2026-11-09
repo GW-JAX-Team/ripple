@@ -20,6 +20,8 @@ from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomD_utils import (
     get_transition_frequencies,
 )
 
+CBRT_PI = jnp.cbrt(PI)
+
 
 def get_inspiral_phase(
     Mf: Float[Array, " n_freq"],
@@ -108,9 +110,10 @@ def get_inspiral_phase(
         - eta2 * eta * 127.825 / 1.296
         + (-684.8 / 2.1) * jnp.log(4.0)
     )
-    phi6 += (PI * m1M * (1490.0 / 3.0 + m1M * 260.0)) * chi1 + (
-        PI * m2M * (1490.0 / 3.0 + m2M * 260.0)
-    ) * chi2
+    phi6 += PI * (
+        (1490.0 / 3.0 + m1M * 260.0) * m1M * chi1
+        + (1490.0 / 3.0 + m2M * 260.0) * m2M * chi2
+    )
     phi6_log = -684.8 / 2.1
 
     phi7 = PI * (770.96675 / 2.54016 + 378.515 / 1.512 * eta - 740.45 / 7.56 * eta2)
@@ -173,10 +176,8 @@ def get_IIa_raw_phase(
     The `PhiIntAnsatz` from LALSimulation.
     """
     m1, m2, _, _ = theta
-    m1_s = m1 * MTSUN
-    m2_s = m2 * MTSUN
-    M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s * M_s)
+    Mtot = m1 + m2
+    eta = m1 * m2 / (Mtot * Mtot)
 
     phi_IIa_raw = (
         coeffs[11] * Mf + coeffs[12] * jnp.log(Mf) - coeffs[13] * (Mf**-3.0) / 3.0
@@ -222,7 +223,7 @@ def get_Amp0(Mf: Float[Array, " n_freq"], eta: FloatLike) -> Float[Array, " n_fr
     """Amplitude scaling factor defined by eq. 17 in 1508.07253
     The `amp0Func` from LALSimulation.
     """
-    Amp0 = (2.0 / 3.0 * eta) ** (1.0 / 2.0) * (Mf ** (-7.0 / 6.0)) * PI ** (-1.0 / 6.0)
+    Amp0 = (2.0 / 3.0 * eta) ** (1.0 / 2.0) * (Mf ** (-7.0 / 6.0)) / jnp.sqrt(CBRT_PI)
     return Amp0
 
 
@@ -315,9 +316,10 @@ def get_inspiral_Amp(
             + 21384760320.0 * (PI * PI)
         )
     ) / -6.0085960704e10
-    A7 = coeffs[0]
-    A8 = coeffs[1]
-    A9 = coeffs[2]
+    # LALSimulation defined these fitted coefficients with the power of pi
+    A7 = coeffs[0] / jnp.power(CBRT_PI, 7)
+    A8 = coeffs[1] / jnp.power(CBRT_PI, 8)
+    A9 = coeffs[2] / jnp.power(CBRT_PI, 9)
 
     v3 = PI * Mf  # omega
     v = jnp.cbrt(v3)
@@ -404,9 +406,9 @@ def get_IIb_Amp(
     fDMgamma3 = fDM * gamma3
     fminfRD = Mf - fRD
     Amp_IIb = (
-        jnp.exp(-(fminfRD) * gamma2 / (fDMgamma3))
+        jnp.exp(-fminfRD * gamma2 / fDMgamma3)
         * (fDMgamma3 * gamma1)
-        / ((fminfRD) ** 2.0 + (fDMgamma3) ** 2.0)
+        / ((fminfRD**2.0) + (fDMgamma3**2.0))
     )
     return Amp_IIb
 
