@@ -204,8 +204,8 @@ def get_IIb_raw_phase(
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s * M_s)
 
-    f_RDM_s = f_RD * M_s
-    f_dampM_s = f_damp * M_s
+    Mf_RD = f_RD * M_s
+    Mf_damp = f_damp * M_s
 
     phi_IIb_raw = (
         coeffs[14] * Mf
@@ -213,7 +213,7 @@ def get_IIb_raw_phase(
         + 4.0 * coeffs[16] * (Mf ** (3.0 / 4.0)) / 3.0
         + coeffs[17]
         * Rholm
-        * jnp.arctan((Mf - coeffs[18] * f_RDM_s) / (Rholm * f_dampM_s * Taulm))
+        * jnp.arctan((Mf - coeffs[18] * Mf_RD) / (Rholm * Mf_damp * Taulm))
     ) / eta
 
     return phi_IIb_raw
@@ -400,15 +400,15 @@ def get_IIb_Amp(
     gamma1 = coeffs[4]
     gamma2 = coeffs[5]
     gamma3 = coeffs[6]
-    fDM = f_damp * M_s
-    fRD = f_RD * M_s
+    Mf_damp = f_damp * M_s
+    Mf_RD = f_RD * M_s
 
-    fDMgamma3 = fDM * gamma3
-    fminfRD = Mf - fRD
+    Mf_D_gamma3 = Mf_damp * gamma3
+    Mfmin_RD = Mf - Mf_RD
     Amp_IIb = (
-        jnp.exp(-fminfRD * gamma2 / fDMgamma3)
-        * (fDMgamma3 * gamma1)
-        / ((fminfRD**2.0) + (fDMgamma3**2.0))
+        jnp.exp(-Mfmin_RD * gamma2 / Mf_D_gamma3)
+        * (Mf_D_gamma3 * gamma1)
+        / ((Mfmin_RD**2.0) + (Mf_D_gamma3**2.0))
     )
     return Amp_IIb
 
