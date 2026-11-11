@@ -1,3 +1,7 @@
+# Contains material adapted from LALSuite: SimulatePulsarSignal.c, GeneratePulsarSignal.c
+# and GenerateSpinOrbitCW.c.
+# Modified for ripple; relevant change date 2026-07-28. See NOTICE.md and LICENSE.
+
 """Exact continuous-wave pulsar signal: plus/cross polarizations in JAX.
 
 This is the JAX port of the *source* model underlying

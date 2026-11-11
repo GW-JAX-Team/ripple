@@ -1,3 +1,6 @@
+# Contains material adapted from LALSuite: LALSimIMRPhenomD.c and LALSimIMRPhenomD_internals.c.
+# Modified for ripple; relevant change date 2026-10-14. See NOTICE.md and LICENSE.
+
 from collections.abc import Mapping
 
 import jax

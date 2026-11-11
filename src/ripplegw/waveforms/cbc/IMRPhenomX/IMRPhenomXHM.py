@@ -1,3 +1,8 @@
+# Contains material adapted from LALSuite: LALSimIMRPhenomXHM.c, LALSimIMRPhenomXHM_internals.c,
+# LALSimIMRPhenomXHM_inspiral.c, LALSimIMRPhenomXHM_intermediate.c, LALSimIMRPhenomXHM_ringdown.c
+# and LALSimIMRPhenomXHM_qnm.c.
+# Modified for ripple; relevant change date 2026-10-22. See NOTICE.md and LICENSE.
+
 """
 IMRPhenomXHM.py — JAX port of LAL's PhenomXHM higher-mode infrastructure.
 

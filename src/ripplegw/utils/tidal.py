@@ -1,3 +1,6 @@
+# Contains material adapted from LALSuite: LALSimUniversalRelations.c and LALSimInspiralEOS.c.
+# Modified for ripple; relevant change date 2026-07-26. See NOTICE.md and LICENSE.
+
 """
 Small utility script for shared functions between tidal waveforms, especially for NRTidalv2
 """

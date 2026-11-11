@@ -1,3 +1,7 @@
+# Contains material adapted from LALSuite: LALSimIMRPhenomNSBH.c, LALSimNSBHProperties.c,
+# LALSimBHNSRemnantFits.c and LALSimIMRPhenomC_internals.c.
+# Modified for ripple; relevant change date 2026-10-26. See NOTICE.md and LICENSE.
+
 """
 JAX implementation of LAL's ``IMRPhenomNSBH`` (``LALSimIMRPhenomNSBH.c``).
 

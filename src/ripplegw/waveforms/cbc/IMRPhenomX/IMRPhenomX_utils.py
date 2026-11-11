@@ -1,3 +1,6 @@
+# Contains material adapted from LALSuite: LALSimIMRPhenomXUtilities.c and LALSimIMRPhenomTHM_fits.c.
+# Modified for ripple; relevant change date 2026-10-21. See NOTICE.md and LICENSE.
+
 from typing import Optional
 
 import jax.numpy as jnp
