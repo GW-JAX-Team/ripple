@@ -1,5 +1,5 @@
-# Contains material adapted from LALSuite: LALSimNRTunedTides.c, and from gwfast (Planck taper).
-# Modified for ripple; relevant change date 2026-10-21. See NOTICE.md and LICENSE.
+# Contains material adapted from LALSuite: LALSimNRTunedTides.c.
+# Modified for ripple; relevant change date 2026-11-11. See NOTICE.md and LICENSE.
 
 """
 This file implements the NRTidalv2 corrections that can be applied to any BBH baseline, see http://arxiv.org/abs/1905.06011 for equations used.
@@ -40,70 +40,24 @@ from ripplegw.waveforms.cbc.Taylor.TaylorF2 import (
 #################
 
 
-# The code below to compute the Planck taper is obtained from gwfast (https://github.com/CosmoStatGW/gwfast/blob/ccde00e644682639aa8c9cbae323e42718fd61ca/gwfast/waveforms.py#L1332)
-@jax.custom_jvp
 def get_planck_taper(x: Float[Array, " n_freq"], y: float) -> Float[Array, " n_freq"]:
     """
-    Compute the Planck taper function.
+    Planck taper: 1 for ``x <= y``, 0 for ``x >= 1.2 y``, smooth in between.
 
     Args:
         x (Array): Array of frequencies
-        y (float): Point at which the Planck taper starts. The taper ends at 1.2 times y.
+        y (float): Frequency at which the taper starts.
 
     Returns:
-        Array: Planck taper function.
+        Array: Taper values.
     """
-    a = 1.2
-    yp = a * y
-    return jnp.where(
-        x < y,
-        1.0,
-        jnp.where(
-            x > yp,
-            0.0,
-            1.0 - 1.0 / (jnp.exp((yp - y) / (x - y) + (yp - y) / (x - yp)) + 1.0),
-        ),
-    )
-
-
-def get_planck_taper_der(
-    x: Float[Array, " n_freq"], y: float
-) -> Float[Array, " n_freq"]:
-    """
-    Derivative of the Planck taper function.
-
-    Args:
-        x (Array): Array of frequencies
-        y (float): Starting point of the Planck taper.
-
-    Returns:
-        Array: Array of derivative of Planck taper.
-    """
-    a = 1.2
-    yp = a * y
-    tangent_out = jnp.where(
-        x < y,
-        0.0,
-        jnp.where(
-            x > yp,
-            0.0,
-            jnp.exp((yp - y) / (x - y) + (yp - y) / (x - yp))
-            * (
-                (-1.0 + a) / (x - y)
-                + (-1.0 + a) / (x - yp)
-                + (-y + yp) / ((x - y) ** 2)
-                + 1.2 * (-y + yp) / ((x - yp) ** 2)
-            )
-            / ((jnp.exp((yp - y) / (x - y) + (yp - y) / (x - yp)) + 1.0) ** 2),
-        ),
-    )
-    tangent_out = jnp.nan_to_num(tangent_out)
-    return tangent_out
-
-
-get_planck_taper.defjvps(
-    None, lambda y_dot, primal_out, x, y: get_planck_taper_der(x, y) * y_dot
-)
+    y_end = 1.2 * y
+    width = y_end - y
+    inside = (x > y) & (x < y_end)
+    # Evaluate z only inside the window so autodiff never sees a zero denominator.
+    x_in = jnp.where(inside, x, 0.5 * (y + y_end))
+    z = width / (x_in - y) + width / (x_in - y_end)
+    return jnp.where(x <= y, 1.0, jnp.where(x >= y_end, 0.0, jax.nn.sigmoid(z)))
 
 
 def get_amp0_lal(M: FloatLike, distance: FloatLike) -> FloatLike:
