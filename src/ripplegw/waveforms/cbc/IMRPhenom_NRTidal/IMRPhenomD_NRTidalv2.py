@@ -40,7 +40,9 @@ from ripplegw.waveforms.cbc.Taylor.TaylorF2 import (
 #################
 
 
-def get_planck_taper(x: Float[Array, " n_freq"], y: float) -> Float[Array, " n_freq"]:
+def get_planck_taper(
+    x: Float[Array, " n_freq"], y: FloatLike
+) -> Float[Array, " n_freq"]:
     """
     Planck taper: 1 for ``x <= y``, 0 for ``x >= 1.2 y``, smooth in between.
 
