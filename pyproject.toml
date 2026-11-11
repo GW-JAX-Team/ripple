@@ -10,13 +10,12 @@ authors = [
 maintainers = [
   {name = "Thomas Ng", email = "thomas.ng@nikhef.nl"}
 ]
-license = { file = "LICENSE" }
+license = "GPL-3.0-only AND MIT"
 keywords = ["gravitational waves", "jax"]
 classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
-    "License :: OSI Approved :: MIT License",
     "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",
 ]
@@ -68,7 +67,7 @@ Changelog = "https://github.com/GW-JAX-Team/ripple/releases"
 ripplegw = { workspace = true }
 
 [build-system]
-requires = ["hatchling", "hatch-vcs"]
+requires = ["hatchling>=1.27", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [tool.hatch.version]

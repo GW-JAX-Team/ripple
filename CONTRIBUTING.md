@@ -3,6 +3,11 @@
 Contributions of any kind are welcome and appreciated.
 See the guidelines below.
 
+ripple as a whole is distributed under GPL-3.0 (see [LICENSE](LICENSE)).
+Unless you state otherwise, code you write yourself is contributed under the
+MIT licence (see [LICENSE-MIT](LICENSE-MIT)). If a contribution copies or
+adapts code from another project, name the source and its licence.
+
 ## Expectations
 
 ripple is developed and maintained by the GW JAX Team and community contributors.
