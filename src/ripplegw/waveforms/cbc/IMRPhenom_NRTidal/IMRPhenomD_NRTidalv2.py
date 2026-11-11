@@ -1,3 +1,6 @@
+# Contains material adapted from LALSuite: LALSimNRTunedTides.c, and from gwfast (Planck taper).
+# Modified for ripple; relevant change date 2026-10-21. See NOTICE.md and LICENSE.
+
 """
 This file implements the NRTidalv2 corrections that can be applied to any BBH baseline, see http://arxiv.org/abs/1905.06011 for equations used.
 """

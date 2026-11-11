@@ -1,3 +1,6 @@
+# Contains material adapted from LALSuite: LALSimIMRPhenomXPHM.c.
+# Modified for ripple; relevant change date 2026-10-14. See NOTICE.md and LICENSE.
+
 from collections.abc import Mapping
 from dataclasses import dataclass
 

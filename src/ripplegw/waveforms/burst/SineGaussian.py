@@ -1,3 +1,6 @@
+# Contains material adapted from LALSuite: LALInferenceBurstRoutines.c.
+# Modified for ripple; relevant change date 2026-07-26. See NOTICE.md and LICENSE.
+
 from collections.abc import Mapping
 
 import jax.numpy as jnp

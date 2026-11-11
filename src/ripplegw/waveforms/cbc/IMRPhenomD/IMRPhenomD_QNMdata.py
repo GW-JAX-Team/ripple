@@ -1,3 +1,6 @@
+# Contains material adapted from LALSuite: LALSimIMRPhenomD.h (QNM table).
+# Modified for ripple; relevant change date 2026-07-26. See NOTICE.md and LICENSE.
+
 import jax.numpy as jnp
 from scipy.interpolate import CubicSpline
 
