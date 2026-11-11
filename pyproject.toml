@@ -10,7 +10,7 @@ authors = [
 maintainers = [
   {name = "Thomas Ng", email = "thomas.ng@nikhef.nl"}
 ]
-license = "GPL-3.0-only AND MIT"
+license = "GPL-2.0-or-later AND MIT"
 keywords = ["gravitational waves", "jax"]
 classifiers = [
     "Programming Language :: Python :: 3.12",
