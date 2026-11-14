@@ -90,7 +90,7 @@ def get_fRD_fdamp(
     Mtot = m1 + m2
     eta = m1 * m2 / (Mtot * Mtot)
     # See definitions of S and Shat below Eq.(3.3) of arXiv:1508.07250
-    S = (chi1 * m1 + chi2 * m2) / (Mtot * Mtot)
+    S = (chi1 * m1 * m1 + chi2 * m2 * m2) / (Mtot * Mtot)
     Shat = S / (1 - 2 * eta)
 
     a = FinalSpin0815_s(eta, S)
