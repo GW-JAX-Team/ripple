@@ -1,26 +1,19 @@
 # Licences and third-party notices
 
-ripple as a whole is distributed under the GNU General Public License, version
-2 or (at your option) any later version, in [LICENSE](LICENSE), because it
-includes the GPL-licensed material listed below. ripple was first released
-under the MIT licence; that licence and its copyright notice are kept in
-[LICENSE-MIT](LICENSE-MIT) and still apply to ripple code that is not derived
-from the material below. Files that include third-party material say so in
-their first lines.
+ripple as a whole is distributed under the GNU General Public License, version 2 or (at your option) any later version, in [LICENSE](LICENSE), because it includes the GPL-licensed material listed below.
+ripple was first released under the MIT licence; that licence and its copyright notice are kept in [LICENSE-MIT](LICENSE-MIT) and still apply to ripple code that is not derived from the material below.
+Files that include third-party material say so in their first lines.
 
 ## LALSuite
 
-Files marked as adapted from LALSuite translate or adapt code from
-[LALSuite](https://git.ligo.org/lscsoft/lalsuite), which is licensed under
-GPL-2.0-or-later; ripple distributes them under the same licence. Their
-upstream copyright notices are listed at the end of this file.
+Files marked as adapted from LALSuite translate or adapt code from [LALSuite](https://git.ligo.org/lscsoft/lalsuite), which is licensed under GPL-2.0-or-later; ripple distributes them under the same licence.
+Their upstream copyright notices are listed at the end of this file.
 
 ## bilby
 
-`src/ripplegw/conversions.py` contains code adapted from
-[bilby](https://github.com/bilby-dev/bilby). Copyright (c) 2018 Paul D. Lasky.
-bilby is MIT licensed; the MIT permission notice is in
-[LICENSE-MIT](LICENSE-MIT).
+`src/ripplegw/conversions.py` contains code adapted from [bilby](https://github.com/bilby-dev/bilby).
+Copyright (c) 2018 Paul D. Lasky.
+bilby is MIT licensed; the MIT permission notice is in [LICENSE-MIT](LICENSE-MIT).
 
 ## LALSuite copyright notices
 
