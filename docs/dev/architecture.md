@@ -16,7 +16,7 @@ For the practical steps, see [Adding a Waveform](adding_a_waveform.md).
 - **One construction path.**
   Concrete waveform classes are deliberately not exported — `ripplegw.waveform(name, **config)` is the only way to build one, so there's exactly one thing to keep stable across releases.
 
-Two modules are usable but not re-exported at the top level — import them explicitly: `ripplegw.conversions` (mass and tidal-parameter conversions) and `ripplegw.constants` (physical constants).
+Three modules are usable but not re-exported at the top level — import them explicitly: `ripplegw.conversions` (e.g. mass and tidal-parameter conversions), `ripplegw.tools` (e.g. the time to merger at a given frequency) and `ripplegw.constants` (physical constants).
 
 ## The registry
 
