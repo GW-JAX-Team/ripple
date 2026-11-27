@@ -1712,6 +1712,91 @@
   
   
   
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12_1_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_12_1_6" id="__nav_12_1_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  tools
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_12_1_6_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_12_1_6">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  tools
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/ripplegw/tools/chirp_time/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  chirp_time
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="../../api/ripplegw/typing/" class="md-nav__link">
         
@@ -1881,7 +1966,7 @@ For the practical steps, see <a href="../adding_a_waveform/">Adding a Waveform</
 <li><strong>One construction path.</strong>
   Concrete waveform classes are deliberately not exported — <code>ripplegw.waveform(name, **config)</code> is the only way to build one, so there's exactly one thing to keep stable across releases.</li>
 </ul>
-<p>Two modules are usable but not re-exported at the top level — import them explicitly: <code>ripplegw.conversions</code> (mass and tidal-parameter conversions) and <code>ripplegw.constants</code> (physical constants).</p>
+<p>Three modules are usable but not re-exported at the top level — import them explicitly: <code>ripplegw.conversions</code> (e.g. mass and tidal-parameter conversions), <code>ripplegw.tools</code> (e.g. the time to merger at a given frequency) and <code>ripplegw.constants</code> (physical constants).</p>
 <h2 id="the-registry">The registry<a class="headerlink" href="#the-registry" title="Permanent link">¤</a></h2>
 <p>Waveform classes self-register with <code>@register</code> when their module is imported — there's no central list mapping names to classes to maintain.
 Metadata like <code>domain</code> and <code>source_type</code> (the GW source category — <code>cbc</code>, <code>burst</code>, <code>cw</code>, ...) is inferred from the class itself — its base class, its location on disk — rather than declared, so it can't drift from what the class actually is.
