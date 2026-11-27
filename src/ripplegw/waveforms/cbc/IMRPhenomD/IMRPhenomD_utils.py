@@ -21,7 +21,9 @@ _QNM_A_MAX = float(QNMData_a[-1])  # 1.0
 _QNM_SCALE = (_QNM_N - 1) / (_QNM_A_MAX - _QNM_A_MIN)
 
 
-def _qnm_interp(x: FloatLike, table: Float[Array, " n_qnm"]) -> FloatLike:
+def _qnm_interp(
+    x: FloatLike, table: Float[np.ndarray, " n_qnm"] | Float[Array, " n_qnm"]
+) -> FloatLike:
     """Linear interp on the uniform QNMData_a grid in O(1) index arithmetic."""
     t = (x - _QNM_A_MIN) * _QNM_SCALE
     i = jnp.clip(jnp.floor(t).astype(jnp.int32), 0, _QNM_N - 2)

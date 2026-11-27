@@ -382,6 +382,7 @@ def init_PhenomHM_Storage(
     # IMPORTANT: For the PhenomD amplitude calculation, LAL's IMRPhenomDAmpFrequencySequence
     # uses the PhenomD QNM data (QNMData_fRD, QNMData_fdamp) rather than SimRingdownCW_CW07102016.
     # We need to store these separately for use in IMRPhenomHMAmplitude.
+    # The QNM tables stay NumPy, so their precision does not depend on import order.
 
     p["Mf_RD_22_PhenomD"] = (
         jnp.interp(p["finspin"], QNMData_a, QNMData_fRD) / p["finmass"]
