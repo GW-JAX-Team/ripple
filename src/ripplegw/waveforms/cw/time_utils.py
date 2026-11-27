@@ -1,3 +1,6 @@
+# Contains material adapted from LALSuite: LALBarycenter.c and XLALCivilTime.c.
+# Modified for ripple; relevant change date 2026-07-26. See NOTICE.md and LICENSE.
+
 """GPS time-system utilities for continuous-wave barycentering.
 
 These reproduce the relevant pieces of LAL's date/barycentering code:

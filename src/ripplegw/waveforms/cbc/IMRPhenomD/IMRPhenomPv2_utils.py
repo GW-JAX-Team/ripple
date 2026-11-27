@@ -1,3 +1,6 @@
+# Contains material adapted from LALSuite: SphericalHarmonics.c and LALSimIMRPhenomP.c.
+# Modified for ripple; relevant change date 2026-10-21. See NOTICE.md and LICENSE.
+
 import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Float

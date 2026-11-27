@@ -1,3 +1,6 @@
+# Contains material adapted from LALSuite: LALSimInspiralTaylorF2.c and LALSimInspiralPNCoefficients.c.
+# Modified for ripple; relevant change date 2026-10-21. See NOTICE.md and LICENSE.
+
 """
 This file implements the TaylorF2 waveform, as described in the LALSuite library.
 """

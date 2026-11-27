@@ -1,3 +1,6 @@
+# Contains material adapted from LALSuite: LALBarycenter.c.
+# Modified for ripple; relevant change date 2026-07-26. See NOTICE.md and LICENSE.
+
 """Full Earth state for high-accuracy barycentering.
 
 Port of ``XLALBarycenterEarth`` (lalpulsar/lib/LALBarycenter.c) for the
