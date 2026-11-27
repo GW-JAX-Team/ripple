@@ -7,7 +7,7 @@ To generate a gravitational-wave waveform, construct the model by name via `ripp
 ```python
 import jax
 
-jax.config.update("jax_enable_x64", True)  # 64-bit precision; see JAX Transformations
+jax.config.update("jax_enable_x64", True)  # 64-bit precision
 
 import jax.numpy as jnp
 import ripplegw
