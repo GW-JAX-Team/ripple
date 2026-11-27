@@ -1,3 +1,6 @@
+# Contains material adapted from LALSuite: LALBarycenter.c.
+# Modified for ripple; relevant change date 2026-08-01. See NOTICE.md and LICENSE.
+
 """JAX barycentering: detector position in the SSB frame and Roemer delay.
 
 This reproduces, in differentiable JAX, the geometric quantity used by

@@ -1,3 +1,6 @@
+# Contains material adapted from LALSuite: LALSimNRTunedTides.c.
+# Modified for ripple; relevant change date 2026-10-21. See NOTICE.md and LICENSE.
+
 """by Robin Chan"""
 
 import jax.numpy as jnp

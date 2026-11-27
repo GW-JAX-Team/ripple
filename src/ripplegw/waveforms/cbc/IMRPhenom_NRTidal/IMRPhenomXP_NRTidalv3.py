@@ -1,3 +1,6 @@
+# Contains material adapted from LALSuite: LALSimIMRPhenomXPHM.c and LALSimIMRPhenomX_precession.c.
+# Modified for ripple; relevant change date 2026-10-21. See NOTICE.md and LICENSE.
+
 """by Robin Chan"""
 
 from collections.abc import Mapping

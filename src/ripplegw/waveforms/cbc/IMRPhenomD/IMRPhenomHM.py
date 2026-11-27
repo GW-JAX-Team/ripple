@@ -1,3 +1,6 @@
+# Contains material adapted from LALSuite: LALSimIMRPhenomHM.c and LALSimIMRPhenomUtils.c.
+# Modified for ripple; relevant change date 2026-10-21. See NOTICE.md and LICENSE.
+
 from collections.abc import Mapping
 from typing import Any
 

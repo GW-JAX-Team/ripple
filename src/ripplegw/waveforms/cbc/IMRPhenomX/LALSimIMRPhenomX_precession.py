@@ -1,3 +1,6 @@
+# Contains material adapted from LALSuite: LALSimIMRPhenomX_precession.c and LALSimIMRPhenomXUtilities.c.
+# Modified for ripple; relevant change date 2026-09-01. See NOTICE.md and LICENSE.
+
 import dataclasses
 
 import jax
