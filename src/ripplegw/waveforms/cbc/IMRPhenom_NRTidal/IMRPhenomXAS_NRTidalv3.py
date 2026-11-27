@@ -121,7 +121,7 @@ def _phase_of(
             )
         )(f_final * M_s)
 
-    bbh_phase_coeffs = IMRPhenomX_utils.PhenomX_phase_coeff_table
+    bbh_phase_coeffs = jnp.asarray(IMRPhenomX_utils.PhenomX_phase_coeff_table)
 
     phiTfRef = fullTidalPhaseCorrection(  # This is part of the tidal correction to the phase alignment and takes into account spin-tidal interactions
         f_ref * M_s, theta_intrinsic, P_P_fref
@@ -240,8 +240,8 @@ def _bbh_amp_psi(
     """
     m1, m2, chi1, chi2, _, _ = theta_intrinsic
     bbh_theta_intrinsic = jnp.array([m1, m2, chi1, chi2])
-    phase_coeffs = IMRPhenomX_utils.PhenomX_phase_coeff_table
-    amp_coeffs = IMRPhenomX_utils.PhenomX_amp_coeff_table
+    phase_coeffs = jnp.asarray(IMRPhenomX_utils.PhenomX_phase_coeff_table)
+    amp_coeffs = jnp.asarray(IMRPhenomX_utils.PhenomX_amp_coeff_table)
     Psi = Phase(f, bbh_theta_intrinsic, phase_coeffs, chip, a_prec_override)
     A = Amp(
         f,

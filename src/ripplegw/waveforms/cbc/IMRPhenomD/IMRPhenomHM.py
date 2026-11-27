@@ -39,7 +39,8 @@ from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomPv2_utils import FinalSpin0815
 # [L.Blancet, arXiv:1310.1528 (Sec. 9.5)]
 # "Spherical hrmonic modes for numerical relativity"
 # List of phase shifts: the index is the azimuthal number m
-CSHIFT = jnp.array([0.0, PI / 2.0, 0.0, -PI / 2.0, PI, PI / 2.0, 0.0])
+# A tuple, not a jax array, so it is not frozen at the precision in force at import.
+CSHIFT = (0.0, PI / 2.0, 0.0, -PI / 2.0, PI, PI / 2.0, 0.0)
 
 
 def gen_IMRPhenomHM(
@@ -381,6 +382,7 @@ def init_PhenomHM_Storage(
     # IMPORTANT: For the PhenomD amplitude calculation, LAL's IMRPhenomDAmpFrequencySequence
     # uses the PhenomD QNM data (QNMData_fRD, QNMData_fdamp) rather than SimRingdownCW_CW07102016.
     # We need to store these separately for use in IMRPhenomHMAmplitude.
+    # The QNM tables stay NumPy, so their precision does not depend on import order.
 
     p["Mf_RD_22_PhenomD"] = (
         jnp.interp(p["finspin"], QNMData_a, QNMData_fRD) / p["finmass"]
@@ -807,7 +809,7 @@ def IMRPhenomHMPhase(
         ),
     )
 
-    phase = CSHIFT[jnp.abs(mm)] + phi_raw * inv_a + offset
+    phase = jnp.asarray(CSHIFT)[jnp.abs(mm)] + phi_raw * inv_a + offset
 
     return phase
 

@@ -6,10 +6,10 @@ resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'emscripten'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version < '3.13' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'emscripten'",
-    "python_full_version < '3.13' and sys_platform == 'emscripten'",
     "python_full_version == '3.13.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version < '3.13' and sys_platform == 'win32'",
+    "python_full_version < '3.13' and sys_platform == 'emscripten'",
     "python_full_version < '3.13' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 
@@ -2055,6 +2055,7 @@ source = { editable = "." }
 dependencies = [
     { name = "jax" },
     { name = "jaxtyping" },
+    { name = "numpy" },
 ]
 
 [package.optional-dependencies]
@@ -2089,6 +2090,7 @@ requires-dist = [
     { name = "jax", specifier = ">=0.8.2" },
     { name = "jax", extras = ["cuda"], marker = "sys_platform == 'linux' and extra == 'cuda'", specifier = ">=0.8.2" },
     { name = "jaxtyping", specifier = ">=0.3.3" },
+    { name = "numpy", specifier = ">=1.26" },
 ]
 provides-extras = ["cuda"]
 
