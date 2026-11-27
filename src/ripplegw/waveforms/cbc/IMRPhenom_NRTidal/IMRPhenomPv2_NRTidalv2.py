@@ -12,11 +12,11 @@ The tidal building blocks are shared with ``IMRPhenomD_NRTidalv2``, including th
 quadrupole-monopole terms LAL feeds into the IMRPhenomD inspiral phase.
 """
 
-import math
 from collections.abc import Mapping
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 from jaxtyping import Array, Complex, Float
 
 from ripplegw.constants import MTSUN, PI
@@ -45,7 +45,7 @@ from ripplegw.waveforms.cbc.IMRPhenomD.IMRPhenomPv2_utils import (
 
 # Y_{2,2} normalisation: ripple's IMRPhenomD amplitudes include it, the twist-up
 # (like LAL's PhenomP core) expects it divided out.
-_NORM = 2.0 * math.sqrt(5.0 / (64.0 * PI))
+_NORM = 2.0 * np.sqrt(5.0 / (64.0 * PI))
 
 
 def _tidal_phase(

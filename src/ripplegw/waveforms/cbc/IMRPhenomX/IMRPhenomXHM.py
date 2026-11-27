@@ -17,13 +17,13 @@ Ports the 122019-release code from:
 The 22-mode reuses ripple's existing IMRPhenomXAS.py (Phase + Amp functions).
 """
 
-import math
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 from jax import Array
 from jaxtyping import Complex, Float
 
@@ -2939,13 +2939,12 @@ def xhm_phase_noModeMixing(
 # ---------------------------------------------------------------------------
 
 # PNglobalfactor prefactors per mode (modeInt 0=21, 1=33, 2=32, 3=44).
-# Python floats, not jax scalars, so they are not frozen at the precision in
-# force when ripplegw is imported.
+# NumPy floats, not jax scalars, so their precision doesn't depend on import order.
 _AMP_PREFACTORS = (
-    math.sqrt(2.0) / 3.0,  # 21
-    0.75 * math.sqrt(5.0 / 7.0),  # 33
-    math.sqrt(5.0 / 7.0) / 3.0,  # 32
-    4.0 * math.sqrt(2.0) / 9.0 * math.sqrt(5.0 / 7.0),  # 44
+    np.sqrt(2.0) / 3.0,  # 21
+    0.75 * np.sqrt(5.0 / 7.0),  # 33
+    np.sqrt(5.0 / 7.0) / 3.0,  # 32
+    4.0 * np.sqrt(2.0) / 9.0 * np.sqrt(5.0 / 7.0),  # 44
 )
 
 
