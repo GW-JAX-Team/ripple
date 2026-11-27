@@ -1955,17 +1955,18 @@
 This page shows the common patterns; see the <a href="../../FAQ/">FAQ</a> for troubleshooting compile times and precision issues.</p>
 <h2 id="float-precision">Float precision<a class="headerlink" href="#float-precision" title="Permanent link">¤</a></h2>
 <p>JAX defaults to 32-bit floats.
-Enable 64-bit precision before doing anything else — without it you may see inaccurate waveforms, particularly at high frequencies or for long signals:</p>
+Enable 64-bit precision right after importing <code>jax</code>, before importing ripple or creating any arrays — without it you may see inaccurate waveforms, particularly at high frequencies or for long signals:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
 <span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">"jax_enable_x64"</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="gradients-with-jaxgrad">Gradients with <code>jax.grad</code><a class="headerlink" href="#gradients-with-jaxgrad" title="Permanent link">¤</a></h2>
 <p>Construct the waveform once, outside the function you differentiate — the model object is reused across every gradient evaluation rather than rebuilt each call:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">ripplegw</span>
 
 <span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">"jax_enable_x64"</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">ripplegw</span>
 
 <span class="n">frequency</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">20.0</span><span class="p">,</span> <span class="mf">1024.0</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">)</span>
 <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>

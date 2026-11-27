@@ -2011,7 +2011,11 @@
 Every model takes an evaluation grid (a frequency or time array) and a dictionary of parameters, and returns the gravitational-wave polarizations as JAX arrays — so every waveform is <strong>differentiable</strong>, <strong>JIT-compilable</strong>, and <strong>vectorisable</strong>.
 See <a href="../jax/">JAX Transformations</a> for <code>jax.grad</code> / <code>jax.jit</code> / <code>jax.vmap</code> in depth.</p>
 <h2 id="discovering-waveforms">Discovering waveforms<a class="headerlink" href="#discovering-waveforms" title="Permanent link">¤</a></h2>
-<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">ripplegw</span>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
+
+<span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">"jax_enable_x64"</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">ripplegw</span>
 
 <span class="n">ripplegw</span><span class="o">.</span><span class="n">list_waveforms</span><span class="p">()</span>                       <span class="c1"># every registered model name</span>
 <span class="n">ripplegw</span><span class="o">.</span><span class="n">list_waveforms</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="s2">"FD"</span><span class="p">)</span>            <span class="c1"># filter by metadata</span>
@@ -2035,10 +2039,7 @@ If a filter returns fewer names than you expect, check <code>get_waveform_metada
 <p><code>ripplegw.waveform(name="IMRPhenomD")</code> raises <code>TypeError</code> — always pass the name as the first positional argument, <code>ripplegw.waveform("IMRPhenomD", ...)</code>.</p>
 </div>
 <h2 id="evaluating-a-waveform">Evaluating a waveform<a class="headerlink" href="#evaluating-a-waveform" title="Permanent link">¤</a></h2>
-<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
-
-<span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">"jax_enable_x64"</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>  <span class="c1"># see JAX Transformations for why this matters</span>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
 
 <span class="n">frequency</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">20.0</span><span class="p">,</span> <span class="mf">1024.0</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">)</span>
 <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>

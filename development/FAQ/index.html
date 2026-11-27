@@ -1948,7 +1948,7 @@
 <h1 id="faq">FAQ<a class="headerlink" href="#faq" title="Permanent link">¤</a></h1>
 <h2 id="float-precision">Float precision<a class="headerlink" href="#float-precision" title="Permanent link">¤</a></h2>
 <p>JAX defaults to float32, but gravitational-wave waveform computations typically require float64 precision.
-Always enable it at the top of your script, before any JAX operations:</p>
+Always enable it at the top of your script, before importing ripplegw or running any JAX operations, because arrays created before the switch stay float32:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
 <span class="n">jax</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">"jax_enable_x64"</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
 </code></pre></div>
